@@ -34,6 +34,24 @@ def fetch_assets():
         sys.exit(e.returncode)
 
 
+def build_css():
+    """Compiles the Tailwind stylesheet so the bundle ships precompiled CSS."""
+    print("Building Tailwind CSS...")
+    cmd = [
+        "npx", "--yes", "tailwindcss@3.4.17",
+        "-c", "tailwind.config.js",
+        "-i", "src/webui/tailwind.src.css",
+        "-o", "src/webui/styles.css",
+        "--minify",
+    ]
+    try:
+        # shell=True on Windows so the npx shim resolves on PATH.
+        subprocess.check_call(cmd, shell=(sys.platform == "win32"))
+    except subprocess.CalledProcessError as e:
+        print(f"Tailwind build failed with exit code {e.returncode}")
+        sys.exit(e.returncode)
+
+
 def run_pyinstaller():
     """Runs PyInstaller using the current Python interpreter."""
     print("Running PyInstaller...")
@@ -76,6 +94,7 @@ def main():
     print("🔨 Building queueBot...")
     clean_build_dirs()
     fetch_assets()
+    build_css()
     run_pyinstaller()
     create_zip_release()
 

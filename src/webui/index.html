@@ -5,35 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>queueBot</title>
   <!--
-    Tailwind Play CDN — fast styling iteration. Before packaging a release we
-    swap this for a precompiled styles.css so the bundled app works offline.
+    Precompiled Tailwind (scripts: tailwind.config.js + tailwind.src.css → styles.css)
+    and locally-vendored fonts, so the bundled app works fully offline.
     Palette mirrors skinbattle.lol's Hextech theme.
+    Rebuild CSS after changing classes:
+      npx tailwindcss@3.4.17 -c tailwind.config.js -i src/webui/tailwind.src.css -o src/webui/styles.css --minify
   -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Marcellus&display=swap" rel="stylesheet" />
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            gold1: "#F0E6D2", gold2: "#C8AA6E", gold3: "#C8AA6E",
-            gold4: "#C8983C", gold5: "#785A28", gold6: "#463714", gold7: "#32281E",
-            blue1: "#CDFAFA", blue2: "#0AC8B9", blue3: "#0397AB", blue4: "#005A82",
-            blue5: "#0A323C", blue6: "#091428", blue7: "#0A1428",
-            grey1: "#A09B8C", grey2: "#3C3C41", grey3: "#1E2328",
-            icon: "#c9bf96", iconActive: "#eee7d4",
-            subText: "#9f9b8d", titleText: "#978351",
-            "hextech-black": "#010A13",
-          },
-          fontFamily: {
-            serif: ["Marcellus", "Georgia", "Cambria", "serif"],
-            display: ["Cinzel", "Georgia", "serif"],
-          },
-        },
-      },
-    };
-  </script>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="assets/fonts/fonts.css" />
   <style>
     html {
       background: linear-gradient(220deg, #030912 0%, #0A1428 55%, #1a3243 100%) fixed;

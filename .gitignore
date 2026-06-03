@@ -15,3 +15,6 @@ config.json
 # Downloaded League assets — regenerated via scripts/fetch_assets.py
 src/webui/assets/champions/
 src/webui/assets/positions/
+
+# Node tooling for the Tailwind build (CSS itself is committed)
+node_modules/
