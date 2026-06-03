@@ -3,6 +3,7 @@ from lcu_driver import Connector
 from rich.panel import Panel
 
 import config
+from champ_select import ChampSelect
 from notifications import send_discord_ping, send_desktop_notification
 
 class LCU:
@@ -13,14 +14,20 @@ class LCU:
         self.config = config
         self.accepting_match = False
         self.paused = False
+        self.champ_select = ChampSelect(self)
 
         # Register event handlers
         self.connector.ready(self.connect)
         self.connector.close(self.disconnect)
         self.connector.ws.register('/lol-matchmaking/v1/ready-check', event_types=('UPDATE',))(self.ready_check_changed)
+        self.connector.ws.register('/lol-champ-select/v1/session', event_types=('CREATE', 'UPDATE'))(self.champ_select_changed)
 
     async def connect(self, connection):
         config.console.print("[success]✅ League Client Connected![/]")
+
+        # Preload champion data so auto pick/ban can resolve names -> IDs.
+        if self.config.get("champ_select", {}).get("enabled"):
+            await self.champ_select.load_champion_data(connection)
         webhook_status = 'Configured' if self.config.get("webhook_url") else 'Disabled'
         user_id_status = self.config.get("user_id", "None")
         
@@ -96,6 +103,12 @@ class LCU:
             # 3. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')
             config.console.print("[success]✅ Match Accepted![/]")
+
+    async def champ_select_changed(self, connection, event):
+        """Delegates champ select updates to the auto pick/ban handler."""
+        if self.paused:
+            return
+        self.champ_select.on_session_event(connection)
 
     def start(self):
         """Starts the LCU connector. This is a blocking call."""

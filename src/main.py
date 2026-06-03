@@ -1,6 +1,5 @@
 import argparse
 import sys
-import os
 import threading
 import ctypes
 
@@ -101,9 +100,6 @@ def main():
             print("queueBot is already running!")
         sys.exit(0)
 
-    # --- Check if setup is needed ---
-    setup_needed = args.update or not os.path.exists(cfg.CONFIG_FILE)
-        
     # --- Configuration ---
     if args.update:
         cfg.open_settings_ui(cfg.load_or_create_config())

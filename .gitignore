@@ -7,3 +7,7 @@ releases/
 .idea/
 venv/
 .env
+
+# Runtime artifacts (may contain secrets like Discord webhooks)
+config.json
+*.log

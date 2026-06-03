@@ -71,7 +71,18 @@ def open_settings_ui(current_config=None, on_save_callback=None):
             "webhook_url": "",
             "user_id": "",
             "desktop_notifications": True,
-            "allowed_queue_ids": []
+            "allowed_queue_ids": [],
+            "champ_select": {
+                "enabled": False,
+                "lock_in_at_seconds": 1,
+                "roles": {
+                    "top": {"bans": [], "picks": []},
+                    "jungle": {"bans": [], "picks": []},
+                    "middle": {"bans": [], "picks": []},
+                    "bottom": {"bans": [], "picks": []},
+                    "utility": {"bans": [], "picks": []},
+                },
+            },
         }
 
     # This callback updates the in-memory config if needed, though usually the caller reloads it
