@@ -204,7 +204,13 @@ async function buildSettings() {
   buildChampTab();
 }
 
-// --- Champ Select: roles on top, selected-first champion grid ----------
+// --- Champ Select --------------------------------------------------------
+// One grid does everything: every champion is shown, and the ones you've
+// selected for the active list (Picks or Bans) are pulled to the front in
+// priority order, ringed, and numbered. Click to add/remove; drag a numbered
+// champ onto another to reorder priority. Search filters the whole grid.
+// On-disk shape: champ_select.roles.<role>.{picks,bans}.
+
 function buildChampTab() {
   const bar = $("role-bar");
   bar.innerHTML = "";
@@ -226,9 +232,7 @@ function buildChampTab() {
 
   $("mode-picks").addEventListener("click", () => setMode("picks"));
   $("mode-bans").addEventListener("click", () => setMode("bans"));
-  $("champ-search").addEventListener("input", (e) =>
-    renderGrid(e.target.value),
-  );
+  $("champ-search").addEventListener("input", (e) => renderGrid(e.target.value));
   $("goto-settings").addEventListener("click", () =>
     document.querySelector('.tab-btn[data-tab="settings"]').click(),
   );
@@ -268,15 +272,26 @@ function setMode(mode) {
     btn.classList.toggle("text-icon", !on);
     btn.classList.toggle("border-transparent", !on);
   });
+  const hint = $("champ-hint");
+  if (hint) {
+    const isBan = mode === "bans";
+    const word = isBan ? "bans" : "picks";
+    const color = isBan ? "text-red-400" : "text-gold2";
+    hint.innerHTML =
+      `Click to add — your <span class="${color}">${word}</span> move to the front, ` +
+      `numbered by priority. Drag a numbered champ onto another to reorder.`;
+  }
   renderGrid($("champ-search").value);
 }
 
-// Renders all champions with the active mode's selections pulled to the front
-// (numbered, in priority order), then the rest alphabetically. Search filters all.
+// Render all champions with the active list's selections pulled to the front
+// (numbered, in priority order), then the rest in catalog order. Search filters
+// everything. Bans tint red so they read apart from picks.
 function renderGrid(filter) {
   const grid = $("champ-grid");
   if (!activeRole) return;
   const f = (filter || "").trim().toLowerCase();
+  const isBan = activeMode === "bans";
   const selList = plan[activeRole][activeMode] || [];
   const selSet = new Set(selList.map((n) => n.toLowerCase()));
 
@@ -298,21 +313,14 @@ function renderGrid(filter) {
       (n) => n.toLowerCase() === c.name.toLowerCase(),
     );
     const isSel = order >= 0;
-    const cell = document.createElement("button");
-    cell.className =
-      "grid-cell overflow-hidden border " +
-      (isSel
-        ? "border-gold2 cursor-grab"
-        : "border-transparent hover:border-gold3");
+    const cell = document.createElement("div");
+    cell.className = "grid-cell" + (isSel ? " sel" + (isBan ? " ban" : "") : "");
     cell.dataset.name = c.name;
     cell.title = c.name;
     if (isSel) cell.draggable = true;
     cell.innerHTML =
       `<img src="assets/champions/${c.id}.png" width="128" height="128" draggable="false" />` +
-      (isSel
-        ? `<span class="absolute inset-0 ring-2 ring-inset ring-gold2 bg-gold2/15"></span>
-           <span class="absolute top-0 left-0 h-4 min-w-4 px-0.5 grid place-items-center text-xs font-bold bg-gold5 text-hextech-black">${order + 1}</span>`
-        : "");
+      (isSel ? `<span class="cell-num${isBan ? " ban" : ""}">${order + 1}</span>` : "");
     frag.appendChild(cell);
   });
 
@@ -347,8 +355,8 @@ function updateAllBadges() {
   for (const r of roles) updateBadge(r.key);
 }
 
-// Click to add/remove; drag a selected (front) champ onto another selected
-// champ to reorder priority.
+// Click a champion to add/remove it from the active list; drag a numbered
+// (selected) champ onto another numbered champ to reorder priority.
 function wireGridEvents() {
   const grid = $("champ-grid");
   let dragName = null;
@@ -362,11 +370,11 @@ function wireGridEvents() {
     if (!cell || !cell.draggable) return;
     dragName = cell.dataset.name;
     e.dataTransfer.effectAllowed = "move";
-    cell.classList.add("opacity-40");
+    cell.classList.add("drag-src");
   });
   grid.addEventListener("dragend", (e) => {
-    const cell = e.target.closest(".grid-cell");
-    if (cell) cell.classList.remove("opacity-40");
+    e.target.closest(".grid-cell")?.classList.remove("drag-src");
+    dragName = null;
   });
   grid.addEventListener("dragover", (e) => {
     if (dragName) e.preventDefault();
@@ -377,8 +385,8 @@ function wireGridEvents() {
     const cell = e.target.closest(".grid-cell");
     if (!cell || !cell.draggable) {
       dragName = null;
-      return;
-    } // only drop onto a selected champ
+      return; // only reorder when dropping onto another selected champ
+    }
     const list = plan[activeRole][activeMode];
     const from = list.findIndex(
       (n) => n.toLowerCase() === dragName.toLowerCase(),
@@ -432,11 +440,8 @@ async function loadConfig() {
       picks: [...(rc.picks || [])],
     };
   }
-  if (!activeRole) {
-    selectRole(roles[0]?.key);
-  } else {
-    renderGrid($("champ-search").value);
-  }
+  // selectRole re-renders both the plan chips and the catalog grid.
+  selectRole(activeRole || roles[0]?.key);
   updateAllBadges();
 
   renderSummary(c);

@@ -68,16 +68,34 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .fade-up { animation: fadeUp 0.25s ease both; }
 
-    /* Champion grid cells. A padding-ratio spacer forces each cell to a perfect
-       square off its own column width, so cells always stay square and scale
-       with the window. The icon fills the cell via object-fit (no cropping,
-       since the source is already 128x128). Renderer-independent — doesn't rely
-       on grid auto-row sizing or the image's intrinsic aspect ratio, both of
-       which collapsed the cells before. */
-    .grid-cell { position: relative; transition: transform 0.12s ease, border-color 0.15s ease; }
-    .grid-cell::before { content: ""; display: block; padding-top: 100%; }
-    .grid-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .grid-cell:hover { transform: scale(1.07); z-index: 1; }
+    /* Champion catalog cells. `aspect-ratio` squares each cell off its own
+       column width (icons are 128x128, drawn with object-fit). We use a <div>
+       with aspect-ratio rather than the old <button> + ::before padding spacer:
+       generated pseudo-elements don't reliably lay out inside <button> in
+       WebView2, which collapsed every cell to a thin strip (you saw only a
+       horizontal slice of each champion). */
+    .grid-cell {
+      position: relative; aspect-ratio: 1 / 1; cursor: pointer;
+      outline: 1px solid rgb(120 90 40 / 0.25); outline-offset: -1px;
+      transition: transform 0.12s ease, outline-color 0.15s ease;
+    }
+    .grid-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .grid-cell:hover { transform: scale(1.07); z-index: 1; outline-color: #C8AA6E; }
+    /* A selected champion is shown in-grid: pulled to the front in priority
+       order, ringed gold, with a priority-number badge in the corner. */
+    .grid-cell.sel { outline: 2px solid #C8AA6E; outline-offset: -2px; cursor: grab; }
+    .grid-cell.sel:active { cursor: grabbing; }
+    .grid-cell.drag-src { opacity: 0.4; }
+    .cell-num {
+      position: absolute; top: 0; left: 0;
+      min-width: 1.15rem; height: 1.15rem; padding: 0 0.2rem;
+      display: grid; place-items: center;
+      font-size: 0.72rem; font-weight: 700; line-height: 1;
+      background: #C8AA6E; color: #0A0E13; pointer-events: none;
+    }
+    /* Ban mode tints the ring + badge red so bans read apart from picks. */
+    .grid-cell.sel.ban { outline-color: #c0584f; }
+    .cell-num.ban { background: #c0584f; color: #fff; }
 
     /* Hextech gold corner accents on focal panels */
     .framed { position: relative; }
@@ -219,7 +237,7 @@
           <!-- Role selector -->
           <div id="role-bar" class="flex border-b border-b-icon/20 shrink-0"></div>
 
-          <!-- Mode toggle + search -->
+          <!-- Picks / Bans toggle + search -->
           <div class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
             <div class="flex shrink-0">
               <button id="mode-picks" data-mode="picks"
@@ -231,12 +249,10 @@
               class="hextech-input flex-1 px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
           </div>
 
-          <p class="text-sm text-subText px-4 pt-2 shrink-0">
-            Click to add · selected champions move to the front · drag them to reorder priority
-          </p>
+          <p id="champ-hint" class="text-sm text-subText px-4 pt-3 shrink-0"></p>
 
-          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-2 content-start"
-               style="grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));"></div>
+          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
+               style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));"></div>
         </div>
       </section>
 
