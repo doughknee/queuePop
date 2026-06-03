@@ -3,6 +3,15 @@
 const api = () => window.pywebview.api;
 const $ = (id) => document.getElementById(id);
 
+// Retrigger a CSS animation by removing the class, forcing reflow, re-adding.
+function replay(el, cls) {
+  if (!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+function flashPop() { replay($("flash"), "go"); }
+
 let lastEventId = 0;
 let roles = [];
 let queueMap = {};          // queueId -> display name
@@ -50,6 +59,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
     $("tab-dashboard").classList.toggle("hidden", tab !== "dashboard");
     $("tab-champ").classList.toggle("hidden", tab !== "champ");
     $("tab-settings").classList.toggle("hidden", tab !== "settings");
+    replay($(`tab-${tab}`), "fade-up");
     const showSave = tab !== "dashboard";
     $("save-bar").classList.toggle("hidden", !showSave);
     $("save-bar").classList.toggle("flex", showSave);
@@ -84,7 +94,7 @@ async function refreshStatus() {
     $("hero-status").className =
       "font-display text-2xl leading-tight " + (s.paused ? "text-gold4" : "text-gold1");
     $("hero-dot").className =
-      "h-3.5 w-3.5 rounded-full shrink-0 " + (s.paused ? "bg-gold4" : "bg-blue2");
+      "h-3.5 w-3.5 rounded-full shrink-0 " + (s.paused ? "bg-gold4" : "bg-blue2 dot-pulse");
     $("hero-client").textContent = s.connected ? "Connected" : "Waiting…";
     $("hero-client").className =
       "font-display text-lg leading-tight mt-0.5 " + (s.connected ? "text-blue2" : "text-subText");
@@ -104,14 +114,20 @@ async function refreshEvents() {
   try {
     const { events } = await api().get_events(lastEventId);
     if (!events.length) return;
+    const initial = lastEventId === 0; // backfill on first load — don't animate/flash
     const list = $("activity");
-    if (lastEventId === 0) list.innerHTML = "";
+    if (initial) list.innerHTML = "";
     for (const ev of events) {
       lastEventId = Math.max(lastEventId, ev.id);
       const li = document.createElement("li");
-      li.className = (LEVEL_COLOR[ev.level] || "text-grey1") + " border-l-2 border-gold5/40 pl-2";
+      li.className =
+        (LEVEL_COLOR[ev.level] || "text-grey1") +
+        " border-l-2 border-gold5/40 pl-2" +
+        (initial ? "" : " fade-up");
       li.textContent = ev.message;
       list.prepend(li);
+      // Celebrate the signature moment.
+      if (!initial && /queue popped/i.test(ev.message)) flashPop();
     }
     while (list.children.length > 100) list.removeChild(list.lastChild);
   } catch (e) {
