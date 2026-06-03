@@ -47,6 +47,12 @@ def default_config():
         "user_id": "",
         "desktop_notifications": True,
         "allowed_queue_ids": [],
+        "companion": {
+            "enabled": False,
+            "port": 8420,
+            "sound": "chime",
+            "sound_file": "",
+        },
         "champ_select": {
             "enabled": False,
             "lock_in_at_seconds": 1,

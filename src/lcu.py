@@ -7,6 +7,19 @@ import events
 from champ_select import ChampSelect
 from notifications import send_discord_ping, send_desktop_notification
 
+# Gameflow phase -> (activity message, UI level, event kind). Drives the
+# general activity feed (desktop + phone) so users see match progress even with
+# auto pick/ban off. ReadyCheck is intentionally omitted — the queue-pop event
+# from ready_check_changed already covers it (and alarms the phone).
+PHASE_EVENTS = {
+    "Lobby": ("In lobby", "info", "lobby"),
+    "Matchmaking": ("Searching for a match…", "info", "searching"),
+    "ChampSelect": ("Champ select started", "info", "champ_select"),
+    "InProgress": ("Game started — good luck!", "success", "game_start"),
+    "EndOfGame": ("Game over", "info", "game_end"),
+}
+
+
 class LCU:
     def __init__(self, config):
         self.loop = asyncio.new_event_loop()
@@ -16,6 +29,7 @@ class LCU:
         self.accepting_match = False
         self.paused = False
         self.connected = False
+        self.gameflow_phase = None
         self.champ_select = ChampSelect(self)
 
         # Register event handlers
@@ -23,6 +37,7 @@ class LCU:
         self.connector.close(self.disconnect)
         self.connector.ws.register('/lol-matchmaking/v1/ready-check', event_types=('UPDATE',))(self.ready_check_changed)
         self.connector.ws.register('/lol-champ-select/v1/session', event_types=('CREATE', 'UPDATE'))(self.champ_select_changed)
+        self.connector.ws.register('/lol-gameflow/v1/gameflow-phase', event_types=('CREATE', 'UPDATE'))(self.gameflow_phase_changed)
 
     async def connect(self, connection):
         config.console.print("[success]✅ League Client Connected![/]")
@@ -94,7 +109,7 @@ class LCU:
                 style="danger",
                 padding=(1, 2)
             ))
-            events.push(f"Queue popped: {game_mode} — accepting…", "danger")
+            events.push(f"Queue popped: {game_mode} — accepting…", "danger", kind="queue_pop")
             
             # --- Actions ---
             # 1. Send Desktop Notification
@@ -118,6 +133,20 @@ class LCU:
         if self.paused:
             return
         self.champ_select.on_session_event(connection)
+
+    async def gameflow_phase_changed(self, connection, event):
+        """Push a general activity event on each gameflow phase transition, so
+        the feed (and phone) reflect match progress regardless of auto pick/ban.
+        Fires independently of `paused` — it's informational only."""
+        phase = event.data
+        if not isinstance(phase, str) or phase == self.gameflow_phase:
+            return
+        self.gameflow_phase = phase
+        info = PHASE_EVENTS.get(phase)
+        if info:
+            message, level, kind = info
+            config.console.log(f"[dim]Gameflow → {phase}[/]")
+            events.push(message, level, kind=kind)
 
     def start(self):
         """Starts the LCU connector. This is a blocking call."""

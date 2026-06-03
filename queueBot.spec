@@ -10,7 +10,7 @@ a = Analysis(
         ('src/webui', 'webui'),
     ],
     hiddenimports=(
-        ['rich', 'pystray', 'PIL', 'webview', 'clr']
+        ['rich', 'pystray', 'PIL', 'webview', 'clr', 'aiohttp', 'qrcode']
         + collect_submodules('plyer')
         + collect_submodules('webview')
     ),

@@ -10,16 +10,20 @@ function replay(el, cls) {
   void el.offsetWidth;
   el.classList.add(cls);
 }
-function flashPop() { replay($("flash"), "go"); }
+function flashPop() {
+  replay($("flash"), "go");
+}
 
 let lastEventId = 0;
 let roles = [];
-let queueMap = {};          // queueId -> display name
-let catalog = [];           // [{id, name, alias}]
-let nameToId = {};          // lowercased name/alias -> id
-let plan = {};              // role -> { bans: [name], picks: [name] }
-let activeRole = null;      // currently edited role
-let activeMode = "picks";   // "picks" | "bans" — what the grid adds to
+let queueMap = {}; // queueId -> display name
+let catalog = []; // [{id, name, alias}]
+let nameToId = {}; // lowercased name/alias -> id
+let plan = {}; // role -> { bans: [name], picks: [name] }
+let activeRole = null; // currently edited role
+let activeMode = "picks"; // "picks" | "bans" — what the grid adds to
+let customSoundPath = ""; // absolute path to the user's custom alarm file
+let previewCtx = null; // lazily-created AudioContext for Settings sound preview
 
 const LEVEL_COLOR = {
   info: "text-blue2",
@@ -34,7 +38,12 @@ function champIcon(name) {
   return id ? `assets/champions/${id}.png` : null;
 }
 function initials(name) {
-  return (name || "?").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase() || "?";
+  return (
+    (name || "?")
+      .replace(/[^A-Za-z]/g, "")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  );
 }
 function resolveName(raw) {
   const key = (raw || "").trim().toLowerCase();
@@ -88,20 +97,45 @@ async function refreshStatus() {
 
     const pill = $("conn-pill");
     pill.textContent = s.connected ? "Client: connected" : "Client: waiting…";
-    pill.className = "hextech text-sm px-3 py-1.5 " + (s.connected ? "text-blue2" : "text-subText");
+    pill.className =
+      "hextech text-sm px-3 py-1.5 " +
+      (s.connected ? "text-blue2" : "text-subText");
 
     $("hero-status").textContent = s.paused ? "Paused" : "Monitoring";
     $("hero-status").className =
-      "font-display text-2xl leading-tight " + (s.paused ? "text-gold4" : "text-gold1");
+      "font-display text-2xl leading-tight " +
+      (s.paused ? "text-gold4" : "text-gold1");
     $("hero-dot").className =
-      "h-3.5 w-3.5 rounded-full shrink-0 " + (s.paused ? "bg-gold4" : "bg-blue2 dot-pulse");
+      "h-3.5 w-3.5 rounded-full shrink-0 " +
+      (s.paused ? "bg-gold4" : "bg-blue2 dot-pulse");
     $("hero-client").textContent = s.connected ? "Connected" : "Waiting…";
     $("hero-client").className =
-      "font-display text-lg leading-tight mt-0.5 " + (s.connected ? "text-blue2" : "text-subText");
+      "font-display text-lg leading-tight mt-0.5 " +
+      (s.connected ? "text-blue2" : "text-subText");
 
     $("stat-champ").textContent = s.champ_select_enabled ? "On" : "Off";
-    $("stat-webhook").textContent = s.webhook_configured ? "Configured" : "Disabled";
-    $("stat-champs-loaded").textContent = catalog.length || s.champions_loaded || 0;
+    $("stat-webhook").textContent = s.webhook_configured
+      ? "Configured"
+      : "Disabled";
+    $("stat-champs-loaded").textContent =
+      catalog.length || s.champions_loaded || 0;
+
+    const note = $("companion-note");
+    if (note) {
+      if (!s.companion_enabled) {
+        note.textContent = "";
+      } else if (!s.companion_running) {
+        note.textContent = "Server not running — save settings, then restart queueBot.";
+        note.className = "text-xs text-gold4";
+      } else if (s.companion_clients > 0) {
+        const n = s.companion_clients;
+        note.textContent = `● ${n} phone${n > 1 ? "s" : ""} connected`;
+        note.className = "text-xs text-gold2";
+      } else {
+        note.textContent = "Running — waiting for a phone to connect…";
+        note.className = "text-xs text-subText";
+      }
+    }
 
     renderPause(s.paused);
   } catch (e) {
@@ -127,7 +161,8 @@ async function refreshEvents() {
       li.textContent = ev.message;
       list.prepend(li);
       // Celebrate the signature moment.
-      if (!initial && /queue popped/i.test(ev.message)) flashPop();
+      if (!initial && (ev.kind === "queue_pop" || /queue popped/i.test(ev.message)))
+        flashPop();
     }
     while (list.children.length > 100) list.removeChild(list.lastChild);
   } catch (e) {
@@ -159,7 +194,8 @@ async function buildSettings() {
   qWrap.innerHTML = "";
   for (const q of queues) {
     const label = document.createElement("label");
-    label.className = "flex items-center gap-2.5 text-sm text-grey1 cursor-pointer";
+    label.className =
+      "flex items-center gap-2.5 text-sm text-grey1 cursor-pointer";
     label.innerHTML = `<input type="checkbox" data-queue="${q.id}" class="w-4 h-4" style="accent-color:#C8AA6E;" /><span>${q.name}</span>`;
     qWrap.appendChild(label);
   }
@@ -190,11 +226,15 @@ function buildChampTab() {
 
   $("mode-picks").addEventListener("click", () => setMode("picks"));
   $("mode-bans").addEventListener("click", () => setMode("bans"));
-  $("champ-search").addEventListener("input", (e) => renderGrid(e.target.value));
-  $("goto-settings").addEventListener("click", () =>
-    document.querySelector('.tab-btn[data-tab="settings"]').click()
+  $("champ-search").addEventListener("input", (e) =>
+    renderGrid(e.target.value),
   );
-  $("champ_enabled").addEventListener("change", (e) => updateChampView(e.target.checked));
+  $("goto-settings").addEventListener("click", () =>
+    document.querySelector('.tab-btn[data-tab="settings"]').click(),
+  );
+  $("champ_enabled").addEventListener("change", (e) =>
+    updateChampView(e.target.checked),
+  );
 
   wireGridEvents();
   setMode("picks");
@@ -240,25 +280,35 @@ function renderGrid(filter) {
   const selList = plan[activeRole][activeMode] || [];
   const selSet = new Set(selList.map((n) => n.toLowerCase()));
 
-  const byName = (n) => catalog.find((c) => c.name.toLowerCase() === n.toLowerCase());
+  const byName = (n) =>
+    catalog.find((c) => c.name.toLowerCase() === n.toLowerCase());
   const selectedChamps = selList.map(byName).filter(Boolean);
   const rest = catalog.filter((c) => !selSet.has(c.name.toLowerCase()));
   const ordered = selectedChamps.concat(rest);
 
   const frag = document.createDocumentFragment();
   ordered.forEach((c) => {
-    if (f && !c.name.toLowerCase().includes(f) && !(c.alias || "").toLowerCase().includes(f)) return;
-    const order = selList.findIndex((n) => n.toLowerCase() === c.name.toLowerCase());
+    if (
+      f &&
+      !c.name.toLowerCase().includes(f) &&
+      !(c.alias || "").toLowerCase().includes(f)
+    )
+      return;
+    const order = selList.findIndex(
+      (n) => n.toLowerCase() === c.name.toLowerCase(),
+    );
     const isSel = order >= 0;
     const cell = document.createElement("button");
     cell.className =
-      "grid-cell relative h-14 w-14 overflow-hidden border transition " +
-      (isSel ? "border-gold2 cursor-grab" : "border-transparent hover:border-gold3");
+      "grid-cell overflow-hidden border " +
+      (isSel
+        ? "border-gold2 cursor-grab"
+        : "border-transparent hover:border-gold3");
     cell.dataset.name = c.name;
     cell.title = c.name;
     if (isSel) cell.draggable = true;
     cell.innerHTML =
-      `<img src="assets/champions/${c.id}.png" class="w-full h-full object-cover" draggable="false" />` +
+      `<img src="assets/champions/${c.id}.png" width="128" height="128" draggable="false" />` +
       (isSel
         ? `<span class="absolute inset-0 ring-2 ring-inset ring-gold2 bg-gold2/15"></span>
            <span class="absolute top-0 left-0 h-4 min-w-4 px-0.5 grid place-items-center text-xs font-bold bg-gold5 text-hextech-black">${order + 1}</span>`
@@ -283,7 +333,9 @@ function toggleChamp(name) {
 
 // Small count badge on each top-bar role button.
 function updateBadge(role) {
-  const b = document.querySelector(`.role-tab[data-role="${role}"] [data-badge]`);
+  const b = document.querySelector(
+    `.role-tab[data-role="${role}"] [data-badge]`,
+  );
   if (!b) return;
   const p = (plan[role]?.picks || []).length;
   const bn = (plan[role]?.bans || []).length;
@@ -316,15 +368,24 @@ function wireGridEvents() {
     const cell = e.target.closest(".grid-cell");
     if (cell) cell.classList.remove("opacity-40");
   });
-  grid.addEventListener("dragover", (e) => { if (dragName) e.preventDefault(); });
+  grid.addEventListener("dragover", (e) => {
+    if (dragName) e.preventDefault();
+  });
   grid.addEventListener("drop", (e) => {
     if (!dragName) return;
     e.preventDefault();
     const cell = e.target.closest(".grid-cell");
-    if (!cell || !cell.draggable) { dragName = null; return; } // only drop onto a selected champ
+    if (!cell || !cell.draggable) {
+      dragName = null;
+      return;
+    } // only drop onto a selected champ
     const list = plan[activeRole][activeMode];
-    const from = list.findIndex((n) => n.toLowerCase() === dragName.toLowerCase());
-    const to = list.findIndex((n) => n.toLowerCase() === cell.dataset.name.toLowerCase());
+    const from = list.findIndex(
+      (n) => n.toLowerCase() === dragName.toLowerCase(),
+    );
+    const to = list.findIndex(
+      (n) => n.toLowerCase() === cell.dataset.name.toLowerCase(),
+    );
     if (from >= 0 && to >= 0 && from !== to) {
       const [m] = list.splice(from, 1);
       list.splice(to, 0, m);
@@ -340,9 +401,22 @@ async function loadConfig() {
   $("webhook_url").value = c.webhook_url || "";
   $("user_id").value = c.user_id || "";
   $("desktop_notifications").checked = !!c.desktop_notifications;
+
+  const comp = c.companion || {};
+  $("companion_enabled").checked = !!comp.enabled;
+  $("companion_port").value = comp.port || 8420;
+  $("companion_sound").value = comp.sound || "chime";
+  customSoundPath = comp.sound_file || "";
+  $("sound-file-name").textContent = customSoundPath
+    ? customSoundPath.split(/[\\/]/).pop()
+    : "No file chosen";
+  toggleCustomSoundRow();
+  refreshCompanion();
+
   const champEnabled = !!(c.champ_select && c.champ_select.enabled);
   $("champ_enabled").checked = champEnabled;
-  $("lock_seconds").value = (c.champ_select && c.champ_select.lock_in_at_seconds) ?? 1;
+  $("lock_seconds").value =
+    (c.champ_select && c.champ_select.lock_in_at_seconds) ?? 1;
   updateChampView(champEnabled);
 
   const allowed = new Set((c.allowed_queue_ids || []).map(Number));
@@ -388,6 +462,12 @@ function gatherConfig() {
     user_id: $("user_id").value,
     desktop_notifications: $("desktop_notifications").checked,
     allowed_queue_ids: allowed,
+    companion: {
+      enabled: $("companion_enabled").checked,
+      port: Number($("companion_port").value) || 8420,
+      sound: $("companion_sound").value,
+      sound_file: customSoundPath || "",
+    },
     champ_select: {
       enabled: $("champ_enabled").checked,
       lock_in_at_seconds: Number($("lock_seconds").value) || 0,
@@ -404,7 +484,9 @@ function renderSummary(c) {
     : "All queues";
   $("sum-notif").textContent = c.desktop_notifications ? "On" : "Off";
   const cs = c.champ_select || {};
-  $("sum-champ").textContent = cs.enabled ? `On — lock at ${cs.lock_in_at_seconds}s` : "Off";
+  $("sum-champ").textContent = cs.enabled
+    ? `On — lock at ${cs.lock_in_at_seconds}s`
+    : "Off";
 }
 
 function planChip(name) {
@@ -436,7 +518,10 @@ function renderPlan(c) {
       const rc = rolesCfg[r.key] || {};
       const pick = (rc.picks || [])[0];
       const ban = (rc.bans || [])[0];
-      const extra = (rc.picks || []).length > 1 ? ` <span class="text-gold5">+${rc.picks.length - 1}</span>` : "";
+      const extra =
+        (rc.picks || []).length > 1
+          ? ` <span class="text-gold5">+${rc.picks.length - 1}</span>`
+          : "";
       return `<div class="grid grid-cols-[7rem_1fr_1fr] items-center gap-2 py-0.5">
         <span class="flex items-center gap-1.5">
           <img src="assets/positions/${r.key}.svg" class="h-4 w-4" onerror="this.style.display='none'" />
@@ -448,6 +533,141 @@ function renderPlan(c) {
     })
     .join("");
 }
+
+// --- Phone companion + Discord ----------------------------------------
+async function refreshCompanion() {
+  const live = $("companion-live");
+  if (!$("companion_enabled").checked) {
+    live.classList.add("hidden");
+    return;
+  }
+  live.classList.remove("hidden");
+
+  let info = {};
+  try {
+    info = await api().get_companion_info();
+  } catch (_) {}
+
+  $("companion-url").textContent = info.url || "";
+  const qr = $("companion-qr");
+  if (info.qr) {
+    qr.src = info.qr;
+    qr.classList.remove("hidden");
+  } else {
+    qr.classList.add("hidden");
+  }
+  // #companion-note (live running / connected-device status) is owned by
+  // refreshStatus so it updates on its own without re-fetching the QR.
+}
+
+function validateWebhook() {
+  const v = $("webhook_url").value.trim();
+  const hint = $("webhook_hint");
+  if (!v || /^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\//i.test(v)) {
+    hint.classList.add("hidden");
+  } else {
+    hint.textContent = "That doesn't look like a Discord webhook URL.";
+    hint.classList.remove("hidden");
+  }
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+function flashStatus(el, text, ok) {
+  el.textContent = text;
+  el.className = "text-xs " + (ok ? "text-gold2" : "text-red-400");
+}
+
+function toggleCustomSoundRow() {
+  const isCustom = $("companion_sound").value === "custom";
+  $("custom-sound-row").classList.toggle("hidden", !isCustom);
+}
+
+$("companion_enabled").addEventListener("change", refreshCompanion);
+$("companion_sound").addEventListener("change", toggleCustomSoundRow);
+
+$("sound-preview").addEventListener("click", () => {
+  const sel = $("companion_sound").value;
+  const s = $("companion-test-status");
+  if (sel === "custom") {
+    flashStatus(s, "Save, then “Test phone alert” to hear a custom sound", false);
+    setTimeout(() => (s.textContent = ""), 4000);
+    return;
+  }
+  if (!previewCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    previewCtx = AC ? new AC() : null;
+  }
+  if (previewCtx && previewCtx.state === "suspended") previewCtx.resume();
+  if (previewCtx && window.QueueBotAlarm) QueueBotAlarm.play(previewCtx, sel);
+});
+
+$("sound-pick").addEventListener("click", async () => {
+  const res = await api().pick_sound_file();
+  if (res && res.ok) {
+    customSoundPath = res.path;
+    $("sound-file-name").textContent = res.name || res.path;
+  }
+});
+
+$("companion-copy").addEventListener("click", async () => {
+  const ok = await copyText($("companion-url").textContent);
+  const btn = $("companion-copy");
+  const orig = btn.textContent;
+  btn.textContent = ok ? "Copied!" : "Copy failed";
+  setTimeout(() => (btn.textContent = orig), 1500);
+});
+
+$("companion-test").addEventListener("click", async () => {
+  const s = $("companion-test-status");
+  flashStatus(s, "Sending…", true);
+  s.className = "text-xs text-subText";
+  const res = await api().test_companion();
+  if (res && res.running) {
+    flashStatus(s, "✓ Sent — your phone should alarm", true);
+  } else {
+    flashStatus(s, "Server isn't running yet — restart queueBot", false);
+  }
+  setTimeout(() => (s.textContent = ""), 4000);
+});
+
+$("discord-test").addEventListener("click", async () => {
+  const s = $("discord-test-status");
+  s.textContent = "Sending…";
+  s.className = "text-xs text-subText";
+  const res = await api().test_discord(
+    $("webhook_url").value.trim(),
+    $("user_id").value.trim(),
+  );
+  if (res && res.ok) flashStatus(s, "✓ Sent — check Discord", true);
+  else flashStatus(s, "✗ " + ((res && res.error) || "Failed"), false);
+  setTimeout(() => (s.textContent = ""), 5000);
+});
+
+$("discord-docs").addEventListener("click", () => {
+  api().open_external(
+    "https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks",
+  );
+});
+
+$("webhook_url").addEventListener("input", validateWebhook);
 
 // --- Save ---------------------------------------------------------------
 $("save-btn").addEventListener("click", async () => {

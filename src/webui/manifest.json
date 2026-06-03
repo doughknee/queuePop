@@ -1,0 +1,11 @@
+{
+  "name": "queueBot Companion",
+  "short_name": "queueBot",
+  "description": "Phone alarm for when your League queue pops.",
+  "start_url": "./companion.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1428",
+  "theme_color": "#0A1428"
+}

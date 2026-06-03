@@ -130,6 +130,15 @@ def main():
         input("Press Enter to exit...")
         sys.exit(1)
 
+    # --- LAN phone companion server (optional, started at launch) ---
+    if settings.get("companion", {}).get("enabled"):
+        try:
+            import companion
+            companion.attach_lcu(lcu_connector)
+            companion.start(settings)
+        except Exception as e:
+            cfg.console.print(f"[warning]Could not start phone companion: {e}[/]")
+
     # --- Web UI (pywebview) on the main thread ---
     import webview
     from web_api import Api
@@ -146,7 +155,9 @@ def main():
         min_size=(620, 700),
         background_color="#020617",
     )
-    api.window_controller = window
+    # Underscore attr on purpose — see Api.__init__: a public attribute holding
+    # the window makes pywebview recurse the WebView2 COM graph and hang startup.
+    api._window = window
 
     # Closing the window hides it to the tray instead of quitting; only the
     # tray "Exit" item (which flips this flag) actually tears the app down.

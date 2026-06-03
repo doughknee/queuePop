@@ -68,8 +68,15 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .fade-up { animation: fadeUp 0.25s ease both; }
 
-    /* Champion grid hover lift */
-    .grid-cell { transition: transform 0.12s ease, border-color 0.15s ease; }
+    /* Champion grid cells. A padding-ratio spacer forces each cell to a perfect
+       square off its own column width, so cells always stay square and scale
+       with the window. The icon fills the cell via object-fit (no cropping,
+       since the source is already 128x128). Renderer-independent — doesn't rely
+       on grid auto-row sizing or the image's intrinsic aspect ratio, both of
+       which collapsed the cells before. */
+    .grid-cell { position: relative; transition: transform 0.12s ease, border-color 0.15s ease; }
+    .grid-cell::before { content: ""; display: block; padding-top: 100%; }
+    .grid-cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .grid-cell:hover { transform: scale(1.07); z-index: 1; }
 
     /* Hextech gold corner accents on focal panels */
@@ -228,8 +235,8 @@
             Click to add · selected champions move to the front · drag them to reorder priority
           </p>
 
-          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-2 content-start justify-start"
-               style="grid-template-columns: repeat(auto-fill, 56px);"></div>
+          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-2 content-start"
+               style="grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));"></div>
         </div>
       </section>
 
@@ -255,19 +262,89 @@
           </p>
         </div>
 
+        <!-- Phone Companion (LAN) -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Phone Companion</h3><div class="rule"></div></div>
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="companion_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Sound an alarm on my phone when the queue pops</span>
+          </label>
+          <p class="text-sm text-subText leading-relaxed">
+            Opens a page on your home Wi-Fi — no app, no account. Scan the code with your
+            phone, tap <span class="text-gold2">Enable Alerts</span>, and keep the tab open.
+          </p>
+          <div class="flex items-center gap-2 text-sm text-grey1">
+            <span>Port</span>
+            <input id="companion_port" type="number" min="1024" max="65535" value="8420"
+              class="hextech-input w-20 px-2 py-1 text-center text-gold1 outline-none" />
+          </div>
+
+          <div id="companion-live" class="hidden border-t border-t-gold5/30 pt-3 space-y-2.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs text-subText uppercase tracking-wide">Open on phone</span>
+              <span id="companion-url" class="text-sm text-gold2 break-all"></span>
+              <button id="companion-copy" class="text-xs text-gold5 underline cursor-pointer">Copy</button>
+            </div>
+            <img id="companion-qr" alt="Scan to open on your phone" class="w-36 h-36 bg-white p-1" />
+            <div class="flex items-center gap-2 flex-wrap text-sm text-grey1">
+              <span>Alert sound</span>
+              <select id="companion_sound"
+                class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
+                <option value="chime">Chime</option>
+                <option value="ping">Ping</option>
+                <option value="arcade">Arcade</option>
+                <option value="siren">Siren (loud)</option>
+                <option value="custom">Custom file…</option>
+              </select>
+              <button id="sound-preview" class="text-xs text-gold5 underline cursor-pointer">Preview</button>
+            </div>
+            <div id="custom-sound-row" class="hidden flex items-center gap-2 flex-wrap text-sm text-grey1">
+              <button id="sound-pick"
+                class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Choose file…</button>
+              <span id="sound-file-name" class="text-xs text-subText break-all">No file chosen</span>
+            </div>
+
+            <div class="flex items-center gap-3 pt-1">
+              <button id="companion-test"
+                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Test phone alert</button>
+              <span id="companion-test-status" class="text-xs text-subText"></span>
+            </div>
+            <p id="companion-note" class="text-xs text-gold4"></p>
+            <p class="text-xs text-subText">Phone must be on the same Wi-Fi. Windows may ask to allow queueBot through the firewall the first time.</p>
+          </div>
+        </div>
+
         <!-- Discord -->
         <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Discord Integration</h3><div class="rule"></div></div>
+          <div class="sec-head mb-1"><h3>Discord Notifications (optional)</h3><div class="rule"></div></div>
           <label class="block">
             <span class="text-sm text-subText">Webhook URL</span>
             <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
               class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
           </label>
+          <p id="webhook_hint" class="hidden text-xs text-red-400"></p>
           <label class="block">
             <span class="text-sm text-subText">User ID (for @mentions)</span>
             <input id="user_id" type="text" placeholder="123456789012345678"
               class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
           </label>
+          <div class="flex items-center gap-3 pt-0.5">
+            <button id="discord-test"
+              class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
+            <span id="discord-test-status" class="text-xs text-subText"></span>
+          </div>
+          <details class="text-sm">
+            <summary class="cursor-pointer text-gold2 hover:text-gold1 select-none">How to set this up</summary>
+            <ol class="list-decimal ml-5 mt-2 space-y-1 text-subText">
+              <li>In Discord: <span class="text-grey1">Server Settings → Integrations → Webhooks → New Webhook</span>.</li>
+              <li>Pick a channel, click <span class="text-grey1">Copy Webhook URL</span>, and paste it above.</li>
+              <li>Make sure mobile notifications are on for that channel.</li>
+              <li>Optional @mention: enable <span class="text-grey1">Developer Mode</span> (User Settings → Advanced),
+                  then right-click your name → <span class="text-grey1">Copy User ID</span>.</li>
+            </ol>
+            <button id="discord-docs" class="mt-2 text-gold5 underline cursor-pointer">Open Discord's webhook guide ↗</button>
+          </details>
+          <p class="text-xs text-subText">No Discord? Use the <span class="text-gold2">Phone Companion</span> above instead.</p>
         </div>
 
         <!-- Notifications -->
@@ -297,6 +374,7 @@
     </div>
   </div>
 
+  <script src="alarm-sound.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

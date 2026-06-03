@@ -17,9 +17,11 @@ _events = deque(maxlen=_MAX_EVENTS)
 _seq = 0
 
 
-def push(message, level="info"):
+def push(message, level="info", kind=None):
     """
     Record an event. `level` is a UI hint: info | success | warning | danger.
+    `kind` is an optional machine-readable tag (e.g. "queue_pop") that lets
+    clients react to specific events without parsing the message text.
     Returns the assigned monotonic id (useful for incremental polling).
     """
     global _seq
@@ -29,6 +31,7 @@ def push(message, level="info"):
             "id": _seq,
             "level": level,
             "message": str(message),
+            "kind": kind,
         })
         return _seq
 
