@@ -24,6 +24,16 @@ def clean_build_dirs():
                 print(f"Error removing {d}: {e}")
                 sys.exit(1)
 
+def fetch_assets():
+    """Downloads the latest champion/role icons so the build bundles them."""
+    print("Fetching League assets (champion + role icons)...")
+    try:
+        subprocess.check_call([sys.executable, "scripts/fetch_assets.py"])
+    except subprocess.CalledProcessError as e:
+        print(f"Asset fetch failed with exit code {e.returncode}")
+        sys.exit(e.returncode)
+
+
 def run_pyinstaller():
     """Runs PyInstaller using the current Python interpreter."""
     print("Running PyInstaller...")
@@ -65,6 +75,7 @@ def create_zip_release():
 def main():
     print("🔨 Building queueBot...")
     clean_build_dirs()
+    fetch_assets()
     run_pyinstaller()
     create_zip_release()
 

@@ -5,8 +5,15 @@ a = Analysis(
     ['src/main.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('assets/gnome-thresh.ico', 'assets')],
-    hiddenimports=['rich', 'pystray', 'PIL'] + collect_submodules('plyer'),
+    datas=[
+        ('assets/gnome-thresh.ico', 'assets'),
+        ('src/webui', 'webui'),
+    ],
+    hiddenimports=(
+        ['rich', 'pystray', 'PIL', 'webview', 'clr']
+        + collect_submodules('plyer')
+        + collect_submodules('webview')
+    ),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

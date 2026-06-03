@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>queueBot</title>
+  <!--
+    Tailwind Play CDN — fast styling iteration. Before packaging a release we
+    swap this for a precompiled styles.css so the bundled app works offline.
+    Palette mirrors skinbattle.lol's Hextech theme.
+  -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Marcellus&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold1: "#F0E6D2", gold2: "#C8AA6E", gold3: "#C8AA6E",
+            gold4: "#C8983C", gold5: "#785A28", gold6: "#463714", gold7: "#32281E",
+            blue1: "#CDFAFA", blue2: "#0AC8B9", blue3: "#0397AB", blue4: "#005A82",
+            blue5: "#0A323C", blue6: "#091428", blue7: "#0A1428",
+            grey1: "#A09B8C", grey2: "#3C3C41", grey3: "#1E2328",
+            icon: "#c9bf96", iconActive: "#eee7d4",
+            subText: "#9f9b8d", titleText: "#978351",
+            "hextech-black": "#010A13",
+          },
+          fontFamily: {
+            serif: ["Marcellus", "Georgia", "Cambria", "serif"],
+            display: ["Cinzel", "Georgia", "serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    html {
+      background: linear-gradient(220deg, #030912 0%, #0A1428 55%, #1a3243 100%) fixed;
+    }
+    body { -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: #785A28; }
+    ::-webkit-scrollbar-track { background: #010A13; }
+    /* Hextech panel: inset hairline outline that ignites to a solid gold/icon
+       border (with a faint teal glow) on hover. Sharp corners, true to client. */
+    .hextech {
+      background-color: rgb(1 10 19 / 0.30);
+      outline: 1px solid rgb(201 191 150 / 0.30);
+      outline-offset: -2px;
+      border: 2px solid transparent;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .hextech:hover {
+      border-color: #c9bf96;
+      box-shadow: 0 0 18px -6px rgba(10, 200, 185, 0.35);
+    }
+    .hextech-input {
+      background-color: rgb(1 10 19 / 0.55);
+      outline: 1px solid rgb(120 90 40 / 0.55);
+      outline-offset: -2px;
+      border: 1px solid transparent;
+      transition: outline-color .15s ease;
+    }
+    .hextech-input:focus { outline-color: #C8AA6E; }
+    /* Section header with trailing gold rule. */
+    .sec-head { display: flex; align-items: center; gap: 0.75rem; }
+    .sec-head h3 {
+      font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #C8AA6E; white-space: nowrap;
+    }
+    .sec-head .rule {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(120,90,40,0.6), transparent);
+    }
+  </style>
+</head>
+<body class="text-grey1 antialiased h-screen overflow-hidden">
+  <div class="flex flex-col h-full">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-5 py-3 border-t-2 border-t-gold5 border-b border-b-icon/30 backdrop-blur-2xl">
+      <div class="flex items-center gap-3">
+        <!-- Hextech ring mark -->
+        <div class="h-11 w-11 rounded-full bg-gold5 grid place-items-center shrink-0">
+          <div class="h-9 w-9 rounded-full border-2 border-hextech-black grid place-items-center"
+               style="background: radial-gradient(circle at 50% 40%, #0A323C 10%, #005A82 100%);">
+            <span class="font-display font-bold text-gold1 text-lg leading-none">Q</span>
+          </div>
+        </div>
+        <div>
+          <h1 class="font-display text-lg font-bold text-gold2 leading-none tracking-wide">queueBot</h1>
+          <p class="text-xs text-subText mt-1">v<span id="version">—</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="conn-pill" class="hextech text-sm px-3 py-1.5 text-grey1">Client: …</span>
+        <button id="pause-btn" class="hextech font-serif text-sm px-4 py-1.5 text-grey1 hover:text-gold1 cursor-pointer">Pause</button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="flex border-b border-b-icon/30 backdrop-blur-2xl px-4">
+      <button data-tab="dashboard"
+        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-gold2 text-gold1">Dashboard</button>
+      <button data-tab="champ"
+        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-transparent text-icon hover:text-gold1 transition">Champ Select</button>
+      <button data-tab="settings"
+        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-transparent text-icon hover:text-gold1 transition">Settings</button>
+    </nav>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto p-5">
+
+      <!-- DASHBOARD -->
+      <section id="tab-dashboard" class="space-y-5">
+
+        <!-- Hero status strip -->
+        <div class="hextech p-5 flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <span id="hero-dot" class="h-3.5 w-3.5 rounded-full bg-grey2 shrink-0"></span>
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-gold2">Status</p>
+              <p id="hero-status" class="font-display text-2xl text-gold1 leading-tight">—</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-xs uppercase tracking-[0.2em] text-gold2">League Client</p>
+            <p id="hero-client" class="font-display text-lg leading-tight mt-0.5">—</p>
+          </div>
+        </div>
+
+        <!-- Metric cards -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="hextech p-4">
+            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Auto Pick / Ban</p>
+            <p id="stat-champ" class="font-display text-xl mt-1.5 text-gold1">—</p>
+          </div>
+          <div class="hextech p-4">
+            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Champions</p>
+            <p id="stat-champs-loaded" class="font-display text-xl mt-1.5 text-gold1">—</p>
+          </div>
+          <div class="hextech p-4">
+            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Webhook</p>
+            <p id="stat-webhook" class="font-display text-xl mt-1.5 text-gold1">—</p>
+          </div>
+        </div>
+
+        <!-- Active configuration summary -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Active Configuration</h3><div class="rule"></div></div>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+            <dt class="text-subText">Accepting</dt><dd id="sum-queues" class="text-grey1 text-right">—</dd>
+            <dt class="text-subText">Desktop notifications</dt><dd id="sum-notif" class="text-grey1 text-right">—</dd>
+            <dt class="text-subText">Auto pick / ban</dt><dd id="sum-champ" class="text-grey1 text-right">—</dd>
+          </dl>
+        </div>
+
+        <!-- Champ-select plan preview -->
+        <div id="plan-panel" class="hextech p-5 space-y-3 hidden">
+          <div class="sec-head mb-1"><h3>Champ Select Plan</h3><div class="rule"></div></div>
+          <div id="plan" class="space-y-1.5 text-sm"></div>
+        </div>
+
+        <!-- Activity -->
+        <div>
+          <div class="sec-head mb-3"><h3>Activity</h3><div class="rule"></div><span class="text-xs text-subText">live</span></div>
+          <ul id="activity" class="space-y-1.5 text-sm font-mono">
+            <li class="text-subText">Waiting for events…</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- CHAMP SELECT -->
+      <section id="tab-champ" class="hidden h-full">
+
+        <!-- Disabled state -->
+        <div id="champ-disabled" class="hextech h-full flex flex-col items-center justify-center gap-4 text-center p-8">
+          <img src="assets/positions/middle.svg" class="h-12 w-12 opacity-50" onerror="this.style.display='none'" />
+          <p class="font-display text-gold2 text-xl tracking-wide">Auto Pick / Ban is off</p>
+          <p class="text-sm text-subText max-w-sm leading-relaxed">
+            Turn it on in Settings, then come back here to set your bans and picks for each role.
+          </p>
+          <button id="goto-settings"
+            class="hextech font-display tracking-wide px-6 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">
+            Enable in Settings →
+          </button>
+        </div>
+
+        <!-- Enabled editor -->
+        <div id="champ-enabled-view" class="hextech h-full flex flex-col overflow-hidden hidden">
+          <!-- Role selector -->
+          <div id="role-bar" class="flex border-b border-b-icon/20 shrink-0"></div>
+
+          <!-- Mode toggle + search -->
+          <div class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
+            <div class="flex shrink-0">
+              <button id="mode-picks" data-mode="picks"
+                class="mode-btn px-4 py-1.5 text-sm font-serif border-b-2 border-transparent text-icon">Picks</button>
+              <button id="mode-bans" data-mode="bans"
+                class="mode-btn px-4 py-1.5 text-sm font-serif border-b-2 border-transparent text-icon">Bans</button>
+            </div>
+            <input id="champ-search" type="text" placeholder="Search champions…"
+              class="hextech-input flex-1 px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+          </div>
+
+          <p class="text-sm text-subText px-4 pt-2 shrink-0">
+            Click to add · selected champions move to the front · drag them to reorder priority
+          </p>
+
+          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-2 content-start justify-start"
+               style="grid-template-columns: repeat(auto-fill, 56px);"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="tab-settings" class="hidden space-y-5 max-w-2xl pb-2">
+
+        <!-- Auto Pick / Ban -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Auto Pick / Ban</h3><div class="rule"></div></div>
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="champ_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Enable Auto Pick / Ban</span>
+          </label>
+          <div class="flex items-center gap-2 text-sm text-grey1">
+            <span>Lock-in when phase has</span>
+            <input id="lock_seconds" type="number" min="0" max="60" value="1"
+              class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
+            <span>second(s) left</span>
+          </div>
+          <p class="text-sm text-subText leading-relaxed">
+            Set your bans and picks per role on the <span class="text-gold2">Champ Select</span> tab.
+            Applies to queues with assigned roles (Draft / Ranked) only.
+          </p>
+        </div>
+
+        <!-- Discord -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Discord Integration</h3><div class="rule"></div></div>
+          <label class="block">
+            <span class="text-sm text-subText">Webhook URL</span>
+            <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
+              class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-subText">User ID (for @mentions)</span>
+            <input id="user_id" type="text" placeholder="123456789012345678"
+              class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+          </label>
+        </div>
+
+        <!-- Notifications -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Desktop Notifications</h3><div class="rule"></div></div>
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="desktop_notifications" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Enable Windows notifications</span>
+          </label>
+        </div>
+
+        <!-- Queues -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Allowed Queues</h3><div class="rule"></div></div>
+          <p class="text-sm text-subText">Uncheck all to auto-accept <em>any</em> queue.</p>
+          <div id="queues" class="grid grid-cols-2 gap-2.5"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Save bar — footer, shown on Champ Select & Settings tabs -->
+    <div id="save-bar"
+      class="hidden items-center gap-4 px-5 py-3 border-t border-t-icon/30 backdrop-blur-2xl bg-hextech-black/40">
+      <button id="save-btn"
+        class="hextech font-display tracking-wide px-7 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">Save Settings</button>
+      <span id="save-status" class="text-xs text-subText"></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

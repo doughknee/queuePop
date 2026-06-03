@@ -3,6 +3,7 @@ import logging
 import os
 
 import config
+import events
 
 # Default number of seconds left in the phase at which we force a lock-in
 # if the action hasn't been completed manually yet.
@@ -303,6 +304,7 @@ class ChampSelect:
             action_state[action_id] = ('hover', champion_id)
             label = "Declaring intent" if intent else "Hovering"
             config.console.print(f"[info]{label} {kind}: {display}[/]")
+            events.push(f"{label} {kind}: {display}", "info")
             self._log(f"{label} {kind}: {display} (action {action_id}) -> ok={ok}")
             return
 
@@ -310,6 +312,7 @@ class ChampSelect:
             ok = await self._patch(connection, action_id, champion_id, complete=True)
             action_state[action_id] = ('locked', champion_id)
             config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
+            events.push(f"Locked {kind}: {display}", "success")
             self._log(f"LOCK {kind}: {display} (action {action_id}) -> ok={ok}")
 
     async def _patch(self, connection, action_id, champion_id, complete):

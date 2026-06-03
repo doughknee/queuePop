@@ -3,6 +3,7 @@ from lcu_driver import Connector
 from rich.panel import Panel
 
 import config
+import events
 from champ_select import ChampSelect
 from notifications import send_discord_ping, send_desktop_notification
 
@@ -14,6 +15,7 @@ class LCU:
         self.config = config
         self.accepting_match = False
         self.paused = False
+        self.connected = False
         self.champ_select = ChampSelect(self)
 
         # Register event handlers
@@ -24,6 +26,8 @@ class LCU:
 
     async def connect(self, connection):
         config.console.print("[success]✅ League Client Connected![/]")
+        events.push("League client connected", "success")
+        self.connected = True
 
         # Preload champion data so auto pick/ban can resolve names -> IDs.
         if self.config.get("champ_select", {}).get("enabled"):
@@ -40,6 +44,8 @@ class LCU:
 
     async def disconnect(self, connection):
         config.console.print("[warning]⚠️  League Client Disconnected. Waiting...[/]")
+        events.push("League client disconnected", "warning")
+        self.connected = False
 
     async def get_queue_info(self, connection):
         """
@@ -78,6 +84,7 @@ class LCU:
             allowed_queues = self.config.get("allowed_queue_ids", [])
             if allowed_queues and queue_id not in allowed_queues:
                 config.console.log(f"[yellow]Skipping queue '{game_mode}' as it's not in your allowed list.[/]")
+                events.push(f"Skipped queue '{game_mode}' (not in allowed list)", "warning")
                 self.accepting_match = False # Reset for the next real pop
                 return
             
@@ -87,6 +94,7 @@ class LCU:
                 style="danger",
                 padding=(1, 2)
             ))
+            events.push(f"Queue popped: {game_mode} — accepting…", "danger")
             
             # --- Actions ---
             # 1. Send Desktop Notification
@@ -103,6 +111,7 @@ class LCU:
             # 3. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')
             config.console.print("[success]✅ Match Accepted![/]")
+            events.push(f"Match accepted ({game_mode})", "success")
 
     async def champ_select_changed(self, connection, event):
         """Delegates champ select updates to the auto pick/ban handler."""

@@ -5,6 +5,7 @@ from PIL import Image
 
 import config
 
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -15,9 +16,13 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+
 class TrayIcon:
-    def __init__(self, lcu_connector, toggle_console_callback=None, is_visible_callback=None):
+    def __init__(self, lcu_connector, window=None, on_exit=None,
+                 toggle_console_callback=None, is_visible_callback=None):
         self.lcu_connector = lcu_connector
+        self.window = window               # pywebview Window (the UI)
+        self.on_exit = on_exit             # callback to tear the whole app down
         self.toggle_console_callback = toggle_console_callback
         self.is_visible_callback = is_visible_callback
         self.icon = None
@@ -25,73 +30,68 @@ class TrayIcon:
     def _create_menu(self):
         """Creates the menu items for the tray icon."""
         menu_items = [
-            item('Status: Running', None, enabled=False),
+            item('Open queueBot', self.open_window, default=True),
             Menu.SEPARATOR,
-            item('Settings', self.open_settings),
-            item('Pause/Resume', self.toggle_pause)
+            item('Pause/Resume', self.toggle_pause),
         ]
-        
+
         if self.toggle_console_callback:
             if self.is_visible_callback:
                 console_text = "Hide Console" if self.is_visible_callback() else "Show Console"
             else:
                 console_text = "Show/Hide Console"
-            
             menu_items.append(item(console_text, self.on_toggle_console))
-            
+
+        menu_items.append(Menu.SEPARATOR)
         menu_items.append(item('Exit', self.exit_app))
-        
+
         return Menu(*menu_items)
 
-    def open_settings(self, icon, menu_item):
-        """Opens the configuration GUI."""
-        # Note: This will block the tray icon's thread while the window is open.
-        # Since we are using pystray, this is the main thread unless run in detached mode.
-        # But LCU logic is in a background thread, so it keeps working!
-        # We just need to reload config after it closes.
-        def apply_config(new_config):
-            self.lcu_connector.config = new_config
-
-        new_config = config.open_settings_ui(
-            self.lcu_connector.config,
-            on_save_callback=apply_config
-        )
-        
-        # Update LCU connector with new config
-        if new_config:
-            self.lcu_connector.config = new_config
-            # Optional: Notify user
-            icon.notify("Configuration updated successfully.")
+    def open_window(self, icon, menu_item):
+        """Shows (and focuses) the main webview window."""
+        if self.window is not None:
+            try:
+                self.window.show()
+            except Exception as e:
+                config.console.log(f"[warning]Could not show window: {e}[/]")
 
     def on_toggle_console(self, icon, menu_item):
         """Toggles the console window visibility."""
         if self.toggle_console_callback:
             self.toggle_console_callback()
-            # Refresh the menu to update the text
+            # Refresh the menu so the label flips Show <-> Hide.
             self.icon.menu = self._create_menu()
 
     def toggle_pause(self, icon, menu_item):
         """Toggles the paused state of the LCU connector."""
         self.lcu_connector.paused = not self.lcu_connector.paused
-        # This is a simple way to show state, though pystray doesn't easily support dynamic menu item text.
-        # A better UX would be to change the icon, or have separate Pause and Resume items.
-        # For now, a notification is clear.
         status = "Paused" if self.lcu_connector.paused else "Resumed"
         icon.notify(f"Monitoring has been {status}.")
 
     def exit_app(self, icon, menu_item):
-        """Stops the LCU connector and the tray icon."""
-        self.lcu_connector.stop()
+        """Stops everything and quits the application."""
         icon.stop()
+        if self.on_exit:
+            self.on_exit()
 
-    def run(self):
-        """Creates and runs the system tray icon."""
+    def _build_icon(self):
         icon_path = resource_path("assets/gnome-thresh.ico")
         image = Image.open(icon_path)
         self.icon = Icon(
             "queueBot",
             icon=image,
             title="queueBot",
-            menu=self._create_menu()
+            menu=self._create_menu(),
         )
-        self.icon.run()
+        return self.icon
+
+    def run(self):
+        """Creates and runs the tray icon (blocking)."""
+        self._build_icon().run()
+
+    def run_detached(self):
+        """Creates and runs the tray icon in its own thread (non-blocking).
+
+        Used so the main thread is free for the pywebview GUI loop.
+        """
+        self._build_icon().run_detached()

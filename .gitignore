@@ -11,3 +11,7 @@ venv/
 # Runtime artifacts (may contain secrets like Discord webhooks)
 config.json
 *.log
+
+# Downloaded League assets — regenerated via scripts/fetch_assets.py
+src/webui/assets/champions/
+src/webui/assets/positions/

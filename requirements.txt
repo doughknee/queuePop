@@ -3,3 +3,4 @@ aiohttp
 rich
 plyer
 pystray
+pywebview

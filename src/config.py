@@ -40,10 +40,32 @@ QUEUE_ID_MAP = {
     1220: "Tocker's Trials"
 }
 
+def default_config():
+    """Returns a fresh default configuration dict."""
+    return {
+        "webhook_url": "",
+        "user_id": "",
+        "desktop_notifications": True,
+        "allowed_queue_ids": [],
+        "champ_select": {
+            "enabled": False,
+            "lock_in_at_seconds": 1,
+            "roles": {
+                "top": {"bans": [], "picks": []},
+                "jungle": {"bans": [], "picks": []},
+                "middle": {"bans": [], "picks": []},
+                "bottom": {"bans": [], "picks": []},
+                "utility": {"bans": [], "picks": []},
+            },
+        },
+    }
+
+
 def load_or_create_config():
     """
-    Loads configuration from config.json, or prompts the user to create it
-    if it doesn't exist or is invalid.
+    Loads configuration from config.json. If it's missing or corrupt, writes a
+    fresh default and returns it — the user configures via the app window rather
+    than a blocking wizard.
     """
     # Ensure console is initialized if it hasn't been already (fallback)
     if console is None:
@@ -52,12 +74,17 @@ def load_or_create_config():
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
-                config = json.load(f)
-                return config
+                return json.load(f)
         except json.JSONDecodeError:
-            console.print("[danger]Config file is corrupted. Recreating...[/]")
-    
-    return open_settings_ui()
+            console.print("[danger]Config file is corrupted. Recreating defaults...[/]")
+
+    cfg = default_config()
+    try:
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(cfg, f, indent=4)
+    except Exception as e:
+        console.print(f"[warning]Could not write default config: {e}[/]")
+    return cfg
 
 def open_settings_ui(current_config=None, on_save_callback=None):
     """
@@ -66,24 +93,7 @@ def open_settings_ui(current_config=None, on_save_callback=None):
     import gui
     
     if current_config is None:
-        # Default config structure
-        current_config = {
-            "webhook_url": "",
-            "user_id": "",
-            "desktop_notifications": True,
-            "allowed_queue_ids": [],
-            "champ_select": {
-                "enabled": False,
-                "lock_in_at_seconds": 1,
-                "roles": {
-                    "top": {"bans": [], "picks": []},
-                    "jungle": {"bans": [], "picks": []},
-                    "middle": {"bans": [], "picks": []},
-                    "bottom": {"bans": [], "picks": []},
-                    "utility": {"bans": [], "picks": []},
-                },
-            },
-        }
+        current_config = default_config()
 
     # This callback updates the in-memory config if needed, though usually the caller reloads it
     # or the app restarts. For now, we return the new config if we can, but since the GUI is blocking

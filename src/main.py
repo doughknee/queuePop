@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 import threading
 import ctypes
 
@@ -15,6 +16,15 @@ import config as cfg
 from lcu import LCU
 from tray import TrayIcon
 from _version import __version__
+
+
+def webui_index():
+    """Absolute path to the web UI entry point, for dev and frozen builds."""
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS  # PyInstaller extraction dir
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))  # src/
+    return os.path.join(base, "webui", "index.html")
 
 def get_console_window():
     """Returns the handle to the console window."""
@@ -120,13 +130,57 @@ def main():
         input("Press Enter to exit...")
         sys.exit(1)
 
-    # --- System Tray Icon in the main thread ---
-    tray_icon = TrayIcon(
-        lcu_connector=lcu_connector, 
-        toggle_console_callback=toggle_console,
-        is_visible_callback=is_console_visible
+    # --- Web UI (pywebview) on the main thread ---
+    import webview
+    from web_api import Api
+
+    api = Api(lcu_connector)
+    index_path = webui_index()
+
+    window = webview.create_window(
+        "queueBot",
+        url=index_path,
+        js_api=api,
+        width=740,
+        height=840,
+        min_size=(620, 700),
+        background_color="#020617",
     )
-    tray_icon.run()
+    api.window_controller = window
+
+    # Closing the window hides it to the tray instead of quitting; only the
+    # tray "Exit" item (which flips this flag) actually tears the app down.
+    app_state = {"quitting": False}
+
+    def on_closing():
+        if app_state["quitting"]:
+            return True  # allow the window to be destroyed
+        window.hide()
+        return False     # cancel the close, keep running in the tray
+
+    window.events.closing += on_closing
+
+    def shutdown():
+        app_state["quitting"] = True
+        lcu_connector.stop()
+        try:
+            window.destroy()
+        except Exception:
+            pass
+
+    # --- System Tray Icon, detached so the main thread runs the GUI loop ---
+    tray_icon = TrayIcon(
+        lcu_connector=lcu_connector,
+        window=window,
+        on_exit=shutdown,
+        toggle_console_callback=toggle_console,
+        is_visible_callback=is_console_visible,
+    )
+    tray_icon.run_detached()
+
+    # Blocks until the window is destroyed (i.e. the user hits Exit).
+    # debug=True enables right-click → Inspect in the WebView (dev only).
+    webview.start(debug=True)
 
     cfg.console.print("[yellow]Application has been shut down.[/]")
 
