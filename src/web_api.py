@@ -71,13 +71,23 @@ def _opgg_region(region):
     return _OPGG_REGION.get(r, r.lower())
 
 
-def _manifest_path():
-    """Path to the bundled champion manifest (dev and frozen builds)."""
+def _assets_base():
+    """Base dir of the bundled web UI assets (dev and frozen builds)."""
     if getattr(sys, "frozen", False):
         base = sys._MEIPASS
     else:
         base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, "webui", "assets", "champions", "manifest.json")
+    return os.path.join(base, "webui", "assets")
+
+
+def _manifest_path():
+    """Path to the bundled champion manifest (dev and frozen builds)."""
+    return os.path.join(_assets_base(), "champions", "manifest.json")
+
+
+def _skins_manifest_path():
+    """Path to the bundled skins manifest (built by scripts/fetch_assets.py)."""
+    return os.path.join(_assets_base(), "skins", "manifest.json")
 
 
 def _text_to_list(text):
@@ -101,16 +111,58 @@ def _clean_spells(val):
     return out
 
 
+def _clean_loadout(lo):
+    """Normalize one per-champ loadout: {spells:[id,id], rune, skin}.
+      rune: "off" | "recommended" | <pageId int>
+      skin: "off" | "random" | "best"  | <skinId int>
+    Returns None if the loadout has nothing set (so empties aren't stored)."""
+    lo = lo or {}
+    spells = _clean_spells(lo.get("spells"))
+
+    rune = lo.get("rune", "off")
+    if rune not in ("off", "recommended"):
+        try:
+            rune = int(rune)
+        except (TypeError, ValueError):
+            rune = "off"
+
+    skin = lo.get("skin", "off")
+    if skin not in ("off", "random", "best"):
+        try:
+            skin = int(skin)
+        except (TypeError, ValueError):
+            skin = "off"
+
+    if not spells and rune == "off" and skin == "off":
+        return None
+    return {"spells": spells, "rune": rune, "skin": skin}
+
+
+def _clean_loadouts(val):
+    """Coerce a role's loadouts map ({championId: loadout}) to a clean map,
+    dropping junk keys and empty loadouts."""
+    out = {}
+    for cid, lo in (val or {}).items():
+        try:
+            cid = int(cid)
+        except (TypeError, ValueError):
+            continue
+        clean = _clean_loadout(lo)
+        if clean is not None:
+            out[str(cid)] = clean
+    return out
+
+
 def _normalize_champ_select(cs):
     cs = cs or {}
     roles_in = cs.get("roles", {}) or {}
     roles = {}
-    for role in champ_select.ROLES:
+    for role in champ_select.EDITOR_ROLES:
         rc = roles_in.get(role, {}) or {}
         roles[role] = {
             "bans": _text_to_list(rc.get("bans")),
             "picks": _text_to_list(rc.get("picks")),
-            "spells": _clean_spells(rc.get("spells")),
+            "loadouts": _clean_loadouts(rc.get("loadouts")),
         }
     try:
         lock = int(cs.get("lock_in_at_seconds", champ_select.DEFAULT_LOCK_SECONDS))
@@ -118,9 +170,11 @@ def _normalize_champ_select(cs):
         lock = champ_select.DEFAULT_LOCK_SECONDS
     return {
         "enabled": bool(cs.get("enabled", False)),
+        "instant_lock": bool(cs.get("instant_lock", True)),
         "lock_in_at_seconds": max(0, lock),
-        "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
+        "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
+        "aram": {"enabled": bool((cs.get("aram", {}) or {}).get("enabled", False))},
     }
 
 
@@ -205,6 +259,8 @@ class Api:
         # profileIconId -> data: URI, so the summoner badge doesn't re-proxy the
         # same image from the LCU on every poll.
         self._icon_cache = {}
+        # Lazily-loaded bundled skins catalog: {championId(str): [{id,name,…}]}.
+        self._skins_catalog = None
 
     # --- Read-only state ------------------------------------------------
 
@@ -236,7 +292,7 @@ class Api:
     def get_roles(self):
         return [
             {"key": r, "label": champ_select.ROLE_LABELS.get(r, r.title())}
-            for r in champ_select.ROLES
+            for r in champ_select.EDITOR_ROLES
         ]
 
     def get_summoner_spells(self):
@@ -274,6 +330,117 @@ class Api:
 
         return self._lcu.call(_fetch, timeout=8.0) or []
 
+    def get_champ_select(self):
+        """Live, read-only champ-select snapshot for the dashboard takeover:
+        both teams (role, hovered intent, locked champ, spells, skin), bans,
+        pending trades, and the ARAM bench. Returns {active: False} when the
+        client isn't connected or we're not in champ select. Champ icons are
+        rendered client-side from the bundled assets, so this stays lightweight.
+        """
+
+        async def _fetch(conn):
+            r = await conn.request("get", "/lol-champ-select/v1/session")
+            if r.status != 200:
+                return {"active": False}
+            session = await r.json()
+
+            cs = self._lcu.champ_select
+            if not getattr(cs, "id_to_name", None):
+                await cs.load_champion_data(conn)
+            id_to_name = getattr(cs, "id_to_name", {}) or {}
+
+            def nm(cid):
+                cid = cid or 0
+                return id_to_name.get(cid, "") if cid > 0 else ""
+
+            local_cell = session.get("localPlayerCellId")
+
+            def player(p):
+                cid = p.get("championId") or 0
+                intent = p.get("championPickIntent") or 0
+                return {
+                    "cellId": p.get("cellId"),
+                    "championId": cid,
+                    "name": nm(cid),
+                    "position": (p.get("assignedPosition") or "").lower(),
+                    "intent": intent,
+                    "intentName": nm(intent),
+                    "spell1Id": p.get("spell1Id") or 0,
+                    "spell2Id": p.get("spell2Id") or 0,
+                    "skinId": p.get("selectedSkinId") or 0,
+                    "isLocal": p.get("cellId") == local_cell,
+                }
+
+            my_team = [player(p) for p in (session.get("myTeam") or [])]
+            their_team = [player(p) for p in (session.get("theirTeam") or [])]
+
+            # Bans: prefer the session's own tally, fall back to completed ban
+            # actions if the client didn't populate it.
+            bans = session.get("bans") or {}
+            my_bans = list(bans.get("myTeamBans") or [])
+            their_bans = list(bans.get("theirTeamBans") or [])
+            if not my_bans and not their_bans:
+                my_cells = {p["cellId"] for p in my_team}
+                for rnd in session.get("actions", []) or []:
+                    for a in rnd:
+                        if a.get("type") == "ban" and a.get("completed"):
+                            bid = a.get("championId") or 0
+                            if bid <= 0:
+                                continue
+                            (my_bans if a.get("actorCellId") in my_cells
+                             else their_bans).append(bid)
+            ban_view = {
+                "my": [{"championId": b, "name": nm(b)} for b in my_bans if b > 0],
+                "their": [{"championId": b, "name": nm(b)} for b in their_bans if b > 0],
+            }
+
+            # Trades are with our own team; resolve each cell's champ for display.
+            cell_champ = {p["cellId"]: p["championId"] for p in my_team}
+            trades = []
+            for t in session.get("trades") or []:
+                state = t.get("state") or ""
+                if state in ("", "INVALID"):
+                    continue
+                cell = t.get("cellId")
+                cid = cell_champ.get(cell, 0)
+                trades.append({
+                    "id": t.get("id"), "cellId": cell, "state": state,
+                    "championId": cid, "name": nm(cid),
+                })
+
+            # Bench (ARAM): handle both the new object list and the old id list.
+            bench_ids = []
+            for b in session.get("benchChampions") or []:
+                bid = b.get("championId") if isinstance(b, dict) else b
+                if bid:
+                    bench_ids.append(bid)
+            if not bench_ids:
+                bench_ids = list(session.get("benchChampionIds") or [])
+
+            timer = session.get("timer", {}) or {}
+            timer_left = None
+            if not timer.get("isInfinite"):
+                ms = timer.get("adjustedTimeLeftInPhase")
+                if isinstance(ms, (int, float)) and ms >= 0:
+                    timer_left = round(ms / 1000.0, 1)
+
+            return {
+                "active": True,
+                "phase": timer.get("phase"),
+                "timer_left": timer_left,
+                "localCellId": local_cell,
+                "myTeam": my_team,
+                "theirTeam": their_team,
+                "bans": ban_view,
+                "trades": trades,
+                "bench": {
+                    "enabled": bool(session.get("benchEnabled")),
+                    "champions": [{"championId": b, "name": nm(b)} for b in bench_ids],
+                },
+            }
+
+        return self._lcu.call(_fetch, timeout=6.0) or {"active": False}
+
     def get_champion_catalog(self):
         """Bundled champion catalog [{id, name, alias}] read from the manifest.
 
@@ -289,6 +456,114 @@ class Api:
         except Exception:
             pass
         return self.get_champions()
+
+    def get_champion_skins(self, champion_id):
+        """Skins for a champion [{id, name, rarity, isBase}] from the bundled
+        manifest, for the skin-favorites picker. Empty if the manifest is
+        missing (run scripts/fetch_assets.py to generate it)."""
+        try:
+            champion_id = int(champion_id)
+        except (TypeError, ValueError):
+            return []
+        if self._skins_catalog is None:
+            try:
+                with open(_skins_manifest_path(), "r", encoding="utf-8") as f:
+                    self._skins_catalog = json.load(f).get("skins", {}) or {}
+            except Exception:
+                self._skins_catalog = {}
+        return list(self._skins_catalog.get(str(champion_id), []))
+
+    def get_rune_pages(self):
+        """The user's own selectable rune pages [{id, name, primaryStyleId,
+        subStyleId}] from the live client, for the per-champ rune picker. Excludes
+        queueBot's managed recommended page. Empty when the client isn't up."""
+
+        async def _fetch(conn):
+            r = await conn.request("get", "/lol-perks/v1/pages")
+            if r.status != 200:
+                return []
+            out = []
+            for p in await r.json():
+                if p.get("isValid") is False:
+                    continue
+                if p.get("name") == champ_select.RUNE_PAGE_NAME:
+                    continue  # our auto-managed page, not a user page
+                # User pages are editable/deletable; skip auto-generated ones.
+                if not (p.get("isEditable", True) or p.get("isDeletable", True)):
+                    continue
+                out.append({
+                    "id": p.get("id"),
+                    "name": p.get("name") or f"Page {p.get('id')}",
+                    "primaryStyleId": p.get("primaryStyleId"),
+                    "subStyleId": p.get("subStyleId"),
+                })
+            return out
+
+        return self._lcu.call(_fetch, timeout=6.0) or []
+
+    def get_rune_info(self):
+        """Rune-page status for the Recommended Runes settings panel:
+        {pages:[{id,name}], managed:{id,name}|None, at_cap:bool}. `pages` lists
+        the user's own (claimable) pages; `managed` is queueBot's dedicated page
+        if it exists; `at_cap` is true when no slot is free to create one."""
+
+        async def _fetch(conn):
+            r = await conn.request("get", "/lol-perks/v1/pages")
+            if r.status != 200:
+                return {"pages": [], "managed": None, "at_cap": False}
+            managed, pages = None, []
+            for p in await r.json():
+                entry = {"id": p.get("id"), "name": p.get("name") or f"Page {p.get('id')}"}
+                if p.get("name") == champ_select.RUNE_PAGE_NAME:
+                    managed = entry
+                elif p.get("isEditable", True) or p.get("isDeletable", True):
+                    pages.append(entry)
+            at_cap = False
+            try:
+                inv = await conn.request("get", "/lol-perks/v1/inventory")
+                if inv.status == 200:
+                    d = await inv.json()
+                    owned, mx = d.get("ownedPageCount"), d.get("maxPages")
+                    if isinstance(owned, int) and isinstance(mx, int):
+                        at_cap = owned >= mx
+            except Exception:
+                pass
+            return {"pages": pages, "managed": managed, "at_cap": at_cap}
+
+        return self._lcu.call(_fetch, timeout=6.0) or {
+            "pages": [], "managed": None, "at_cap": False
+        }
+
+    def claim_rune_page(self, page_id):
+        """Hand an existing rune page over to queueBot: rename it to the managed
+        name (keeping its current runes) so the recommended-runes feature edits
+        it from now on instead of touching the user's other pages."""
+
+        async def _claim(conn):
+            try:
+                pid = int(page_id)
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "Invalid page"}
+            r = await conn.request("get", f"/lol-perks/v1/pages/{pid}")
+            if r.status != 200:
+                return {"ok": False, "error": f"Page not found ({r.status})"}
+            pg = await r.json()
+            body = {
+                "name": champ_select.RUNE_PAGE_NAME,
+                "primaryStyleId": pg.get("primaryStyleId"),
+                "subStyleId": pg.get("subStyleId"),
+                "selectedPerkIds": pg.get("selectedPerkIds") or [],
+                "current": bool(pg.get("current")),
+            }
+            put = await conn.request("put", f"/lol-perks/v1/pages/{pid}", data=body)
+            if put.status >= 400:
+                return {"ok": False, "error": f"Couldn't rename page ({put.status})"}
+            return {"ok": True}
+
+        res = self._lcu.call(_claim, timeout=6.0)
+        if res and res.get("ok"):
+            events.push("queueBot now manages that rune page", "success", kind="runes")
+        return res or {"ok": False, "error": "Client not connected"}
 
     def get_champions(self):
         """Fallback champion catalog [{id, name}] from the live client.

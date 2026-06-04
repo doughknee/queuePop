@@ -25,6 +25,9 @@ let activeRole = null; // currently edited role
 let activeMode = "picks"; // "picks" | "bans" — what the grid adds to
 let activeSort = "az"; // "az" | "mastery" | "recent" — grid ordering of unselected champs
 let masteryById = {}; // championId -> { level, points, lastPlayTime }
+let runePageList = []; // user's saved rune pages, loaded live for the loadout editor
+let loadoutRole = null; // role whose loadout is open in the editor
+let loadoutChamp = 0; // championId whose loadout is open
 let customSoundPath = ""; // absolute path to the user's custom alarm file
 let previewCtx = null; // lazily-created AudioContext for Settings sound preview
 
@@ -126,18 +129,27 @@ function fmtAgo(ms) {
   return Math.floor(days / 365) + "y";
 }
 
-// --- Route nav (icon tabs) ---------------------------------------------
+// --- Route nav (icon tabs + the live route) ----------------------------
+// "live" is a routeless tab: it has no nav icon and is reached via the PLAY→LIVE
+// button, which glows while it's the active view (see .play-btn.live-active).
+let activeTab = "dashboard";
 function activateTab(tab) {
+  activeTab = tab;
   document.querySelectorAll(".nav-route").forEach((b) => {
     b.classList.toggle("active", b.dataset.tab === tab);
   });
+  $("tab-live").classList.toggle("hidden", tab !== "live");
   $("tab-dashboard").classList.toggle("hidden", tab !== "dashboard");
   $("tab-champ").classList.toggle("hidden", tab !== "champ");
   $("tab-settings").classList.toggle("hidden", tab !== "settings");
   replay($(`tab-${tab}`), "fade-up");
-  const showSave = tab !== "dashboard";
+  // The PLAY button doubles as the live-route indicator.
+  $("play-btn").classList.toggle("live-active", tab === "live");
+  const showSave = tab === "champ" || tab === "settings";
   $("save-bar").classList.toggle("hidden", !showSave);
   $("save-bar").classList.toggle("flex", showSave);
+  // Refresh live rune-page status when entering Settings.
+  if (tab === "settings" && typeof refreshRuneInfo === "function") refreshRuneInfo();
 }
 document.querySelectorAll(".nav-route").forEach((btn) => {
   btn.addEventListener("click", () => activateTab(btn.dataset.tab));
@@ -179,7 +191,8 @@ function updatePlay(s) {
     switch (s.gameflow_phase) {
       case "Matchmaking": text = "IN QUEUE"; mode = "cancel"; break;
       case "ReadyCheck": text = "READY"; mode = "none"; disabled = true; break;
-      case "ChampSelect": text = "CHAMP"; mode = "none"; disabled = true; break;
+      case "ChampSelect": text = "LIVE"; mode = "live"; break; // jump to live view
+
       case "InProgress": text = "IN GAME"; mode = "none"; disabled = true; break;
       case "PreEndOfGame":
       case "WaitingForStats":
@@ -203,6 +216,9 @@ $("play-btn").addEventListener("click", async () => {
     closeQueueMenu();
     await api().cancel_queue();
     refreshStatus();
+  } else if (mode === "live") {
+    closeQueueMenu();
+    showLiveView();
   } else if (mode === "queue") {
     toggleQueueMenu();
   }
@@ -511,6 +527,146 @@ $("summoner-btn").addEventListener("click", () => {
   if (url) api().open_external(url);
 });
 
+// --- Live champ-select takeover ----------------------------------------
+// While gameflow_phase == ChampSelect, the dashboard swaps to a live read-only
+// view of both teams, bans, trades, and the ARAM bench (get_champ_select()).
+let champLiveTimer = null;
+let inChampSelect = false;
+
+const SPELL_SHORT = {
+  4: "Flash", 14: "Ignite", 12: "TP", 11: "Smite", 7: "Heal",
+  3: "Exhaust", 21: "Barrier", 6: "Ghost", 1: "Cleanse", 13: "Clarity", 32: "Snowball",
+};
+function spellShort(id) { return SPELL_SHORT[Number(id)] || spellName(id) || ""; }
+function champIconById(id) { return id ? `assets/champions/${id}.png` : null; }
+
+// The live view is its own route. Champ select starting auto-navigates to it and
+// begins polling; the PLAY→LIVE button returns to it; the panel's "Dashboard"
+// button drops back to the dashboard while staying in champ select.
+function enterChampSelect() {
+  if (inChampSelect) return;
+  inChampSelect = true;
+  activateTab("live");
+  refreshChampLive();
+  if (!champLiveTimer) champLiveTimer = setInterval(refreshChampLive, 700);
+}
+function exitChampSelect() {
+  if (!inChampSelect && !champLiveTimer) return;
+  inChampSelect = false;
+  if (champLiveTimer) { clearInterval(champLiveTimer); champLiveTimer = null; }
+  // Don't strand the user on the (now-empty) live route.
+  if (activeTab === "live") activateTab("dashboard");
+}
+function showLiveView() { activateTab("live"); }   // PLAY = LIVE
+$("champ-live").addEventListener("click", (e) => {
+  if (e.target.closest("#cs-to-dash")) activateTab("dashboard");
+});
+
+async function refreshChampLive() {
+  let cs = {};
+  try { cs = (await api().get_champ_select()) || {}; } catch (_) { return; }
+  if (!cs.active) return; // session not ready yet; keep showing the last frame
+  renderChampLive(cs);
+}
+
+function csPortrait(p) {
+  // Locked champ → solid icon; hovered intent → dashed + dimmed; else empty.
+  const locked = p.championId > 0;
+  const id = locked ? p.championId : p.intent;
+  const icon = champIconById(id);
+  const cls = "cs-portrait" + (!locked && p.intent > 0 ? " intent" : "");
+  const img = icon
+    ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
+    : "";
+  return `<div class="${cls}">${img}</div>`;
+}
+
+function csRow(p) {
+  const locked = p.championId > 0;
+  const name = locked ? p.name : p.intent > 0 ? p.intentName : "";
+  const nameCls = "cs-name" + (locked ? "" : " pending");
+  const nameTxt = name || (p.intent > 0 ? "Hovering…" : "Picking…");
+  const role = p.position
+    ? `<img class="cs-role" src="assets/positions/${p.position}.svg" onerror="this.style.display='none'" />`
+    : "";
+  const spells = [p.spell1Id, p.spell2Id]
+    .filter((s) => s > 0)
+    .map(
+      (s) =>
+        `<img class="cs-spell-ico" src="assets/spells/${s}.png" title="${spellShort(s)}" ` +
+        `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cs-spell',textContent:'${spellShort(s)}'}))" />`,
+    )
+    .join("");
+  return (
+    `<div class="cs-row${p.isLocal ? " local" : ""}${name ? "" : " empty"}">` +
+      csPortrait(p) +
+      role +
+      `<div class="cs-meta">` +
+        `<span class="${nameCls}">${nameTxt}</span>` +
+        (spells ? `<span class="cs-spells">${spells}</span>` : "") +
+      `</div>` +
+    `</div>`
+  );
+}
+
+function csMini(c, ban) {
+  const icon = champIconById(c.championId);
+  return (
+    `<div class="cs-mini${ban ? " ban" : ""}" title="${c.name || ""}">` +
+      (icon ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />` : "") +
+    `</div>`
+  );
+}
+
+function renderChampLive(cs) {
+  const phase = (cs.phase || "Champ Select").replace(/_/g, " ");
+
+  const bansMy = (cs.bans?.my || []).map((b) => csMini(b, true)).join("");
+  const bansTheir = (cs.bans?.their || []).map((b) => csMini(b, true)).join("");
+  const bansStrip =
+    bansMy || bansTheir
+      ? `<div class="cs-strip"><span class="cs-strip-label">Bans</span>${bansMy}` +
+        (bansMy && bansTheir ? `<span class="text-subText px-1">·</span>` : "") +
+        `${bansTheir}</div>`
+      : "";
+
+  const trades = (cs.trades || [])
+    .map(
+      (tr) =>
+        `<span class="cs-trade">${tr.name || "Cell " + tr.cellId}` +
+        `<span class="st">${(tr.state || "").toLowerCase()}</span></span>`,
+    )
+    .join("");
+  const tradesStrip = trades
+    ? `<div class="cs-strip"><span class="cs-strip-label">Trades</span>${trades}</div>`
+    : "";
+
+  const bench = cs.bench || {};
+  const benchStrip =
+    bench.enabled && (bench.champions || []).length
+      ? `<div class="cs-strip cs-bench"><span class="cs-strip-label">Bench</span>` +
+        bench.champions.map((c) => csMini(c, false)).join("") +
+        `</div>`
+      : "";
+
+  $("champ-live").innerHTML =
+    `<div class="cs-head">` +
+      `<span class="cs-phase">${phase}</span>` +
+      `<button id="cs-to-dash" type="button" class="cs-dash-btn">Dashboard ▸</button>` +
+    `</div>` +
+    `<div class="cs-teams">` +
+      `<div><div class="cs-team-title mine">Your Team</div>` +
+        (cs.myTeam || []).map(csRow).join("") +
+      `</div>` +
+      `<div><div class="cs-team-title theirs">Enemy Team</div>` +
+        ((cs.theirTeam || []).length
+          ? cs.theirTeam.map(csRow).join("")
+          : `<div class="text-subText text-sm italic px-2 py-1">Hidden</div>`) +
+      `</div>` +
+    `</div>` +
+    bansStrip + tradesStrip + benchStrip;
+}
+
 // --- Status polling -----------------------------------------------------
 async function refreshStatus() {
   try {
@@ -522,6 +678,9 @@ async function refreshStatus() {
     // connect/disconnect transitions. (Client connection status is shown on
     // the dashboard hero strip via #hero-client below.)
     updatePlay(s);
+    // Dashboard takeover: live champ-select view while we're in select.
+    if (s.connected && s.gameflow_phase === "ChampSelect") enterChampSelect();
+    else exitChampSelect();
     if (s.connected !== lastConnected) {
       lastConnected = s.connected;
       refreshSummoner();
@@ -652,21 +811,27 @@ async function buildSettings() {
 // champ onto another to reorder priority. Search filters the whole grid.
 // On-disk shape: champ_select.roles.<role>.{picks,bans}.
 
+// Inline ARAM glyph (no position SVG exists for it) — a 4-way poke/mirror mark.
+const ARAM_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>';
+
 function buildChampTab() {
   const bar = $("role-bar");
   bar.innerHTML = "";
   for (const r of roles) {
-    if (!plan[r.key]) plan[r.key] = { bans: [], picks: [], spells: [] };
+    if (!plan[r.key]) plan[r.key] = { bans: [], picks: [], loadouts: {} };
     const short = r.label.replace(/\s*\(.*\)/, ""); // "Bottom (ADC)" -> "Bottom"
     const b = document.createElement("button");
-    b.className =
-      "role-tab flex-1 flex items-center justify-center gap-2 px-2 py-2.5 " +
-      "border-b-2 border-transparent hover:bg-hextech-black/30 transition";
+    b.className = "role-tab";
     b.dataset.role = r.key;
-    b.innerHTML = `
-      <img src="assets/positions/${r.key}.svg" class="h-6 w-6" onerror="this.style.display='none'" />
-      <span class="role-label font-serif text-sm text-grey1">${short}</span>
-      <span data-badge class="text-xs text-gold2"></span>`;
+    const icon =
+      r.key === "aram"
+        ? `<span class="role-ico">${ARAM_ICON}</span>`
+        : `<span class="role-ico"><img src="assets/positions/${r.key}.svg" onerror="this.style.display='none'" /></span>`;
+    b.innerHTML =
+      icon +
+      `<span class="role-label">${short}</span>` +
+      `<span data-dot class="role-dot"></span>`;
     b.addEventListener("click", () => selectRole(r.key));
     bar.appendChild(b);
   }
@@ -678,8 +843,6 @@ function buildChampTab() {
   $("champ_enabled").addEventListener("change", (e) =>
     updateChampView(e.target.checked),
   );
-
-  buildSpellSelects();
 
   // Sort control: wire the segments and restore the last-used sort.
   document.querySelectorAll("#sort-seg .sort-opt").forEach((b) =>
@@ -694,32 +857,6 @@ function buildChampTab() {
   setMode("picks");
 }
 
-// --- Per-role summoner spells -------------------------------------------
-// Two dropdowns bound to the active role's plan[role].spells. A blank option
-// (—) means "don't touch this slot"; both must be set for the app to apply
-// them (the client needs two distinct spells).
-function buildSpellSelects() {
-  const opts =
-    '<option value="">—</option>' +
-    spellList.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
-  const s1 = $("spell1"), s2 = $("spell2");
-  if (s1) { s1.innerHTML = opts; s1.addEventListener("change", onSpellChange); }
-  if (s2) { s2.innerHTML = opts; s2.addEventListener("change", onSpellChange); }
-}
-function onSpellChange() {
-  if (!activeRole) return;
-  const a = $("spell1").value, b = $("spell2").value;
-  const arr = [];
-  if (a) arr.push(Number(a));
-  if (b && Number(b) !== Number(a)) arr.push(Number(b));
-  plan[activeRole].spells = arr;
-}
-function syncSpellSelects() {
-  const sp = (plan[activeRole] && plan[activeRole].spells) || [];
-  if ($("spell1")) $("spell1").value = sp[0] != null ? String(sp[0]) : "";
-  if ($("spell2")) $("spell2").value = sp[1] != null ? String(sp[1]) : "";
-}
-
 function updateChampView(enabled) {
   $("champ-disabled").classList.toggle("hidden", enabled);
   $("champ-enabled-view").classList.toggle("hidden", !enabled);
@@ -728,15 +865,14 @@ function updateChampView(enabled) {
 function selectRole(role) {
   activeRole = role;
   document.querySelectorAll(".role-tab").forEach((b) => {
-    const on = b.dataset.role === role;
-    b.classList.toggle("border-gold2", on);
-    b.classList.toggle("bg-hextech-black/40", on);
-    b.classList.toggle("border-transparent", !on);
-    b.querySelector(".role-label")?.classList.toggle("text-gold1", on);
-    b.querySelector(".role-label")?.classList.toggle("text-grey1", !on);
+    b.classList.toggle("active", b.dataset.role === role);
   });
-  syncSpellSelects();
-  renderGrid($("champ-search").value);
+  // ARAM has no bans — hide the toggle and force Picks (its picks list doubles
+  // as the bench-swap + trade priority order).
+  const isAram = role === "aram";
+  $("mode-bans").classList.toggle("hidden", isAram);
+  if (isAram && activeMode === "bans") activeMode = "picks";
+  setMode(activeMode); // refreshes mode buttons, hint, and the grid
 }
 
 function setMode(mode) {
@@ -751,12 +887,19 @@ function setMode(mode) {
   });
   const hint = $("champ-hint");
   if (hint) {
-    const isBan = mode === "bans";
-    const word = isBan ? "bans" : "picks";
-    const color = isBan ? "text-red-400" : "text-gold2";
-    hint.innerHTML =
-      `Click to add — your <span class="${color}">${word}</span> move to the front, ` +
-      `numbered by priority. Drag a numbered champ onto another to reorder.`;
+    if (activeRole === "aram") {
+      hint.innerHTML =
+        `Your ARAM <span class="text-gold2">priority list</span> — queueBot grabs ` +
+        `the highest-ranked of these off the reroll bench (and trades toward it). ` +
+        `Click to add; drag to reorder.`;
+    } else {
+      const isBan = mode === "bans";
+      const word = isBan ? "bans" : "picks";
+      const color = isBan ? "text-red-400" : "text-gold2";
+      hint.innerHTML =
+        `Click to add — your <span class="${color}">${word}</span> move to the front, ` +
+        `numbered by priority. Drag a numbered champ onto another to reorder.`;
+    }
   }
   renderGrid($("champ-search").value);
 }
@@ -846,12 +989,31 @@ function renderGrid(filter) {
     const cell = document.createElement("div");
     cell.className = "grid-cell" + (isSel ? " sel" + (isBan ? " ban" : "") : "");
     cell.dataset.name = c.name;
+    cell.dataset.id = c.id;
     cell.title = c.name;
     if (isSel) cell.draggable = true;
+    // Selected cells get a corner remove-X (on hover). Picks also get a teal dot
+    // when a loadout is configured; clicking a pick's body opens its loadout.
+    const hasLo = !isBan && !!(plan[activeRole].loadouts || {})[String(c.id)];
+    const removeX = isSel
+      ? `<span class="cell-x" title="Remove">` +
+        `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="3.2" y1="3.2" x2="8.8" y2="8.8"/><line x1="8.8" y1="3.2" x2="3.2" y2="8.8"/></svg>` +
+        `</span>`
+      : "";
+    const loDot = hasLo ? `<span class="cell-loadout" title="Loadout set"></span>` : "";
+    // Selected picks get a hover overlay (scrim + gear) cueing "click to edit
+    // the loadout". Click-through so the click still opens the loadout.
+    const editOverlay =
+      isSel && !isBan
+        ? `<span class="cell-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>`
+        : "";
     cell.innerHTML =
       `<img src="assets/champions/${c.id}.png" width="128" height="128" draggable="false" />` +
+      editOverlay +
       (isSel ? `<span class="cell-num${isBan ? " ban" : ""}">${order + 1}</span>` : "") +
-      cellMeta(c.id);
+      cellMeta(c.id) +
+      loDot +
+      removeX;
     frag.appendChild(cell);
   });
 
@@ -870,16 +1032,16 @@ function toggleChamp(name) {
   renderGrid($("champ-search").value);
 }
 
-// Small count badge on each top-bar role button.
+// A subtle gold dot on a role tab marks it as configured (picks/bans/loadouts).
 function updateBadge(role) {
-  const b = document.querySelector(
-    `.role-tab[data-role="${role}"] [data-badge]`,
-  );
-  if (!b) return;
-  const p = (plan[role]?.picks || []).length;
-  const bn = (plan[role]?.bans || []).length;
-  b.textContent = p || bn ? `${p}·${bn}` : "";
-  b.title = `${p} picks · ${bn} bans`;
+  const dot = document.querySelector(`.role-tab[data-role="${role}"] [data-dot]`);
+  if (!dot) return;
+  const rc = plan[role] || {};
+  const p = (rc.picks || []).length;
+  const bn = (rc.bans || []).length;
+  const lo = Object.keys(rc.loadouts || {}).length;
+  dot.classList.toggle("on", !!(p || bn || lo));
+  dot.title = `${p} picks · ${bn} bans · ${lo} loadouts`;
 }
 
 function updateAllBadges() {
@@ -894,7 +1056,20 @@ function wireGridEvents() {
 
   grid.addEventListener("click", (e) => {
     const cell = e.target.closest(".grid-cell");
-    if (cell) toggleChamp(cell.dataset.name);
+    if (!cell) return;
+    // Corner X removes a selected champ.
+    if (e.target.closest(".cell-x")) {
+      e.stopPropagation();
+      toggleChamp(cell.dataset.name);
+      return;
+    }
+    // Clicking a selected PICK opens its loadout; everything else toggles
+    // (add an unselected champ, or remove a selected ban).
+    if (cell.classList.contains("sel") && activeMode === "picks") {
+      openLoadout(activeRole, Number(cell.dataset.id));
+    } else {
+      toggleChamp(cell.dataset.name);
+    }
   });
   grid.addEventListener("dragstart", (e) => {
     const cell = e.target.closest(".grid-cell");
@@ -954,9 +1129,13 @@ async function loadConfig() {
 
   const champEnabled = !!(c.champ_select && c.champ_select.enabled);
   $("champ_enabled").checked = champEnabled;
+  $("instant_lock").checked = (c.champ_select && c.champ_select.instant_lock) ?? true;
   $("lock_seconds").value =
     (c.champ_select && c.champ_select.lock_in_at_seconds) ?? 1;
-  $("auto_runes").checked = !!(c.champ_select && c.champ_select.auto_runes);
+  updateLockDelayRow();
+  const csCfg = c.champ_select || {};
+  $("trades_enabled").checked = !!(csCfg.trades && csCfg.trades.enabled);
+  $("aram_enabled").checked = !!(csCfg.aram && csCfg.aram.enabled);
   updateChampView(champEnabled);
 
   const allowed = new Set((c.allowed_queue_ids || []).map(Number));
@@ -967,10 +1146,18 @@ async function loadConfig() {
   const rolesCfg = (c.champ_select && c.champ_select.roles) || {};
   for (const r of roles) {
     const rc = rolesCfg[r.key] || {};
+    const loadouts = {};
+    for (const [cid, lo] of Object.entries(rc.loadouts || {})) {
+      loadouts[cid] = {
+        spells: [...(lo.spells || [])],
+        rune: lo.rune ?? "off",
+        skin: lo.skin ?? "off",
+      };
+    }
     plan[r.key] = {
       bans: [...(rc.bans || [])],
       picks: [...(rc.picks || [])],
-      spells: [...(rc.spells || [])],
+      loadouts,
     };
   }
   // selectRole re-renders both the plan chips and the catalog grid.
@@ -992,7 +1179,7 @@ function gatherConfig() {
     rolesOut[r.key] = {
       bans: [...(plan[r.key]?.bans || [])],
       picks: [...(plan[r.key]?.picks || [])],
-      spells: [...(plan[r.key]?.spells || [])],
+      loadouts: plan[r.key]?.loadouts || {},
     };
   }
 
@@ -1009,8 +1196,10 @@ function gatherConfig() {
     },
     champ_select: {
       enabled: $("champ_enabled").checked,
+      instant_lock: $("instant_lock").checked,
       lock_in_at_seconds: Number($("lock_seconds").value) || 0,
-      auto_runes: $("auto_runes").checked,
+      trades: { enabled: $("trades_enabled").checked },
+      aram: { enabled: $("aram_enabled").checked },
       roles: rolesOut,
     },
   };
@@ -1025,7 +1214,9 @@ function renderSummary(c) {
   $("sum-notif").textContent = c.desktop_notifications ? "On" : "Off";
   const cs = c.champ_select || {};
   $("sum-champ").textContent = cs.enabled
-    ? `On — lock at ${cs.lock_in_at_seconds}s`
+    ? cs.instant_lock
+      ? "On — instant lock"
+      : `On — lock at ${cs.lock_in_at_seconds}s left`
     : "Off";
 }
 
@@ -1043,17 +1234,27 @@ function renderPlan(c) {
   const panel = $("plan-panel");
   const wrap = $("plan");
 
+  const trades = !!(cs.trades && cs.trades.enabled);
+  const aram = !!(cs.aram && cs.aram.enabled);
+  const aramPicks = ((rolesCfg.aram || {}).picks || []).length;
+  const loCount = (rc) => Object.keys(rc.loadouts || {}).length;
+
+  // The pick/ban table covers the 5 assigned positions only (ARAM gets its own
+  // line below).
   const configured = roles.filter((r) => {
+    if (r.key === "aram") return false;
     const rc = rolesCfg[r.key] || {};
-    return (rc.bans || []).length || (rc.picks || []).length || (rc.spells || []).length;
+    return (rc.bans || []).length || (rc.picks || []).length || loCount(rc);
   });
 
-  if (!cs.enabled || (!configured.length && !cs.auto_runes)) {
+  const anyExtra = trades || aram;
+  const showTable = cs.enabled && configured.length;
+  if (!showTable && !anyExtra) {
     panel.classList.add("hidden");
     return;
   }
   panel.classList.remove("hidden");
-  let html = configured
+  let html = (showTable ? configured : [])
     .map((r) => {
       const rc = rolesCfg[r.key] || {};
       const pick = (rc.picks || [])[0];
@@ -1062,9 +1263,9 @@ function renderPlan(c) {
         (rc.picks || []).length > 1
           ? ` <span class="text-gold5">+${rc.picks.length - 1}</span>`
           : "";
-      const sp = (rc.spells || []).map(spellName).filter(Boolean);
-      const spells = sp.length
-        ? `<span class="text-gold2">${sp.join(" + ")}</span>`
+      const n = loCount(rc);
+      const loadouts = n
+        ? `<span class="text-gold2">${n} loadout${n > 1 ? "s" : ""}</span>`
         : '<span class="text-subText">—</span>';
       return `<div class="grid grid-cols-[7rem_1fr_1fr_auto] items-center gap-2 py-0.5">
         <span class="flex items-center gap-1.5">
@@ -1073,15 +1274,28 @@ function renderPlan(c) {
         </span>
         <span class="text-sm"><span class="text-subText text-xs mr-1">PICK</span>${pick ? planChip(pick) : "—"}${extra}</span>
         <span class="text-sm"><span class="text-subText text-xs mr-1">BAN</span>${ban ? planChip(ban) : "—"}</span>
-        <span class="text-xs whitespace-nowrap"><span class="text-subText mr-1">SPELLS</span>${spells}</span>
+        <span class="text-xs whitespace-nowrap"><span class="text-subText mr-1">SETUP</span>${loadouts}</span>
       </div>`;
     })
     .join("");
-  if (cs.auto_runes) {
+  const extras = [];
+  if (trades)
+    extras.push(["TRADES", "Auto — trade toward a higher-priority pick"]);
+  if (aram)
+    extras.push([
+      "ARAM",
+      `Bench swap on${aramPicks ? ` — ${aramPicks} champ${aramPicks > 1 ? "s" : ""} ranked` : " — set your list"}`,
+    ]);
+  if (extras.length) {
     html +=
-      `<div class="pt-2 mt-1 border-t border-t-gold5/20 text-xs">` +
-      `<span class="text-subText mr-1">RUNES</span>` +
-      `<span class="text-gold2">Auto — recommended page applied on lock</span></div>`;
+      `<div class="pt-2 mt-1 border-t border-t-gold5/20 text-xs space-y-1">` +
+      extras
+        .map(
+          ([k, v]) =>
+            `<div><span class="text-subText mr-1">${k}</span><span class="text-gold2">${v}</span></div>`,
+        )
+        .join("") +
+      `</div>`;
   }
   wrap.innerHTML = html;
 }
@@ -1220,6 +1434,200 @@ $("discord-docs").addEventListener("click", () => {
 });
 
 $("webhook_url").addEventListener("input", validateWebhook);
+
+// Instant-lock toggle hides the "lock when N seconds left" delay row.
+function updateLockDelayRow() {
+  $("lock-delay-row").classList.toggle("hidden", $("instant_lock").checked);
+}
+$("instant_lock").addEventListener("change", updateLockDelayRow);
+
+// --- Per-champ loadout editor (spells + rune page + skin) ----------------
+// Opened from a selected pick's gear. Edits plan[role].loadouts[champId] live;
+// empty loadouts are pruned on close. Rune pages load from the live client.
+function curLoadout() {
+  const los = plan[loadoutRole].loadouts || (plan[loadoutRole].loadouts = {});
+  return (los[String(loadoutChamp)] ||= { spells: [], rune: "off", skin: "off" });
+}
+
+async function openLoadout(role, champId) {
+  loadoutRole = role;
+  loadoutChamp = Number(champId);
+  const lo = curLoadout();
+  const name = idToName(loadoutChamp) || "";
+  $("lo-name").textContent = name;
+  const roleLabel = (roles.find((r) => r.key === role) || {}).label || role;
+  $("lo-role").textContent = roleLabel;
+  const icon = champIconById(loadoutChamp);
+  $("lo-icon").src = icon || "";
+  $("lo-icon").style.visibility = icon ? "" : "hidden";
+
+  buildLoadoutSpells(lo);
+  buildLoadoutSkin(lo);
+  $("loadout-modal").classList.remove("hidden");
+  await buildLoadoutRunes(lo); // async (live client) — fine to populate after show
+}
+
+function closeLoadout() {
+  // Prune an empty loadout so the dot/indicator stays honest.
+  const los = plan[loadoutRole]?.loadouts || {};
+  const lo = los[String(loadoutChamp)];
+  if (lo && !(lo.spells || []).length && lo.rune === "off" && lo.skin === "off")
+    delete los[String(loadoutChamp)];
+  $("loadout-modal").classList.add("hidden");
+  renderGrid($("champ-search").value); // refresh the loadout dot
+}
+
+function buildLoadoutSpells(lo) {
+  const opts =
+    '<option value="">—</option>' +
+    spellList.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
+  const s1 = $("lo-spell1"), s2 = $("lo-spell2");
+  s1.innerHTML = opts; s2.innerHTML = opts;
+  s1.value = lo.spells?.[0] != null ? String(lo.spells[0]) : "";
+  s2.value = lo.spells?.[1] != null ? String(lo.spells[1]) : "";
+  const onChange = () => {
+    const a = s1.value, b = s2.value, arr = [];
+    if (a) arr.push(Number(a));
+    if (b && Number(b) !== Number(a)) arr.push(Number(b));
+    lo.spells = arr;
+  };
+  s1.onchange = onChange;
+  s2.onchange = onChange;
+}
+
+async function buildLoadoutRunes(lo) {
+  const sel = $("lo-rune");
+  const hint = $("lo-rune-hint");
+  try { runePageList = (await api().get_rune_pages()) || []; } catch (_) { runePageList = []; }
+  let opts =
+    '<option value="off">Don\'t change</option>' +
+    '<option value="recommended">Client\'s recommended page</option>';
+  for (const p of runePageList)
+    opts += `<option value="${p.id}">${p.name}</option>`;
+  // Preserve a saved page id even if the client is closed (page not listed).
+  if (typeof lo.rune === "number" && !runePageList.some((p) => p.id === lo.rune))
+    opts += `<option value="${lo.rune}">Saved page #${lo.rune}</option>`;
+  sel.innerHTML = opts;
+  sel.value = String(lo.rune ?? "off");
+  hint.textContent = runePageList.length
+    ? ""
+    : "Open the League client to load your saved rune pages.";
+  sel.onchange = () => {
+    const v = sel.value;
+    lo.rune = v === "off" || v === "recommended" ? v : Number(v);
+  };
+}
+
+function buildLoadoutSkin(lo) {
+  const mode = $("lo-skin-mode");
+  const isSpecific = typeof lo.skin === "number";
+  mode.value = isSpecific ? "specific" : (lo.skin || "off");
+  mode.onchange = () => {
+    if (mode.value === "specific") {
+      if (typeof lo.skin !== "number") lo.skin = 0; // await a pick
+      renderLoadoutSkinGrid(lo);
+    } else {
+      lo.skin = mode.value;
+      $("lo-skin-grid").classList.add("hidden");
+    }
+  };
+  if (isSpecific) renderLoadoutSkinGrid(lo);
+  else $("lo-skin-grid").classList.add("hidden");
+}
+
+async function renderLoadoutSkinGrid(lo) {
+  const grid = $("lo-skin-grid");
+  grid.classList.remove("hidden");
+  grid.innerHTML = `<p class="skin-empty">Loading skins…</p>`;
+  let skins = [];
+  try { skins = (await api().get_champion_skins(loadoutChamp)) || []; } catch (_) {}
+  if (!skins.length) {
+    grid.innerHTML =
+      `<p class="skin-empty">No skin data bundled. Run ` +
+      `<code>python scripts/fetch_assets.py</code>.</p>`;
+    return;
+  }
+  grid.innerHTML = skins
+    .map(
+      (s) =>
+        `<div class="lo-skin-cell${s.id === lo.skin ? " on" : ""}" data-sid="${s.id}" title="${s.name}">` +
+          `<img src="assets/skins/tiles/${s.id}.jpg" onerror="this.style.visibility='hidden'" />` +
+        `</div>`,
+    )
+    .join("");
+}
+
+$("lo-skin-grid").addEventListener("click", (e) => {
+  const cell = e.target.closest(".lo-skin-cell");
+  if (!cell) return;
+  const lo = curLoadout();
+  lo.skin = Number(cell.dataset.sid);
+  renderLoadoutSkinGrid(lo);
+});
+$("lo-done").addEventListener("click", closeLoadout);
+document.querySelectorAll("#loadout-modal [data-lo-close]").forEach((el) =>
+  el.addEventListener("click", closeLoadout),
+);
+
+// --- Recommended Runes: manage queueBot's dedicated rune page ------------
+// Recommended-runes writes to one page named "queueBot (auto)". If the user is
+// at their rune-page cap with no such page, they pick one here to hand over.
+async function refreshRuneInfo() {
+  const status = $("rune-managed-status");
+  const wrap = $("rune-claim-wrap");
+  let info = { pages: [], managed: null, at_cap: false };
+  try { info = (await api().get_rune_info()) || info; } catch (_) {}
+
+  if (info.managed) {
+    status.innerHTML = `✓ queueBot manages the <span class="text-gold2">${info.managed.name}</span> page.`;
+    status.className = "text-sm text-gold2";
+    wrap.classList.add("hidden");
+    return;
+  }
+  if (!info.pages.length && !info.at_cap) {
+    status.textContent = "Connect the League client to manage rune pages.";
+    status.className = "text-sm text-subText";
+    wrap.classList.add("hidden");
+    return;
+  }
+  if (info.at_cap) {
+    status.textContent = "No dedicated page yet, and your rune pages are full.";
+    status.className = "text-sm text-gold4";
+    $("rune-claim-list").innerHTML = info.pages
+      .map(
+        (p) =>
+          `<div class="flex items-center justify-between gap-3 text-sm">` +
+            `<span class="text-grey1">${p.name}</span>` +
+            `<button class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer" ` +
+            `data-claim="${p.id}">Use this page</button>` +
+          `</div>`,
+      )
+      .join("");
+    wrap.classList.remove("hidden");
+  } else {
+    status.textContent =
+      "queueBot will create its own “queueBot (auto)” page automatically (a slot is free).";
+    status.className = "text-sm text-subText";
+    wrap.classList.add("hidden");
+  }
+}
+
+$("rune-refresh").addEventListener("click", refreshRuneInfo);
+$("rune-claim-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-claim]");
+  if (!btn) return;
+  const s = $("rune-claim-status");
+  s.textContent = "Assigning…";
+  s.className = "text-xs text-subText";
+  const res = await api().claim_rune_page(btn.dataset.claim);
+  if (res && res.ok) {
+    flashStatus(s, "✓ queueBot will use that page", true);
+    refreshRuneInfo();
+  } else {
+    flashStatus(s, "✗ " + ((res && res.error) || "Failed"), false);
+  }
+  setTimeout(() => (s.textContent = ""), 4000);
+});
 
 // --- Save ---------------------------------------------------------------
 $("save-btn").addEventListener("click", async () => {

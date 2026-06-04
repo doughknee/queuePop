@@ -48,8 +48,9 @@ class LCU:
         self.connected = True
         self._connection = connection
 
-        # Preload champion data so auto pick/ban can resolve names -> IDs.
-        if self.config.get("champ_select", {}).get("enabled"):
+        # Preload champion data so auto pick/ban (and the live champ-select view,
+        # trades, bench, skins) can resolve names -> IDs without a first-poll stall.
+        if self.champ_select._any_automation(self.config.get("champ_select", {}) or {}):
             await self.champ_select.load_champion_data(connection)
         webhook_status = 'Configured' if self.config.get("webhook_url") else 'Disabled'
         user_id_status = self.config.get("user_id", "None")

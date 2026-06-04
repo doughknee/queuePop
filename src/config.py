@@ -57,17 +57,32 @@ def default_config():
         },
         "champ_select": {
             "enabled": False,
+            # Lock our pick the instant it's our turn. When False, hold the hover
+            # and lock `lock_in_at_seconds` before the ~30s pick window ends.
+            "instant_lock": True,
             "lock_in_at_seconds": 1,
-            # Apply the League client's own recommended rune page for the champ
-            # we pick (no rune editor — best-effort via /lol-perks).
-            "auto_runes": False,
+            # Picks/bans are the per-role lists. Everything else (summoner spells,
+            # rune page, skin) lives in a per-(role, champion) loadout so the same
+            # champ can run different setups by role:
+            #   loadouts: {championId: {spells:[id,id],
+            #                           rune:"off"|"recommended"|pageId,
+            #                           skin:"off"|"random"|"best"|skinId}}
             "roles": {
-                "top": {"bans": [], "picks": [], "spells": []},
-                "jungle": {"bans": [], "picks": [], "spells": []},
-                "middle": {"bans": [], "picks": [], "spells": []},
-                "bottom": {"bans": [], "picks": [], "spells": []},
-                "utility": {"bans": [], "picks": [], "spells": []},
+                "top": {"bans": [], "picks": [], "loadouts": {}},
+                "jungle": {"bans": [], "picks": [], "loadouts": {}},
+                "middle": {"bans": [], "picks": [], "loadouts": {}},
+                "bottom": {"bans": [], "picks": [], "loadouts": {}},
+                "utility": {"bans": [], "picks": [], "loadouts": {}},
+                # ARAM has no assigned role; its picks list doubles as the
+                # bench-swap + trade priority order. Bans unused (no ARAM bans).
+                "aram": {"bans": [], "picks": [], "loadouts": {}},
             },
+            # Auto-trade champions with teammates: request a trade for a higher-
+            # priority pick, and accept incoming offers that are an upgrade.
+            "trades": {"enabled": False},
+            # Auto-grab a higher-priority champ off the ARAM reroll bench (uses
+            # roles.aram.picks as the priority order).
+            "aram": {"enabled": False},
         },
     }
 

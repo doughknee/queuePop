@@ -87,12 +87,21 @@
     .grid-cell.sel:active { cursor: grabbing; }
     .grid-cell.drag-src { opacity: 0.4; }
     .cell-num {
-      position: absolute; top: 0; left: 0;
+      position: absolute; top: 0; left: 0; z-index: 2;
       min-width: 1.15rem; height: 1.15rem; padding: 0 0.2rem;
       display: grid; place-items: center;
       font-size: 0.72rem; font-weight: 700; line-height: 1;
       background: #C8AA6E; color: #0A0E13; pointer-events: none;
     }
+    /* Hover overlay on a selected pick: dark scrim + centered gear cueing
+       "click to edit this loadout". Click-through so the click opens it. */
+    .cell-edit {
+      position: absolute; inset: 0; z-index: 1; display: grid; place-items: center;
+      background: rgb(1 10 19 / 0.6); color: #F0E6D2; opacity: 0;
+      pointer-events: none; transition: opacity .12s ease;
+    }
+    .grid-cell.sel:hover .cell-edit { opacity: 1; }
+    .cell-edit svg { width: 42%; height: 42%; filter: drop-shadow(0 1px 3px #000); }
     /* Ban mode tints the ring + badge red so bans read apart from picks. */
     .grid-cell.sel.ban { outline-color: #c0584f; }
     .cell-num.ban { background: #c0584f; color: #fff; }
@@ -116,6 +125,28 @@
     }
     /* Mastery 10+ gets a teal chip — a small flex among one-tricks. */
     .cm-lvl.cm-high { background: #0AC8B9; box-shadow: 0 0 6px -1px rgba(10,200,185,0.7); }
+
+    /* Champ-select role bar — icon-over-label tabs with a gold active state, a
+       lit ignite-from-bottom underline, and a small "configured" dot. */
+    .role-tab {
+      position: relative; flex: 1 1 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; padding: 10px 4px 8px;
+      background: transparent; border: 0; cursor: pointer; color: #8b8674;
+      border-bottom: 2px solid transparent;
+      transition: color .18s ease, background-color .18s ease, border-color .18s ease;
+    }
+    .role-tab:hover { color: #C8AA6E; background: rgb(200 170 110 / 0.06); }
+    .role-tab.active { color: #F0E6D2; border-bottom-color: #C8AA6E;
+      background: linear-gradient(to top, rgb(200 170 110 / 0.16), transparent 80%); }
+    .role-ico { width: 24px; height: 24px; display: grid; place-items: center; }
+    .role-ico img, .role-ico svg { width: 100%; height: 100%; object-fit: contain; }
+    /* Position SVGs are dark; tint them to the tab's currentColor via filter so
+       they brighten on hover/active like the inline ARAM glyph does. */
+    .role-ico img { filter: brightness(0) saturate(100%) invert(58%) sepia(18%) saturate(900%) hue-rotate(2deg) brightness(92%); transition: filter .18s ease; }
+    .role-tab:hover .role-ico img, .role-tab.active .role-ico img { filter: brightness(0) saturate(100%) invert(92%) sepia(18%) saturate(420%) hue-rotate(2deg) brightness(98%); }
+    .role-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .role-dot { position: absolute; top: 7px; right: 50%; transform: translateX(20px); width: 6px; height: 6px; border-radius: 9999px; background: transparent; transition: background-color .18s ease, box-shadow .18s ease; }
+    .role-dot.on { background: #C8AA6E; box-shadow: 0 0 5px rgba(200,170,110,0.8); }
 
     /* Sort segmented control on the champ-select toolbar. Hextech hairline box;
        the active option fills gold for a strong, clear current-state read. */
@@ -401,6 +432,122 @@
     .rg-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
     .rg-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
     body.maximized .resize-grip { display: none; }   /* nothing to resize */
+
+    /* --- Live champ-select route --------------------------------------
+       Its own tab (#tab-live), reached via the PLAY→LIVE button. The button
+       glows (gold ring/ico, teal frame — the hover look) while the live route
+       is active, so it reads as the current view in place of a nav icon. */
+    .play-btn.live-active .pb-ring  { fill: #C8AA6E; }
+    .play-btn.live-active .pb-ico   { fill: #C8AA6E; }
+    .play-btn.live-active .pb-frame { fill: #0AC8B9; }
+    .play-btn.live-active .pb-grad-end { stop-color: #0AC8B9; }
+    .play-btn.live-active .play-svg { filter: drop-shadow(0 0 7px rgba(10, 200, 185, 0.55)); animation: livePulse 2s ease-in-out infinite; }
+    @keyframes livePulse {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(10, 200, 185, 0.4)); }
+      50%      { filter: drop-shadow(0 0 11px rgba(10, 200, 185, 0.75)); }
+    }
+
+    .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .cs-phase { font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #C8AA6E; }
+    .cs-dash-btn { font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.04em; color: #A09B8C; background: transparent; border: 0; cursor: pointer; padding: 4px 8px; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; transition: color .15s ease, outline-color .15s ease; }
+    .cs-dash-btn:hover { color: #F0E6D2; outline-color: #C8AA6E; }
+
+    .cs-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .cs-team-title { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .cs-team-title.mine { color: #0AC8B9; }
+    .cs-team-title.theirs { color: #C0584F; }
+
+    .cs-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; margin-bottom: 6px; background: rgb(1 10 19 / 0.35); transition: outline-color .15s ease, background-color .15s ease; }
+    .cs-row.local { outline: 1px solid #C8AA6E; background: rgb(200 170 110 / 0.08); }
+    .cs-row.empty { opacity: 0.4; }
+    /* Champion portrait. Dimmed + dashed when it's only a hovered intent (not locked). */
+    .cs-portrait { position: relative; width: 44px; height: 44px; flex-shrink: 0; background: #0A323C; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; overflow: hidden; }
+    .cs-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cs-portrait.intent { outline-style: dashed; outline-color: #785A28; }
+    .cs-portrait.intent img { opacity: 0.55; }
+    .cs-role { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
+    .cs-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+    .cs-name { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #F0E6D2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cs-name.pending { color: #6f6a5d; font-style: italic; }
+    .cs-spells { display: flex; gap: 4px; margin-top: 2px; }
+    .cs-spell { font-size: 9px; line-height: 1; padding: 2px 4px; color: #A09B8C; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; white-space: nowrap; }
+    .cs-spell-ico { width: 16px; height: 16px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .cs-skin { margin-left: auto; font-size: 9px; color: #785A28; white-space: nowrap; flex-shrink: 0; }
+
+    /* Bans, trades, bench strips */
+    .cs-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cs-strip-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #785A28; flex-shrink: 0; }
+    .cs-mini { width: 30px; height: 30px; position: relative; background: #0A323C; outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; overflow: hidden; flex-shrink: 0; }
+    .cs-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cs-mini.ban img { filter: grayscale(0.7) brightness(0.7); }
+    .cs-mini.ban::after { content: ""; position: absolute; inset: 0; background: linear-gradient(45deg, transparent 46%, #C0584F 46%, #C0584F 54%, transparent 54%); }
+    .cs-bench .cs-mini { width: 40px; height: 40px; }
+    .cs-trade { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #A09B8C; padding: 3px 8px; outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; }
+    .cs-trade .st { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #C8AA6E; }
+
+    /* --- Skin-favorites picker modal ----------------------------------- */
+    .skin-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; }
+    .skin-modal.hidden { display: none; }
+    .skin-backdrop { position: absolute; inset: 0; background: rgb(1 6 12 / 0.72); backdrop-filter: blur(2px); }
+    .skin-panel { position: relative; width: min(680px, 92vw); height: min(560px, 86vh); display: flex; flex-direction: column; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); padding: 0; }
+    .skin-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgb(120 90 40 / 0.3); }
+    .skin-head h3 { font-family: Cinzel, Georgia, serif; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+    .skin-close { width: 30px; height: 30px; display: grid; place-items: center; border: 0; background: transparent; color: #c9bf96; cursor: pointer; }
+    .skin-close svg { width: 13px; height: 13px; }
+    .skin-close:hover { color: #F0E6D2; background: rgb(192 88 79 / 0.6); }
+    .skin-body { flex: 1; display: grid; grid-template-columns: 230px 1fr; min-height: 0; }
+    .skin-champs { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid rgb(120 90 40 / 0.25); padding: 12px; gap: 10px; }
+    .skin-champ-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+    .skin-champ { display: flex; align-items: center; gap: 9px; padding: 5px 7px; background: transparent; border: 0; cursor: pointer; text-align: left; color: #A09B8C; outline: 1px solid transparent; outline-offset: -1px; }
+    .skin-champ:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+    .skin-champ.active { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
+    .skin-champ img { width: 28px; height: 28px; object-fit: cover; flex-shrink: 0; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+    .skin-champ-name { flex: 1; font-family: Marcellus, Georgia, serif; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skin-champ-badge { min-width: 16px; height: 16px; padding: 0 4px; display: inline-grid; place-items: center; font-size: 9px; font-weight: 700; color: #0A0E13; background: #C8AA6E; border-radius: 8px; flex-shrink: 0; }
+    .skin-list-wrap { display: flex; flex-direction: column; min-height: 0; padding: 12px 14px; }
+    .skin-list-title { font-family: Cinzel, Georgia, serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #785A28; margin-bottom: 8px; }
+    .skin-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+    .skin-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: rgb(1 10 19 / 0.4); border: 0; outline: 1px solid rgb(120 90 40 / 0.2); outline-offset: -1px; cursor: pointer; color: #A09B8C; }
+    .skin-item:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.5); }
+    .skin-item.on { outline-color: #C8AA6E; background: rgb(200 170 110 / 0.1); color: #F0E6D2; }
+    .skin-item-name { flex: 1; font-family: Marcellus, Georgia, serif; font-size: 13px; text-align: left; }
+    .skin-base { font-size: 9px; color: #785A28; letter-spacing: 0.06em; text-transform: uppercase; }
+    .skin-rarity { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #0AC8B9; flex-shrink: 0; }
+    .skin-star { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; color: #5B5A56; }
+    .skin-star svg { width: 16px; height: 16px; fill: transparent; stroke: currentColor; stroke-width: 1.6; }
+    .skin-item.on .skin-star { color: #C8AA6E; }
+    .skin-item.on .skin-star svg { fill: #C8AA6E; stroke: #E2C887; }
+    .skin-empty { font-family: Marcellus, Georgia, serif; font-size: 12.5px; font-style: italic; color: #6f6a5d; line-height: 1.5; }
+    .skin-empty code { font-style: normal; color: #C8AA6E; }
+
+    /* --- Per-champ loadout editor modal -------------------------------- */
+    .loadout-panel { position: relative; width: min(440px, 92vw); max-height: 88vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); }
+    .lo-title { display: flex; align-items: center; gap: 10px; }
+    .lo-icon { width: 34px; height: 34px; object-fit: cover; outline: 1px solid rgb(200 170 110 / 0.5); outline-offset: -1px; flex-shrink: 0; }
+    .lo-name { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #F0E6D2; }
+    .lo-role { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #785A28; margin-left: 8px; }
+    .loadout-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .lo-section { display: flex; flex-direction: column; gap: 7px; }
+    .lo-label { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; }
+    .lo-row { display: flex; align-items: center; gap: 8px; }
+    .lo-hint { font-size: 11px; font-style: italic; color: #6f6a5d; }
+    .lo-skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 5px; max-height: 200px; overflow-y: auto; padding-top: 4px; }
+    .lo-skin-cell { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A323C; }
+    .lo-skin-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-skin-cell:hover { outline-color: #C8AA6E; }
+    .lo-skin-cell.on { outline: 2px solid #C8AA6E; outline-offset: -2px; }
+    .lo-skin-cell.on::after { content: "✓"; position: absolute; top: 0; right: 0; width: 15px; height: 15px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
+    .loadout-foot { padding: 12px 18px; border-top: 1px solid rgb(120 90 40 / 0.3); display: flex; justify-content: flex-end; }
+
+    /* Remove-X on a selected cell — centered on the top-right corner, shown on
+       hover. Clicking a selected pick's body opens its loadout instead. */
+    .cell-x { position: absolute; top: 0; right: 0; transform: translate(40%, -40%); width: 17px; height: 17px; display: grid; place-items: center; border-radius: 9999px; background: #C0584F; color: #F0E6D2; cursor: pointer; opacity: 0; transition: opacity .12s ease, background-color .12s ease, transform .12s ease; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+    .grid-cell.sel:hover .cell-x { opacity: 1; }
+    .cell-x:hover { background: #d56a60; transform: translate(40%, -40%) scale(1.15); }
+    .cell-x svg { width: 11px; height: 11px; }
+    /* A teal dot marks picks that have a loadout configured (bottom-right, clear
+       of the priority number and the remove-X). */
+    .cell-loadout { position: absolute; bottom: 2px; right: 2px; width: 7px; height: 7px; border-radius: 9999px; background: #0AC8B9; box-shadow: 0 0 5px rgba(10,200,185,0.85); pointer-events: none; z-index: 2; }
   </style>
 </head>
 <body class="text-grey1 antialiased h-screen overflow-hidden">
@@ -409,6 +556,54 @@
   <!-- Quick-queue dropdown (top-level so it isn't trapped under the navbar's
        backdrop-blur; positioned under PLAY by app.js). -->
   <div id="queue-menu" class="queue-menu hidden"></div>
+
+  <!-- Per-champ loadout editor (spells + rune page + skin). Opened from the
+       gear on a selected pick in the Champ Select editor; built by app.js. -->
+  <div id="loadout-modal" class="skin-modal hidden">
+    <div class="skin-backdrop" data-lo-close></div>
+    <div class="loadout-panel hextech framed">
+      <div class="skin-head">
+        <div class="lo-title">
+          <img id="lo-icon" class="lo-icon" alt="" onerror="this.style.visibility='hidden'" />
+          <span><span id="lo-name" class="lo-name"></span><span id="lo-role" class="lo-role"></span></span>
+        </div>
+        <button class="skin-close" aria-label="Close" data-lo-close>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
+        </button>
+      </div>
+      <div class="loadout-body">
+        <!-- Summoner spells -->
+        <div class="lo-section">
+          <div class="lo-label">Summoner spells</div>
+          <div class="lo-row">
+            <select id="lo-spell1" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
+            <span class="text-subText">+</span>
+            <select id="lo-spell2" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
+          </div>
+        </div>
+        <!-- Runes -->
+        <div class="lo-section">
+          <div class="lo-label">Runes</div>
+          <select id="lo-rune" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer w-full"></select>
+          <p id="lo-rune-hint" class="lo-hint"></p>
+        </div>
+        <!-- Skin -->
+        <div class="lo-section">
+          <div class="lo-label">Skin</div>
+          <select id="lo-skin-mode" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
+            <option value="off">Don't change</option>
+            <option value="random">Random owned</option>
+            <option value="best">Best owned</option>
+            <option value="specific">Pick a skin…</option>
+          </select>
+          <div id="lo-skin-grid" class="lo-skin-grid hidden"></div>
+        </div>
+      </div>
+      <div class="loadout-foot">
+        <button id="lo-done" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Frameless resize grips (window edges + corners) -->
   <div class="resize-grip rg-n"  data-edge="n"></div>
@@ -512,6 +707,13 @@
 
     <!-- Content -->
     <main class="flex-1 overflow-y-auto p-5">
+
+      <!-- LIVE CHAMP SELECT (its own route; reached via the PLAY→LIVE button) -->
+      <section id="tab-live" class="hidden">
+        <div id="champ-live" class="hextech framed p-5 space-y-4">
+          <p class="text-subText text-sm">Waiting for champ select…</p>
+        </div>
+      </section>
 
       <!-- DASHBOARD -->
       <section id="tab-dashboard" class="space-y-5">
@@ -638,17 +840,6 @@
             </div>
           </div>
 
-          <!-- Per-role summoner spells — set on our champ when picks are hovered. -->
-          <div class="flex items-center gap-2.5 px-4 py-3 border-b border-b-icon/20 shrink-0 text-sm text-grey1">
-            <span class="text-subText shrink-0">Summoner spells</span>
-            <select id="spell1"
-              class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
-            <span class="text-subText">+</span>
-            <select id="spell2"
-              class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
-            <span class="text-xs text-subText ml-1 hidden sm:inline">for this role</span>
-          </div>
-
           <p id="champ-hint" class="text-sm text-subText px-4 pt-3 shrink-0"></p>
 
           <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
@@ -666,20 +857,63 @@
             <input id="champ_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
             <span class="text-sm text-grey1">Enable Auto Pick / Ban</span>
           </label>
-          <div class="flex items-center gap-2 text-sm text-grey1">
-            <span>Lock-in when phase has</span>
-            <input id="lock_seconds" type="number" min="0" max="60" value="1"
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="instant_lock" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Lock in my pick instantly when it's my turn</span>
+          </label>
+          <div id="lock-delay-row" class="flex items-center gap-2 text-sm text-grey1 pl-6">
+            <span>Otherwise, lock when</span>
+            <input id="lock_seconds" type="number" min="0" max="30" value="1"
               class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
-            <span>second(s) left</span>
+            <span>second(s) left (of ~30)</span>
           </div>
           <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="auto_runes" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Auto-apply the client's recommended runes for my pick</span>
+            <input id="trades_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Auto-trade toward a higher-priority pick (and accept upgrade offers)</span>
           </label>
           <p class="text-sm text-subText leading-relaxed">
             Set your bans, picks, and summoner spells per role on the
-            <span class="text-gold2">Champ Select</span> tab.
-            Applies to queues with assigned roles (Draft / Ranked) only.
+            <span class="text-gold2">Champ Select</span> tab. Auto pick / ban
+            applies to queues with assigned roles (Draft / Ranked); trades work
+            anywhere. ARAM has its own tab + settings below.
+          </p>
+        </div>
+
+        <!-- Recommended Runes (manages queueBot's dedicated rune page) -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>Recommended Runes</h3><div class="rule"></div></div>
+          <p class="text-sm text-subText leading-relaxed">
+            When a loadout uses <span class="text-gold2">Recommended</span> runes, queueBot writes
+            them to one dedicated page (<span class="text-gold2">queueBot (auto)</span>) so your own
+            pages stay untouched. If your rune pages are full, pick one below for queueBot to take
+            over — or free a slot in the client and it’ll create its own.
+          </p>
+          <p id="rune-managed-status" class="text-sm text-grey1"></p>
+          <div id="rune-claim-wrap" class="hidden space-y-2">
+            <p class="text-sm text-gold4">Your rune pages are full. Choose one for queueBot to manage
+              (it’ll be renamed <span class="text-gold2">queueBot (auto)</span> and overwritten with
+              recommended runes each game):</p>
+            <div id="rune-claim-list" class="space-y-1.5"></div>
+          </div>
+          <div class="flex items-center gap-3 pt-0.5">
+            <button id="rune-refresh"
+              class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Refresh</button>
+            <span id="rune-claim-status" class="text-xs text-subText"></span>
+          </div>
+        </div>
+
+        <!-- ARAM -->
+        <div class="hextech p-5 space-y-3">
+          <div class="sec-head mb-1"><h3>ARAM</h3><div class="rule"></div></div>
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="aram_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Auto-grab a higher-priority champ off the reroll bench</span>
+          </label>
+          <p class="text-sm text-subText leading-relaxed">
+            Build your ARAM priority list on the <span class="text-gold2">Champ Select</span>
+            tab → <span class="text-gold2">ARAM</span>. queueBot grabs the highest-ranked
+            champ that lands on the bench and trades toward it. Summoner spells set there
+            apply in ARAM too.
           </p>
         </div>
 
