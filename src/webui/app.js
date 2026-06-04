@@ -518,14 +518,9 @@ async function refreshStatus() {
     const ver = $("version");
     if (ver) ver.textContent = s.version;
 
-    // Title-strip client indicator (dot + label)
-    const dot = $("conn-dot");
-    const clabel = $("conn-label");
-    if (dot) dot.style.background = s.connected ? "#0AC8B9" : "#5B5A56";
-    if (clabel) clabel.textContent = s.connected ? "Client connected" : "Client offline";
-
     // PLAY reflects the live gameflow phase; summoner badge refreshes on
-    // connect/disconnect transitions.
+    // connect/disconnect transitions. (Client connection status is shown on
+    // the dashboard hero strip via #hero-client below.)
     updatePlay(s);
     if (s.connected !== lastConnected) {
       lastConnected = s.connected;

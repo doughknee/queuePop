@@ -10,20 +10,38 @@
 
 PY := py
 
-.PHONY: help run css build clean
+.PHONY: help run stop restart css build clean
 
 help:
 	@echo queueBot dev tasks:
-	@echo   make run    - launch the app (web UI + tray), detached
-	@echo   make css    - rebuild Tailwind styles.css from the markup classes
-	@echo   make build  - build the release .exe via build_release.py
-	@echo   make clean  - remove build/ and __pycache__ artifacts
+	@echo   make run     - launch the app (web UI + tray), detached
+	@echo   make stop    - kill the running app
+	@echo   make restart - stop then relaunch (handy while iterating)
+	@echo   make css     - rebuild Tailwind styles.css from the markup classes
+	@echo   make build   - build the release .exe via build_release.py
+	@echo   make clean   - remove build/ and __pycache__ artifacts
 
 # Launch via run.cmd so the app gets its own (hidden) console and never
 # hijacks the terminal you ran make from. `cmd /c` works whether make's
 # shell is sh or cmd.
 run:
-	cmd /c run.cmd
+	cmd /c .\run.cmd
+
+# Kill the app via stop.cmd (kills the py/python process that launched
+# src/main.py). Delegating to a .cmd keeps the kill one-liner out of make's
+# hands so its literal `$_` survives. The `.\` prefix is required so cmd
+# resolves the script even where the current-directory search is disabled
+# (the NoDefaultCurrentDirectoryInExePath policy) -- same reason run uses it.
+stop:
+	@echo Stopping queueBot...
+	cmd /c .\stop.cmd
+
+# Stop, give the old process a moment to release its tray icon / sockets,
+# then relaunch.
+restart: stop
+	@powershell -NoProfile -Command "Start-Sleep -Milliseconds 800"
+	@echo Restarting queueBot...
+	cmd /c .\run.cmd
 
 css:
 	npx tailwindcss@3.4.17 -c tailwind.config.js -i src/webui/tailwind.src.css -o src/webui/styles.css --minify

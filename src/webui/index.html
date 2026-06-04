@@ -154,31 +154,28 @@
     #flash.go { animation: flash-pop 1.3s ease-out; }
 
     /* --- Custom window chrome (frameless) ------------------------------
-       OS title bar disabled (main.py frameless=True). Two rows:
-       (1) slim title strip — client status + Pause on the left, the
-           min/maximize/close buttons on the right (drag from the middle);
-       (2) navbar — PLAY (launch / quick-queue), centered route icons, and the
-           live summoner badge. Logic: window-chrome.js + app.js. */
+       OS title bar disabled (main.py frameless=True). One header bar: PLAY
+       (launch / quick-queue) on the left, the route icons centered and running
+       the FULL height of the bar (top to bottom), and the live summoner badge
+       on the right — PLAY, the icons, and the summoner all share one vertical
+       centre line. The min/maximize/close buttons float in the top-right
+       corner, above a full-bar drag layer that lets empty space drag the window
+       while every button stays clickable.
+       Logic: window-chrome.js + app.js. (Pause + client status used to live up
+       here; Pause now sits on the dashboard hero strip beside the status it
+       toggles, and connection state is shown there too.) */
+    .appbar {
+      position: relative; display: flex; align-items: center;
+      height: 76px; padding: 0 0 0 12px; flex-shrink: 0;
+    }
+    /* Full-bar drag handle, behind the controls. It is a sibling (never an
+       ancestor) of the buttons, so a click on a button never bubbles up into a
+       window drag. The clusters sit above it at z-index 1; the routes' empty
+       flanks are pointer-events:none so they fall through to this layer. */
+    .appbar-drag { position: absolute; inset: 0; z-index: 0; }
 
-    /* Row 1 — slim title strip. align-items:stretch so drag regions and the
-       window buttons fill full height (no padding dead-zones). */
-    /* Transparent so the window's background gradient shows through (matches
-       the navbar below — both just blur, no fill). */
-    .titlestrip {
-      display: flex; align-items: stretch; height: 30px; flex-shrink: 0;
-    }
-    .ts-left { display: flex; align-items: stretch; padding-left: 6px; }
-    .ts-ind {
-      display: inline-flex; align-items: center; gap: 7px; padding: 0 10px;
-      font-size: 11px; letter-spacing: 0.05em; color: #9f9b8d;
-      background: transparent; border: 0;
-    }
-    .ts-dot { width: 7px; height: 7px; border-radius: 9999px; background: #5B5A56; flex-shrink: 0; transition: background-color .2s ease; }
-    .ts-btn { cursor: pointer; transition: color .12s ease, background-color .12s ease; }
-    .ts-btn:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.10); }
-    .ts-btn svg { width: 10px; height: 10px; }
-    .drag-spacer { flex: 1 1 auto; align-self: stretch; min-width: 1rem; }
-    .win-controls { display: flex; align-items: stretch; }
+    /* Window min / maximize / close — pinned to the top-right corner. */
+    .win-controls { position: absolute; top: 0; right: 0; z-index: 3; display: flex; align-items: stretch; height: 24px; }
     .win-btn {
       width: 40px; display: grid; place-items: center;
       border: 0; background: transparent; color: #c9bf96; cursor: pointer;
@@ -189,15 +186,15 @@
     .win-btn:active { background: rgb(200 170 110 / 0.24); }
     .win-btn.close:hover { background: rgb(192 88 79 / 0.85); color: #F0E6D2; }
 
-    /* Row 2 — navbar. The routes live in a flex:1 middle column so they center
-       in the gap BETWEEN the PLAY and summoner clusters, not the window. */
-    .navbar { display: flex; align-items: center; height: 58px; padding: 0 12px; flex-shrink: 0; }
-    .nav-left { display: flex; align-items: center; height: 100%; }
+    /* PLAY cluster — vertically centred in the bar, above the drag layer. The
+       wrapper is click-through so the space around PLAY drags the window; the
+       button itself re-enables pointer events. */
+    .nav-left { display: flex; align-items: center; height: 100%; position: relative; z-index: 1; pointer-events: none; }
 
     /* PLAY: emblem + banner are one inline SVG (.play-svg). Resting colors are
        presentation attributes on the shapes; hover is driven by CSS targeting
        the tagged sub-shapes (pb-ring/pb-ico/pb-frame + the gradient end stop). */
-    .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; }
+    .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; pointer-events: auto; }
     .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
     .pb-ring, .pb-ico, .pb-frame { transition: fill .15s ease; }
     .pb-grad-end { transition: stop-color .15s ease; }
@@ -339,34 +336,58 @@
     }
     .qm-empty .qm-empty-star { color: #C8AA6E; font-style: normal; }
 
-    /* Centered route icons: gold-wash active/hover + faded vertical dividers */
-    .nav-routes { flex: 1 1 auto; height: 100%; display: flex; align-items: stretch; justify-content: center; }
-    .nav-route { width: 58px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: #c9bf96; transition: color .2s ease, background .25s ease; }
+    /* Centered route icons. Full-height buttons (top to bottom of the bar) with
+       the glyph centred; gold-wash active/hover + faded vertical dividers. The
+       container is click-through so its transparent flanks fall to the drag
+       layer behind; each button re-enables pointer events. */
+    .nav-routes { flex: 1 1 auto; height: 100%; display: flex; align-items: stretch; justify-content: center; pointer-events: none; position: relative; z-index: 1; }
+    .nav-route { pointer-events: auto; width: 58px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: #c9bf96; transition: color .2s ease, background .25s ease; }
     .nav-route svg { width: 22px; height: 22px; }
-    .nav-route:hover { color: #F0E6D2; background: linear-gradient(to bottom, transparent 40%, rgb(200 170 110 / 0.12) 60%, rgb(200 170 110 / 0.40) 99%); }
-    .nav-route.active { color: #F0E6D2; background: linear-gradient(to bottom, transparent 40%, rgb(200 170 110 / 0.10) 60%, rgb(200 170 110 / 0.24) 99%); }
-    .nav-div { width: 2px; height: 62%; align-self: center; background: linear-gradient(to bottom, transparent, #c9bf96, transparent); }
+    .nav-route:hover { color: #F0E6D2; background: linear-gradient(to bottom, transparent 52%, rgb(200 170 110 / 0.10) 74%, rgb(200 170 110 / 0.38) 100%); }
+    .nav-route.active { color: #F0E6D2; background: linear-gradient(to bottom, transparent 52%, rgb(200 170 110 / 0.08) 74%, rgb(200 170 110 / 0.24) 100%); }
+    .nav-div { width: 2px; height: 40%; align-self: center; background: linear-gradient(to bottom, transparent, #c9bf96, transparent); pointer-events: none; }
 
-    /* Live summoner badge */
-    .nav-right { display: flex; align-items: center; height: 100%; }
-    .summoner { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; cursor: pointer; height: 100%; padding: 0 2px 0 8px; }
-    .summoner-portrait { width: 38px; height: 38px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; overflow: hidden; transition: background-color .15s ease; }
+    /* Live summoner badge. Right-aligned; its name/rank sit just under the
+       window controls, portrait on the left of the name + rank stack. Sized up
+       from the old navbar badge to read as the primary account block. */
+    .nav-right { display: flex; align-items: center; height: 100%; padding-right: 10px; position: relative; z-index: 1; pointer-events: none; }
+    /* Avatar on the left (just left of the window controls, vertically centred
+       to line up with PLAY / the icons); name + rank to its right, sitting in
+       the column directly under the window buttons. The `right` offset only
+       shifts the rendered position — it doesn't change the flex flow, so the
+       centred route icons stay put. */
+    .summoner { display: inline-flex; align-items: center; gap: 11px; background: transparent; border: 0; cursor: pointer; padding: 6px 4px 6px 10px; pointer-events: auto; position: relative; right: 20px; }
+    .summoner-portrait { width: 42px; height: 42px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; overflow: hidden; transition: background-color .15s ease; }
     .summoner:hover:not(.offline) .summoner-portrait { background: #C8AA6E; }
     .summoner-portrait img, .summoner-portrait .ph { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
     .summoner-portrait .ph { display: grid; place-items: center; color: #785A28; }
     /* These beat the rules above (which set display) so the .hidden toggle works. */
     .summoner-portrait img.hidden, .summoner-portrait .ph.hidden { display: none; }
-    .summoner-portrait .ph svg { width: 17px; height: 17px; }
-    .summoner-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-    .summoner-name { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #F0E6D2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .summoner-sub { display: flex; align-items: center; gap: 7px; line-height: 1.2; }
-    .summoner-level { font-size: 10px; color: #9f9b8d; letter-spacing: 0.04em; }
+    .summoner-portrait .ph svg { width: 19px; height: 19px; }
+    /* Left-aligned beside the avatar; nudged down a few px so the text clears
+       the window controls it sits beneath. */
+    .summoner-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; position: relative; top: 5px; }
+    .summoner-name { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #F0E6D2; max-width: 115px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .summoner-sub { display: flex; align-items: center; gap: 8px; line-height: 1.2; margin-top: 1px; }
+    .summoner-level { font-size: 11px; color: #9f9b8d; letter-spacing: 0.04em; }
     .summoner-level:empty { display: none; }
     /* Rank — colored by tier (set inline from JS), with a leading tier dot. */
-    .summoner-rank { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+    .summoner-rank { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
     .summoner-rank:empty { display: none; }
     .summoner-rank::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: currentColor; margin-right: 5px; vertical-align: middle; }
     .summoner.offline { cursor: default; }
+
+    /* Pause / resume control — moved off the title bar onto the dashboard hero
+       strip, beside the Monitoring/Paused status it toggles. Hextech button;
+       renderPause() in app.js sets its color to gold4 while paused. */
+    .hero-pause {
+      display: inline-flex; align-items: center; gap: 8px; margin-left: 4px;
+      padding: 7px 16px; cursor: pointer; color: #C8AA6E;
+      font-family: Marcellus, Georgia, serif; font-size: 13px; letter-spacing: 0.04em;
+      transition: color .15s ease;
+    }
+    .hero-pause:hover { color: #F0E6D2; }
+    .hero-pause svg { width: 13px; height: 13px; flex-shrink: 0; }
 
     /* Invisible resize grips along the window edges. Frameless windows have no
        native resize border, so these drive window-chrome.js's resize loop. */
@@ -401,25 +422,12 @@
 
   <div class="flex flex-col h-full">
 
-    <!-- Row 1: slim title strip — client status + Pause (far left), window
-         controls (right). The status + middle spacer are .pywebview-drag-region
-         so the window drags; the buttons are siblings so clicks never drag. -->
-    <div class="titlestrip border-t-2 border-t-gold5 backdrop-blur-2xl">
-      <div class="ts-left">
-        <span id="conn-ind" class="ts-ind pywebview-drag-region">
-          <span id="conn-dot" class="ts-dot"></span>
-          <span id="conn-label">Connecting…</span>
-        </span>
-        <button id="pause-btn" class="ts-ind ts-btn" title="Pause / resume monitoring">
-          <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-            <rect x="2.6" y="2" width="2.3" height="8" rx="0.4" />
-            <rect x="7.1" y="2" width="2.3" height="8" rx="0.4" />
-          </svg>
-          <span id="pause-label">Pause</span>
-        </button>
-      </div>
-
-      <div class="drag-spacer pywebview-drag-region"></div>
+    <!-- Header bar — PLAY (launch / quick-queue) | route icons | summoner, with
+         the window controls floating top-right. The full-bar drag layer is the
+         only .pywebview-drag-region (a sibling behind everything) so empty space
+         drags the window while every button stays clickable. -->
+    <nav class="appbar border-t-2 border-t-gold5 border-b border-b-icon/30 backdrop-blur-2xl">
+      <div class="appbar-drag pywebview-drag-region"></div>
 
       <div class="win-controls">
         <button id="win-min" class="win-btn" title="Minimize" aria-label="Minimize">
@@ -432,10 +440,7 @@
           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
         </button>
       </div>
-    </div>
 
-    <!-- Row 2: navbar — PLAY (launch / quick-queue) | route icons | summoner -->
-    <nav class="navbar border-b border-b-icon/30 backdrop-blur-2xl">
       <div class="nav-left">
         <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in design/play-button.svg). Hooks the
@@ -512,13 +517,20 @@
       <section id="tab-dashboard" class="space-y-5">
 
         <!-- Hero status strip -->
-        <div class="hextech framed p-5 flex items-center justify-between">
+        <div class="hextech framed p-5 flex items-center justify-between gap-4">
           <div class="flex items-center gap-4">
             <span id="hero-dot" class="h-3.5 w-3.5 rounded-full bg-grey2 shrink-0"></span>
             <div>
               <p class="text-xs uppercase tracking-[0.2em] text-gold2">Status</p>
               <p id="hero-status" class="font-display text-2xl text-gold1 leading-tight">—</p>
             </div>
+            <button id="pause-btn" class="hextech hero-pause" title="Pause / resume monitoring">
+              <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+                <rect x="2.6" y="2" width="2.3" height="8" rx="0.4" />
+                <rect x="7.1" y="2" width="2.3" height="8" rx="0.4" />
+              </svg>
+              <span id="pause-label">Pause</span>
+            </button>
           </div>
           <div class="text-right">
             <p class="text-xs uppercase tracking-[0.2em] text-gold2">League Client</p>
