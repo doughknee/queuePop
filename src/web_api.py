@@ -71,6 +71,45 @@ def _opgg_region(region):
     return _OPGG_REGION.get(r, r.lower())
 
 
+# LCU region code -> Riot platform id (na1, euw1, …). Some tracker sites key off
+# the platform id rather than the short region slug.
+_PLATFORM = {
+    "NA": "na1", "NA1": "na1", "EUW": "euw1", "EUW1": "euw1",
+    "EUNE": "eun1", "EUN1": "eun1", "KR": "kr", "BR": "br1", "BR1": "br1",
+    "JP": "jp1", "JP1": "jp1", "OCE": "oc1", "OC1": "oc1",
+    "LAN": "la1", "LA1": "la1", "LAS": "la2", "LA2": "la2",
+    "TR": "tr1", "TR1": "tr1", "RU": "ru", "PH": "ph2", "PH2": "ph2",
+    "SG": "sg2", "SG2": "sg2", "TH": "th2", "TH2": "th2", "TW": "tw2", "TW2": "tw2",
+    "VN": "vn2", "VN2": "vn2", "ME": "me1", "ME1": "me1",
+}
+
+
+def _platform(region):
+    r = (region or "").upper().strip()
+    return _PLATFORM.get(r, r.lower())
+
+
+def external_profile_links(name, tag, region, platform):
+    """Region-aware links to the player's profile on the major LoL tracker sites,
+    built from the Riot ID. Best-effort URL shapes — broken links degrade to the
+    site's search, and formats are easy to tweak here in one place."""
+    if not name:
+        return []
+    riot = quote(f"{name}-{tag}" if tag else name)
+    r = region or ""
+    p = platform or region or ""
+    return [
+        {"name": "OP.GG", "url": f"https://op.gg/summoners/{r}/{riot}"},
+        {"name": "U.GG", "url": f"https://u.gg/lol/profile/{p}/{riot}/overview"},
+        {"name": "League of Graphs", "url": f"https://www.leagueofgraphs.com/summoner/{r}/{riot}"},
+        {"name": "Lolalytics", "url": f"https://lolalytics.com/summoner/{r}/{riot}/"},
+        {"name": "DeepLoL", "url": f"https://www.deeplol.gg/summoner/{r}/{riot}"},
+        {"name": "Porofessor", "url": f"https://porofessor.gg/live/{r}/{riot}"},
+        {"name": "Mobalytics", "url": f"https://mobalytics.gg/lol/profile/{r}/{riot}/overview"},
+        {"name": "Blitz", "url": f"https://blitz.gg/lol/profile/{r}/{riot}"},
+    ]
+
+
 def _assets_base():
     """Base dir of the bundled web UI assets (dev and frozen builds)."""
     if getattr(sys, "frozen", False):
@@ -339,6 +378,70 @@ class Api:
                         "lastPlayTime": m.get("lastPlayTime", 0),
                     }
                 )
+            return out
+
+        return self._lcu.call(_fetch, timeout=8.0) or []
+
+    def get_match_history(self, count=10):
+        """Recent matches for the local player: [{championId, win, kills, deaths,
+        assists, queueId, ts}], newest first. Best-effort — empty when the client
+        is closed or match history isn't reachable."""
+        try:
+            count = max(1, min(int(count), 20))
+        except (TypeError, ValueError):
+            count = 10
+
+        async def _fetch(conn):
+            # Our puuid lets us pick our participant out of each game.
+            puuid = None
+            try:
+                sr = await conn.request("get", "/lol-summoner/v1/current-summoner")
+                if sr.status == 200:
+                    puuid = (await sr.json()).get("puuid")
+            except Exception:
+                pass
+            r = await conn.request(
+                "get",
+                "/lol-match-history/v1/products/lol/current-summoner/matches"
+                f"?begIndex=0&endIndex={count - 1}",
+            )
+            if r.status != 200:
+                return []
+            data = await r.json()
+            games = (
+                ((data.get("games") or {}).get("games") or [])
+                if isinstance(data, dict)
+                else []
+            )
+            out = []
+            for g in games:
+                parts = g.get("participants") or []
+                idents = g.get("participantIdentities") or []
+                pid = None
+                if puuid:
+                    for it in idents:
+                        if (it.get("player") or {}).get("puuid") == puuid:
+                            pid = it.get("participantId")
+                            break
+                part = None
+                if pid is not None:
+                    part = next(
+                        (p for p in parts if p.get("participantId") == pid), None
+                    )
+                if part is None and len(parts) == 1:
+                    part = parts[0]  # endpoint sometimes returns only our participant
+                if part is None:
+                    continue
+                st = part.get("stats") or {}
+                out.append({
+                    "championId": part.get("championId"),
+                    "win": bool(st.get("win")),
+                    "kills": st.get("kills", 0),
+                    "deaths": st.get("deaths", 0),
+                    "assists": st.get("assists", 0),
+                    "queueId": g.get("queueId"),
+                    "ts": (g.get("gameCreation") or 0) / 1000.0,
+                })
             return out
 
         return self._lcu.call(_fetch, timeout=8.0) or []
@@ -941,18 +1044,21 @@ class Api:
 
         name = data.get("name") or ""
         tag = data.get("tag") or ""
-        region = _opgg_region(data.get("region") or "")
-        opgg = ""
-        if name and region:
-            riot_id = quote(f"{name}-{tag}") if tag else quote(name)
-            opgg = f"https://www.op.gg/summoners/{region}/{riot_id}"
+        raw_region = data.get("region") or ""
+        region = _opgg_region(raw_region)
+        platform = _platform(raw_region)
+        links = external_profile_links(name, tag, region, platform)
+        opgg = next((l["url"] for l in links if l["name"] == "OP.GG"), "")
         return {
             "connected": True,
             "name": name,
             "tag": tag,
             "level": data.get("level"),
             "icon": self._icon_cache.get(data.get("icon_id")),
+            "region": region,
+            "platform": platform,
             "opgg": opgg,
+            "links": links,
             "ranked": data.get("ranked") or {},
             "mastery": data.get("mastery") or [],
         }

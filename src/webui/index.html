@@ -760,6 +760,51 @@
     .plan-extra-row .k { color: #785A28; margin-right: 8px; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
     .plan-extra-row .v { color: #C8AA6E; }
 
+    /* --- Account route ------------------------------------------------- */
+    .acct-head { display: flex; align-items: center; gap: 18px; }
+    .acct-portrait { width: 72px; height: 72px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
+    .acct-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .acct-id { flex: 1; min-width: 0; }
+    .acct-name-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .acct-name { font-family: Cinzel, Georgia, serif; font-size: 23px; color: #F0E6D2; line-height: 1.05; }
+    .acct-tag { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #8a8472; }
+    .acct-copy { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 11px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .acct-copy:hover { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.08); }
+    .acct-copy svg { width: 12px; height: 12px; }
+    .acct-meta { display: flex; align-items: center; gap: 9px; margin-top: 7px; font-family: Marcellus, Georgia, serif; font-size: 13px; color: #A09B8C; flex-wrap: wrap; }
+    .acct-tier { font-weight: 600; }
+    .acct-sep { color: #4a463c; }
+
+    .acct-mastery { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 12px; }
+    .acct-champ { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 6px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; background: rgb(1 10 19 / 0.3); }
+    .acct-champ-portrait { position: relative; }
+    .acct-champ-portrait img { width: 52px; height: 52px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .acct-champ-name { font-size: 11.5px; color: #D6D0C0; max-width: 84px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acct-champ-pts { font-size: 10px; color: #8a8472; }
+
+    .acct-matches { display: flex; flex-direction: column; gap: 6px; }
+    .acct-match { display: flex; align-items: center; gap: 12px; padding: 8px 10px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; background: rgb(1 10 19 / 0.3); border-left: 3px solid #3C3C41; }
+    .acct-match.win { border-left-color: #0AC8B9; }
+    .acct-match.loss { border-left-color: #C0584F; }
+    .acct-match-champ { width: 38px; height: 38px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; flex-shrink: 0; }
+    .acct-match-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .acct-match-q { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #D6D0C0; }
+    .acct-match-kda { font-size: 12px; color: #8a8472; font-variant-numeric: tabular-nums; }
+    .acct-match-res { font-family: Cinzel, Georgia, serif; font-size: 12px; letter-spacing: 0.08em; }
+    .acct-match.win .acct-match-res { color: #0AC8B9; }
+    .acct-match.loss .acct-match-res { color: #d56a60; }
+    .acct-match-time { font-size: 11px; color: #6f6a5d; white-space: nowrap; }
+
+    .acct-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+    .acct-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 13px; cursor: pointer; background: rgb(1 10 19 / 0.4); border: 0; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; color: #C9C2B0; font-family: Marcellus, Georgia, serif; font-size: 13px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .acct-link:hover { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.1); }
+    .acct-link-go { color: #785A28; transition: color .15s ease; }
+    .acct-link:hover .acct-link-go { color: #C8AA6E; }
+
+    /* Summoner badge lights up while the account route is active. */
+    .summoner.route-active .summoner-portrait { background: #C8AA6E; box-shadow: 0 0 10px -2px rgba(200,170,110,0.7); }
+    .summoner.route-active .summoner-name { color: #C8AA6E; }
+
     /* --- Activity feed: framed, scrollable, filterable, timestamped ----- */
     .act-panel { display: flex; flex-direction: column; max-height: 440px; min-height: 240px; padding: 0; overflow: hidden; }
     .act-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
@@ -1017,6 +1062,62 @@
       <section id="tab-live" class="hidden">
         <div id="champ-live" class="hextech framed p-5 space-y-4">
           <p class="text-subText text-sm">Waiting for champ select…</p>
+        </div>
+      </section>
+
+      <!-- ACCOUNT (routeless; reached by clicking the summoner badge) -->
+      <section id="tab-account" class="hidden space-y-5">
+        <div id="account-offline" class="hextech framed p-8 text-center hidden">
+          <p class="font-display text-gold2 text-xl tracking-wide mb-2">Not connected</p>
+          <p class="text-sm text-subText">Open the League client to see your account, stats, and profile links.</p>
+        </div>
+
+        <div id="account-content" class="space-y-5">
+          <!-- Riot ID -->
+          <div class="hextech framed p-5 acct-head">
+            <span class="acct-portrait"><img id="acct-icon" alt="" onerror="this.style.visibility='hidden'" /></span>
+            <div class="acct-id">
+              <div class="acct-name-row">
+                <span id="acct-name" class="acct-name">—</span><span id="acct-tag" class="acct-tag"></span>
+                <button id="acct-copy-id" class="acct-copy" title="Copy Riot ID">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                  <span class="acct-copy-label">Copy ID</span>
+                </button>
+              </div>
+              <div class="acct-meta">
+                <span id="acct-tier" class="acct-tier"></span>
+                <span class="acct-sep">·</span>
+                <span id="acct-level"></span>
+                <span class="acct-sep">·</span>
+                <span id="acct-region"></span>
+              </div>
+            </div>
+            <button id="acct-opgg" class="hextech px-4 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer shrink-0">OP.GG ↗</button>
+          </div>
+
+          <!-- Ranked -->
+          <div class="hextech framed p-5">
+            <div class="sec-head mb-3"><h3>Ranked</h3><div class="rule"></div></div>
+            <div id="acct-ranked" class="acct-ranked"></div>
+          </div>
+
+          <!-- Champion mastery -->
+          <div class="hextech framed p-5">
+            <div class="sec-head mb-3"><h3>Champion Mastery</h3><div class="rule"></div></div>
+            <div id="acct-mastery" class="acct-mastery"></div>
+          </div>
+
+          <!-- Recent matches (best-effort from the client) -->
+          <div id="acct-matches-panel" class="hextech framed p-5 hidden">
+            <div class="sec-head mb-3"><h3>Recent Matches</h3><div class="rule"></div></div>
+            <div id="acct-matches" class="acct-matches"></div>
+          </div>
+
+          <!-- External profile links -->
+          <div class="hextech framed p-5">
+            <div class="sec-head mb-3"><h3>Profile on Other Sites</h3><div class="rule"></div></div>
+            <div id="acct-links" class="acct-links"></div>
+          </div>
         </div>
       </section>
 
