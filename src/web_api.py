@@ -618,9 +618,10 @@ class Api:
             events.push(f"Failed to save settings: {e}", "danger")
             return {"ok": False, "error": str(e)}
 
-        # Hot-apply to the running connector — no restart required.
+        # Hot-apply to the running connector — no restart required. Saved quietly
+        # (no activity-feed event): the UI auto-saves on every change and shows a
+        # toast, so pushing an event here would flood the feed.
         self._lcu.config = cfg
-        events.push("Settings saved", "success")
         return {"ok": True, "config": cfg}
 
     def set_paused(self, paused):

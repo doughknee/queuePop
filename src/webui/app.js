@@ -145,9 +145,6 @@ function activateTab(tab) {
   replay($(`tab-${tab}`), "fade-up");
   // The PLAY button doubles as the live-route indicator.
   $("play-btn").classList.toggle("live-active", tab === "live");
-  const showSave = tab === "champ" || tab === "settings";
-  $("save-bar").classList.toggle("hidden", !showSave);
-  $("save-bar").classList.toggle("flex", showSave);
   // Refresh live rune-page status when entering Settings.
   if (tab === "settings" && typeof refreshRuneInfo === "function") refreshRuneInfo();
 }
@@ -791,11 +788,16 @@ async function buildSettings() {
   for (const q of queues) queueMap[q.id] = q.name;
   const qWrap = $("queues");
   qWrap.innerHTML = "";
+  const QP_CHECK =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   for (const q of queues) {
     const label = document.createElement("label");
-    label.className =
-      "flex items-center gap-2.5 text-sm text-grey1 cursor-pointer";
-    label.innerHTML = `<input type="checkbox" data-queue="${q.id}" class="w-4 h-4" style="accent-color:#C8AA6E;" /><span>${q.name}</span>`;
+    label.className = "qp";
+    label.title = q.name;
+    label.innerHTML =
+      `<input type="checkbox" data-queue="${q.id}" />` +
+      `<span class="qp-check">${QP_CHECK}</span>` +
+      `<span class="qp-name">${q.name}</span>`;
     qWrap.appendChild(label);
   }
 
@@ -1030,6 +1032,7 @@ function toggleChamp(name) {
   else list.push(name);
   updateBadge(activeRole);
   renderGrid($("champ-search").value);
+  scheduleSave();
 }
 
 // A subtle gold dot on a role tab marks it as configured (picks/bans/loadouts).
@@ -1104,6 +1107,7 @@ function wireGridEvents() {
       const [m] = list.splice(from, 1);
       list.splice(to, 0, m);
       renderGrid($("champ-search").value);
+      scheduleSave();
     }
     dragName = null;
   });
@@ -1138,7 +1142,11 @@ async function loadConfig() {
   $("aram_enabled").checked = !!(csCfg.aram && csCfg.aram.enabled);
   updateChampView(champEnabled);
 
-  const allowed = new Set((c.allowed_queue_ids || []).map(Number));
+  const allowedIds = (c.allowed_queue_ids || []).map(Number);
+  const acceptAny = allowedIds.length === 0;
+  $("queue_all").checked = acceptAny;
+  $("queue-select").classList.toggle("hidden", acceptAny);
+  const allowed = new Set(allowedIds);
   document.querySelectorAll("[data-queue]").forEach((cb) => {
     cb.checked = allowed.has(Number(cb.dataset.queue));
   });
@@ -1169,10 +1177,14 @@ async function loadConfig() {
 }
 
 function gatherConfig() {
+  // "Auto-accept any queue" on ⇒ empty list (the backend treats [] as "all").
+  // Off ⇒ only the specific queues the user ticked.
   const allowed = [];
-  document.querySelectorAll("[data-queue]").forEach((cb) => {
-    if (cb.checked) allowed.push(Number(cb.dataset.queue));
-  });
+  if (!$("queue_all").checked) {
+    document.querySelectorAll("[data-queue]").forEach((cb) => {
+      if (cb.checked) allowed.push(Number(cb.dataset.queue));
+    });
+  }
 
   const rolesOut = {};
   for (const r of roles) {
@@ -1315,13 +1327,10 @@ async function refreshCompanion() {
   } catch (_) {}
 
   $("companion-url").textContent = info.url || "";
+  const qrUrl = $("qr-url");
+  if (qrUrl) qrUrl.textContent = info.url || "";
   const qr = $("companion-qr");
-  if (info.qr) {
-    qr.src = info.qr;
-    qr.classList.remove("hidden");
-  } else {
-    qr.classList.add("hidden");
-  }
+  if (info.qr) qr.src = info.qr;
   // #companion-note (live running / connected-device status) is owned by
   // refreshStatus so it updates on its own without re-fetching the QR.
 }
@@ -1401,6 +1410,15 @@ $("companion-copy").addEventListener("click", async () => {
   setTimeout(() => (btn.textContent = orig), 1500);
 });
 
+// QR lives in a modal so it doesn't dominate the page.
+$("companion-qr-btn").addEventListener("click", () => {
+  refreshCompanion(); // make sure the QR/url are current
+  $("qr-modal").classList.remove("hidden");
+});
+document.querySelectorAll("#qr-modal [data-qr-close]").forEach((el) =>
+  el.addEventListener("click", () => $("qr-modal").classList.add("hidden")),
+);
+
 $("companion-test").addEventListener("click", async () => {
   const s = $("companion-test-status");
   flashStatus(s, "Sending…", true);
@@ -1475,6 +1493,7 @@ function closeLoadout() {
     delete los[String(loadoutChamp)];
   $("loadout-modal").classList.add("hidden");
   renderGrid($("champ-search").value); // refresh the loadout dot
+  scheduleSave();
 }
 
 function buildLoadoutSpells(lo) {
@@ -1490,6 +1509,7 @@ function buildLoadoutSpells(lo) {
     if (a) arr.push(Number(a));
     if (b && Number(b) !== Number(a)) arr.push(Number(b));
     lo.spells = arr;
+    scheduleSave();
   };
   s1.onchange = onChange;
   s2.onchange = onChange;
@@ -1515,6 +1535,7 @@ async function buildLoadoutRunes(lo) {
   sel.onchange = () => {
     const v = sel.value;
     lo.rune = v === "off" || v === "recommended" ? v : Number(v);
+    scheduleSave();
   };
 }
 
@@ -1530,6 +1551,7 @@ function buildLoadoutSkin(lo) {
       lo.skin = mode.value;
       $("lo-skin-grid").classList.add("hidden");
     }
+    scheduleSave();
   };
   if (isSpecific) renderLoadoutSkinGrid(lo);
   else $("lo-skin-grid").classList.add("hidden");
@@ -1563,6 +1585,7 @@ $("lo-skin-grid").addEventListener("click", (e) => {
   const lo = curLoadout();
   lo.skin = Number(cell.dataset.sid);
   renderLoadoutSkinGrid(lo);
+  scheduleSave();
 });
 $("lo-done").addEventListener("click", closeLoadout);
 document.querySelectorAll("#loadout-modal [data-lo-close]").forEach((el) =>
@@ -1629,21 +1652,120 @@ $("rune-claim-list").addEventListener("click", async (e) => {
   setTimeout(() => (s.textContent = ""), 4000);
 });
 
-// --- Save ---------------------------------------------------------------
-$("save-btn").addEventListener("click", async () => {
-  const status = $("save-status");
-  status.textContent = "Saving…";
-  const res = await api().save_config(gatherConfig());
-  if (res && res.ok) {
-    status.textContent = "✓ Saved";
-    status.className = "text-xs text-gold2";
-    await loadConfig();
-  } else {
-    status.textContent = "✗ " + ((res && res.error) || "Failed");
-    status.className = "text-xs text-red-400";
+// --- Auto-save ----------------------------------------------------------
+// There is no Save button: every settings + champ-select change persists on its
+// own. Saves are debounced so rapid edits (typing, dragging) coalesce into one
+// write, and a toast confirms. We never re-loadConfig() after saving — that
+// would rebuild the grids and reset focus/scroll mid-edit; JS state is the
+// source of truth while the user is editing.
+let saveTimer = null;
+let toastTimer = null;
+
+function showToast(msg, ok = true) {
+  const t = $("toast");
+  if (!t) return;
+  $("toast-msg").textContent = msg;
+  t.classList.toggle("err", !ok);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+async function saveNow() {
+  try {
+    const res = await api().save_config(gatherConfig());
+    if (res && res.ok) showToast("Saved");
+    else showToast((res && res.error) || "Save failed", false);
+  } catch (e) {
+    showToast("Save failed", false);
   }
-  setTimeout(() => (status.textContent = ""), 2500);
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 350);
+}
+
+// Settings controls: one delegated listener covers checkboxes, selects, and the
+// number/text fields (Chromium fires `input` for all of them). Buttons don't
+// fire `input`, so test/refresh/preview clicks never trigger a stray save.
+$("tab-settings").addEventListener("input", scheduleSave);
+// Picking a custom sound file mutates JS state (no input event) — save it too.
+$("sound-pick").addEventListener("click", () => setTimeout(scheduleSave, 0));
+
+// "Auto-accept any queue" hides/reveals the specific-queue picker.
+$("queue_all").addEventListener("change", () => {
+  $("queue-select").classList.toggle("hidden", $("queue_all").checked);
 });
+
+// --- Tooltips: any [data-tip] element shows a floating panel on hover --------
+(function initTooltips() {
+  const tip = document.createElement("div");
+  tip.className = "tip";
+  document.body.appendChild(tip);
+  let cur = null;
+  function position(el) {
+    const r = el.getBoundingClientRect();
+    const tr = tip.getBoundingClientRect();
+    let left = r.left + r.width / 2 - tr.width / 2;
+    let top = r.bottom + 8;
+    if (top + tr.height > window.innerHeight - 8) top = r.top - tr.height - 8; // flip up
+    left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+    tip.style.left = Math.round(left) + "px";
+    tip.style.top = Math.round(top) + "px";
+  }
+  function show(el) {
+    cur = el;
+    tip.textContent = el.getAttribute("data-tip") || "";
+    position(el); // measure with text in place
+    tip.classList.add("show");
+  }
+  function hide() { cur = null; tip.classList.remove("show"); }
+  document.addEventListener("mouseover", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (el && el !== cur) show(el);
+  });
+  document.addEventListener("mouseout", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (el && el === cur && !el.contains(e.relatedTarget)) hide();
+  });
+})();
+
+// --- Settings jump-nav (sticky sidebar on wide windows) ----------------------
+(function initSettingsNav() {
+  const nav = document.querySelector(".settings-nav");
+  if (!nav) return;
+  const links = [...nav.querySelectorAll(".snav-link")];
+  nav.addEventListener("click", (e) => {
+    const link = e.target.closest(".snav-link");
+    if (!link) return;
+    document.getElementById(link.dataset.jump)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  // Scroll-based spy: highlight the last section whose top has passed a line
+  // ~110px below the scroll-area top. A dedicated bottom check pins the final
+  // section active once the page bottoms out (it can't scroll under the line).
+  const main = document.querySelector("main");
+  if (!main) return;
+  function updateActive() {
+    if ($("tab-settings").classList.contains("hidden")) return;
+    const line = main.getBoundingClientRect().top + 110;
+    let active = links[0]?.dataset.jump;
+    for (const l of links) {
+      const t = document.getElementById(l.dataset.jump);
+      if (t && t.getBoundingClientRect().top <= line) active = l.dataset.jump;
+    }
+    if (main.scrollTop + main.clientHeight >= main.scrollHeight - 4)
+      active = links[links.length - 1]?.dataset.jump; // bottomed out → last
+    links.forEach((l) => l.classList.toggle("active", l.dataset.jump === active));
+  }
+  main.addEventListener("scroll", updateActive, { passive: true });
+  // Re-evaluate when the Settings tab is shown.
+  document.querySelectorAll('.nav-route[data-tab="settings"]').forEach((b) =>
+    b.addEventListener("click", () => setTimeout(updateActive, 60)),
+  );
+  updateActive();
+})();
 
 // --- Boot ---------------------------------------------------------------
 async function boot() {

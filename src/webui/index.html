@@ -548,10 +548,135 @@
     /* A teal dot marks picks that have a loadout configured (bottom-right, clear
        of the priority number and the remove-X). */
     .cell-loadout { position: absolute; bottom: 2px; right: 2px; width: 7px; height: 7px; border-radius: 9999px; background: #0AC8B9; box-shadow: 0 0 5px rgba(10,200,185,0.85); pointer-events: none; z-index: 2; }
+
+    /* --- Auto-save toast ------------------------------------------------
+       Replaces the old Save button: settings + champ-select edits persist on
+       change, and this slides up from the bottom-right to confirm. */
+    .toast {
+      position: fixed; right: 18px; bottom: 18px; z-index: 90;
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 9px 16px; pointer-events: none;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 100%);
+      outline: 1px solid rgb(200 170 110 / 0.5); outline-offset: -1px;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8), 0 0 20px -8px rgba(10,200,185,0.45);
+      color: #F0E6D2; font-family: Marcellus, Georgia, serif; font-size: 13px; letter-spacing: 0.03em;
+      opacity: 0; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.err { outline-color: rgb(192 88 79 / 0.7); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8), 0 0 20px -8px rgba(192,88,79,0.5); }
+    .toast-ico { width: 15px; height: 15px; color: #0AC8B9; flex-shrink: 0; }
+    .toast.err .toast-ico { color: #d56a60; }
+
+    /* --- Toggle switch --------------------------------------------------
+       Replaces the raw checkboxes in Settings. The real <input type=checkbox>
+       keeps its id (so app.js wiring is unchanged) but is visually hidden; the
+       track/knob render from its :checked state. */
+    .sw { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; cursor: pointer; }
+    .sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .sw .sw-track {
+      width: 38px; height: 21px; border-radius: 9999px; background: rgb(1 10 19 / 0.7);
+      outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px;
+      transition: background-color .18s ease, outline-color .18s ease, box-shadow .18s ease;
+    }
+    .sw .sw-knob {
+      position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 9999px;
+      background: #785A28; transition: transform .18s cubic-bezier(.2,.8,.2,1), background-color .18s ease;
+    }
+    .sw input:checked ~ .sw-track { background: rgb(200 170 110 / 0.22); outline-color: #C8AA6E; box-shadow: 0 0 10px -3px rgba(200,170,110,0.55); }
+    .sw input:checked ~ .sw-track .sw-knob { transform: translateX(17px); background: #C8AA6E; }
+    .sw input:focus-visible ~ .sw-track { outline-color: #0AC8B9; }
+    /* A settings row: toggle, label (clickable), and a help "?" with a tooltip.
+       Single-line — the explanatory copy lives in the tooltip, not under it. */
+    .set-row { display: flex; align-items: center; gap: 11px; }
+    .set-row-label { flex: 1; min-width: 0; font-size: 13.5px; color: #F0E6D2; line-height: 1.35; cursor: pointer; }
+    .set-row-hint { font-size: 12.5px; color: #A8A192; line-height: 1.5; }
+    /* Help "?" — hover shows a floating tooltip (#tip, positioned by app.js). */
+    .help {
+      display: inline-grid; place-items: center; width: 16px; height: 16px; flex-shrink: 0;
+      border-radius: 9999px; outline: 1px solid rgb(160 130 70 / 0.75); outline-offset: -1px;
+      font-size: 11px; font-family: Marcellus, Georgia, serif; color: #C8AA6E; cursor: help;
+      transition: color .15s ease, outline-color .15s ease, background-color .15s ease;
+    }
+    .help:hover { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+    .tip {
+      position: fixed; z-index: 95; max-width: 270px; padding: 10px 13px; pointer-events: none;
+      background: linear-gradient(180deg, #061726 0%, #02101c 100%);
+      outline: 1px solid rgb(200 170 110 / 0.6); outline-offset: -1px;
+      box-shadow: 0 12px 30px -10px rgba(0,0,0,0.9);
+      color: #ECE6D8; font-size: 12.5px; line-height: 1.5; font-family: Marcellus, Georgia, serif;
+      opacity: 0; transform: translateY(4px); transition: opacity .14s ease, transform .14s ease;
+    }
+    .tip.show { opacity: 1; transform: none; }
+
+    /* --- Settings layout ------------------------------------------------
+       One readable column (no mismatched-height grid), centered, with a sticky
+       jump-nav on wide windows. A handful of broad cards, each split into
+       labelled sub-sections, rather than many tiny cards. */
+    .settings-shell { display: flex; gap: 28px; justify-content: center; align-items: flex-start; }
+    .settings-col { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px;
+      /* Trailing room so the last section can scroll up under the sticky nav and
+         get highlighted (otherwise the page bottoms out before reaching it). */
+      padding-bottom: 40vh; }
+    .set-card { display: flex; flex-direction: column; gap: 16px; }
+    .set-card-title { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #E2C887; padding-bottom: 8px;
+      border-bottom: 1px solid rgb(120 90 40 / 0.4); }
+    .set-sub { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 14px; }
+    .set-sub-head { font-family: Cinzel, Georgia, serif; font-size: 11.5px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #C8AA6E; }
+    .set-divider { height: 1px; background: linear-gradient(to right, rgb(120 90 40 / 0.45), transparent); }
+
+    .settings-nav { display: none; }
+    @media (min-width: 1040px) {
+      .settings-nav { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 4px;
+        width: 176px; flex-shrink: 0; padding-top: 2px; }
+    }
+    .snav-group { display: flex; flex-direction: column; gap: 3px; }
+    .snav-cat { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.13em;
+      text-transform: uppercase; color: #C8983C; padding: 0 0 5px 11px; }
+    .snav-link { display: block; padding: 6px 11px; cursor: pointer; border-left: 2px solid transparent;
+      color: #C4BDAD; font-family: Marcellus, Georgia, serif; font-size: 13.5px;
+      transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+    .snav-link:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+    .snav-link.active { color: #F0E6D2; border-left-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
+
+    .companion-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+    /* QR modal (phone companion). Reuses .skin-modal/.skin-backdrop/.skin-head. */
+    .qr-panel { position: relative; width: min(360px, 92vw); display: flex; flex-direction: column;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 75%); }
+    .qr-body { padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .qr-big { width: 232px; height: 232px; background: #fff; padding: 10px; }
+
+    /* Allowed-queue pills — a scalable wrap grid of toggle chips replacing the
+       old 2-col checkbox list. The checkbox is hidden; the chip lights gold when
+       checked. */
+    .queue-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .qp { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 11px; cursor: pointer;
+      outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; background: rgb(1 10 19 / 0.35);
+      color: #A09B8C; font-size: 12.5px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .qp input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .qp:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.5); }
+    .qp .qp-check { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent; transition: color .15s ease, background-color .15s ease; }
+    .qp .qp-check svg { width: 11px; height: 11px; }
+    /* Checked state via sibling combinators (robust); the chip-wide wash uses
+       :has() as a progressive enhancement on top. */
+    .qp input:checked ~ .qp-check { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qp input:checked ~ .qp-name { color: #F0E6D2; }
+    .qp:has(input:checked) { background: rgb(200 170 110 / 0.12); outline-color: #C8AA6E; }
+    .qp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style>
 </head>
 <body class="text-grey1 antialiased h-screen overflow-hidden">
   <div id="flash"></div>
+
+  <!-- Auto-save toast (bottom-right). Settings + champ-select edits persist on
+       change; showToast() in app.js flashes this instead of a Save button. -->
+  <div id="toast" class="toast">
+    <svg class="toast-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    <span id="toast-msg">Saved</span>
+  </div>
 
   <!-- Quick-queue dropdown (top-level so it isn't trapped under the navbar's
        backdrop-blur; positioned under PLAY by app.js). -->
@@ -601,6 +726,25 @@
       </div>
       <div class="loadout-foot">
         <button id="lo-done" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phone-companion QR, shown in a modal from the "Show QR code" button so it
+       doesn't dominate the Settings page. -->
+  <div id="qr-modal" class="skin-modal hidden">
+    <div class="skin-backdrop" data-qr-close></div>
+    <div class="qr-panel hextech framed">
+      <div class="skin-head">
+        <h3>Open on your phone</h3>
+        <button class="skin-close" aria-label="Close" data-qr-close>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
+        </button>
+      </div>
+      <div class="qr-body">
+        <img id="companion-qr" alt="Scan to open on your phone" class="qr-big" />
+        <p id="qr-url" class="text-sm text-gold2 break-all text-center"></p>
+        <p class="text-xs text-subText text-center" style="max-width:280px">Scan with your phone's camera, tap <span class="text-gold2">Enable Alerts</span>, and keep the tab open. Phone must be on the same Wi-Fi.</p>
       </div>
     </div>
   </div>
@@ -847,186 +991,209 @@
         </div>
       </section>
 
-      <!-- SETTINGS -->
-      <section id="tab-settings" class="hidden space-y-5 max-w-2xl pb-2">
+      <!-- SETTINGS — single column with a sticky jump-nav on wide windows. Every
+           change auto-saves; there is no Save button. A few broad cards, each
+           split into labelled sub-sections; explanatory copy lives in the "?"
+           tooltips rather than under each toggle. -->
+      <section id="tab-settings" class="hidden pb-2">
+        <div class="settings-shell">
 
-        <!-- Auto Pick / Ban -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Auto Pick / Ban</h3><div class="rule"></div></div>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="champ_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Enable Auto Pick / Ban</span>
-          </label>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="instant_lock" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Lock in my pick instantly when it's my turn</span>
-          </label>
-          <div id="lock-delay-row" class="flex items-center gap-2 text-sm text-grey1 pl-6">
-            <span>Otherwise, lock when</span>
-            <input id="lock_seconds" type="number" min="0" max="30" value="1"
-              class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
-            <span>second(s) left (of ~30)</span>
-          </div>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="trades_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Auto-trade toward a higher-priority pick (and accept upgrade offers)</span>
-          </label>
-          <p class="text-sm text-subText leading-relaxed">
-            Set your bans, picks, and summoner spells per role on the
-            <span class="text-gold2">Champ Select</span> tab. Auto pick / ban
-            applies to queues with assigned roles (Draft / Ranked); trades work
-            anywhere. ARAM has its own tab + settings below.
-          </p>
-        </div>
-
-        <!-- Recommended Runes (manages queueBot's dedicated rune page) -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Recommended Runes</h3><div class="rule"></div></div>
-          <p class="text-sm text-subText leading-relaxed">
-            When a loadout uses <span class="text-gold2">Recommended</span> runes, queueBot writes
-            them to one dedicated page (<span class="text-gold2">queueBot (auto)</span>) so your own
-            pages stay untouched. If your rune pages are full, pick one below for queueBot to take
-            over — or free a slot in the client and it’ll create its own.
-          </p>
-          <p id="rune-managed-status" class="text-sm text-grey1"></p>
-          <div id="rune-claim-wrap" class="hidden space-y-2">
-            <p class="text-sm text-gold4">Your rune pages are full. Choose one for queueBot to manage
-              (it’ll be renamed <span class="text-gold2">queueBot (auto)</span> and overwritten with
-              recommended runes each game):</p>
-            <div id="rune-claim-list" class="space-y-1.5"></div>
-          </div>
-          <div class="flex items-center gap-3 pt-0.5">
-            <button id="rune-refresh"
-              class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Refresh</button>
-            <span id="rune-claim-status" class="text-xs text-subText"></span>
-          </div>
-        </div>
-
-        <!-- ARAM -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>ARAM</h3><div class="rule"></div></div>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="aram_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Auto-grab a higher-priority champ off the reroll bench</span>
-          </label>
-          <p class="text-sm text-subText leading-relaxed">
-            Build your ARAM priority list on the <span class="text-gold2">Champ Select</span>
-            tab → <span class="text-gold2">ARAM</span>. queueBot grabs the highest-ranked
-            champ that lands on the bench and trades toward it. Summoner spells set there
-            apply in ARAM too.
-          </p>
-        </div>
-
-        <!-- Phone Companion (LAN) -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Phone Companion</h3><div class="rule"></div></div>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="companion_enabled" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Sound an alarm on my phone when the queue pops</span>
-          </label>
-          <p class="text-sm text-subText leading-relaxed">
-            Opens a page on your home Wi-Fi — no app, no account. Scan the code with your
-            phone, tap <span class="text-gold2">Enable Alerts</span>, and keep the tab open.
-          </p>
-          <div class="flex items-center gap-2 text-sm text-grey1">
-            <span>Port</span>
-            <input id="companion_port" type="number" min="1024" max="65535" value="8420"
-              class="hextech-input w-20 px-2 py-1 text-center text-gold1 outline-none" />
-          </div>
-
-          <div id="companion-live" class="hidden border-t border-t-gold5/30 pt-3 space-y-2.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-xs text-subText uppercase tracking-wide">Open on phone</span>
-              <span id="companion-url" class="text-sm text-gold2 break-all"></span>
-              <button id="companion-copy" class="text-xs text-gold5 underline cursor-pointer">Copy</button>
+          <!-- Jump-nav (wide windows only) -->
+          <aside class="settings-nav">
+            <div class="snav-group">
+              <span class="snav-cat">Champ Select</span>
+              <span class="snav-link" data-jump="set-champ-pick">Auto Pick / Ban</span>
+              <span class="snav-link" data-jump="set-champ-aram">ARAM</span>
+              <span class="snav-link" data-jump="set-champ-runes">Runes</span>
             </div>
-            <img id="companion-qr" alt="Scan to open on your phone" class="w-36 h-36 bg-white p-1" />
-            <div class="flex items-center gap-2 flex-wrap text-sm text-grey1">
-              <span>Alert sound</span>
-              <select id="companion_sound"
-                class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
-                <option value="chime">Chime</option>
-                <option value="ping">Ping</option>
-                <option value="arcade">Arcade</option>
-                <option value="siren">Siren (loud)</option>
-                <option value="custom">Custom file…</option>
-              </select>
-              <button id="sound-preview" class="text-xs text-gold5 underline cursor-pointer">Preview</button>
+            <div class="snav-group">
+              <span class="snav-cat">Notifications</span>
+              <span class="snav-link" data-jump="set-notif-desktop">Desktop</span>
+              <span class="snav-link" data-jump="set-notif-phone">Phone</span>
+              <span class="snav-link" data-jump="set-notif-discord">Discord</span>
             </div>
-            <div id="custom-sound-row" class="hidden flex items-center gap-2 flex-wrap text-sm text-grey1">
-              <button id="sound-pick"
-                class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Choose file…</button>
-              <span id="sound-file-name" class="text-xs text-subText break-all">No file chosen</span>
+            <div class="snav-group">
+              <span class="snav-cat">Queues</span>
+              <span class="snav-link" data-jump="set-queues">Allowed Queues</span>
             </div>
+          </aside>
 
-            <div class="flex items-center gap-3 pt-1">
-              <button id="companion-test"
-                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Test phone alert</button>
-              <span id="companion-test-status" class="text-xs text-subText"></span>
+          <div class="settings-col">
+
+        <!-- CARD: Champ Select -->
+        <div class="hextech p-5 set-card">
+          <div class="set-card-title">Champ Select</div>
+
+          <div id="set-champ-pick" class="set-sub">
+            <div class="set-sub-head">Auto Pick / Ban</div>
+            <div class="set-row">
+              <span class="sw"><input id="champ_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="champ_enabled" class="set-row-label">Enable Auto Pick / Ban</label>
+              <span class="help" data-tip="Set bans, picks & summoner spells per role on the Champ Select tab. Applies to queues with assigned roles (Draft / Ranked).">?</span>
             </div>
-            <p id="companion-note" class="text-xs text-gold4"></p>
-            <p class="text-xs text-subText">Phone must be on the same Wi-Fi. Windows may ask to allow queueBot through the firewall the first time.</p>
+            <div class="set-row">
+              <span class="sw"><input id="instant_lock" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="instant_lock" class="set-row-label">Lock in instantly on my turn</label>
+              <span class="help" data-tip="Lock your pick the moment it's your turn. Turn off to wait and lock near the end of the timer instead.">?</span>
+            </div>
+            <div id="lock-delay-row" class="flex items-center gap-2 text-sm text-grey1" style="padding-left:50px">
+              <span>Otherwise lock with</span>
+              <input id="lock_seconds" type="number" min="0" max="30" value="1"
+                class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
+              <span>s left</span>
+            </div>
+            <div class="set-row">
+              <span class="sw"><input id="trades_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="trades_enabled" class="set-row-label">Auto-trade toward a higher-priority pick</label>
+              <span class="help" data-tip="Trades toward your higher-priority pick when a teammate has it, and accepts upgrade offers. Works in any queue.">?</span>
+            </div>
+          </div>
+
+          <div class="set-divider"></div>
+
+          <div id="set-champ-aram" class="set-sub">
+            <div class="set-sub-head">ARAM</div>
+            <div class="set-row">
+              <span class="sw"><input id="aram_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="aram_enabled" class="set-row-label">Grab a higher-priority champ off the bench</label>
+              <span class="help" data-tip="Build your ARAM priority list on Champ Select → ARAM. queueBot grabs the highest-ranked champ that lands on the reroll bench and trades toward it. Summoner spells set there apply too.">?</span>
+            </div>
+          </div>
+
+          <div class="set-divider"></div>
+
+          <div id="set-champ-runes" class="set-sub">
+            <div class="set-sub-head">Recommended Runes</div>
+            <p class="set-row-hint">
+              Loadouts using <span class="text-gold2">Recommended</span> runes write to one dedicated
+              page (<span class="text-gold2">queueBot (auto)</span>) so your own pages stay untouched.
+            </p>
+            <p id="rune-managed-status" class="text-sm text-grey1"></p>
+            <div id="rune-claim-wrap" class="hidden space-y-2">
+              <p class="text-sm text-gold4">Rune pages are full. Pick one for queueBot to manage
+                (renamed <span class="text-gold2">queueBot (auto)</span> and overwritten each game):</p>
+              <div id="rune-claim-list" class="space-y-1.5"></div>
+            </div>
+            <div class="flex items-center gap-3 pt-0.5">
+              <button id="rune-refresh"
+                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Refresh</button>
+              <span id="rune-claim-status" class="text-xs text-subText"></span>
+            </div>
           </div>
         </div>
 
-        <!-- Discord -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Discord Notifications (optional)</h3><div class="rule"></div></div>
-          <label class="block">
-            <span class="text-sm text-subText">Webhook URL</span>
-            <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
-              class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
-          </label>
-          <p id="webhook_hint" class="hidden text-xs text-red-400"></p>
-          <label class="block">
-            <span class="text-sm text-subText">User ID (for @mentions)</span>
-            <input id="user_id" type="text" placeholder="123456789012345678"
-              class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
-          </label>
-          <div class="flex items-center gap-3 pt-0.5">
-            <button id="discord-test"
-              class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
-            <span id="discord-test-status" class="text-xs text-subText"></span>
+        <!-- CARD: Notifications & Alerts -->
+        <div class="hextech p-5 set-card">
+          <div class="set-card-title">Notifications &amp; Alerts</div>
+
+          <div id="set-notif-desktop" class="set-sub">
+            <div class="set-row">
+              <span class="sw"><input id="desktop_notifications" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="desktop_notifications" class="set-row-label">Windows desktop notifications</label>
+              <span class="help" data-tip="Show a Windows notification when the queue pops and on key champ-select events.">?</span>
+            </div>
           </div>
-          <details class="text-sm">
-            <summary class="cursor-pointer text-gold2 hover:text-gold1 select-none">How to set this up</summary>
-            <ol class="list-decimal ml-5 mt-2 space-y-1 text-subText">
-              <li>In Discord: <span class="text-grey1">Server Settings → Integrations → Webhooks → New Webhook</span>.</li>
-              <li>Pick a channel, click <span class="text-grey1">Copy Webhook URL</span>, and paste it above.</li>
-              <li>Make sure mobile notifications are on for that channel.</li>
-              <li>Optional @mention: enable <span class="text-grey1">Developer Mode</span> (User Settings → Advanced),
-                  then right-click your name → <span class="text-grey1">Copy User ID</span>.</li>
-            </ol>
-            <button id="discord-docs" class="mt-2 text-gold5 underline cursor-pointer">Open Discord's webhook guide ↗</button>
-          </details>
-          <p class="text-xs text-subText">No Discord? Use the <span class="text-gold2">Phone Companion</span> above instead.</p>
+
+          <div class="set-divider"></div>
+
+          <div id="set-notif-phone" class="set-sub">
+            <div class="set-sub-head">Phone Companion</div>
+            <div class="set-row">
+              <span class="sw"><input id="companion_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="companion_enabled" class="set-row-label">Alarm my phone when the queue pops</label>
+              <span class="help" data-tip="Opens a page on your home Wi-Fi — no app, no account. Scan the QR with your phone, tap Enable Alerts, and keep the tab open. Phone must be on the same Wi-Fi; Windows may ask to allow queueBot through the firewall the first time.">?</span>
+            </div>
+
+            <div id="companion-live" class="hidden companion-info">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs text-subText uppercase tracking-wide">Open on phone</span>
+                <span id="companion-url" class="text-sm text-gold2 break-all"></span>
+                <button id="companion-copy" class="text-xs text-gold5 underline cursor-pointer">Copy</button>
+                <button id="companion-qr-btn"
+                  class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Show QR code</button>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap text-sm text-grey1">
+                <span>Port</span>
+                <input id="companion_port" type="number" min="1024" max="65535" value="8420"
+                  class="hextech-input w-20 px-2 py-1 text-center text-gold1 outline-none" />
+                <span class="text-subText px-1">·</span>
+                <span>Sound</span>
+                <select id="companion_sound"
+                  class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
+                  <option value="chime">Chime</option>
+                  <option value="ping">Ping</option>
+                  <option value="arcade">Arcade</option>
+                  <option value="siren">Siren (loud)</option>
+                  <option value="custom">Custom file…</option>
+                </select>
+                <button id="sound-preview" class="text-xs text-gold5 underline cursor-pointer">Preview</button>
+              </div>
+              <div id="custom-sound-row" class="hidden flex items-center gap-2 flex-wrap text-sm text-grey1">
+                <button id="sound-pick"
+                  class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Choose file…</button>
+                <span id="sound-file-name" class="text-xs text-subText break-all">No file chosen</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button id="companion-test"
+                  class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Test phone alert</button>
+                <span id="companion-test-status" class="text-xs text-subText"></span>
+              </div>
+              <p id="companion-note" class="text-xs text-gold4"></p>
+            </div>
+          </div>
+
+          <div class="set-divider"></div>
+
+          <div id="set-notif-discord" class="set-sub">
+            <div class="set-sub-head">Discord</div>
+            <label class="block">
+              <span class="text-sm text-subText">Webhook URL</span>
+              <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
+                class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+            </label>
+            <p id="webhook_hint" class="hidden text-xs text-red-400"></p>
+            <label class="block">
+              <span class="text-sm text-subText">User ID (for @mentions)</span>
+              <input id="user_id" type="text" placeholder="123456789012345678"
+                class="hextech-input mt-1.5 w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+            </label>
+            <div class="flex items-center gap-3 pt-0.5">
+              <button id="discord-test"
+                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
+              <span id="discord-test-status" class="text-xs text-subText"></span>
+            </div>
+            <details class="text-sm">
+              <summary class="cursor-pointer text-gold2 hover:text-gold1 select-none">How to set this up</summary>
+              <ol class="list-decimal ml-5 mt-2 space-y-1 text-subText">
+                <li>In Discord: <span class="text-grey1">Server Settings → Integrations → Webhooks → New Webhook</span>.</li>
+                <li>Pick a channel, click <span class="text-grey1">Copy Webhook URL</span>, and paste it above.</li>
+                <li>Make sure mobile notifications are on for that channel.</li>
+                <li>Optional @mention: enable <span class="text-grey1">Developer Mode</span> (User Settings → Advanced),
+                    then right-click your name → <span class="text-grey1">Copy User ID</span>.</li>
+              </ol>
+              <button id="discord-docs" class="mt-2 text-gold5 underline cursor-pointer">Open Discord's webhook guide ↗</button>
+            </details>
+          </div>
         </div>
 
-        <!-- Notifications -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Desktop Notifications</h3><div class="rule"></div></div>
-          <label class="flex items-center gap-2.5 cursor-pointer">
-            <input id="desktop_notifications" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
-            <span class="text-sm text-grey1">Enable Windows notifications</span>
-          </label>
+        <!-- CARD: Allowed Queues -->
+        <div id="set-queues" class="hextech p-5 set-card">
+          <div class="set-card-title">Allowed Queues</div>
+          <div class="set-row">
+            <span class="sw"><input id="queue_all" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="queue_all" class="set-row-label">Auto-accept any queue</label>
+            <span class="help" data-tip="On: accept whatever queue pops. Turn off to auto-accept only the specific queues you pick below.">?</span>
+          </div>
+          <div id="queue-select" class="hidden">
+            <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
+            <div id="queues" class="queue-pills"></div>
+          </div>
         </div>
 
-        <!-- Queues -->
-        <div class="hextech p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Allowed Queues</h3><div class="rule"></div></div>
-          <p class="text-sm text-subText">Uncheck all to auto-accept <em>any</em> queue.</p>
-          <div id="queues" class="grid grid-cols-2 gap-2.5"></div>
+          </div>
         </div>
       </section>
     </main>
-
-    <!-- Save bar — footer, shown on Champ Select & Settings tabs -->
-    <div id="save-bar"
-      class="hidden items-center gap-4 px-5 py-3 border-t border-t-icon/30 backdrop-blur-2xl bg-hextech-black/40">
-      <button id="save-btn"
-        class="hextech font-display tracking-wide px-7 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">Save Settings</button>
-      <span id="save-status" class="text-xs text-subText"></span>
-    </div>
   </div>
 
   <script src="window-chrome.js"></script>
