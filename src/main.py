@@ -154,6 +154,12 @@ def main():
         height=840,
         min_size=(620, 700),
         background_color="#020617",
+        # Drop the native OS chrome so the web UI can draw its own League-themed
+        # title bar (min/maximize/close live in src/webui/window-chrome.js).
+        # easy_drag=False so only the .pywebview-drag-region title bar drags the
+        # window — otherwise every mousedown on the body would move it.
+        frameless=True,
+        easy_drag=False,
     )
     # Underscore attr on purpose — see Api.__init__: a public attribute holding
     # the window makes pywebview recurse the WebView2 COM graph and hang startup.
