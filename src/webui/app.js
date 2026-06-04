@@ -107,7 +107,8 @@ function rankScore(r) {
   return ti * 1e5 + div * 1e4 + (r.lp || 0);
 }
 function highestRank(ranked) {
-  const cands = [(ranked || {}).solo, (ranked || {}).flex].filter(Boolean);
+  ranked = ranked || {};
+  const cands = [ranked.solo, ranked.flex, ranked.tft, ranked.double_up].filter(Boolean);
   if (!cands.length) return null;
   return cands.reduce((a, b) => (rankScore(b) > rankScore(a) ? b : a));
 }
@@ -454,7 +455,7 @@ function renderProfile(info) {
   if (!panel) return;
   const ranked = (info && info.ranked) || {};
   const mastery = (info && info.mastery) || [];
-  const hasRanked = ranked.solo || ranked.flex;
+  const hasRanked = ranked.solo || ranked.flex || ranked.tft || ranked.double_up;
   if (!info || !info.connected || (!hasRanked && !mastery.length)) {
     panel.classList.add("hidden");
     return;
@@ -464,22 +465,27 @@ function renderProfile(info) {
   const rankedRow = (label, r) => {
     if (!r) {
       return `<div class="flex items-center gap-3">
-        <span class="w-10 text-xs uppercase tracking-wide text-subText">${label}</span>
+        <span class="text-xs uppercase tracking-wide text-subText whitespace-nowrap" style="width:4rem;overflow:hidden">${label}</span>
         <span class="text-sm text-subText italic">Unranked</span></div>`;
     }
     const col = tierColor(r.tier);
     const wins = r.wins || 0, losses = r.losses || 0, games = wins + losses;
     const wr = games ? Math.round((wins / games) * 100) : 0;
     return `<div class="flex items-center gap-3">
-      <span class="w-10 text-xs uppercase tracking-wide text-subText">${label}</span>
+      <span class="text-xs uppercase tracking-wide text-subText whitespace-nowrap" style="width:4rem;overflow:hidden">${label}</span>
       <span class="text-sm font-serif" style="color:${col}">${rankLabel(r, true)}</span>
       <span class="text-xs text-subText ml-auto whitespace-nowrap">${
         games ? `${wins}W ${losses}L · ${wr}%` : ""
       }</span>
     </div>`;
   };
+  // Solo + Flex always render (everyone has an SR ladder); TFT only when ranked,
+  // so non-TFT players don't get a stray "Unranked" row.
   $("profile-ranked").innerHTML =
-    rankedRow("Solo", ranked.solo) + rankedRow("Flex", ranked.flex);
+    rankedRow("Solo", ranked.solo) +
+    rankedRow("Flex", ranked.flex) +
+    (ranked.tft ? rankedRow("TFT", ranked.tft) : "") +
+    (ranked.double_up ? rankedRow("Doubles", ranked.double_up) : "");
 
   $("profile-mastery").innerHTML = mastery
     .map((m) => {

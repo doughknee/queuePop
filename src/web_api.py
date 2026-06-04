@@ -593,6 +593,8 @@ class Api:
                     out["ranked"] = {
                         "solo": _entry("RANKED_SOLO_5x5"),
                         "flex": _entry("RANKED_FLEX_SR"),
+                        "tft": _entry("RANKED_TFT"),
+                        "double_up": _entry("RANKED_TFT_DOUBLE_UP"),
                     }
             except Exception:
                 pass
