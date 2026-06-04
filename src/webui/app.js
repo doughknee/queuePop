@@ -54,28 +54,26 @@ function resolveName(raw) {
   return c ? c.name : null;
 }
 
-// --- Tabs ---------------------------------------------------------------
-document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const tab = btn.dataset.tab;
-    document.querySelectorAll(".tab-btn").forEach((b) => {
-      const active = b === btn;
-      b.classList.toggle("border-gold2", active);
-      b.classList.toggle("text-gold1", active);
-      b.classList.toggle("border-transparent", !active);
-      b.classList.toggle("text-icon", !active);
-    });
-    $("tab-dashboard").classList.toggle("hidden", tab !== "dashboard");
-    $("tab-champ").classList.toggle("hidden", tab !== "champ");
-    $("tab-settings").classList.toggle("hidden", tab !== "settings");
-    replay($(`tab-${tab}`), "fade-up");
-    const showSave = tab !== "dashboard";
-    $("save-bar").classList.toggle("hidden", !showSave);
-    $("save-bar").classList.toggle("flex", showSave);
+// --- Route nav (icon tabs) ---------------------------------------------
+function activateTab(tab) {
+  document.querySelectorAll(".nav-route").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tab === tab);
   });
+  $("tab-dashboard").classList.toggle("hidden", tab !== "dashboard");
+  $("tab-champ").classList.toggle("hidden", tab !== "champ");
+  $("tab-settings").classList.toggle("hidden", tab !== "settings");
+  replay($(`tab-${tab}`), "fade-up");
+  const showSave = tab !== "dashboard";
+  $("save-bar").classList.toggle("hidden", !showSave);
+  $("save-bar").classList.toggle("flex", showSave);
+}
+document.querySelectorAll(".nav-route").forEach((btn) => {
+  btn.addEventListener("click", () => activateTab(btn.dataset.tab));
 });
 
-// --- Pause toggle -------------------------------------------------------
+// --- Pause toggle (title-strip indicator) ------------------------------
+let lastConnected = null; // tracks client connect/disconnect transitions
+
 $("pause-btn").addEventListener("click", async () => {
   const status = await api().get_status();
   const paused = await api().set_paused(!status.paused);
@@ -83,23 +81,157 @@ $("pause-btn").addEventListener("click", async () => {
 });
 
 function renderPause(paused) {
+  const label = $("pause-label");
+  if (label) label.textContent = paused ? "Resume" : "Pause";
   const btn = $("pause-btn");
-  btn.textContent = paused ? "Resume" : "Pause";
-  btn.classList.toggle("text-gold4", paused);
-  btn.classList.toggle("text-grey1", !paused);
+  if (btn) btn.style.color = paused ? "#C8983C" : ""; // gold4 when paused
+  const ico = $("pause-ico");
+  if (ico) {
+    ico.innerHTML = paused
+      ? '<path d="M3 2.2 L10 6 L3 9.8 Z" />' // play (resume)
+      : '<rect x="2.6" y="2" width="2.3" height="8" rx="0.4" />' +
+        '<rect x="7.1" y="2" width="2.3" height="8" rx="0.4" />'; // pause bars
+  }
 }
+
+// --- PLAY button (launch client / quick-queue / cancel) ----------------
+// Mode is set by updatePlay() from the live gameflow phase.
+function updatePlay(s) {
+  const btn = $("play-btn");
+  const label = $("play-label");
+  if (!btn || !label) return;
+  let text = "PLAY", mode = "queue", disabled = false;
+  if (!s.connected) {
+    text = "PLAY"; mode = "launch"; // no client → launch it
+  } else {
+    switch (s.gameflow_phase) {
+      case "Matchmaking": text = "IN QUEUE"; mode = "cancel"; break;
+      case "ReadyCheck": text = "READY"; mode = "none"; disabled = true; break;
+      case "ChampSelect": text = "CHAMP"; mode = "none"; disabled = true; break;
+      case "InProgress": text = "IN GAME"; mode = "none"; disabled = true; break;
+      case "PreEndOfGame":
+      case "WaitingForStats":
+      case "EndOfGame": text = "PLAY"; mode = "queue"; break;
+      default: text = "PLAY"; mode = "queue"; // None / Lobby / idle
+    }
+  }
+  label.textContent = text;
+  // Shrink the banner text for longer states so it stays inside the tag.
+  label.setAttribute("font-size", text.length > 5 ? "14" : "21");
+  btn.disabled = disabled;
+  btn.dataset.mode = mode;
+}
+
+$("play-btn").addEventListener("click", async () => {
+  const mode = $("play-btn").dataset.mode || "launch";
+  if (mode === "launch") {
+    closeQueueMenu();
+    await api().launch_league();
+  } else if (mode === "cancel") {
+    closeQueueMenu();
+    await api().cancel_queue();
+    refreshStatus();
+  } else if (mode === "queue") {
+    toggleQueueMenu();
+  }
+});
+
+async function buildQueueMenu() {
+  const menu = $("queue-menu");
+  if (!menu) return;
+  let qs = [];
+  try { qs = (await api().get_quick_queues()) || []; } catch (_) {}
+  menu.innerHTML =
+    '<div class="qm-head">Start a queue</div>' +
+    qs.map((q) => `<button type="button" data-qid="${q.id}">${q.name}</button>`).join("");
+  menu.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", async () => {
+      closeQueueMenu();
+      await api().start_queue(b.dataset.qid);
+      refreshStatus(); // flip PLAY → IN QUEUE
+    }),
+  );
+}
+function openQueueMenu() {
+  const menu = $("queue-menu");
+  const btn = $("play-btn");
+  if (!menu || !btn) return;
+  // The menu is position:fixed at the body level, so place it under PLAY.
+  const r = btn.getBoundingClientRect();
+  menu.style.left = Math.round(r.left) + "px";
+  menu.style.top = Math.round(r.bottom + 4) + "px";
+  menu.classList.remove("hidden");
+}
+function toggleQueueMenu() {
+  const menu = $("queue-menu");
+  if (!menu) return;
+  if (menu.classList.contains("hidden")) openQueueMenu();
+  else closeQueueMenu();
+}
+function closeQueueMenu() { $("queue-menu")?.classList.add("hidden"); }
+// Click outside closes the queue menu.
+document.addEventListener("click", (e) => {
+  const menu = $("queue-menu");
+  const btn = $("play-btn");
+  if (!menu || menu.classList.contains("hidden")) return;
+  if (!menu.contains(e.target) && btn && !btn.contains(e.target)) closeQueueMenu();
+});
+
+// --- Live summoner badge -----------------------------------------------
+async function refreshSummoner() {
+  const btn = $("summoner-btn");
+  if (!btn) return;
+  let info = {};
+  try { info = (await api().get_summoner()) || {}; } catch (_) { info = {}; }
+  const nameEl = $("summoner-name");
+  const lvlEl = $("summoner-level");
+  const img = $("summoner-icon");
+  const ph = $("summoner-ph");
+  if (info.connected && info.name) {
+    btn.classList.remove("offline");
+    nameEl.textContent = info.name;
+    btn.title = info.tag ? `${info.name} #${info.tag}` : info.name;
+    lvlEl.textContent = info.level ? `Level ${info.level}` : "";
+    if (info.icon) {
+      img.src = info.icon; img.classList.remove("hidden"); ph.classList.add("hidden");
+    } else {
+      img.classList.add("hidden"); ph.classList.remove("hidden");
+    }
+    btn.dataset.opgg = info.opgg || "";
+  } else {
+    btn.classList.add("offline");
+    nameEl.textContent = "Offline";
+    lvlEl.textContent = "";
+    img.classList.add("hidden"); ph.classList.remove("hidden");
+    btn.dataset.opgg = "";
+    btn.title = "";
+  }
+}
+$("summoner-btn").addEventListener("click", () => {
+  const url = $("summoner-btn").dataset.opgg;
+  if (url) api().open_external(url);
+});
 
 // --- Status polling -----------------------------------------------------
 async function refreshStatus() {
   try {
     const s = await api().get_status();
-    $("version").textContent = s.version;
+    const ver = $("version");
+    if (ver) ver.textContent = s.version;
 
-    const pill = $("conn-pill");
-    pill.textContent = s.connected ? "Client: connected" : "Client: waiting…";
-    pill.className =
-      "hextech text-sm px-3 py-1.5 " +
-      (s.connected ? "text-blue2" : "text-subText");
+    // Title-strip client indicator (dot + label)
+    const dot = $("conn-dot");
+    const clabel = $("conn-label");
+    if (dot) dot.style.background = s.connected ? "#0AC8B9" : "#5B5A56";
+    if (clabel) clabel.textContent = s.connected ? "Client connected" : "Client offline";
+
+    // PLAY reflects the live gameflow phase; summoner badge refreshes on
+    // connect/disconnect transitions.
+    updatePlay(s);
+    if (s.connected !== lastConnected) {
+      lastConnected = s.connected;
+      refreshSummoner();
+    }
 
     $("hero-status").textContent = s.paused ? "Paused" : "Monitoring";
     $("hero-status").className =
@@ -233,9 +365,7 @@ function buildChampTab() {
   $("mode-picks").addEventListener("click", () => setMode("picks"));
   $("mode-bans").addEventListener("click", () => setMode("bans"));
   $("champ-search").addEventListener("input", (e) => renderGrid(e.target.value));
-  $("goto-settings").addEventListener("click", () =>
-    document.querySelector('.tab-btn[data-tab="settings"]').click(),
-  );
+  $("goto-settings").addEventListener("click", () => activateTab("settings"));
   $("champ_enabled").addEventListener("change", (e) =>
     updateChampView(e.target.checked),
   );
@@ -696,14 +826,17 @@ async function boot() {
   try {
     await loadCatalog();
     await buildSettings();
+    await buildQueueMenu();
     await loadConfig();
   } catch (e) {
     console.error("queueBot UI build error:", e);
   }
   await refreshStatus();
+  await refreshSummoner();
   await refreshEvents();
   setInterval(refreshStatus, 1500);
   setInterval(refreshEvents, 1000);
+  setInterval(refreshSummoner, 8000); // keep level/icon fresh
 }
 
 if (window.pywebview && window.pywebview.api) {

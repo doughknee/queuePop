@@ -30,6 +30,9 @@ class LCU:
         self.paused = False
         self.connected = False
         self.gameflow_phase = None
+        # Live connection handle, kept so the web UI can make on-demand requests
+        # (summoner info, quick-queue, etc.) outside the event handlers.
+        self._connection = None
         self.champ_select = ChampSelect(self)
 
         # Register event handlers
@@ -43,6 +46,7 @@ class LCU:
         config.console.print("[success]✅ League Client Connected![/]")
         events.push("League client connected", "success")
         self.connected = True
+        self._connection = connection
 
         # Preload champion data so auto pick/ban can resolve names -> IDs.
         if self.config.get("champ_select", {}).get("enabled"):
@@ -61,6 +65,26 @@ class LCU:
         config.console.print("[warning]⚠️  League Client Disconnected. Waiting...[/]")
         events.push("League client disconnected", "warning")
         self.connected = False
+        self._connection = None
+        self.gameflow_phase = None
+
+    def call(self, coro_factory, timeout=5.0):
+        """Run a one-off async LCU request from another thread (e.g. the web UI
+        bridge, which is synchronous). `coro_factory` is an async callable that
+        takes the live connection and returns a JSON-serialisable result.
+
+        Returns None if the client isn't connected, or the request fails/times
+        out — callers treat None as "no data / not available".
+        """
+        conn = self._connection
+        if not self.connected or conn is None or not self.loop.is_running():
+            return None
+        try:
+            fut = asyncio.run_coroutine_threadsafe(coro_factory(conn), self.loop)
+            return fut.result(timeout)
+        except Exception as e:
+            config.console.log(f"[warning]LCU call failed: {e}[/]")
+            return None
 
     async def get_queue_info(self, connection):
         """

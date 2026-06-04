@@ -196,8 +196,9 @@ def main():
     tray_icon.run_detached()
 
     # Blocks until the window is destroyed (i.e. the user hits Exit).
-    # debug=True enables right-click → Inspect in the WebView (dev only).
-    webview.start(debug=True)
+    # debug=False so the WebView2 DevTools don't auto-open on launch. Flip to
+    # True for development (enables right-click → Inspect).
+    webview.start(debug=False)
 
     cfg.console.print("[yellow]Application has been shut down.[/]")
 

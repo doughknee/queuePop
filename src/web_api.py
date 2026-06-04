@@ -7,9 +7,12 @@ mirrors the normalization that the old Tkinter settings window performed, so a
 config saved from the web UI is byte-identical to one saved from the legacy GUI.
 """
 
+import base64
 import json
 import os
+import subprocess
 import sys
+from urllib.parse import quote
 
 import config
 import champ_select
@@ -17,6 +20,36 @@ import companion
 import events
 from notifications import send_discord_test
 from _version import __version__
+
+
+# Queues offered in the PLAY quick-queue picker (subset of QUEUE_ID_MAP that
+# makes sense to start with one click — no TFT, which lobbies differently).
+QUICK_QUEUES = [
+    {"id": 430, "name": "Blind Pick"},
+    {"id": 400, "name": "Draft Pick"},
+    {"id": 490, "name": "Quickplay"},
+    {"id": 420, "name": "Ranked Solo/Duo"},
+    {"id": 440, "name": "Ranked Flex"},
+    {"id": 450, "name": "ARAM"},
+    {"id": 1700, "name": "Arena"},
+]
+
+# LCU region code -> op.gg region slug. The client reports either short codes
+# (NA, EUW) or platform ids (NA1, EUW1); cover both.
+_OPGG_REGION = {
+    "NA": "na", "NA1": "na", "EUW": "euw", "EUW1": "euw",
+    "EUNE": "eune", "EUN1": "eune", "KR": "kr", "BR": "br", "BR1": "br",
+    "JP": "jp", "JP1": "jp", "OCE": "oce", "OC1": "oce",
+    "LAN": "lan", "LA1": "lan", "LAS": "las", "LA2": "las",
+    "TR": "tr", "TR1": "tr", "RU": "ru", "PH": "ph", "PH2": "ph",
+    "SG": "sg", "SG2": "sg", "TH": "th", "TH2": "th", "TW": "tw", "TW2": "tw",
+    "VN": "vn", "VN2": "vn", "ME": "me", "ME1": "me",
+}
+
+
+def _opgg_region(region):
+    r = (region or "").upper().strip()
+    return _OPGG_REGION.get(r, r.lower())
 
 
 def _manifest_path():
@@ -120,6 +153,9 @@ class Api:
         # Tracks the frameless title bar's maximize/restore toggle (the window
         # backend has no "is maximized" query, so we own the bit).
         self._maximized = False
+        # profileIconId -> data: URI, so the summoner badge doesn't re-proxy the
+        # same image from the LCU on every poll.
+        self._icon_cache = {}
 
     # --- Read-only state ------------------------------------------------
 
@@ -128,6 +164,7 @@ class Api:
         cs = cfg.get("champ_select", {}) or {}
         return {
             "connected": bool(getattr(self._lcu, "connected", False)),
+            "gameflow_phase": getattr(self._lcu, "gameflow_phase", None),
             "paused": bool(self._lcu.paused),
             "webhook_configured": bool(cfg.get("webhook_url")),
             "user_id": cfg.get("user_id") or "",
@@ -329,3 +366,128 @@ class Api:
         except Exception:
             return False
         return True
+
+    # --- Live client controls (PLAY / summoner) -------------------------
+    # These talk to the running League client on demand via the LCU. Each
+    # degrades gracefully (returns "not connected" / empty) when the client
+    # isn't up, so the UI can stay quiet rather than error.
+
+    def launch_league(self):
+        """Start the League client through the Riot Client. Used by PLAY when no
+        client is running. Returns {ok, error?}."""
+        try:
+            program_data = os.environ.get("ProgramData", r"C:\ProgramData")
+            installs = os.path.join(program_data, "Riot Games", "RiotClientInstalls.json")
+            rc = None
+            if os.path.isfile(installs):
+                with open(installs, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                rc = data.get("rc_live") or data.get("rc_default")
+            if not rc or not os.path.isfile(rc):
+                return {"ok": False, "error": "Riot Client not found"}
+            subprocess.Popen(
+                [rc, "--launch-product=league_of_legends", "--launch-patchline=live"]
+            )
+            events.push("Launching League client…", "info")
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def get_quick_queues(self):
+        """Queues offered in the PLAY dropdown."""
+        return [dict(q) for q in QUICK_QUEUES]
+
+    def start_queue(self, queue_id):
+        """Create (or replace) a lobby for queue_id and start matchmaking."""
+        try:
+            qid = int(queue_id)
+        except (TypeError, ValueError):
+            return {"ok": False, "error": "Invalid queue"}
+
+        async def _start(conn):
+            r = await conn.request("post", "/lol-lobby/v2/lobby", data={"queueId": qid})
+            if r.status not in (200, 201, 204):
+                return {"ok": False, "error": f"Lobby error ({r.status})"}
+            s = await conn.request("post", "/lol-lobby/v2/lobby/matchmaking/search")
+            if s.status not in (200, 204):
+                return {"ok": False, "error": f"Search error ({s.status})"}
+            return {"ok": True}
+
+        res = self._lcu.call(_start, timeout=8.0)
+        if not res:
+            return {"ok": False, "error": "Client not connected"}
+        if res.get("ok"):
+            name = config.QUEUE_ID_MAP.get(qid, f"queue {qid}")
+            events.push(f"Queue started: {name}", "success")
+        return res
+
+    def cancel_queue(self):
+        """Stop searching for a match."""
+        async def _cancel(conn):
+            r = await conn.request("delete", "/lol-lobby/v2/lobby/matchmaking/search")
+            return {"ok": r.status in (200, 204)}
+
+        res = self._lcu.call(_cancel, timeout=6.0)
+        if res and res.get("ok"):
+            events.push("Matchmaking canceled", "warning")
+        return res or {"ok": False, "error": "Client not connected"}
+
+    def get_summoner(self):
+        """Current summoner for the header badge: name, level, profile-icon (as a
+        data URI proxied from the LCU), and an op.gg link. {connected: False}
+        when no client is up."""
+
+        async def _fetch(conn):
+            r = await conn.request("get", "/lol-summoner/v1/current-summoner")
+            if r.status != 200:
+                return None
+            s = await r.json()
+            out = {
+                "name": s.get("gameName") or s.get("displayName") or "",
+                "tag": s.get("tagLine") or "",
+                "level": s.get("summonerLevel"),
+                "icon_id": s.get("profileIconId"),
+                "region": "",
+            }
+            try:
+                rr = await conn.request("get", "/riotclient/region-locale")
+                if rr.status == 200:
+                    out["region"] = (await rr.json()).get("region", "") or ""
+            except Exception:
+                pass
+            # Proxy the profile icon (cache by id — it rarely changes).
+            icon_id = out["icon_id"]
+            if icon_id is not None and icon_id not in self._icon_cache:
+                try:
+                    ir = await conn.request(
+                        "get", f"/lol-game-data/assets/v1/profile-icons/{icon_id}.jpg"
+                    )
+                    if ir.status == 200:
+                        raw = await ir.read()
+                        self._icon_cache[icon_id] = (
+                            "data:image/jpeg;base64,"
+                            + base64.b64encode(raw).decode("ascii")
+                        )
+                except Exception:
+                    pass
+            return out
+
+        data = self._lcu.call(_fetch, timeout=6.0)
+        if not data:
+            return {"connected": False}
+
+        name = data.get("name") or ""
+        tag = data.get("tag") or ""
+        region = _opgg_region(data.get("region") or "")
+        opgg = ""
+        if name and region:
+            riot_id = quote(f"{name}-{tag}") if tag else quote(name)
+            opgg = f"https://www.op.gg/summoners/{region}/{riot_id}"
+        return {
+            "connected": True,
+            "name": name,
+            "tag": tag,
+            "level": data.get("level"),
+            "icon": self._icon_cache.get(data.get("icon_id")),
+            "opgg": opgg,
+        }

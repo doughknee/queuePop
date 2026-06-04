@@ -119,43 +119,97 @@
     #flash.go { animation: flash-pop 1.3s ease-out; }
 
     /* --- Custom window chrome (frameless) ------------------------------
-       The OS title bar is disabled (main.py frameless=True); this slim bar
-       replaces it with the client's Hextech look. Logic: window-chrome.js. */
-    .titlebar {
-      height: 34px; flex-shrink: 0; position: relative; z-index: 40;
-      display: flex; align-items: stretch;
-      background: linear-gradient(180deg, #0A1428 0%, #010A13 100%);
-      border-top: 2px solid #785A28;                       /* gold frame accent */
-      border-bottom: 1px solid rgb(201 191 150 / 0.15);
+       OS title bar disabled (main.py frameless=True). Two rows:
+       (1) slim title strip — client status + Pause on the left, the
+           min/maximize/close buttons on the right (drag from the middle);
+       (2) navbar — PLAY (launch / quick-queue), centered route icons, and the
+           live summoner badge. Logic: window-chrome.js + app.js. */
+
+    /* Row 1 — slim title strip. align-items:stretch so drag regions and the
+       window buttons fill full height (no padding dead-zones). */
+    /* Transparent so the window's background gradient shows through (matches
+       the navbar below — both just blur, no fill). */
+    .titlestrip {
+      display: flex; align-items: stretch; height: 30px; flex-shrink: 0;
     }
-    /* Drag handle — pywebview moves the window when a .pywebview-drag-region is
-       dragged. The control buttons are siblings (not children) so clicking them
-       never starts a drag. */
-    .titlebar-drag {
-      flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
-      padding-left: 12px;
+    .ts-left { display: flex; align-items: stretch; padding-left: 6px; }
+    .ts-ind {
+      display: inline-flex; align-items: center; gap: 7px; padding: 0 10px;
+      font-size: 11px; letter-spacing: 0.05em; color: #9f9b8d;
+      background: transparent; border: 0;
     }
-    .titlebar-mark {
-      width: 12px; height: 12px; transform: rotate(45deg); flex-shrink: 0;
-      background: linear-gradient(135deg, #C8AA6E, #785A28);
-      box-shadow: inset 0 0 0 1px rgb(240 230 210 / 0.55);
-      pointer-events: none;
-    }
-    .titlebar-title {
-      font-family: Cinzel, Georgia, serif; font-size: 11px;
-      letter-spacing: 0.22em; text-transform: uppercase;
-      color: #8c7a45; white-space: nowrap; pointer-events: none;
-    }
+    .ts-dot { width: 7px; height: 7px; border-radius: 9999px; background: #5B5A56; flex-shrink: 0; transition: background-color .2s ease; }
+    .ts-btn { cursor: pointer; transition: color .12s ease, background-color .12s ease; }
+    .ts-btn:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.10); }
+    .ts-btn svg { width: 10px; height: 10px; }
+    .drag-spacer { flex: 1 1 auto; align-self: stretch; min-width: 1rem; }
     .win-controls { display: flex; align-items: stretch; }
     .win-btn {
-      width: 46px; display: grid; place-items: center;
+      width: 40px; display: grid; place-items: center;
       border: 0; background: transparent; color: #c9bf96; cursor: pointer;
       transition: background-color .12s ease, color .12s ease;
     }
-    .win-btn svg { width: 11px; height: 11px; }
+    .win-btn svg { width: 12px; height: 12px; }
     .win-btn:hover { background: rgb(200 170 110 / 0.14); color: #F0E6D2; }
     .win-btn:active { background: rgb(200 170 110 / 0.24); }
     .win-btn.close:hover { background: rgb(192 88 79 / 0.85); color: #F0E6D2; }
+
+    /* Row 2 — navbar. The routes live in a flex:1 middle column so they center
+       in the gap BETWEEN the PLAY and summoner clusters, not the window. */
+    .navbar { display: flex; align-items: center; height: 58px; padding: 0 12px; flex-shrink: 0; }
+    .nav-left { display: flex; align-items: center; height: 100%; }
+
+    /* PLAY: emblem + banner are one inline SVG (.play-svg). Resting colors are
+       presentation attributes on the shapes; hover is driven by CSS targeting
+       the tagged sub-shapes (pb-ring/pb-ico/pb-frame + the gradient end stop). */
+    .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; }
+    .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
+    .pb-ring, .pb-ico, .pb-frame { transition: fill .15s ease; }
+    .pb-grad-end { transition: stop-color .15s ease; }
+    .play-btn:hover:not(:disabled) .pb-ring  { fill: #C8AA6E; }
+    .play-btn:hover:not(:disabled) .pb-ico   { fill: #C8AA6E; }
+    .play-btn:hover:not(:disabled) .pb-frame { fill: #0AC8B9; }
+    .play-btn:hover:not(:disabled) .pb-grad-end { stop-color: #0AC8B9; }
+    .play-btn:disabled { cursor: default; opacity: 0.5; }
+
+    /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
+       it isn't trapped under the navbar's backdrop-blur stacking context — that
+       was hiding it behind the page content and eating the clicks. */
+    .queue-menu {
+      position: fixed; z-index: 70; min-width: 200px;
+      background: #010A13; outline: 1px solid rgb(200 170 110 / 0.4); outline-offset: -1px;
+      padding: 4px 0; box-shadow: 0 14px 34px -10px rgba(0,0,0,0.75);
+    }
+    .queue-menu .qm-head { padding: 6px 14px 4px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #785A28; }
+    .queue-menu button {
+      display: block; width: 100%; text-align: left; padding: 8px 14px; font-size: 13px;
+      color: #A09B8C; background: transparent; border: 0; cursor: pointer; font-family: Marcellus, Georgia, serif;
+      transition: background-color .12s ease, color .12s ease;
+    }
+    .queue-menu button:hover { background: rgb(200 170 110 / 0.14); color: #C8AA6E; }
+
+    /* Centered route icons: gold-wash active/hover + faded vertical dividers */
+    .nav-routes { flex: 1 1 auto; height: 100%; display: flex; align-items: stretch; justify-content: center; }
+    .nav-route { width: 58px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: #c9bf96; transition: color .2s ease, background .25s ease; }
+    .nav-route svg { width: 22px; height: 22px; }
+    .nav-route:hover { color: #F0E6D2; background: linear-gradient(to bottom, transparent 40%, rgb(200 170 110 / 0.12) 60%, rgb(200 170 110 / 0.40) 99%); }
+    .nav-route.active { color: #F0E6D2; background: linear-gradient(to bottom, transparent 40%, rgb(200 170 110 / 0.10) 60%, rgb(200 170 110 / 0.24) 99%); }
+    .nav-div { width: 2px; height: 62%; align-self: center; background: linear-gradient(to bottom, transparent, #c9bf96, transparent); }
+
+    /* Live summoner badge */
+    .nav-right { display: flex; align-items: center; height: 100%; }
+    .summoner { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 0; cursor: pointer; height: 100%; padding: 0 2px 0 8px; }
+    .summoner-portrait { width: 38px; height: 38px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; overflow: hidden; transition: background-color .15s ease; }
+    .summoner:hover:not(.offline) .summoner-portrait { background: #C8AA6E; }
+    .summoner-portrait img, .summoner-portrait .ph { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .summoner-portrait .ph { display: grid; place-items: center; color: #785A28; }
+    /* These beat the rules above (which set display) so the .hidden toggle works. */
+    .summoner-portrait img.hidden, .summoner-portrait .ph.hidden { display: none; }
+    .summoner-portrait .ph svg { width: 17px; height: 17px; }
+    .summoner-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+    .summoner-name { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #F0E6D2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .summoner-level { font-size: 10px; color: #9f9b8d; letter-spacing: 0.04em; }
+    .summoner.offline { cursor: default; }
 
     /* Invisible resize grips along the window edges. Frameless windows have no
        native resize border, so these drive window-chrome.js's resize loop. */
@@ -174,6 +228,10 @@
 <body class="text-grey1 antialiased h-screen overflow-hidden">
   <div id="flash"></div>
 
+  <!-- Quick-queue dropdown (top-level so it isn't trapped under the navbar's
+       backdrop-blur; positioned under PLAY by app.js). -->
+  <div id="queue-menu" class="queue-menu hidden"></div>
+
   <!-- Frameless resize grips (window edges + corners) -->
   <div class="resize-grip rg-n"  data-edge="n"></div>
   <div class="resize-grip rg-s"  data-edge="s"></div>
@@ -186,61 +244,105 @@
 
   <div class="flex flex-col h-full">
 
-    <!-- Custom title bar (replaces the native OS chrome) -->
-    <div class="titlebar">
-      <div class="titlebar-drag pywebview-drag-region">
-        <span class="titlebar-mark"></span>
-        <span class="titlebar-title">queueBot</span>
+    <!-- Row 1: slim title strip — client status + Pause (far left), window
+         controls (right). The status + middle spacer are .pywebview-drag-region
+         so the window drags; the buttons are siblings so clicks never drag. -->
+    <div class="titlestrip border-t-2 border-t-gold5 backdrop-blur-2xl">
+      <div class="ts-left">
+        <span id="conn-ind" class="ts-ind pywebview-drag-region">
+          <span id="conn-dot" class="ts-dot"></span>
+          <span id="conn-label">Connecting…</span>
+        </span>
+        <button id="pause-btn" class="ts-ind ts-btn" title="Pause / resume monitoring">
+          <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+            <rect x="2.6" y="2" width="2.3" height="8" rx="0.4" />
+            <rect x="7.1" y="2" width="2.3" height="8" rx="0.4" />
+          </svg>
+          <span id="pause-label">Pause</span>
+        </button>
       </div>
+
+      <div class="drag-spacer pywebview-drag-region"></div>
+
       <div class="win-controls">
         <button id="win-min" class="win-btn" title="Minimize" aria-label="Minimize">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
-            <line x1="2.5" y1="6.5" x2="9.5" y2="6.5" />
-          </svg>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="2.5" y1="6.5" x2="9.5" y2="6.5" /></svg>
         </button>
         <button id="win-max" class="win-btn" title="Maximize" aria-label="Maximize">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2">
-            <rect x="2.2" y="2.2" width="7.6" height="7.6" />
-          </svg>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.2" y="2.2" width="7.6" height="7.6" /></svg>
         </button>
         <button id="win-close" class="win-btn close" title="Close" aria-label="Close">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
-            <line x1="3" y1="3" x2="9" y2="9" />
-            <line x1="9" y1="3" x2="3" y2="9" />
-          </svg>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
         </button>
       </div>
     </div>
 
-    <!-- Header -->
-    <header class="flex items-center justify-between px-5 py-3 border-b border-b-icon/30 backdrop-blur-2xl">
-      <div class="flex items-center gap-3">
-        <!-- Hextech ring mark -->
-        <div class="h-11 w-11 rounded-full bg-gold5 grid place-items-center shrink-0">
-          <div class="h-9 w-9 rounded-full border-2 border-hextech-black grid place-items-center"
-               style="background: radial-gradient(circle at 50% 40%, #0A323C 10%, #005A82 100%);">
-            <span class="font-display font-bold text-gold1 text-lg leading-none">Q</span>
-          </div>
-        </div>
-        <div>
-          <h1 class="font-display text-lg font-bold text-gold2 leading-none tracking-wide">queueBot</h1>
-          <p class="text-xs text-subText mt-1">v<span id="version">—</span></p>
-        </div>
+    <!-- Row 2: navbar — PLAY (launch / quick-queue) | route icons | summoner -->
+    <nav class="navbar border-b border-b-icon/30 backdrop-blur-2xl">
+      <div class="nav-left">
+        <button id="play-btn" class="play-btn" title="Launch League / quick queue">
+          <!-- PLAY button artwork (edited in design/play-button.svg). Hooks the
+               app relies on: class="play-svg" (sizing), id="play-label" (state
+               text swap), and the .pb-* classes (hover). -->
+          <svg class="play-svg" aria-hidden="true" viewBox="231.54 215.543 216.801 54">
+            <defs>
+              <radialGradient id="pbGrad" cx="50%" cy="40%" r="62%">
+                <stop offset=".1" stop-color="#0a323c"/>
+                <stop class="pb-grad-end" offset="1" stop-color="#005a82"/>
+              </radialGradient>
+            </defs>
+            <path fill="#0a323c" d="M410.983 218.364h36.867v46.717h-36.867z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+            <path fill="#010a13" d="M410.983 221.167h34.031v41.111h-34.031z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+            <path class="pb-frame" fill="#005a82" d="M278.643 218.364h139.903l30.249 23.358-30.249 23.359H278.643q18.905-23.36 0-46.717" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+            <path fill="#1e2328" d="M283.369 221.167h133.286l27.414 20.555-27.414 20.556H283.369q16.07-20.556 0-41.111" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+            <text id="play-label" x="359.54" y="250.543" font-size="21" font-weight="700" fill="#f0e6d2" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
+            <circle class="pb-ring" cx="258.54" cy="242.543" r="27" fill="#785a28" style="stroke-width:1px"/>
+            <circle cx="258.54" cy="242.543" r="24" fill="#010a13" style="stroke-width:1px"/>
+            <circle cx="258.54" cy="242.543" r="22" fill="url(#pbGrad)" style="stroke-width:1px"/>
+            <path class="pb-ico" fill="#785a28" d="M254.54 233.543v18l15-9z" style="stroke-width:1px"/>
+          </svg>
+        </button>
       </div>
-      <div class="flex items-center gap-3">
-        <span id="conn-pill" class="hextech text-sm px-3 py-1.5 text-grey1">Client: …</span>
-        <button id="pause-btn" class="hextech font-serif text-sm px-4 py-1.5 text-grey1 hover:text-gold1 cursor-pointer">Pause</button>
-      </div>
-    </header>
 
-    <!-- Tabs -->
-    <nav class="flex border-b border-b-icon/30 backdrop-blur-2xl px-4">
-      <button data-tab="dashboard"
-        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-gold2 text-gold1">Dashboard</button>
-      <button data-tab="champ"
-        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-transparent text-icon hover:text-gold1 transition">Champ Select</button>
-      <button data-tab="settings"
-        class="tab-btn px-6 py-3 text-sm font-serif tracking-wide border-b-2 border-transparent text-icon hover:text-gold1 transition">Settings</button>
+      <div class="nav-routes">
+        <button class="nav-route active" data-tab="dashboard" title="Dashboard" aria-label="Dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+        </button>
+        <div class="nav-div"></div>
+        <button class="nav-route" data-tab="champ" title="Champ Select" aria-label="Champ Select">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" y1="19" x2="19" y2="13" />
+            <line x1="16" y1="16" x2="20" y2="20" /><line x1="19" y1="21" x2="21" y2="19" />
+            <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" y1="14" x2="9" y2="18" />
+            <line x1="7" y1="17" x2="4" y2="20" /><line x1="3" y1="19" x2="5" y2="21" />
+          </svg>
+        </button>
+        <div class="nav-div"></div>
+        <button class="nav-route" data-tab="settings" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="nav-right">
+        <button id="summoner-btn" class="summoner offline" title="">
+          <span class="summoner-portrait">
+            <span class="ph" id="summoner-ph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            </span>
+            <img id="summoner-icon" class="hidden" alt="" />
+          </span>
+          <span class="summoner-meta">
+            <span class="summoner-name" id="summoner-name">Offline</span>
+            <span class="summoner-level" id="summoner-level"></span>
+          </span>
+        </button>
+      </div>
     </nav>
 
     <!-- Content -->

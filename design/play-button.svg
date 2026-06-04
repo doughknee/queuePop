@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="231.54 215.543 216.801 54" width="216.801" height="54">
+  <defs>
+    <radialGradient id="a" cx="50%" cy="40%" r="62%">
+      <stop offset=".1" stop-color="#0a323c"/>
+      <stop class="pb-grad-end" offset="1" stop-color="#005a82"/>
+    </radialGradient>
+  </defs>
+  <path fill="#0a323c" d="M410.983 218.364h36.867v46.717h-36.867z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+  <path fill="#010a13" d="M410.983 221.167h34.031v41.111h-34.031z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+  <path class="pb-frame" fill="#005a82" d="M278.643 218.364h139.903l30.249 23.358-30.249 23.359H278.643q18.905-23.36 0-46.717" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+  <path fill="#1e2328" d="M283.369 221.167h133.286l27.414 20.555-27.414 20.556H283.369q16.07-20.556 0-41.111" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
+  <text x="359.54" y="250.543" font-size="21" font-weight="700" fill="#f0e6d2" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
+  <circle class="pb-ring" cx="258.54" cy="242.543" r="27" fill="#785a28" style="stroke-width:1px"/>
+  <circle cx="258.54" cy="242.543" r="24" fill="#010a13" style="stroke-width:1px"/>
+  <circle cx="258.54" cy="242.543" r="22" fill="url(#a)" style="stroke-width:1px"/>
+  <path class="pb-ico" fill="#785a28" d="M254.54 233.543v18l15-9z" style="stroke-width:1px"/>
+</svg>

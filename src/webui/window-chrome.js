@@ -43,9 +43,11 @@
     // Closing hides to the tray (matches the old native ✕ → on_closing behaviour).
     $("win-close") && ($("win-close").onclick = () => api() && api().hide_window());
     $("win-max") && ($("win-max").onclick = toggleMaximize);
-    // Double-clicking the bar toggles maximize, like a native title bar.
-    const drag = document.querySelector(".titlebar-drag");
-    drag && drag.addEventListener("dblclick", toggleMaximize);
+    // Double-clicking the draggable header areas toggles maximize, like a
+    // native title bar.
+    document
+      .querySelectorAll(".pywebview-drag-region")
+      .forEach((el) => el.addEventListener("dblclick", toggleMaximize));
   }
 
   // --- Edge / corner resize ------------------------------------------------
