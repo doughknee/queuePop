@@ -37,6 +37,28 @@ ROLE_LABELS = {
     "utility": "Support",
 }
 
+# Summoner spells offered in the per-role picker (LCU spell ids → name), in
+# dropdown display order. Set on our champ via my-selection (spell1Id/spell2Id).
+SUMMONER_SPELLS = [
+    {"id": 4, "name": "Flash"},
+    {"id": 14, "name": "Ignite"},
+    {"id": 12, "name": "Teleport"},
+    {"id": 11, "name": "Smite"},
+    {"id": 7, "name": "Heal"},
+    {"id": 3, "name": "Exhaust"},
+    {"id": 21, "name": "Barrier"},
+    {"id": 6, "name": "Ghost"},
+    {"id": 1, "name": "Cleanse"},
+    {"id": 13, "name": "Clarity"},
+]
+SPELL_IDS = {s["id"] for s in SUMMONER_SPELLS}
+SPELL_NAMES = {s["id"]: s["name"] for s in SUMMONER_SPELLS}
+
+# Name of the single rune page queueBot manages when auto-runes is on. We
+# delete + recreate this one page each game so pages never pile up and the
+# user's own pages are never touched.
+RUNE_PAGE_NAME = "queueBot (auto)"
+
 
 class ChampSelect:
     """
@@ -58,6 +80,8 @@ class ChampSelect:
         self._task = None
         self._running = False
         self._last_sig = None    # last logged champ-select state signature
+        self._spells_done = False  # summoner spells set once per session
+        self._runes_for = None     # championId we last applied recommended runes for
 
     def _log(self, message):
         """Write a line to the champ-select debug log file."""
@@ -138,6 +162,8 @@ class ChampSelect:
             return
         self._running = True
         self._last_sig = None
+        self._spells_done = False
+        self._runes_for = None
         # action_id -> ('hover'|'locked', championId) so we don't spam the API
         action_state = {}
         self._log("=== champ select session started ===")
@@ -192,6 +218,14 @@ class ChampSelect:
                 self._log(f"no role config for position={position!r}; team positions="
                           f"{[(p.get('cellId'), p.get('assignedPosition')) for p in my_team]}")
             return
+
+        # --- Summoner spells: set once, as soon as we know our role. ---
+        # my-selection accepts spells any time in champ select, so we don't wait
+        # for our pick turn — set them early so the user (and team) see them.
+        spells = (role_cfg.get('spells') or [])[:2]
+        if not self._spells_done and len(spells) >= 2:
+            await self._apply_spells(connection, spells)
+            self._spells_done = True
 
         # Champs we must avoid: completed bans, completed picks, and the champs
         # teammates are currently hovering.
@@ -279,6 +313,23 @@ class ChampSelect:
                 else:
                     await self._commit(connection, my_pick, chosen, 'pick', action_state, lock=False, intent=True)
 
+        # --- Auto runes: apply the client's recommended page for the champ we're
+        # actually going to play — once it's hovered on our turn or locked in.
+        # We hold off during the planning/intent phase (the pick can still change
+        # as backups fall through) so we don't churn rune pages.
+        if cs.get('auto_runes'):
+            my_champ = 0
+            for round_actions in session.get('actions', []) or []:
+                for action in round_actions:
+                    if (action.get('actorCellId') == local_cell
+                            and action.get('type') == 'pick'):
+                        cid = action.get('championId') or 0
+                        if cid > 0 and (action.get('isInProgress') or action.get('completed')):
+                            my_champ = cid
+            if my_champ and self._runes_for != my_champ:
+                self._runes_for = my_champ
+                await self._apply_runes(connection, my_champ)
+
     def _select(self, names, unavailable):
         """Return the first configured champ that's still available (backups)."""
         for nm in names or []:
@@ -341,3 +392,95 @@ class ChampSelect:
                       f"completed={complete} -> HTTP {resp.status} {body}")
             return False
         return True
+
+    # --- Summoner spells + runes ---------------------------------------
+
+    async def _apply_spells(self, connection, spells):
+        """Set our summoner spells for the current champ select via my-selection.
+        `spells` is [spell1Id, spell2Id]. Best-effort — logs and moves on."""
+        s1, s2 = spells[0], spells[1]
+        n1 = SPELL_NAMES.get(s1, s1)
+        n2 = SPELL_NAMES.get(s2, s2)
+        try:
+            resp = await connection.request(
+                'patch', '/lol-champ-select/v1/session/my-selection',
+                data={'spell1Id': s1, 'spell2Id': s2},
+            )
+        except Exception as e:
+            self._log(f"spells PATCH raised: {e!r}")
+            return
+        if resp.status < 400:
+            config.console.print(f"[info]Set summoner spells: {n1} + {n2}[/]")
+            events.push(f"Set summoner spells: {n1} + {n2}", "info")
+            self._log(f"spells set -> {s1},{s2}")
+        else:
+            self._log(f"spells PATCH -> HTTP {resp.status}")
+
+    async def _apply_runes(self, connection, champion_id):
+        """Apply the League client's own recommended rune page for `champion_id`.
+
+        Best-effort: reads /lol-perks/v1/recommended-pages, then reuses a single
+        managed page (delete + recreate) so we never accumulate pages or touch
+        the user's own. Silently no-ops if no recommendation is available or the
+        page can't be created (e.g. the user is at their rune-page cap)."""
+        try:
+            rec = await connection.request('get', '/lol-perks/v1/recommended-pages')
+            if rec.status != 200:
+                self._log(f"recommended-pages -> HTTP {rec.status}")
+                return
+            pages = await rec.json()
+            if not isinstance(pages, list) or not pages:
+                self._log("recommended-pages returned nothing")
+                return
+
+            # Prefer a recommendation for the champ we're locking; else first.
+            page = next((p for p in pages if p.get('championId') == champion_id), None)
+            page = page or pages[0]
+            primary = page.get('primaryPerkStyleId') or page.get('primaryStyleId')
+            sub = page.get('secondaryPerkStyleId') or page.get('subStyleId')
+            perks = page.get('perks') or page.get('selectedPerkIds') or []
+            if not (primary and sub and perks):
+                self._log(f"recommended page incomplete: {page!r}")
+                return
+
+            body = {
+                'name': RUNE_PAGE_NAME,
+                'primaryStyleId': primary,
+                'subStyleId': sub,
+                'selectedPerkIds': list(perks),
+                'current': True,
+            }
+
+            # Delete our previous managed page (if any) before recreating, so we
+            # free its slot and never stack duplicates. Never delete user pages.
+            try:
+                cur = await connection.request('get', '/lol-perks/v1/pages')
+                if cur.status == 200:
+                    for pg in await cur.json():
+                        if pg.get('name') == RUNE_PAGE_NAME and pg.get('isDeletable', True):
+                            await connection.request(
+                                'delete', f"/lol-perks/v1/pages/{pg.get('id')}"
+                            )
+            except Exception as e:
+                self._log(f"rune page cleanup failed: {e!r}")
+
+            resp = await connection.request('post', '/lol-perks/v1/pages', data=body)
+            display = self.id_to_name.get(champion_id, champion_id)
+            if resp.status < 400:
+                # `current: true` on create usually selects the page, but set it
+                # explicitly too — some client versions ignore the create flag.
+                try:
+                    new_id = (await resp.json()).get('id')
+                    if new_id:
+                        await connection.request(
+                            'put', '/lol-perks/v1/currentpage', data=new_id
+                        )
+                except Exception as e:
+                    self._log(f"set currentpage failed: {e!r}")
+                config.console.print(f"[success]🪶 Applied recommended runes for {display}[/]")
+                events.push(f"Applied recommended runes for {display}", "success")
+                self._log(f"runes applied for {display} (champ {champion_id})")
+            else:
+                self._log(f"rune POST -> HTTP {resp.status}")
+        except Exception as e:
+            self._log(f"_apply_runes error: {e!r}")

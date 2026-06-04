@@ -97,6 +97,41 @@
     .grid-cell.sel.ban { outline-color: #c0584f; }
     .cell-num.ban { background: #c0584f; color: #fff; }
 
+    /* Mastery overlay on a cell's lower edge: a contextual stat on the left
+       (mastery points when sorting by mastery, last-played when by recent) and
+       a gold mastery-level chip on the right. Only drawn for champs you've
+       played, over a subtle bottom scrim so it never fights the art. */
+    .cell-meta {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 2px;
+      padding: 9px 3px 2px; pointer-events: none;
+      background: linear-gradient(to top, rgba(1,10,19,0.9), transparent);
+    }
+    .cm-stat { font-size: 9px; line-height: 1; font-weight: 700; color: #C8AA6E; text-shadow: 0 1px 2px #000; }
+    .cm-lvl {
+      margin-left: auto; min-width: 13px; height: 13px; padding: 0 3px;
+      display: inline-grid; place-items: center;
+      font-size: 9px; font-weight: 700; line-height: 1;
+      color: #0A0E13; background: #C8AA6E;
+    }
+    /* Mastery 10+ gets a teal chip — a small flex among one-tricks. */
+    .cm-lvl.cm-high { background: #0AC8B9; box-shadow: 0 0 6px -1px rgba(10,200,185,0.7); }
+
+    /* Sort segmented control on the champ-select toolbar. Hextech hairline box;
+       the active option fills gold for a strong, clear current-state read. */
+    .sort-seg { display: inline-flex; align-items: stretch; flex-shrink: 0; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; }
+    .sort-opt {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px;
+      background: transparent; border: 0; cursor: pointer; white-space: nowrap;
+      color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.02em;
+      border-left: 1px solid rgb(120 90 40 / 0.3);
+      transition: color .15s ease, background-color .15s ease;
+    }
+    .sort-opt:first-child { border-left: 0; }
+    .sort-opt svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .sort-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+    .sort-opt.active { color: #0A0E13; background: #C8AA6E; }
+
     /* Hextech gold corner accents on focal panels */
     .framed { position: relative; }
     .framed::before, .framed::after {
@@ -324,7 +359,13 @@
     .summoner-portrait .ph svg { width: 17px; height: 17px; }
     .summoner-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
     .summoner-name { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #F0E6D2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .summoner-sub { display: flex; align-items: center; gap: 7px; line-height: 1.2; }
     .summoner-level { font-size: 10px; color: #9f9b8d; letter-spacing: 0.04em; }
+    .summoner-level:empty { display: none; }
+    /* Rank — colored by tier (set inline from JS), with a leading tier dot. */
+    .summoner-rank { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+    .summoner-rank:empty { display: none; }
+    .summoner-rank::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: currentColor; margin-right: 5px; vertical-align: middle; }
     .summoner.offline { cursor: default; }
 
     /* Invisible resize grips along the window edges. Frameless windows have no
@@ -455,7 +496,10 @@
           </span>
           <span class="summoner-meta">
             <span class="summoner-name" id="summoner-name">Offline</span>
-            <span class="summoner-level" id="summoner-level"></span>
+            <span class="summoner-sub">
+              <span class="summoner-level" id="summoner-level"></span>
+              <span class="summoner-rank" id="summoner-rank"></span>
+            </span>
           </span>
         </button>
       </div>
@@ -479,6 +523,18 @@
           <div class="text-right">
             <p class="text-xs uppercase tracking-[0.2em] text-gold2">League Client</p>
             <p id="hero-client" class="font-display text-lg leading-tight mt-0.5">—</p>
+          </div>
+        </div>
+
+        <!-- Profile: rank + top champions (shown once the client is connected) -->
+        <div id="profile-panel" class="hextech framed p-5 hidden">
+          <div class="sec-head mb-3"><h3>Profile</h3><div class="rule"></div></div>
+          <div class="flex items-start justify-between gap-6 flex-wrap">
+            <div id="profile-ranked" class="space-y-2.5 min-w-[15rem] flex-1"></div>
+            <div class="shrink-0">
+              <p class="text-xs uppercase tracking-[0.15em] text-gold2 mb-2 text-right">Top Champions</p>
+              <div id="profile-mastery" class="flex gap-3 justify-end"></div>
+            </div>
           </div>
         </div>
 
@@ -554,6 +610,31 @@
             </div>
             <input id="champ-search" type="text" placeholder="Search champions…"
               class="hextech-input flex-1 px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+            <div class="sort-seg" id="sort-seg" role="group" aria-label="Sort champions">
+              <button type="button" class="sort-opt active" data-sort="az" title="Alphabetical (A–Z)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"/><path d="M3 8l4-4 4 4"/><path d="M13 6h7M13 12h5M13 18h3"/></svg>
+                <span>A–Z</span>
+              </button>
+              <button type="button" class="sort-opt" data-sort="mastery" title="Most mastery first">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8z"/></svg>
+                <span>Mastery</span>
+              </button>
+              <button type="button" class="sort-opt" data-sort="recent" title="Recently played first">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+                <span>Recent</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Per-role summoner spells — set on our champ when picks are hovered. -->
+          <div class="flex items-center gap-2.5 px-4 py-3 border-b border-b-icon/20 shrink-0 text-sm text-grey1">
+            <span class="text-subText shrink-0">Summoner spells</span>
+            <select id="spell1"
+              class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
+            <span class="text-subText">+</span>
+            <select id="spell2"
+              class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
+            <span class="text-xs text-subText ml-1 hidden sm:inline">for this role</span>
           </div>
 
           <p id="champ-hint" class="text-sm text-subText px-4 pt-3 shrink-0"></p>
@@ -579,8 +660,13 @@
               class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
             <span>second(s) left</span>
           </div>
+          <label class="flex items-center gap-2.5 cursor-pointer">
+            <input id="auto_runes" type="checkbox" class="w-4 h-4" style="accent-color:#C8AA6E;" />
+            <span class="text-sm text-grey1">Auto-apply the client's recommended runes for my pick</span>
+          </label>
           <p class="text-sm text-subText leading-relaxed">
-            Set your bans and picks per role on the <span class="text-gold2">Champ Select</span> tab.
+            Set your bans, picks, and summoner spells per role on the
+            <span class="text-gold2">Champ Select</span> tab.
             Applies to queues with assigned roles (Draft / Ranked) only.
           </p>
         </div>

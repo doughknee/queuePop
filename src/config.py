@@ -58,12 +58,15 @@ def default_config():
         "champ_select": {
             "enabled": False,
             "lock_in_at_seconds": 1,
+            # Apply the League client's own recommended rune page for the champ
+            # we pick (no rune editor — best-effort via /lol-perks).
+            "auto_runes": False,
             "roles": {
-                "top": {"bans": [], "picks": []},
-                "jungle": {"bans": [], "picks": []},
-                "middle": {"bans": [], "picks": []},
-                "bottom": {"bans": [], "picks": []},
-                "utility": {"bans": [], "picks": []},
+                "top": {"bans": [], "picks": [], "spells": []},
+                "jungle": {"bans": [], "picks": [], "spells": []},
+                "middle": {"bans": [], "picks": [], "spells": []},
+                "bottom": {"bans": [], "picks": [], "spells": []},
+                "utility": {"bans": [], "picks": [], "spells": []},
             },
         },
     }

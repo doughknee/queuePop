@@ -87,6 +87,20 @@ def _text_to_list(text):
     return [part.strip() for part in (text or "").split(",") if part.strip()]
 
 
+def _clean_spells(val):
+    """Coerce a role's summoner-spell list to at most two valid, distinct LCU
+    spell ids. Junk/unknown ids are dropped; order is preserved (slot 1, slot 2)."""
+    out = []
+    for s in (val or [])[:2]:
+        try:
+            s = int(s)
+        except (TypeError, ValueError):
+            continue
+        if s in champ_select.SPELL_IDS and s not in out:
+            out.append(s)
+    return out
+
+
 def _normalize_champ_select(cs):
     cs = cs or {}
     roles_in = cs.get("roles", {}) or {}
@@ -96,6 +110,7 @@ def _normalize_champ_select(cs):
         roles[role] = {
             "bans": _text_to_list(rc.get("bans")),
             "picks": _text_to_list(rc.get("picks")),
+            "spells": _clean_spells(rc.get("spells")),
         }
     try:
         lock = int(cs.get("lock_in_at_seconds", champ_select.DEFAULT_LOCK_SECONDS))
@@ -104,6 +119,7 @@ def _normalize_champ_select(cs):
     return {
         "enabled": bool(cs.get("enabled", False)),
         "lock_in_at_seconds": max(0, lock),
+        "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
     }
 
@@ -222,6 +238,41 @@ class Api:
             {"key": r, "label": champ_select.ROLE_LABELS.get(r, r.title())}
             for r in champ_select.ROLES
         ]
+
+    def get_summoner_spells(self):
+        """Summoner spells [{id, name}] for the per-role spell pickers."""
+        return [dict(s) for s in champ_select.SUMMONER_SPELLS]
+
+    def get_champion_mastery(self):
+        """Full champion-mastery list for the live player, used to sort and
+        annotate the champ-select grid: [{championId, level, points,
+        lastPlayTime}]. Empty list when the client isn't connected."""
+
+        async def _fetch(conn):
+            r = await conn.request(
+                "get", "/lol-champion-mastery/v1/local-player/champion-mastery"
+            )
+            if r.status != 200:
+                return []
+            data = await r.json()
+            if isinstance(data, dict):
+                data = data.get("championMasteryList") or []
+            out = []
+            for m in data:
+                cid = m.get("championId")
+                if not cid:
+                    continue
+                out.append(
+                    {
+                        "championId": cid,
+                        "level": m.get("championLevel"),
+                        "points": m.get("championPoints", 0),
+                        "lastPlayTime": m.get("lastPlayTime", 0),
+                    }
+                )
+            return out
+
+        return self._lcu.call(_fetch, timeout=8.0) or []
 
     def get_champion_catalog(self):
         """Bundled champion catalog [{id, name, alias}] read from the manifest.
@@ -518,6 +569,64 @@ class Api:
                     out["region"] = (await rr.json()).get("region", "") or ""
             except Exception:
                 pass
+
+            # Ranked (Solo + Flex) for the badge + dashboard profile. Best-effort.
+            out["ranked"] = {}
+            try:
+                rk = await conn.request("get", "/lol-ranked/v1/current-ranked-stats")
+                if rk.status == 200:
+                    qm = (await rk.json()).get("queueMap", {}) or {}
+
+                    def _entry(key):
+                        e = qm.get(key) or {}
+                        tier = (e.get("tier") or "").strip()
+                        if not tier or tier.upper() in ("NONE", "UNRANKED"):
+                            return None
+                        return {
+                            "tier": tier,
+                            "division": e.get("division") or "",
+                            "lp": e.get("leaguePoints", 0),
+                            "wins": e.get("wins", 0),
+                            "losses": e.get("losses", 0),
+                        }
+
+                    out["ranked"] = {
+                        "solo": _entry("RANKED_SOLO_5x5"),
+                        "flex": _entry("RANKED_FLEX_SR"),
+                    }
+            except Exception:
+                pass
+
+            # Top-3 champion mastery for the dashboard profile. Best-effort.
+            out["mastery"] = []
+            try:
+                mr = await conn.request(
+                    "get",
+                    "/lol-champion-mastery/v1/local-player/champion-mastery/top?limit=3",
+                )
+                if mr.status != 200:
+                    mr = await conn.request(
+                        "get", "/lol-champion-mastery/v1/local-player/champion-mastery"
+                    )
+                if mr.status == 200:
+                    md = await mr.json()
+                    if isinstance(md, dict):
+                        md = md.get("championMasteryList") or []
+                    md = sorted(
+                        md, key=lambda m: m.get("championPoints", 0), reverse=True
+                    )[:3]
+                    out["mastery"] = [
+                        {
+                            "championId": m.get("championId"),
+                            "level": m.get("championLevel"),
+                            "points": m.get("championPoints", 0),
+                        }
+                        for m in md
+                        if m.get("championId")
+                    ]
+            except Exception:
+                pass
+
             # Proxy the profile icon (cache by id — it rarely changes).
             icon_id = out["icon_id"]
             if icon_id is not None and icon_id not in self._icon_cache:
@@ -535,7 +644,7 @@ class Api:
                     pass
             return out
 
-        data = self._lcu.call(_fetch, timeout=6.0)
+        data = self._lcu.call(_fetch, timeout=8.0)
         if not data:
             return {"connected": False}
 
@@ -553,4 +662,6 @@ class Api:
             "level": data.get("level"),
             "icon": self._icon_cache.get(data.get("icon_id")),
             "opgg": opgg,
+            "ranked": data.get("ranked") or {},
+            "mastery": data.get("mastery") or [],
         }
