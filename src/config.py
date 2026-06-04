@@ -66,7 +66,7 @@ def default_config():
             # champ can run different setups by role:
             #   loadouts: {championId: {spells:[id,id],
             #                           rune:"off"|"recommended"|pageId,
-            #                           skin:"off"|"random"|"best"|skinId}}
+            #                           skin:"off"|skinId|[skinId, …]}}
             "roles": {
                 "top": {"bans": [], "picks": [], "loadouts": {}},
                 "jungle": {"bans": [], "picks": [], "loadouts": {}},

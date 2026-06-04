@@ -114,7 +114,7 @@ def _clean_spells(val):
 def _clean_loadout(lo):
     """Normalize one per-champ loadout: {spells:[id,id], rune, skin}.
       rune: "off" | "recommended" | <pageId int>
-      skin: "off" | "random" | "best"  | <skinId int>
+      skin: "off" | <skinId int> (pick one) | [skinId, …] (random favorite)
     Returns None if the loadout has nothing set (so empties aren't stored)."""
     lo = lo or {}
     spells = _clean_spells(lo.get("spells"))
@@ -127,11 +127,24 @@ def _clean_loadout(lo):
             rune = "off"
 
     skin = lo.get("skin", "off")
-    if skin not in ("off", "random", "best"):
+    if isinstance(skin, list):
+        # "Random favorite": a list of skin ids; drop junk + dupes, preserve order.
+        ids = []
+        for x in skin:
+            try:
+                x = int(x)
+            except (TypeError, ValueError):
+                continue
+            if x > 0 and x not in ids:
+                ids.append(x)
+        skin = ids or "off"
+    elif skin != "off":
+        # "Pick a skin": a single skin id (0 / junk ⇒ unset).
         try:
-            skin = int(skin)
+            x = int(skin)
         except (TypeError, ValueError):
-            skin = "off"
+            x = 0
+        skin = x if x > 0 else "off"
 
     if not spells and rune == "off" and skin == "off":
         return None

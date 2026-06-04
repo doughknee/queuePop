@@ -521,23 +521,64 @@
     .skin-empty code { font-style: normal; color: #C8AA6E; }
 
     /* --- Per-champ loadout editor modal -------------------------------- */
-    .loadout-panel { position: relative; width: min(440px, 92vw); max-height: 88vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); }
-    .lo-title { display: flex; align-items: center; gap: 10px; }
-    .lo-icon { width: 34px; height: 34px; object-fit: cover; outline: 1px solid rgb(200 170 110 / 0.5); outline-offset: -1px; flex-shrink: 0; }
-    .lo-name { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #F0E6D2; }
-    .lo-role { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #785A28; margin-left: 8px; }
-    .loadout-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .lo-section { display: flex; flex-direction: column; gap: 7px; }
+    .loadout-panel { position: relative; width: min(440px, 92vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); animation: loIn .22s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes loIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+    /* Splash header — champion's base-skin tile bled behind the name. */
+    .lo-hero { position: relative; height: 104px; flex-shrink: 0; overflow: hidden; background: #0A1420; }
+    .lo-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 22%; opacity: 0.55; transform: scale(1.05); }
+    .lo-hero-grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(1,10,19,0.15) 0%, rgba(1,10,19,0.55) 55%, #010a13 100%); }
+    .lo-hero-content { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+    .lo-icon { width: 46px; height: 46px; object-fit: cover; outline: 2px solid #C8AA6E; outline-offset: -1px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+    .lo-name { font-family: Cinzel, Georgia, serif; font-size: 18px; color: #F0E6D2; text-shadow: 0 1px 4px #000; display: block; line-height: 1.1; }
+    .lo-role { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #C8AA6E; display: block; margin-top: 2px; }
+    .lo-hero-close { position: absolute; top: 8px; right: 8px; z-index: 2; }
+
+    .loadout-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+    .lo-section { display: flex; flex-direction: column; gap: 9px; }
+    .lo-section-head { display: flex; align-items: center; justify-content: space-between; }
     .lo-label { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; }
     .lo-row { display: flex; align-items: center; gap: 8px; }
-    .lo-hint { font-size: 11px; font-style: italic; color: #6f6a5d; }
-    .lo-skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 5px; max-height: 200px; overflow-y: auto; padding-top: 4px; }
-    .lo-skin-cell { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A323C; }
+    .lo-hint { font-size: 11px; font-style: italic; color: #8a8475; }
+    /* Collapsible body under a section toggle (runes / skin). */
+    .lo-fold { display: flex; flex-direction: column; gap: 9px; }
+    .lo-fold.hidden { display: none; }
+
+    /* Summoner-spell slots: two icon buttons + an inline picker grid. */
+    .lo-spell-slots { display: flex; align-items: center; gap: 12px; }
+    .lo-spell-slot { position: relative; width: 50px; height: 50px; flex-shrink: 0; cursor: pointer; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: grid; place-items: center; padding: 0; border: 0; transition: outline-color .15s ease, box-shadow .15s ease; }
+    .lo-spell-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-spell-slot .lo-slot-empty { color: #5B5A56; font-size: 22px; line-height: 1; }
+    .lo-spell-slot:hover { outline-color: #C8AA6E; }
+    .lo-spell-slot.active { outline: 2px solid #C8AA6E; outline-offset: -2px; box-shadow: 0 0 12px -3px rgba(200,170,110,0.6); }
+    .lo-spell-plus { color: #785A28; font-size: 16px; }
+    .lo-spell-pop { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; padding: 10px; background: rgb(1 10 19 / 0.5); outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; animation: fadeUp .18s ease both; }
+    .lo-spell-pop.hidden { display: none; }
+    .lo-spell-opt { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A1420; }
+    .lo-spell-opt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-spell-opt:hover { outline-color: #C8AA6E; transform: scale(1.06); }
+    .lo-spell-opt.sel { outline: 2px solid #0AC8B9; outline-offset: -2px; }
+    .lo-spell-opt.disabled { opacity: 0.25; pointer-events: none; filter: grayscale(0.8); }
+    .lo-spell-clear { grid-column: 1 / -1; text-align: center; padding: 5px; cursor: pointer; color: #9f9b8d; font-size: 11px; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; transition: color .15s ease, background-color .15s ease; }
+    .lo-spell-clear:hover { color: #F0E6D2; background: rgb(192 88 79 / 0.18); }
+
+    /* Skin mode chips (Random / Best / Pick). */
+    .lo-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+    .lo-mode { padding: 6px 12px; cursor: pointer; background: rgb(1 10 19 / 0.5); border: 0; outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; color: #A09B8C; font-family: Marcellus, Georgia, serif; font-size: 12px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .lo-mode:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.6); }
+    .lo-mode.active { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+
+    .lo-skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px 2px 2px; }
+    .lo-skin-cell { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A323C; transition: transform .12s ease, outline-color .15s ease; }
     .lo-skin-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .lo-skin-cell:hover { outline-color: #C8AA6E; }
+    .lo-skin-cell:hover { outline-color: #C8AA6E; transform: scale(1.05); z-index: 1; }
+    /* In "Pick a skin" mode, the unchosen tiles dim once a pick is made. */
+    .lo-skin-cell.dim { opacity: 0.32; filter: grayscale(0.65); }
+    .lo-skin-cell.dim:hover { opacity: 0.75; filter: none; }
     .lo-skin-cell.on { outline: 2px solid #C8AA6E; outline-offset: -2px; }
-    .lo-skin-cell.on::after { content: "✓"; position: absolute; top: 0; right: 0; width: 15px; height: 15px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
-    .loadout-foot { padding: 12px 18px; border-top: 1px solid rgb(120 90 40 / 0.3); display: flex; justify-content: flex-end; }
+    .lo-skin-cell.on::after { content: "✓"; position: absolute; top: 0; right: 0; width: 16px; height: 16px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
+    .lo-skin-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 3px 2px; font-size: 8px; line-height: 1.1; color: #F0E6D2; text-shadow: 0 1px 2px #000; background: linear-gradient(to top, rgba(1,10,19,0.92), transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+    .loadout-foot { padding: 12px 18px; border-top: 1px solid rgb(120 90 40 / 0.3); display: flex; justify-content: flex-end; flex-shrink: 0; }
 
     /* Remove-X on a selected cell — centered on the top-right corner, shown on
        hover. Clicking a selected pick's body opens its loadout instead. */
@@ -687,41 +728,57 @@
   <div id="loadout-modal" class="skin-modal hidden">
     <div class="skin-backdrop" data-lo-close></div>
     <div class="loadout-panel hextech framed">
-      <div class="skin-head">
-        <div class="lo-title">
+      <!-- Splash header -->
+      <div class="lo-hero">
+        <div id="lo-hero-bg" class="lo-hero-bg"></div>
+        <div class="lo-hero-grad"></div>
+        <button class="skin-close lo-hero-close" aria-label="Close" data-lo-close>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
+        </button>
+        <div class="lo-hero-content">
           <img id="lo-icon" class="lo-icon" alt="" onerror="this.style.visibility='hidden'" />
           <span><span id="lo-name" class="lo-name"></span><span id="lo-role" class="lo-role"></span></span>
         </div>
-        <button class="skin-close" aria-label="Close" data-lo-close>
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
-        </button>
       </div>
+
       <div class="loadout-body">
-        <!-- Summoner spells -->
+        <!-- Summoner spells: two icon slots + an inline picker -->
         <div class="lo-section">
-          <div class="lo-label">Summoner spells</div>
-          <div class="lo-row">
-            <select id="lo-spell1" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
-            <span class="text-subText">+</span>
-            <select id="lo-spell2" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer"></select>
+          <div class="lo-label">Summoner Spells</div>
+          <div class="lo-spell-slots">
+            <button type="button" class="lo-spell-slot" id="lo-spell-slot0" data-slot="0"></button>
+            <span class="lo-spell-plus">+</span>
+            <button type="button" class="lo-spell-slot" id="lo-spell-slot1" data-slot="1"></button>
+          </div>
+          <div id="lo-spell-pop" class="lo-spell-pop hidden"></div>
+        </div>
+
+        <!-- Runes (gated by a toggle) -->
+        <div class="lo-section">
+          <div class="lo-section-head">
+            <span class="lo-label">Runes</span>
+            <label class="sw"><input id="lo-rune-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
+          </div>
+          <div id="lo-rune-body" class="lo-fold hidden">
+            <select id="lo-rune" class="hextech-input px-2 py-1.5 text-gold1 outline-none cursor-pointer w-full"></select>
+            <p id="lo-rune-hint" class="lo-hint"></p>
           </div>
         </div>
-        <!-- Runes -->
+
+        <!-- Skin (gated by a toggle) -->
         <div class="lo-section">
-          <div class="lo-label">Runes</div>
-          <select id="lo-rune" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer w-full"></select>
-          <p id="lo-rune-hint" class="lo-hint"></p>
-        </div>
-        <!-- Skin -->
-        <div class="lo-section">
-          <div class="lo-label">Skin</div>
-          <select id="lo-skin-mode" class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
-            <option value="off">Don't change</option>
-            <option value="random">Random owned</option>
-            <option value="best">Best owned</option>
-            <option value="specific">Pick a skin…</option>
-          </select>
-          <div id="lo-skin-grid" class="lo-skin-grid hidden"></div>
+          <div class="lo-section-head">
+            <span class="lo-label">Skin</span>
+            <label class="sw"><input id="lo-skin-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
+          </div>
+          <div id="lo-skin-body" class="lo-fold hidden">
+            <div class="lo-modes" id="lo-skin-modes">
+              <button type="button" class="lo-mode" data-mode="pick">Pick a skin</button>
+              <button type="button" class="lo-mode" data-mode="favorite">Random favorite</button>
+            </div>
+            <p id="lo-skin-hint" class="lo-hint"></p>
+            <div id="lo-skin-grid" class="lo-skin-grid hidden"></div>
+          </div>
         </div>
       </div>
       <div class="loadout-foot">

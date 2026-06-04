@@ -55,16 +55,11 @@ ARAM_ROLE = "aram"
 # for config normalization and the get_roles() UI list. ROLES stays position-only.
 EDITOR_ROLES = ROLES + [ARAM_ROLE]
 
-# Skin auto-select strategies (champ_select.skins.mode).
-SKIN_MODES = ("off", "random", "best", "favorite")
-
-# Rough rarity ranking for the "best owned skin" strategy. The skin-selector
-# payload exposes a `rarity` enum like "kEpic"; higher rank = flashier. Anything
-# unrecognised ranks 0 and falls back to the higher skin id as a tiebreak.
-SKIN_RARITY_RANK = {
-    "kExalted": 7, "kTranscendent": 6, "kMythic": 6, "kUltimate": 5,
-    "kLegendary": 4, "kEpic": 3, "kRare": 2, "kEpicOrPrestige": 3,
-}
+# Per-champ skin preference (loadout.skin):
+#   "off"            don't change the skin
+#   <skinId int>     pick this exact skin
+#   [skinId, …]      "random favorite" — pick one of these at random (from the
+#                    ones actually owned) when the champ locks in.
 
 # Summoner spells offered in the per-role picker (LCU spell ids → name), in
 # dropdown display order. Set on our champ via my-selection (spell1Id/spell2Id).
@@ -140,8 +135,8 @@ class ChampSelect:
     @staticmethod
     def _loadout(cs, role_key, champion_id):
         """The per-(role, champ) loadout dict, or {} if none. A loadout holds
-        {spells:[id,id], rune:"off"|"recommended"|pageId, skin:"off"|"random"|
-        "best"|skinId}."""
+        {spells:[id,id], rune:"off"|"recommended"|pageId,
+        skin:"off"|skinId|[skinId, …]}."""
         if not role_key or not champion_id:
             return {}
         role = (cs.get("roles") or {}).get(role_key) or {}
@@ -873,17 +868,13 @@ class ChampSelect:
 
     # --- Skins ---------------------------------------------------------
 
-    @staticmethod
-    def _skin_value(skin):
-        """Sort key for the 'best owned skin' strategy: rarity rank, then id."""
-        rank = SKIN_RARITY_RANK.get(skin.get('rarity') or "", 0)
-        return rank * 1_000_000 + (skin.get('id') or skin.get('skinId') or 0)
-
     async def _handle_skins(self, connection, my_champ, skin_pref):
         """Select a skin for our locked champ from its loadout preference, once
-        per champ per session. `skin_pref` is "random", "best", or a specific
-        skinId (int). The skin carousel (/skin-carousel-skins) only returns data
-        once a champ is locked, so this no-ops (without marking done) until then."""
+        per champ per session. `skin_pref` is a specific skinId (int) or a list
+        of skinIds (a "random favorite" — one is chosen at random from those
+        actually owned). The skin carousel (/skin-carousel-skins) only returns
+        data once a champ is locked, so this no-ops (without marking done) until
+        then."""
         if not my_champ or self._skin_for == my_champ or skin_pref in (None, 'off'):
             return
         try:
@@ -914,15 +905,17 @@ class ChampSelect:
         if not owned:
             return
 
+        def skin_id_of(s):
+            return s.get('id') or s.get('skinId')
+
         chosen = None
-        if skin_pref == 'random':
-            chosen = random.choice(owned)
-        elif skin_pref == 'best':
-            chosen = max(owned, key=self._skin_value)
+        if isinstance(skin_pref, list):
+            # Random favorite: pick at random among the favorites we actually own.
+            favs = [s for s in owned if skin_id_of(s) in skin_pref]
+            if favs:
+                chosen = random.choice(favs)
         elif isinstance(skin_pref, int):
-            chosen = next(
-                (s for s in owned if (s.get('id') or s.get('skinId')) == skin_pref), None
-            )
+            chosen = next((s for s in owned if skin_id_of(s) == skin_pref), None)
         if not chosen:
             return
         skin_id = chosen.get('id') or chosen.get('skinId')
