@@ -689,6 +689,110 @@
     .qr-body { padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .qr-big { width: 232px; height: 232px; background: #fff; padding: 10px; }
 
+    /* --- Dashboard hero: monitoring + pause / live state + connection --- */
+    .hero { display: flex; flex-direction: column; padding: 0; }
+    .hero-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; }
+    .hero-bot { border-top: 1px solid rgb(120 90 40 / 0.22); gap: 14px; flex-wrap: wrap; }
+    .hero-main { flex: 1; min-width: 0; }
+    .hero-kicker { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8a8472; }
+    .hero-status { font-family: Cinzel, Georgia, serif; font-size: 20px; line-height: 1.05; color: #C8AA6E; margin-top: 3px; white-space: nowrap; }
+    .hero-status.paused { color: #C8983C; }
+    .hero-dot { width: 12px; height: 12px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .hero-dot.live { background: #0AC8B9; animation: pulse-dot 2s infinite; }
+    .hero-dot.paused { background: #C8983C; }
+    .hero-chip { display: flex; align-items: center; gap: 11px; flex: 1 1 200px; min-width: 0; }
+    .hero-chip-text { display: flex; flex-direction: column; min-width: 0; }
+    .hero-live { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #F0E6D2; margin-top: 2px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hero-live-ico { width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center; color: #C8AA6E; }
+    .hero-live-ico svg { width: 20px; height: 20px; }
+    .hero-conn-dot { width: 9px; height: 9px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .hero-conn-dot.on { background: #0AC8B9; box-shadow: 0 0 7px rgba(10,200,185,0.7); }
+    .hero-conn-text { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #A09B8C; margin-top: 2px; white-space: nowrap; }
+
+    /* --- Dashboard profile --------------------------------------------- */
+    .profile-head { display: flex; align-items: center; gap: 16px; }
+    .profile-portrait { width: 58px; height: 58px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
+    .profile-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .profile-id { display: flex; flex-direction: column; min-width: 0; }
+    .profile-name { font-family: Cinzel, Georgia, serif; font-size: 20px; color: #F0E6D2; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-tier { font-family: Marcellus, Georgia, serif; font-size: 13px; margin-top: 4px; color: #A09B8C; }
+    .profile-champs { margin-left: auto; text-align: right; min-width: 0; }
+    .profile-champs-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #8a8472; margin-bottom: 7px; }
+    .profile-mastery { display: flex; gap: 11px; justify-content: flex-end; }
+    .pm-champ { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .pm-portrait { position: relative; }
+    .pm-portrait img { width: 42px; height: 42px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .pm-lvl { position: absolute; bottom: -3px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center; font-size: 8.5px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
+    .pm-lvl.high { background: #0AC8B9; }
+    .pm-pts { font-size: 10px; color: #8a8472; }
+    .profile-ranked { margin-top: 15px; padding-top: 13px; border-top: 1px solid rgb(120 90 40 / 0.25); }
+    .pr-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 14px; padding: 8px 0; }
+    .pr-row + .pr-row { border-top: 1px solid rgb(120 90 40 / 0.12); }
+    .pr-q { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9a8c6a; }
+    .pr-mid { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .pr-rankline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .pr-rank { font-family: Marcellus, Georgia, serif; font-size: 14px; white-space: nowrap; }
+    .pr-record { font-size: 11px; color: #8a8472; white-space: nowrap; }
+    .pr-unranked { font-size: 13px; font-style: italic; color: #6f6a5d; }
+    .pr-bar { height: 4px; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; }
+    .pr-bar > span { display: block; height: 100%; }
+
+    /* --- Dashboard champ-select plan rows ------------------------------ */
+    .plan-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .plan-row + .plan-row { border-top: 1px solid rgb(120 90 40 / 0.12); }
+    .plan-role { display: flex; align-items: center; gap: 7px; width: 7.5rem; flex-shrink: 0; }
+    .plan-role img { width: 18px; height: 18px; }
+    .plan-role span { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #C8AA6E; }
+    .plan-pb { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; flex-wrap: wrap; }
+    .plan-slot { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .plan-slot-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #785A28; }
+    .plan-champ { display: inline-flex; align-items: center; gap: 6px; }
+    .plan-champ img { width: 26px; height: 26px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; }
+    .plan-champ.ban img { filter: grayscale(0.5) brightness(0.85); outline-color: rgb(192 88 79 / 0.6); }
+    .plan-champ-name { font-size: 12.5px; color: #D6D0C0; white-space: nowrap; }
+    .plan-extra { font-size: 11px; color: #785A28; }
+    .plan-none { font-size: 12px; color: #6f6a5d; }
+    .plan-lo { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; flex-shrink: 0; }
+    .plan-lo img { width: 16px; height: 16px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+    .plan-lo-badge { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 5px; color: #0AC8B9; outline: 1px solid rgb(10 200 185 / 0.4); outline-offset: -1px; }
+    .plan-extras-line { padding-top: 10px; margin-top: 4px; border-top: 1px solid rgb(120 90 40 / 0.2); display: flex; flex-direction: column; gap: 5px; }
+    .plan-extra-row { font-size: 12px; }
+    .plan-extra-row .k { color: #785A28; margin-right: 8px; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+    .plan-extra-row .v { color: #C8AA6E; }
+
+    /* --- Activity feed: framed, scrollable, filterable, timestamped ----- */
+    .act-panel { display: flex; flex-direction: column; max-height: 440px; min-height: 240px; padding: 0; overflow: hidden; }
+    .act-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 14px 16px 12px; border-bottom: 1px solid rgb(120 90 40 / 0.25); flex-shrink: 0; }
+    .act-title { display: flex; align-items: center; gap: 9px; font-family: Cinzel, Georgia, serif; font-size: 13px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+    .act-live { width: 7px; height: 7px; border-radius: 9999px; background: #0AC8B9; flex-shrink: 0; }
+    .act-filters { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+    .act-filter { padding: 4px 11px; cursor: pointer; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.4);
+      outline-offset: -1px; color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 11.5px;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .act-filter:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.6); }
+    .act-filter.active { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+    .act-body { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .act-empty { padding: 18px 16px; font-style: italic; color: #6f6a5d; font-size: 13px; }
+
+    .act-divider { display: flex; align-items: center; gap: 10px; padding: 11px 16px 6px; }
+    .act-divider .ad-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, rgb(120 90 40 / 0.5), transparent); }
+    .act-divider .ad-label { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #8a6f33; white-space: nowrap; }
+
+    .act-row { display: flex; align-items: flex-start; gap: 11px; padding: 7px 16px; }
+    .act-row:hover { background: rgb(200 170 110 / 0.05); }
+    .act-ico { width: 22px; height: 22px; flex-shrink: 0; display: grid; place-items: center; border-radius: 9999px;
+      outline: 1px solid currentColor; outline-offset: -1px; margin-top: 1px; }
+    .act-ico svg { width: 12px; height: 12px; }
+    .act-ico.info { color: #0AC8B9; }
+    .act-ico.success { color: #C8AA6E; }
+    .act-ico.warning { color: #C8983C; }
+    .act-ico.danger { color: #d56a60; }
+    .act-msg { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; color: #C9C2B0; word-break: break-word; }
+    .act-time { flex-shrink: 0; font-size: 11px; color: #6f6a5d; font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 2px; }
+
     /* Allowed-queue pills — a scalable wrap grid of toggle chips replacing the
        old 2-col checkbox list. The checkbox is hidden; the chip lights gold when
        checked. */
@@ -919,13 +1023,14 @@
       <!-- DASHBOARD -->
       <section id="tab-dashboard" class="space-y-5">
 
-        <!-- Hero status strip -->
-        <div class="hextech framed p-5 flex items-center justify-between gap-4">
-          <div class="flex items-center gap-4">
-            <span id="hero-dot" class="h-3.5 w-3.5 rounded-full bg-grey2 shrink-0"></span>
-            <div>
-              <p class="text-xs uppercase tracking-[0.2em] text-gold2">Status</p>
-              <p id="hero-status" class="font-display text-2xl text-gold1 leading-tight">—</p>
+        <!-- Hero — live state: monitoring + pause on top; what the client is
+             doing right now + connection beneath. -->
+        <div class="hextech framed hero">
+          <div class="hero-row hero-top">
+            <span id="hero-dot" class="hero-dot"></span>
+            <div class="hero-main">
+              <p class="hero-kicker">Monitoring</p>
+              <p id="hero-status" class="hero-status">—</p>
             </div>
             <button id="pause-btn" class="hextech hero-pause" title="Pause / resume monitoring">
               <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
@@ -935,62 +1040,64 @@
               <span id="pause-label">Pause</span>
             </button>
           </div>
-          <div class="text-right">
-            <p class="text-xs uppercase tracking-[0.2em] text-gold2">League Client</p>
-            <p id="hero-client" class="font-display text-lg leading-tight mt-0.5">—</p>
+          <div class="hero-row hero-bot">
+            <span class="hero-chip">
+              <span id="hero-live-ico" class="hero-live-ico"></span>
+              <span class="hero-chip-text">
+                <span class="hero-kicker">Right now</span>
+                <span id="hero-live" class="hero-live">—</span>
+              </span>
+            </span>
+            <span class="hero-chip">
+              <span id="hero-conn-dot" class="hero-conn-dot"></span>
+              <span class="hero-chip-text">
+                <span class="hero-kicker">Client</span>
+                <span id="hero-client" class="hero-conn-text">—</span>
+              </span>
+            </span>
           </div>
         </div>
 
-        <!-- Profile: rank + top champions (shown once the client is connected) -->
+        <!-- Profile: portrait, rank breakdown with win-rate bars, top champions
+             (shown once the client is connected). -->
         <div id="profile-panel" class="hextech framed p-5 hidden">
-          <div class="sec-head mb-3"><h3>Profile</h3><div class="rule"></div></div>
-          <div class="flex items-start justify-between gap-6 flex-wrap">
-            <div id="profile-ranked" class="space-y-2.5 min-w-[15rem] flex-1"></div>
-            <div class="shrink-0">
-              <p class="text-xs uppercase tracking-[0.15em] text-gold2 mb-2 text-right">Top Champions</p>
-              <div id="profile-mastery" class="flex gap-3 justify-end"></div>
+          <div class="profile-head">
+            <span class="profile-portrait">
+              <img id="profile-icon" alt="" onerror="this.style.visibility='hidden'" />
+            </span>
+            <div class="profile-id">
+              <p id="profile-name" class="profile-name">—</p>
+              <p id="profile-tier" class="profile-tier"></p>
+            </div>
+            <div class="profile-champs">
+              <p class="profile-champs-label">Top Champions</p>
+              <div id="profile-mastery" class="profile-mastery"></div>
             </div>
           </div>
+          <div id="profile-ranked" class="profile-ranked"></div>
         </div>
 
-        <!-- Metric cards -->
-        <div class="grid grid-cols-3 gap-3">
-          <div class="hextech p-4">
-            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Auto Pick / Ban</p>
-            <p id="stat-champ" class="font-display text-xl mt-1.5 text-gold1">—</p>
-          </div>
-          <div class="hextech p-4">
-            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Champions</p>
-            <p id="stat-champs-loaded" class="font-display text-xl mt-1.5 text-gold1">—</p>
-          </div>
-          <div class="hextech p-4">
-            <p class="text-xs uppercase tracking-[0.15em] text-gold2">Webhook</p>
-            <p id="stat-webhook" class="font-display text-xl mt-1.5 text-gold1">—</p>
-          </div>
-        </div>
-
-        <!-- Active configuration summary -->
-        <div class="hextech framed p-5 space-y-3">
-          <div class="sec-head mb-1"><h3>Active Configuration</h3><div class="rule"></div></div>
-          <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-            <dt class="text-subText">Accepting</dt><dd id="sum-queues" class="text-grey1 text-right">—</dd>
-            <dt class="text-subText">Desktop notifications</dt><dd id="sum-notif" class="text-grey1 text-right">—</dd>
-            <dt class="text-subText">Auto pick / ban</dt><dd id="sum-champ" class="text-grey1 text-right">—</dd>
-          </dl>
-        </div>
-
-        <!-- Champ-select plan preview -->
+        <!-- Champ-select plan: per-role pick/ban portraits + loadout chips. -->
         <div id="plan-panel" class="hextech framed p-5 space-y-3 hidden">
           <div class="sec-head mb-1"><h3>Champ Select Plan</h3><div class="rule"></div></div>
-          <div id="plan" class="space-y-1.5 text-sm"></div>
+          <div id="plan" class="space-y-2"></div>
         </div>
 
-        <!-- Activity -->
-        <div>
-          <div class="sec-head mb-3"><h3>Activity</h3><div class="rule"></div><span class="text-xs text-subText">live</span></div>
-          <ul id="activity" class="space-y-1.5 text-sm font-mono">
-            <li class="text-subText">Waiting for events…</li>
-          </ul>
+        <!-- Activity — framed, scrollable, filterable, with timestamps and
+             per-game session dividers. -->
+        <div class="hextech framed act-panel">
+          <div class="act-head">
+            <span class="act-title"><span class="act-live dot-pulse"></span>Activity</span>
+            <div class="act-filters" id="act-filters">
+              <button class="act-filter active" data-cat="all">All</button>
+              <button class="act-filter" data-cat="match">Matches</button>
+              <button class="act-filter" data-cat="champ">Champ Select</button>
+              <button class="act-filter" data-cat="system">System</button>
+            </div>
+          </div>
+          <div id="activity" class="act-body">
+            <p class="act-empty">Waiting for events…</p>
+          </div>
         </div>
       </section>
 

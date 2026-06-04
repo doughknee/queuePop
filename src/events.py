@@ -7,6 +7,7 @@ background thread while the webview/JS reads events from the main thread.
 """
 
 import threading
+import time
 from collections import deque
 
 # Bounded history so we never grow without limit while the app runs for hours.
@@ -21,7 +22,8 @@ def push(message, level="info", kind=None):
     """
     Record an event. `level` is a UI hint: info | success | warning | danger.
     `kind` is an optional machine-readable tag (e.g. "queue_pop") that lets
-    clients react to specific events without parsing the message text.
+    clients react to specific events without parsing the message text. `ts` is
+    the Unix time the event was recorded, so the UI can show timestamps.
     Returns the assigned monotonic id (useful for incremental polling).
     """
     global _seq
@@ -32,6 +34,7 @@ def push(message, level="info", kind=None):
             "level": level,
             "message": str(message),
             "kind": kind,
+            "ts": time.time(),
         })
         return _seq
 

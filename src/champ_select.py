@@ -467,7 +467,7 @@ class ChampSelect:
             action_state[action_id] = ('hover', champion_id)
             label = "Declaring intent" if intent else "Hovering"
             config.console.print(f"[info]{label} {kind}: {display}[/]")
-            events.push(f"{label} {kind}: {display}", "info")
+            events.push(f"{label} {kind}: {display}", "info", kind="champ")
             self._log(f"{label} {kind}: {display} (action {action_id}) -> ok={ok}")
             return
 
@@ -475,7 +475,7 @@ class ChampSelect:
             ok = await self._patch(connection, action_id, champion_id, complete=True)
             action_state[action_id] = ('locked', champion_id)
             config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
-            events.push(f"Locked {kind}: {display}", "success")
+            events.push(f"Locked {kind}: {display}", "success", kind="champ")
             self._log(f"LOCK {kind}: {display} (action {action_id}) -> ok={ok}")
 
     async def _patch(self, connection, action_id, champion_id, complete):
@@ -523,7 +523,7 @@ class ChampSelect:
             return
         if resp.status < 400:
             config.console.print(f"[info]Set summoner spells: {n1} + {n2}[/]")
-            events.push(f"Set summoner spells: {n1} + {n2}", "info")
+            events.push(f"Set summoner spells: {n1} + {n2}", "info", kind="champ")
             self._log(f"spells set -> {s1},{s2}")
         else:
             self._log(f"spells PATCH -> HTTP {resp.status}")

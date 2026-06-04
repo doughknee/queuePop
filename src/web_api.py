@@ -821,7 +821,7 @@ class Api:
             return {"ok": False, "error": "Client not connected"}
         if res.get("ok"):
             name = config.QUEUE_ID_MAP.get(qid, f"queue {qid}")
-            events.push(f"Queue started: {name}", "success")
+            events.push(f"Queue started: {name}", "success", kind="queue")
         return res
 
     def cancel_queue(self):
@@ -832,7 +832,7 @@ class Api:
 
         res = self._lcu.call(_cancel, timeout=6.0)
         if res and res.get("ok"):
-            events.push("Matchmaking canceled", "warning")
+            events.push("Matchmaking canceled", "warning", kind="queue")
         return res or {"ok": False, "error": "Client not connected"}
 
     def get_summoner(self):
@@ -893,7 +893,7 @@ class Api:
             try:
                 mr = await conn.request(
                     "get",
-                    "/lol-champion-mastery/v1/local-player/champion-mastery/top?limit=3",
+                    "/lol-champion-mastery/v1/local-player/champion-mastery/top?limit=5",
                 )
                 if mr.status != 200:
                     mr = await conn.request(
@@ -905,7 +905,7 @@ class Api:
                         md = md.get("championMasteryList") or []
                     md = sorted(
                         md, key=lambda m: m.get("championPoints", 0), reverse=True
-                    )[:3]
+                    )[:5]
                     out["mastery"] = [
                         {
                             "championId": m.get("championId"),

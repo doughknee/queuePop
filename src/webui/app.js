@@ -31,13 +31,6 @@ let loadoutChamp = 0; // championId whose loadout is open
 let customSoundPath = ""; // absolute path to the user's custom alarm file
 let previewCtx = null; // lazily-created AudioContext for Settings sound preview
 
-const LEVEL_COLOR = {
-  info: "text-blue2",
-  success: "text-gold1",
-  warning: "text-gold4",
-  danger: "text-red-400",
-};
-
 // --- Champion asset helpers --------------------------------------------
 function champIcon(name) {
   const id = nameToId[(name || "").toLowerCase()];
@@ -461,8 +454,9 @@ async function refreshSummoner() {
   renderProfile(info);
 }
 
-// Dashboard profile: ranked (Solo + Flex) + top-3 champion mastery. Hidden
-// unless the client is connected and there's at least one to show.
+// Dashboard profile: portrait + name, highest rank, a ranked breakdown with
+// win-rate bars, and top-5 champion mastery. Hidden unless the client is
+// connected and there's at least one thing to show.
 function renderProfile(info) {
   const panel = $("profile-panel");
   if (!panel) return;
@@ -475,25 +469,41 @@ function renderProfile(info) {
   }
   panel.classList.remove("hidden");
 
+  // Header: portrait, name (#tag), highest current rank.
+  const icon = $("profile-icon");
+  if (info.icon) { icon.src = info.icon; icon.style.visibility = ""; }
+  else icon.style.visibility = "hidden";
+  $("profile-name").textContent = info.name || "Summoner";
+  const hi = highestRank(ranked);
+  const tier = $("profile-tier");
+  if (hi) {
+    tier.textContent = rankLabel(hi, true);
+    tier.style.color = tierColor(hi.tier);
+  } else {
+    tier.textContent = "Unranked";
+    tier.style.color = "";
+  }
+
   const rankedRow = (label, r) => {
     if (!r) {
-      return `<div class="flex items-center gap-3">
-        <span class="text-xs uppercase tracking-wide text-subText whitespace-nowrap" style="width:4rem;overflow:hidden">${label}</span>
-        <span class="text-sm text-subText italic">Unranked</span></div>`;
+      return `<div class="pr-row"><span class="pr-q">${label}</span>` +
+        `<div class="pr-mid"><span class="pr-unranked">Unranked</span></div></div>`;
     }
     const col = tierColor(r.tier);
     const wins = r.wins || 0, losses = r.losses || 0, games = wins + losses;
     const wr = games ? Math.round((wins / games) * 100) : 0;
-    return `<div class="flex items-center gap-3">
-      <span class="text-xs uppercase tracking-wide text-subText whitespace-nowrap" style="width:4rem;overflow:hidden">${label}</span>
-      <span class="text-sm font-serif" style="color:${col}">${rankLabel(r, true)}</span>
-      <span class="text-xs text-subText ml-auto whitespace-nowrap">${
-        games ? `${wins}W ${losses}L · ${wr}%` : ""
-      }</span>
-    </div>`;
+    return (
+      `<div class="pr-row"><span class="pr-q">${label}</span><div class="pr-mid">` +
+        `<div class="pr-rankline">` +
+          `<span class="pr-rank" style="color:${col}">${rankLabel(r, true)}</span>` +
+          `<span class="pr-record">${games ? `${wins}W ${losses}L · ${wr}%` : "No games"}</span>` +
+        `</div>` +
+        (games ? `<span class="pr-bar"><span style="width:${wr}%;background:${col}"></span></span>` : "") +
+      `</div></div>`
+    );
   };
-  // Solo + Flex always render (everyone has an SR ladder); TFT only when ranked,
-  // so non-TFT players don't get a stray "Unranked" row.
+  // Solo + Flex always render (everyone has an SR ladder); TFT / Doubles only
+  // when ranked, so non-TFT players don't get stray "Unranked" rows.
   $("profile-ranked").innerHTML =
     rankedRow("Solo", ranked.solo) +
     rankedRow("Flex", ranked.flex) +
@@ -501,21 +511,21 @@ function renderProfile(info) {
     (ranked.double_up ? rankedRow("Doubles", ranked.double_up) : "");
 
   $("profile-mastery").innerHTML = mastery
+    .slice(0, 5)
     .map((m) => {
       const name = idToName(m.championId) || "";
       const pts = (m.points || 0).toLocaleString();
-      return `<span class="flex flex-col items-center gap-1"
-          title="${name} — Mastery ${m.level ?? "?"} · ${pts} pts">
-        <span class="relative inline-block">
-          <img src="assets/champions/${m.championId}.png"
-            class="h-11 w-11 object-cover" style="outline:1px solid rgba(120,90,40,0.5);outline-offset:-1px;"
-            onerror="this.style.visibility='hidden'" />
-          <span class="absolute -bottom-1 -right-1 px-1 text-[9px] font-bold leading-tight text-hextech-black bg-gold2">${
-            m.level ?? ""
-          }</span>
-        </span>
-        <span class="text-[10px] text-subText">${fmtPoints(m.points)}</span>
-      </span>`;
+      const lvl = m.level ?? "";
+      const high = (m.level || 0) >= 10 ? " high" : "";
+      return (
+        `<span class="pm-champ" title="${name} — Mastery ${m.level ?? "?"} · ${pts} pts">` +
+          `<span class="pm-portrait">` +
+            `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
+            `<span class="pm-lvl${high}">${lvl}</span>` +
+          `</span>` +
+          `<span class="pm-pts">${fmtPoints(m.points)}</span>` +
+        `</span>`
+      );
     })
     .join("");
 }
@@ -664,6 +674,32 @@ function renderChampLive(cs) {
     bansStrip + tradesStrip + benchStrip;
 }
 
+// --- Hero "right now" state (from the live gameflow phase) ---------------
+const HERO_ICONS = {
+  off: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.4 18.4A9 9 0 0 0 5.6 5.6m12.8 12.8A9 9 0 0 1 5.6 5.6m12.8 12.8L5.6 5.6"/></svg>',
+  idle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+  lobby: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 13h6l-1 9 10-12h-6z"/></svg>',
+  swords: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/></svg>',
+  game: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M7 12h3M8.5 10.5v3"/><circle cx="16" cy="11" r="1"/><circle cx="18.5" cy="13.5" r="1"/></svg>',
+  flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4M4 4h13l-2 4 2 4H4"/></svg>',
+};
+function heroLiveState(s) {
+  if (!s.connected) return { t: "Client offline", ico: HERO_ICONS.off };
+  switch (s.gameflow_phase) {
+    case "Matchmaking": return { t: "In queue…", ico: HERO_ICONS.search };
+    case "ReadyCheck": return { t: "Queue popped!", ico: HERO_ICONS.bolt };
+    case "ChampSelect": return { t: "Champ select", ico: HERO_ICONS.swords };
+    case "InProgress": return { t: "In game", ico: HERO_ICONS.game };
+    case "PreEndOfGame":
+    case "WaitingForStats":
+    case "EndOfGame": return { t: "Game ending…", ico: HERO_ICONS.flag };
+    case "Lobby": return { t: "In lobby", ico: HERO_ICONS.lobby };
+    default: return { t: "Idle — ready", ico: HERO_ICONS.idle };
+  }
+}
+
 // --- Status polling -----------------------------------------------------
 async function refreshStatus() {
   try {
@@ -685,23 +721,15 @@ async function refreshStatus() {
     }
 
     $("hero-status").textContent = s.paused ? "Paused" : "Monitoring";
-    $("hero-status").className =
-      "font-display text-2xl leading-tight " +
-      (s.paused ? "text-gold4" : "text-gold1");
+    $("hero-status").classList.toggle("paused", !!s.paused);
     $("hero-dot").className =
-      "h-3.5 w-3.5 rounded-full shrink-0 " +
-      (s.paused ? "bg-gold4" : "bg-blue2 dot-pulse");
+      "hero-dot " + (s.paused ? "paused" : s.connected ? "live" : "");
+    // "Right now" — what the client/bot is actually doing.
+    const live = heroLiveState(s);
+    $("hero-live").textContent = live.t;
+    $("hero-live-ico").innerHTML = live.ico;
+    $("hero-conn-dot").classList.toggle("on", !!s.connected);
     $("hero-client").textContent = s.connected ? "Connected" : "Waiting…";
-    $("hero-client").className =
-      "font-display text-lg leading-tight mt-0.5 " +
-      (s.connected ? "text-blue2" : "text-subText");
-
-    $("stat-champ").textContent = s.champ_select_enabled ? "On" : "Off";
-    $("stat-webhook").textContent = s.webhook_configured
-      ? "Configured"
-      : "Disabled";
-    $("stat-champs-loaded").textContent =
-      catalog.length || s.champions_loaded || 0;
 
     const note = $("companion-note");
     if (note) {
@@ -727,31 +755,132 @@ async function refreshStatus() {
 }
 
 // --- Activity feed ------------------------------------------------------
+// All events are kept in JS (newest-last, capped) and rendered newest-first with
+// category filters, relative timestamps, and a divider per game session (a new
+// session begins at each queue pop). Re-rendering each poll keeps the relative
+// times fresh; no per-row animation so it doesn't flicker on every render.
+let activityLog = [];        // [{id, level, message, kind, ts}], chronological
+let activityFilter = "all";  // all | match | champ | system
+let firstActivityLoad = true;
+
+// kind → filter category. Anything untagged falls to "system" (connect, companion,
+// launch, save errors …), which is exactly where those belong.
+const EV_CAT = {
+  queue_pop: "match", match: "match", queue: "match",
+  champ: "champ", spells: "champ", runes: "champ",
+  trade: "champ", bench_swap: "champ", skin: "champ",
+};
+function eventCat(ev) { return EV_CAT[ev.kind] || "system"; }
+
+const CAT_ICON = {
+  match:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 13h6l-1 9 10-12h-6z"/></svg>',
+  champ:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/></svg>',
+  system:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+};
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]),
+  );
+}
+function fmtAgoShort(ts) {
+  if (!ts) return "";
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 45) return "now";
+  if (s < 3600) return Math.floor(s / 60) + "m";
+  if (s < 86400) return Math.floor(s / 3600) + "h";
+  return Math.floor(s / 86400) + "d";
+}
+function fmtClock(ts) {
+  if (!ts) return "";
+  try { return new Date(ts * 1000).toLocaleString(); } catch (_) { return ""; }
+}
+
+function actRowHtml(ev) {
+  const lvl = ev.level || "info";
+  return (
+    `<div class="act-row">` +
+      `<span class="act-ico ${lvl}">${CAT_ICON[eventCat(ev)] || CAT_ICON.system}</span>` +
+      `<span class="act-msg">${escapeHtml(ev.message)}</span>` +
+      `<span class="act-time" title="${escapeHtml(fmtClock(ev.ts))}">${fmtAgoShort(ev.ts)}</span>` +
+    `</div>`
+  );
+}
+
+function renderActivity() {
+  const body = $("activity");
+  if (!body) return;
+  // Session index per event (a new session starts at each queue pop). Computed
+  // over the FULL log so filtering doesn't renumber sessions.
+  const sessionOf = {}, sessionStart = {};
+  let sess = 0;
+  for (const ev of activityLog) {
+    if (ev.kind === "queue_pop") { sess++; sessionStart[sess] = ev; }
+    sessionOf[ev.id] = sess;
+  }
+  const shown = activityLog.filter(
+    (ev) => activityFilter === "all" || eventCat(ev) === activityFilter,
+  );
+  if (!shown.length) {
+    body.innerHTML = `<p class="act-empty">No events yet.</p>`;
+    return;
+  }
+  const divider = (s) => {
+    let label = "Earlier";
+    if (s > 0) {
+      const ev = sessionStart[s];
+      const m = ev && ev.message.match(/Queue popped:\s*(.+?)\s*[—-]/i);
+      label = (m ? m[1] : "Queue") + " · " + fmtAgoShort(ev && ev.ts);
+    }
+    return (
+      `<div class="act-divider"><span class="ad-line"></span>` +
+      `<span class="ad-label">${escapeHtml(label)}</span><span class="ad-line"></span></div>`
+    );
+  };
+  const rows = [];
+  let lastSess = null;
+  for (let i = shown.length - 1; i >= 0; i--) { // newest-first
+    const ev = shown[i];
+    const s = sessionOf[ev.id];
+    if (s !== lastSess) { rows.push(divider(s)); lastSess = s; }
+    rows.push(actRowHtml(ev));
+  }
+  const st = body.scrollTop;
+  body.innerHTML = rows.join("");
+  body.scrollTop = st;
+}
+
 async function refreshEvents() {
   try {
     const { events } = await api().get_events(lastEventId);
-    if (!events.length) return;
-    const initial = lastEventId === 0; // backfill on first load — don't animate/flash
-    const list = $("activity");
-    if (initial) list.innerHTML = "";
+    let popped = false;
     for (const ev of events) {
       lastEventId = Math.max(lastEventId, ev.id);
-      const li = document.createElement("li");
-      li.className =
-        (LEVEL_COLOR[ev.level] || "text-grey1") +
-        " border-l-2 border-gold5/40 pl-2" +
-        (initial ? "" : " fade-up");
-      li.textContent = ev.message;
-      list.prepend(li);
-      // Celebrate the signature moment.
-      if (!initial && (ev.kind === "queue_pop" || /queue popped/i.test(ev.message)))
-        flashPop();
+      activityLog.push(ev);
+      if (ev.kind === "queue_pop" || /queue popped/i.test(ev.message)) popped = true;
     }
-    while (list.children.length > 100) list.removeChild(list.lastChild);
+    while (activityLog.length > 200) activityLog.shift();
+    renderActivity(); // also refreshes relative times when there are no new events
+    if (popped && !firstActivityLoad) flashPop(); // celebrate, but not on backfill
+    firstActivityLoad = false;
   } catch (e) {
     /* ignore */
   }
 }
+
+// Filter chips.
+$("act-filters").addEventListener("click", (e) => {
+  const btn = e.target.closest(".act-filter");
+  if (!btn) return;
+  activityFilter = btn.dataset.cat;
+  document
+    .querySelectorAll("#act-filters .act-filter")
+    .forEach((b) => b.classList.toggle("active", b === btn));
+  renderActivity();
+});
 
 // --- Champion catalog (bundled, offline) -------------------------------
 async function loadCatalog() {
@@ -1172,7 +1301,6 @@ async function loadConfig() {
   selectRole(activeRole || roles[0]?.key);
   updateAllBadges();
 
-  renderSummary(c);
   renderPlan(c);
 }
 
@@ -1217,27 +1345,28 @@ function gatherConfig() {
   };
 }
 
-// --- Dashboard: config summary + champ-select plan ---------------------
-function renderSummary(c) {
-  const ids = c.allowed_queue_ids || [];
-  $("sum-queues").textContent = ids.length
-    ? ids.map((id) => queueMap[id] || "#" + id).join(", ")
-    : "All queues";
-  $("sum-notif").textContent = c.desktop_notifications ? "On" : "Off";
-  const cs = c.champ_select || {};
-  $("sum-champ").textContent = cs.enabled
-    ? cs.instant_lock
-      ? "On — instant lock"
-      : `On — lock at ${cs.lock_in_at_seconds}s left`
-    : "Off";
-}
-
-function planChip(name) {
+// --- Dashboard: champ-select plan --------------------------------------
+// A visual per-role board: position, top pick + top ban portraits (with backup
+// counts), and a loadout chip (spell icons / runes / skin) for the top pick.
+function planChampHtml(name, ban) {
   const icon = champIcon(name);
   const media = icon
-    ? `<img src="${icon}" class="h-5 w-5 object-cover inline-block align-middle" />`
-    : `<span class="h-5 w-5 inline-grid place-items-center text-[8px] text-gold1 bg-blue5 align-middle">${initials(name)}</span>`;
-  return `<span class="inline-flex items-center gap-1 align-middle">${media}<span class="text-grey1">${name}</span></span>`;
+    ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
+    : `<span class="plan-champ-name">${initials(name)}</span>`;
+  return `<span class="plan-champ${ban ? " ban" : ""}">${media}<span class="plan-champ-name">${name}</span></span>`;
+}
+
+function planLoadoutHtml(rc, pickName) {
+  const id = nameToId[(pickName || "").toLowerCase()];
+  const lo = id ? (rc.loadouts || {})[String(id)] : null;
+  if (!lo) return "";
+  const bits = [];
+  for (const sid of lo.spells || [])
+    bits.push(`<img src="assets/spells/${sid}.png" title="${spellName(sid)}" onerror="this.style.display='none'" />`);
+  if (lo.rune && lo.rune !== "off") bits.push(`<span class="plan-lo-badge">Runes</span>`);
+  if (lo.skin && lo.skin !== "off")
+    bits.push(`<span class="plan-lo-badge">${Array.isArray(lo.skin) ? "Skins" : "Skin"}</span>`);
+  return bits.length ? `<span class="plan-lo">${bits.join("")}</span>` : "";
 }
 
 function renderPlan(c) {
@@ -1251,61 +1380,55 @@ function renderPlan(c) {
   const aramPicks = ((rolesCfg.aram || {}).picks || []).length;
   const loCount = (rc) => Object.keys(rc.loadouts || {}).length;
 
-  // The pick/ban table covers the 5 assigned positions only (ARAM gets its own
-  // line below).
   const configured = roles.filter((r) => {
     if (r.key === "aram") return false;
     const rc = rolesCfg[r.key] || {};
     return (rc.bans || []).length || (rc.picks || []).length || loCount(rc);
   });
 
-  const anyExtra = trades || aram;
   const showTable = cs.enabled && configured.length;
-  if (!showTable && !anyExtra) {
+  if (!showTable && !(trades || aram)) {
     panel.classList.add("hidden");
     return;
   }
   panel.classList.remove("hidden");
+
+  const slot = (label, name, count, ban) => {
+    const extra = count > 1 ? `<span class="plan-extra">+${count - 1}</span>` : "";
+    const body = name ? planChampHtml(name, ban) + extra : `<span class="plan-none">—</span>`;
+    return `<span class="plan-slot"><span class="plan-slot-label">${label}</span>${body}</span>`;
+  };
+
   let html = (showTable ? configured : [])
     .map((r) => {
       const rc = rolesCfg[r.key] || {};
       const pick = (rc.picks || [])[0];
       const ban = (rc.bans || [])[0];
-      const extra =
-        (rc.picks || []).length > 1
-          ? ` <span class="text-gold5">+${rc.picks.length - 1}</span>`
-          : "";
-      const n = loCount(rc);
-      const loadouts = n
-        ? `<span class="text-gold2">${n} loadout${n > 1 ? "s" : ""}</span>`
-        : '<span class="text-subText">—</span>';
-      return `<div class="grid grid-cols-[7rem_1fr_1fr_auto] items-center gap-2 py-0.5">
-        <span class="flex items-center gap-1.5">
-          <img src="assets/positions/${r.key}.svg" class="h-4 w-4" onerror="this.style.display='none'" />
-          <span class="font-serif text-gold2 text-sm">${r.label}</span>
-        </span>
-        <span class="text-sm"><span class="text-subText text-xs mr-1">PICK</span>${pick ? planChip(pick) : "—"}${extra}</span>
-        <span class="text-sm"><span class="text-subText text-xs mr-1">BAN</span>${ban ? planChip(ban) : "—"}</span>
-        <span class="text-xs whitespace-nowrap"><span class="text-subText mr-1">SETUP</span>${loadouts}</span>
-      </div>`;
+      return (
+        `<div class="plan-row">` +
+          `<span class="plan-role"><img src="assets/positions/${r.key}.svg" onerror="this.style.display='none'" /><span>${r.label}</span></span>` +
+          `<span class="plan-pb">` +
+            slot("Pick", pick, (rc.picks || []).length, false) +
+            slot("Ban", ban, (rc.bans || []).length, true) +
+            planLoadoutHtml(rc, pick) +
+          `</span>` +
+        `</div>`
+      );
     })
     .join("");
+
   const extras = [];
-  if (trades)
-    extras.push(["TRADES", "Auto — trade toward a higher-priority pick"]);
+  if (trades) extras.push(["Trades", "Auto-trade toward a higher-priority pick"]);
   if (aram)
     extras.push([
       "ARAM",
-      `Bench swap on${aramPicks ? ` — ${aramPicks} champ${aramPicks > 1 ? "s" : ""} ranked` : " — set your list"}`,
+      `Bench swap on${aramPicks ? ` · ${aramPicks} champ${aramPicks > 1 ? "s" : ""} ranked` : " · set your list"}`,
     ]);
   if (extras.length) {
     html +=
-      `<div class="pt-2 mt-1 border-t border-t-gold5/20 text-xs space-y-1">` +
+      `<div class="plan-extras-line">` +
       extras
-        .map(
-          ([k, v]) =>
-            `<div><span class="text-subText mr-1">${k}</span><span class="text-gold2">${v}</span></div>`,
-        )
+        .map(([k, v]) => `<div class="plan-extra-row"><span class="k">${k}</span><span class="v">${v}</span></div>`)
         .join("") +
       `</div>`;
   }

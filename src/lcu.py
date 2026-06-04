@@ -124,7 +124,7 @@ class LCU:
             allowed_queues = self.config.get("allowed_queue_ids", [])
             if allowed_queues and queue_id not in allowed_queues:
                 config.console.log(f"[yellow]Skipping queue '{game_mode}' as it's not in your allowed list.[/]")
-                events.push(f"Skipped queue '{game_mode}' (not in allowed list)", "warning")
+                events.push(f"Skipped queue '{game_mode}' (not in allowed list)", "warning", kind="match")
                 self.accepting_match = False # Reset for the next real pop
                 return
             
@@ -151,7 +151,7 @@ class LCU:
             # 3. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')
             config.console.print("[success]✅ Match Accepted![/]")
-            events.push(f"Match accepted ({game_mode})", "success")
+            events.push(f"Match accepted ({game_mode})", "success", kind="match")
 
     async def champ_select_changed(self, connection, event):
         """Delegates champ select updates to the auto pick/ban handler."""
