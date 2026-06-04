@@ -22,16 +22,35 @@ from notifications import send_discord_test
 from _version import __version__
 
 
-# Queues offered in the PLAY quick-queue picker (subset of QUEUE_ID_MAP that
-# makes sense to start with one click — no TFT, which lobbies differently).
+# Sections in the PLAY dropdown, in display order. The "favorites" section is
+# rendered separately (pinned, reserved) and isn't listed here.
+QUEUE_GROUPS = [
+    {"key": "rift", "label": "Summoner's Rift"},
+    {"key": "aram", "label": "ARAM"},
+    {"key": "featured", "label": "Featured"},
+    {"key": "tft", "label": "Teamfight Tactics"},
+]
+
+# Queues offered in the PLAY quick-queue picker, grouped by `group` (one of the
+# QUEUE_GROUPS keys). Every entry creates a lobby + starts matchmaking through
+# the same /lol-lobby endpoints, TFT included. `ranked` just drives a badge.
 QUICK_QUEUES = [
-    {"id": 430, "name": "Blind Pick"},
-    {"id": 400, "name": "Draft Pick"},
-    {"id": 490, "name": "Quickplay"},
-    {"id": 420, "name": "Ranked Solo/Duo"},
-    {"id": 440, "name": "Ranked Flex"},
-    {"id": 450, "name": "ARAM"},
-    {"id": 1700, "name": "Arena"},
+    # Summoner's Rift
+    {"id": 400, "name": "Draft Pick", "group": "rift"},
+    {"id": 430, "name": "Blind Pick", "group": "rift"},
+    {"id": 490, "name": "Quickplay", "group": "rift"},
+    {"id": 420, "name": "Ranked Solo/Duo", "group": "rift", "ranked": True},
+    {"id": 440, "name": "Ranked Flex", "group": "rift", "ranked": True},
+    # ARAM
+    {"id": 450, "name": "ARAM", "group": "aram"},
+    # Featured / rotating
+    {"id": 1700, "name": "Arena", "group": "featured"},
+    # Teamfight Tactics
+    {"id": 1090, "name": "TFT Normal", "group": "tft"},
+    {"id": 1100, "name": "TFT Ranked", "group": "tft", "ranked": True},
+    {"id": 1130, "name": "TFT Hyper Roll", "group": "tft"},
+    {"id": 1160, "name": "TFT Double Up", "group": "tft"},
+    {"id": 1220, "name": "Tocker's Trials", "group": "tft"},
 ]
 
 # LCU region code -> op.gg region slug. The client reports either short codes
@@ -116,21 +135,35 @@ def _normalize_companion(comp):
     }
 
 
-def _normalize_config(data):
-    data = data or {}
-    allowed_ids = data.get("allowed_queue_ids", []) or []
-    # JS may hand us strings; coerce queue ids to ints.
-    clean_ids = []
-    for q in allowed_ids:
+def _clean_queue_ids(ids, keep_order=False):
+    """Coerce a list of (possibly stringy) queue ids to ints, dropping junk.
+    `keep_order` preserves insertion order and de-dupes (favorites); otherwise
+    the ids are sorted into a set (allowed_queue_ids)."""
+    clean = []
+    for q in ids or []:
         try:
-            clean_ids.append(int(q))
+            q = int(q)
         except (TypeError, ValueError):
             continue
+        if keep_order:
+            if q not in clean:
+                clean.append(q)
+        else:
+            clean.append(q)
+    return clean if keep_order else sorted(set(clean))
+
+
+def _normalize_config(data):
+    data = data or {}
     return {
         "webhook_url": (data.get("webhook_url") or "").strip(),
         "user_id": (data.get("user_id") or "").strip(),
         "desktop_notifications": bool(data.get("desktop_notifications", True)),
-        "allowed_queue_ids": sorted(set(clean_ids)),
+        "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
+        # Order matters here — it's the display order of pinned queues.
+        "favorite_queue_ids": _clean_queue_ids(
+            data.get("favorite_queue_ids"), keep_order=True
+        ),
         "companion": _normalize_companion(data.get("companion")),
         "champ_select": _normalize_champ_select(data.get("champ_select")),
     }
@@ -246,6 +279,12 @@ class Api:
 
     def save_config(self, new_config):
         cfg = _normalize_config(new_config)
+        # The Settings form doesn't carry favorites; don't let saving it wipe
+        # the pinned-queue list (managed separately via set_favorites()).
+        if "favorite_queue_ids" not in (new_config or {}):
+            cfg["favorite_queue_ids"] = _clean_queue_ids(
+                (self._lcu.config or {}).get("favorite_queue_ids"), keep_order=True
+            )
         try:
             with open(config.CONFIG_FILE, "w") as f:
                 json.dump(cfg, f, indent=4)
@@ -394,8 +433,32 @@ class Api:
             return {"ok": False, "error": str(e)}
 
     def get_quick_queues(self):
-        """Queues offered in the PLAY dropdown."""
-        return [dict(q) for q in QUICK_QUEUES]
+        """Everything the PLAY dropdown needs in one call: the grouped queue
+        list, the section order/labels, and the user's pinned favorites."""
+        cfg = self._lcu.config or {}
+        return {
+            "queues": [dict(q) for q in QUICK_QUEUES],
+            "groups": [dict(g) for g in QUEUE_GROUPS],
+            "favorites": _clean_queue_ids(
+                cfg.get("favorite_queue_ids"), keep_order=True
+            ),
+        }
+
+    def set_favorites(self, ids):
+        """Persist the pinned-queue list (order preserved). Saved quietly — no
+        activity-feed noise — since users may toggle stars rapidly."""
+        valid = {q["id"] for q in QUICK_QUEUES}
+        favorites = [q for q in _clean_queue_ids(ids, keep_order=True) if q in valid]
+        cfg = dict(self._lcu.config or {})
+        cfg["favorite_queue_ids"] = favorites
+        cfg = _normalize_config(cfg)
+        try:
+            with open(config.CONFIG_FILE, "w") as f:
+                json.dump(cfg, f, indent=4)
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+        self._lcu.config = cfg
+        return {"ok": True, "favorites": favorites}
 
     def start_queue(self, queue_id):
         """Create (or replace) a lobby for queue_id and start matchmaking."""

@@ -174,19 +174,135 @@
 
     /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
        it isn't trapped under the navbar's backdrop-blur stacking context — that
-       was hiding it behind the page content and eating the clicks. */
-    .queue-menu {
-      position: fixed; z-index: 70; min-width: 200px;
-      background: #010A13; outline: 1px solid rgb(200 170 110 / 0.4); outline-offset: -1px;
-      padding: 4px 0; box-shadow: 0 14px 34px -10px rgba(0,0,0,0.75);
+       was hiding it behind the page content and eating the clicks. Markup +
+       behavior live in app.js (buildQueueMenu / renderQueueMenu). */
+    .queue-menu { position: fixed; z-index: 70; }
+    .queue-menu.hidden { display: none; }
+
+    /* The panel itself. Sharp hextech corners, gold hairline, teal-tinted glow.
+       max-height + scroll so the TFT section never runs off a short window. */
+    .qm-panel {
+      width: 274px; max-height: calc(100vh - 116px); overflow-y: auto; overflow-x: hidden;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 60%);
+      outline: 1px solid rgb(200 170 110 / 0.45); outline-offset: -1px;
+      box-shadow: 0 18px 40px -12px rgba(0,0,0,0.8), 0 0 22px -10px rgba(10,200,185,0.4);
+      padding: 6px 0 8px;
     }
-    .queue-menu .qm-head { padding: 6px 14px 4px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #785A28; }
-    .queue-menu button {
-      display: block; width: 100%; text-align: left; padding: 8px 14px; font-size: 13px;
-      color: #A09B8C; background: transparent; border: 0; cursor: pointer; font-family: Marcellus, Georgia, serif;
-      transition: background-color .12s ease, color .12s ease;
+    /* Re-runs every time the menu un-hides (display:none → block). */
+    .queue-menu:not(.hidden) .qm-panel { animation: qmIn .2s cubic-bezier(.2,.8,.2,1) both; transform-origin: top left; }
+    @keyframes qmIn { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: none; } }
+
+    /* Gold corner accents, matching .framed elsewhere. */
+    .qm-panel { position: relative; }
+    .qm-panel::before, .qm-panel::after {
+      content: ""; position: absolute; width: 11px; height: 11px; pointer-events: none; z-index: 2;
     }
-    .queue-menu button:hover { background: rgb(200 170 110 / 0.14); color: #C8AA6E; }
+    .qm-panel::before { top: 2px; left: 2px; border-top: 2px solid #C8AA6E; border-left: 2px solid #C8AA6E; }
+    .qm-panel::after  { bottom: 2px; right: 2px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
+
+    .qm-title {
+      padding: 4px 16px 8px; font-family: Cinzel, Georgia, serif; font-size: 10px;
+      letter-spacing: 0.18em; text-transform: uppercase; color: #785A28;
+    }
+
+    /* --- Section --- */
+    .qm-section { border-top: 1px solid rgb(120 90 40 / 0.16); }
+    .qm-section:first-of-type { border-top: 0; }
+    /* Favorites is the reserved hero section: faint gold wash + a gold top rule. */
+    .qm-fav {
+      background: linear-gradient(180deg, rgb(200 170 110 / 0.08), transparent 70%);
+      box-shadow: inset 0 2px 0 -1px rgb(200 170 110 / 0.5);
+    }
+
+    .qm-sec-head {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 9px 14px; background: transparent; border: 0; cursor: pointer;
+      color: #C8AA6E; font-family: Cinzel, Georgia, serif; font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: background-color .15s ease, color .15s ease;
+    }
+    .qm-sec-head:hover { background: rgb(200 170 110 / 0.08); color: #F0E6D2; }
+    .qm-fav .qm-sec-head { color: #E2C887; }
+    .qm-sec-ico { display: inline-flex; width: 16px; height: 16px; color: #C8AA6E; flex-shrink: 0; }
+    .qm-fav .qm-sec-ico { color: #E2C887; filter: drop-shadow(0 0 4px rgb(200 170 110 / 0.5)); }
+    .qm-sec-ico svg { width: 100%; height: 100%; }
+    .qm-sec-label { flex: 1 1 auto; text-align: left; }
+    .qm-sec-count {
+      min-width: 17px; height: 17px; padding: 0 5px; display: inline-grid; place-items: center;
+      font-family: Marcellus, Georgia, serif; font-size: 10px; letter-spacing: 0;
+      color: #0A0E13; background: #785A28; border-radius: 9px;
+    }
+    .qm-fav .qm-sec-count { background: #C8AA6E; }
+    .qm-section.collapsed .qm-sec-count:empty { display: none; }
+    .qm-chev { display: inline-flex; width: 12px; height: 12px; color: #785A28; transition: transform .25s ease; }
+    .qm-chev svg { width: 100%; height: 100%; }
+    .qm-section.collapsed .qm-chev { transform: rotate(-90deg); }
+
+    /* Collapse via grid-template-rows 1fr↔0fr — smooth, no JS height measuring
+       (reliable in WebView2's Chromium). Inner wrapper hides the overflow. */
+    .qm-sec-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .26s ease, opacity .2s ease; }
+    .qm-section.collapsed .qm-sec-body { grid-template-rows: 0fr; opacity: 0; }
+    .qm-sec-inner { overflow: hidden; min-height: 0; }
+
+    /* --- Queue row --- */
+    .qm-row {
+      position: relative; display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 8px 12px 8px 16px; background: transparent; border: 0;
+      cursor: pointer; text-align: left; overflow: hidden;
+      color: #A09B8C; font-family: Marcellus, Georgia, serif; font-size: 13px;
+      animation: qmRowIn .26s ease both; animation-delay: calc(var(--i, 0) * 26ms);
+    }
+    @keyframes qmRowIn { from { opacity: 0; transform: translateX(-9px); } to { opacity: 1; transform: none; } }
+    /* Left-to-right gold sweep behind the row on hover. */
+    .qm-row::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(90deg, rgb(200 170 110 / 0.18), transparent 75%);
+      transform: scaleX(0); transform-origin: left; transition: transform .18s ease;
+    }
+    /* Growing gold accent bar on the left edge. */
+    .qm-row::after {
+      content: ""; position: absolute; left: 0; top: 50%; width: 2px; height: 0;
+      background: #C8AA6E; transform: translateY(-50%); transition: height .18s ease;
+    }
+    .qm-row:hover { color: #F0E6D2; }
+    .qm-row:hover::before { transform: scaleX(1); }
+    .qm-row:hover::after { height: 70%; }
+    .qm-row > * { position: relative; z-index: 1; } /* ride above the sweep */
+    .qm-row-content { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; transition: transform .18s ease; }
+    .qm-row:hover .qm-row-content { transform: translateX(3px); }
+
+    .qm-ico { display: inline-flex; width: 18px; height: 18px; color: #0AC8B9; flex-shrink: 0; transition: color .15s ease, filter .15s ease; }
+    .qm-ico svg { width: 100%; height: 100%; }
+    .qm-row:hover .qm-ico { color: #2dd4c4; filter: drop-shadow(0 0 5px rgb(10 200 185 / 0.55)); }
+    .qm-name { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qm-pill {
+      flex-shrink: 0; font-family: Cinzel, Georgia, serif; font-size: 8px; letter-spacing: 0.12em;
+      padding: 2px 5px; color: #C8983C; border: 1px solid rgb(200 152 60 / 0.5); border-radius: 2px;
+    }
+
+    /* Favorite star — outline by default, gold-filled when pinned. Pops on toggle. */
+    .qm-star {
+      flex-shrink: 0; display: inline-flex; width: 20px; height: 20px; padding: 1px;
+      align-items: center; justify-content: center; cursor: pointer; color: #5B5A56;
+      transition: color .15s ease, transform .12s ease;
+    }
+    .qm-star svg { width: 15px; height: 15px; fill: transparent; stroke: currentColor; stroke-width: 1.6; transition: fill .15s ease, stroke .15s ease; }
+    .qm-star:hover { color: #C8AA6E; transform: scale(1.18); }
+    .qm-star.on { color: #C8AA6E; }
+    .qm-star.on svg { fill: #C8AA6E; stroke: #E2C887; filter: drop-shadow(0 0 4px rgb(200 170 110 / 0.6)); }
+    .qm-star.pop { animation: qmStarPop .34s ease; }
+    @keyframes qmStarPop { 0% { transform: scale(1); } 35% { transform: scale(1.45) rotate(-12deg); } 70% { transform: scale(.9); } 100% { transform: scale(1); } }
+
+    /* Row being unpinned from the Favorites list: fade + slide out before the
+       section re-renders (height can't animate from auto, so we don't try). */
+    .qm-row.qm-removing { animation: qmRowOut .18s ease forwards; pointer-events: none; }
+    @keyframes qmRowOut { to { opacity: 0; transform: translateX(16px); } }
+
+    .qm-empty {
+      padding: 9px 16px 11px; font-family: Marcellus, Georgia, serif; font-size: 11.5px;
+      font-style: italic; color: #6f6a5d; line-height: 1.4;
+    }
+    .qm-empty .qm-empty-star { color: #C8AA6E; font-style: normal; }
 
     /* Centered route icons: gold-wash active/hover + faded vertical dividers */
     .nav-routes { flex: 1 1 auto; height: 100%; display: flex; align-items: stretch; justify-content: center; }

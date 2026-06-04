@@ -136,21 +136,174 @@ $("play-btn").addEventListener("click", async () => {
   }
 });
 
+// --- Quick-queue dropdown: grouped, collapsible, favoritable -----------
+// Built from get_quick_queues() → {queues, groups, favorites}. Favorites is a
+// reserved section pinned at the top; the rest are grouped by game/mode and
+// each section collapses (state persisted in localStorage). A star on each row
+// pins/unpins it; the same queue's star stays in sync across both sections.
+let qmQueues = [];     // [{id, name, group, ranked}]
+let qmGroups = [];     // [{key, label}] — section order
+let qmFavorites = [];  // [queueId] — display order of pinned queues
+const QM_COLLAPSE_KEY = "qb_qm_collapsed";
+
+// Inline SVG glyphs (currentColor). Row icons key off the queue's group.
+const QM_ICONS = {
+  favorites:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.1l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.6 9.2l5.8-.8z"/></svg>',
+  rift:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="M5 13l6 6"/><path d="M8 16l-4 4"/><path d="M5 21l-2-2"/></svg>',
+  aram:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>',
+  featured:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.7 4.9 4.9 1.7-4.9 1.7L12 15.7l-1.7-4.9-4.9-1.7 4.9-1.7z"/><path d="M18.5 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
+  tft:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l3 2.5L12 5l5 6.5L20 9l-1.5 9h-13z"/><path d="M5.5 18h13"/></svg>',
+};
+const QM_STAR =
+  '<svg viewBox="0 0 24 24"><path d="M12 3.1l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.6 9.2l5.8-.8z"/></svg>';
+const QM_CHEVRON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 7 7 7-7"/></svg>';
+
+function qmLoadCollapsed() {
+  try { return new Set(JSON.parse(localStorage.getItem(QM_COLLAPSE_KEY) || "[]")); }
+  catch (_) { return new Set(); }
+}
+function qmSaveCollapsed(set) {
+  try { localStorage.setItem(QM_COLLAPSE_KEY, JSON.stringify([...set])); } catch (_) {}
+}
+function qmGroupIcon(key) { return QM_ICONS[key] || QM_ICONS.rift; }
+function qmQueueById(id) { return qmQueues.find((q) => q.id === Number(id)); }
+
 async function buildQueueMenu() {
   const menu = $("queue-menu");
   if (!menu) return;
-  let qs = [];
-  try { qs = (await api().get_quick_queues()) || []; } catch (_) {}
-  menu.innerHTML =
-    '<div class="qm-head">Start a queue</div>' +
-    qs.map((q) => `<button type="button" data-qid="${q.id}">${q.name}</button>`).join("");
-  menu.querySelectorAll("button").forEach((b) =>
-    b.addEventListener("click", async () => {
-      closeQueueMenu();
-      await api().start_queue(b.dataset.qid);
-      refreshStatus(); // flip PLAY → IN QUEUE
-    }),
+  let data = {};
+  try { data = (await api().get_quick_queues()) || {}; } catch (_) {}
+  qmQueues = data.queues || [];
+  qmGroups = data.groups || [];
+  qmFavorites = (data.favorites || []).filter((id) => qmQueueById(id));
+  renderQueueMenu();
+  // One delegated handler survives every re-render of the panel's innards.
+  menu.addEventListener("click", onQueueMenuClick);
+}
+
+function qmRowHtml(q, idx) {
+  const fav = qmFavorites.includes(q.id);
+  return (
+    `<button type="button" class="qm-row" data-qid="${q.id}" style="--i:${idx}">` +
+      `<span class="qm-row-content">` +
+        `<span class="qm-ico">${qmGroupIcon(q.group)}</span>` +
+        `<span class="qm-name">${q.name}</span>` +
+        (q.ranked ? '<span class="qm-pill">RANKED</span>' : "") +
+      `</span>` +
+      `<span class="qm-star${fav ? " on" : ""}" data-fav="${q.id}" ` +
+        `title="${fav ? "Unpin from favorites" : "Pin to favorites"}">${QM_STAR}</span>` +
+    `</button>`
   );
+}
+
+function qmSectionHtml(key, label, queues, collapsed) {
+  const isFav = key === "favorites";
+  const body = queues.length
+    ? queues.map((q, i) => qmRowHtml(q, i)).join("")
+    : isFav
+      ? '<div class="qm-empty">Tap the <span class="qm-empty-star">☆</span> on any queue to pin it here for one-click access.</div>'
+      : '<div class="qm-empty">Nothing here.</div>';
+  return (
+    `<div class="qm-section${collapsed ? " collapsed" : ""}${isFav ? " qm-fav" : ""}" data-group="${key}">` +
+      `<button type="button" class="qm-sec-head" data-toggle="${key}">` +
+        `<span class="qm-sec-ico">${QM_ICONS[key] || QM_ICONS.favorites}</span>` +
+        `<span class="qm-sec-label">${label}</span>` +
+        `<span class="qm-sec-count">${queues.length || ""}</span>` +
+        `<span class="qm-chev">${QM_CHEVRON}</span>` +
+      `</button>` +
+      `<div class="qm-sec-body"><div class="qm-sec-inner">${body}</div></div>` +
+    `</div>`
+  );
+}
+
+function renderQueueMenu() {
+  const menu = $("queue-menu");
+  if (!menu) return;
+  const collapsed = qmLoadCollapsed();
+  const favQueues = qmFavorites.map(qmQueueById).filter(Boolean);
+  let html = '<div class="qm-panel"><div class="qm-title">Choose a queue</div>';
+  html += qmSectionHtml("favorites", "Favorites", favQueues, collapsed.has("favorites"));
+  for (const g of qmGroups) {
+    const qs = qmQueues.filter((q) => q.group === g.key);
+    if (qs.length) html += qmSectionHtml(g.key, g.label, qs, collapsed.has(g.key));
+  }
+  html += "</div>";
+  menu.innerHTML = html;
+}
+
+// Re-render only the Favorites section so the group sections (and the panel's
+// open animation) aren't disturbed when a star is toggled.
+function renderFavoritesSection() {
+  const sec = $("queue-menu")?.querySelector('.qm-section[data-group="favorites"]');
+  if (!sec) return;
+  const favQueues = qmFavorites.map(qmQueueById).filter(Boolean);
+  sec.querySelector(".qm-sec-inner").innerHTML = favQueues.length
+    ? favQueues.map((q, i) => qmRowHtml(q, i)).join("")
+    : '<div class="qm-empty">Tap the <span class="qm-empty-star">☆</span> on any queue to pin it here for one-click access.</div>';
+  const count = sec.querySelector(".qm-sec-count");
+  if (count) count.textContent = favQueues.length || "";
+}
+
+// Keep every star for a given queue id in lock-step with qmFavorites.
+function qmSyncStars(id) {
+  const on = qmFavorites.includes(Number(id));
+  $("queue-menu")?.querySelectorAll(`.qm-star[data-fav="${id}"]`).forEach((s) => {
+    s.classList.toggle("on", on);
+    s.title = on ? "Unpin from favorites" : "Pin to favorites";
+  });
+}
+
+async function toggleFavorite(id, starEl) {
+  id = Number(id);
+  const adding = !qmFavorites.includes(id);
+  if (adding) qmFavorites.push(id);
+  else qmFavorites = qmFavorites.filter((x) => x !== id);
+  try { await api().set_favorites(qmFavorites); } catch (_) {}
+
+  if (starEl) replay(starEl, "pop");
+  qmSyncStars(id);
+
+  // Unpinning from within the Favorites list: animate that row out first.
+  const favSec = $("queue-menu")?.querySelector('.qm-section[data-group="favorites"]');
+  if (!adding && starEl && favSec && favSec.contains(starEl)) {
+    const row = starEl.closest(".qm-row");
+    if (row) {
+      row.classList.add("qm-removing");
+      setTimeout(renderFavoritesSection, 180);
+      return;
+    }
+  }
+  renderFavoritesSection();
+}
+
+function toggleSection(key) {
+  const sec = $("queue-menu")?.querySelector(`.qm-section[data-group="${key}"]`);
+  if (!sec) return;
+  const collapsed = qmLoadCollapsed();
+  if (sec.classList.toggle("collapsed")) collapsed.add(key);
+  else collapsed.delete(key);
+  qmSaveCollapsed(collapsed);
+}
+
+async function startQuickQueue(id) {
+  closeQueueMenu();
+  await api().start_queue(id);
+  refreshStatus(); // flip PLAY → IN QUEUE
+}
+
+function onQueueMenuClick(e) {
+  const star = e.target.closest(".qm-star");
+  if (star) { e.stopPropagation(); toggleFavorite(star.dataset.fav, star); return; }
+  const head = e.target.closest(".qm-sec-head");
+  if (head) { toggleSection(head.dataset.toggle); return; }
+  const row = e.target.closest(".qm-row");
+  if (row) startQuickQueue(row.dataset.qid);
 }
 function openQueueMenu() {
   const menu = $("queue-menu");

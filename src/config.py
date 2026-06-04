@@ -47,6 +47,8 @@ def default_config():
         "user_id": "",
         "desktop_notifications": True,
         "allowed_queue_ids": [],
+        # Queue ids pinned to the top of the PLAY dropdown (order = display order).
+        "favorite_queue_ids": [],
         "companion": {
             "enabled": False,
             "port": 8420,
