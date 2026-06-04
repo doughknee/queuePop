@@ -117,14 +117,103 @@
       box-shadow: inset 0 0 140px rgba(200,170,110,0.55);
     }
     #flash.go { animation: flash-pop 1.3s ease-out; }
+
+    /* --- Custom window chrome (frameless) ------------------------------
+       The OS title bar is disabled (main.py frameless=True); this slim bar
+       replaces it with the client's Hextech look. Logic: window-chrome.js. */
+    .titlebar {
+      height: 34px; flex-shrink: 0; position: relative; z-index: 40;
+      display: flex; align-items: stretch;
+      background: linear-gradient(180deg, #0A1428 0%, #010A13 100%);
+      border-top: 2px solid #785A28;                       /* gold frame accent */
+      border-bottom: 1px solid rgb(201 191 150 / 0.15);
+    }
+    /* Drag handle — pywebview moves the window when a .pywebview-drag-region is
+       dragged. The control buttons are siblings (not children) so clicking them
+       never starts a drag. */
+    .titlebar-drag {
+      flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+      padding-left: 12px;
+    }
+    .titlebar-mark {
+      width: 12px; height: 12px; transform: rotate(45deg); flex-shrink: 0;
+      background: linear-gradient(135deg, #C8AA6E, #785A28);
+      box-shadow: inset 0 0 0 1px rgb(240 230 210 / 0.55);
+      pointer-events: none;
+    }
+    .titlebar-title {
+      font-family: Cinzel, Georgia, serif; font-size: 11px;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: #8c7a45; white-space: nowrap; pointer-events: none;
+    }
+    .win-controls { display: flex; align-items: stretch; }
+    .win-btn {
+      width: 46px; display: grid; place-items: center;
+      border: 0; background: transparent; color: #c9bf96; cursor: pointer;
+      transition: background-color .12s ease, color .12s ease;
+    }
+    .win-btn svg { width: 11px; height: 11px; }
+    .win-btn:hover { background: rgb(200 170 110 / 0.14); color: #F0E6D2; }
+    .win-btn:active { background: rgb(200 170 110 / 0.24); }
+    .win-btn.close:hover { background: rgb(192 88 79 / 0.85); color: #F0E6D2; }
+
+    /* Invisible resize grips along the window edges. Frameless windows have no
+       native resize border, so these drive window-chrome.js's resize loop. */
+    .resize-grip { position: fixed; z-index: 50; }
+    .rg-n  { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+    .rg-s  { bottom: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+    .rg-e  { top: 8px; bottom: 8px; right: 0; width: 4px; cursor: ew-resize; }
+    .rg-w  { top: 8px; bottom: 8px; left: 0; width: 4px; cursor: ew-resize; }
+    .rg-ne { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    .rg-nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    .rg-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    .rg-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    body.maximized .resize-grip { display: none; }   /* nothing to resize */
   </style>
 </head>
 <body class="text-grey1 antialiased h-screen overflow-hidden">
   <div id="flash"></div>
+
+  <!-- Frameless resize grips (window edges + corners) -->
+  <div class="resize-grip rg-n"  data-edge="n"></div>
+  <div class="resize-grip rg-s"  data-edge="s"></div>
+  <div class="resize-grip rg-e"  data-edge="e"></div>
+  <div class="resize-grip rg-w"  data-edge="w"></div>
+  <div class="resize-grip rg-ne" data-edge="ne"></div>
+  <div class="resize-grip rg-nw" data-edge="nw"></div>
+  <div class="resize-grip rg-se" data-edge="se"></div>
+  <div class="resize-grip rg-sw" data-edge="sw"></div>
+
   <div class="flex flex-col h-full">
 
+    <!-- Custom title bar (replaces the native OS chrome) -->
+    <div class="titlebar">
+      <div class="titlebar-drag pywebview-drag-region">
+        <span class="titlebar-mark"></span>
+        <span class="titlebar-title">queueBot</span>
+      </div>
+      <div class="win-controls">
+        <button id="win-min" class="win-btn" title="Minimize" aria-label="Minimize">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+            <line x1="2.5" y1="6.5" x2="9.5" y2="6.5" />
+          </svg>
+        </button>
+        <button id="win-max" class="win-btn" title="Maximize" aria-label="Maximize">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="2.2" y="2.2" width="7.6" height="7.6" />
+          </svg>
+        </button>
+        <button id="win-close" class="win-btn close" title="Close" aria-label="Close">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+            <line x1="3" y1="3" x2="9" y2="9" />
+            <line x1="9" y1="3" x2="3" y2="9" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- Header -->
-    <header class="flex items-center justify-between px-5 py-3 border-t-2 border-t-gold5 border-b border-b-icon/30 backdrop-blur-2xl">
+    <header class="flex items-center justify-between px-5 py-3 border-b border-b-icon/30 backdrop-blur-2xl">
       <div class="flex items-center gap-3">
         <!-- Hextech ring mark -->
         <div class="h-11 w-11 rounded-full bg-gold5 grid place-items-center shrink-0">
@@ -390,6 +479,7 @@
     </div>
   </div>
 
+  <script src="window-chrome.js"></script>
   <script src="alarm-sound.js"></script>
   <script src="app.js"></script>
 </body>

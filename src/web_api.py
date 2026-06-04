@@ -58,6 +58,10 @@ def _normalize_champ_select(cs):
 
 ALARM_SOUNDS = {"chime", "ping", "arcade", "siren", "custom"}
 
+# Floor for the custom frameless resize grips; mirrors main.py's min_size so the
+# JS chrome and the Python safety-net clamp agree.
+MIN_WINDOW_SIZE = (620, 700)
+
 
 def _normalize_companion(comp):
     comp = comp or {}
@@ -113,6 +117,9 @@ class Api:
         self._lcu = lcu
         # Optional hook so the UI can ask to hide the window to tray.
         self._window = window_controller
+        # Tracks the frameless title bar's maximize/restore toggle (the window
+        # backend has no "is maximized" query, so we own the bit).
+        self._maximized = False
 
     # --- Read-only state ------------------------------------------------
 
@@ -273,4 +280,52 @@ class Api:
     def hide_window(self):
         if self._window:
             self._window.hide()
+        return True
+
+    # --- Frameless window chrome (custom League-themed title bar) --------
+    # The window is created frameless (see main.py), so the web UI draws its own
+    # title bar and drives these from src/webui/window-chrome.js.
+
+    def minimize_window(self):
+        if self._window:
+            try:
+                self._window.minimize()
+            except Exception:
+                pass
+        return True
+
+    def toggle_maximize_window(self):
+        """Toggle between maximized and normal. Returns True if now maximized."""
+        if not self._window:
+            return False
+        self._maximized = not self._maximized
+        try:
+            if self._maximized:
+                self._window.maximize()
+            else:
+                self._window.restore()
+        except Exception:
+            # Roll the bit back if the backend call failed so the icon stays honest.
+            self._maximized = not self._maximized
+        return self._maximized
+
+    def resize_window(self, width, height, edge="se"):
+        """Resize a frameless window from a dragged edge/corner, keeping the
+        opposite side pinned. `edge` is any mix of n/s/e/w (e.g. 'se', 'nw')."""
+        if not self._window:
+            return False
+        try:
+            from webview.window import FixPoint
+
+            min_w, min_h = MIN_WINDOW_SIZE
+            w = max(min_w, int(width))
+            h = max(min_h, int(height))
+            e = (edge or "se").lower()
+            # Pin the edge opposite the one under the cursor.
+            fix = (FixPoint.EAST if "w" in e else FixPoint.WEST) | (
+                FixPoint.SOUTH if "n" in e else FixPoint.NORTH
+            )
+            self._window.resize(w, h, fix)
+        except Exception:
+            return False
         return True
