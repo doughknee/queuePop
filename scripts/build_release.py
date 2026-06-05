@@ -39,7 +39,7 @@ def build_css():
     print("Building Tailwind CSS...")
     cmd = [
         "npx", "--yes", "tailwindcss@3.4.17",
-        "-c", "tailwind.config.js",
+        "-c", "scripts/tailwind.config.js",
         "-i", "src/webui/tailwind.src.css",
         "-o", "src/webui/styles.css",
         "--minify",
@@ -57,7 +57,7 @@ def run_pyinstaller():
     print("Running PyInstaller...")
     try:
         # Using sys.executable ensures we use the same python environment
-        cmd = [sys.executable, "-m", "PyInstaller", "queuePop.spec"]
+        cmd = [sys.executable, "-m", "PyInstaller", "scripts/queuePop.spec"]
         subprocess.check_call(cmd)
         print("PyInstaller finished successfully.")
     except subprocess.CalledProcessError as e:

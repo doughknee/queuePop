@@ -7,7 +7,7 @@ type Props = {
 
 /**
  * The queuePop "Queue Sigil", a gold hex ring with a glowing teal core and a
- * play/cursor pennant. Geometry ported from qPop/assets/svg/mark-*.svg.
+ * play/cursor pennant. Geometry ported from brand/svg/mark-*.svg.
  * Resting = bronze; hover (or `live`) ignites to gold + teal with a soft glow.
  */
 export function Mark({ className = '', live = false, title = 'queuePop' }: Props) {

@@ -6,7 +6,7 @@ type Props = {
 }
 
 /**
- * Recreation of design/play-button.svg as a self-contained component.
+ * Recreation of brand/play-button.svg as a self-contained component.
  * Resting state is bronze/dark-teal; on hover (or `live`) the ring and play
  * triangle ignite to gold and the banner frame shifts to bright teal, exactly
  * the swap the app performs in CSS.

@@ -52,7 +52,7 @@ Any static host also works, just upload `dist/client/`.
 
 - `src/routes/`, `__root.tsx` (document shell + head) and `index.tsx` (page).
 - `src/components/`, section components + `PlayEmblem` (recreated from
-  `../../design/play-button.svg`) and the `icons.tsx` original icon set.
+  `../../brand/play-button.svg`) and the `icons.tsx` original icon set.
 - `src/styles/globals.css`, Tailwind v4 `@theme` tokens + ported `.hextech` /
   `.framed` / keyframe utilities. Fonts in `public/fonts/`.
 

@@ -86,7 +86,7 @@ jobs:
 
       - name: Build release artifacts
         if: steps.check.outputs.exists == 'false'
-        run: python build_release.py
+        run: python scripts/build_release.py
 
       - name: Publish GitHub Release
         if: steps.check.outputs.exists == 'false'
