@@ -44,10 +44,13 @@ DisableProgramGroupPage=yes
 DisableDirPage=auto
 
 ; Lets the silent updater close + relaunch the running app via the Windows
-; Restart Manager. The name matches the mutex created in src/main.py.
+; Restart Manager. AppMutex must match the *exact* mutex name (namespace and
+; all) created in src/main.py — it's "Global\queuePop_Instance_Mutex".
+; Restart Manager is only a backup here: the app is a tray app that cancels
+; graceful close requests, so InitializeSetup below also hard-kills it.
 CloseApplications=yes
 RestartApplications=yes
-AppMutex=queuePop_Instance_Mutex
+AppMutex=Global\queuePop_Instance_Mutex
 
 OutputDir=releases
 OutputBaseFilename=queuePop-v{#MyAppVersion}-setup
@@ -81,7 +84,28 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     Flags: uninsdeletevalue; Tasks: startup
 
 [Run]
-; Launch after an interactive install. skipifsilent so a silent auto-update
-; doesn't double-launch — the Restart Manager relaunches us in that path.
+; Launch after install — interactively as the usual "Launch queuePop" checkbox,
+; and (without skipifsilent) automatically after a silent auto-update too. We do
+; NOT rely on the Restart Manager to relaunch: the app refuses graceful close so
+; it's hard-killed below, and a killed app isn't restarted by RM. A double
+; launch is harmless — the single-instance mutex makes the second copy exit.
 Filename: "{app}\{#MyAppExe}"; Description: "Launch {#MyAppName}"; \
-    Flags: nowait postinstall skipifsilent
+    Flags: nowait postinstall
+
+[Code]
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // Free the locked exe before we copy over it. queuePop runs in the system
+  // tray and its window-close handler cancels graceful shutdown, so neither the
+  // Restart Manager nor the app's own updater reliably ends the process. A hard
+  // taskkill is the only dependable way to release the file for a silent
+  // update. Runs before the AppMutex check, so the stale mutex clears too.
+  // No-ops (and is ignored) when nothing is running, e.g. a fresh install.
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM {#MyAppExe}', '',
+       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Give Windows a beat to release the file handle after the process dies.
+  Sleep(800);
+  Result := True;
+end;

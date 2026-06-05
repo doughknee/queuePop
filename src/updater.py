@@ -374,11 +374,13 @@ def _quit_soon(on_exit):
         time.sleep(1.0)
         if callable(on_exit):
             try:
-                on_exit()
-                return
+                on_exit()  # stop the LCU loop + destroy the window
             except Exception:
                 pass
-        # Last resort if no clean shutdown hook was wired in.
+        # on_exit only closes the window; this is a tray app, so the process can
+        # keep running (and the .exe stays locked) after it. The installer/swap
+        # can't replace a locked file, so force the process to actually exit.
+        time.sleep(0.5)
         os._exit(0)
 
     threading.Thread(target=_stop, daemon=True, name="updater-quit").start()
