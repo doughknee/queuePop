@@ -1,0 +1,80 @@
+name: Release
+
+# Builds the portable zip, bare exe, and Inno Setup installer on Windows, then
+# publishes them to a GitHub Release.
+#
+#   * Push a version tag  ->  git tag v1.2.0 && git push origin v1.2.0
+#   * Or click "Run workflow" on the Actions tab (uses the version in
+#     src/_version.py and creates the matching tag + release).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write  # required to create the release + tag
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Matches the dev/build interpreter so CI reproduces your known-good
+          # local build. If a dependency lacks a 3.14 wheel on the runner and the
+          # build fails, drop this to "3.12" (PyInstaller bundles whichever it uses).
+          python-version: "3.14"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Read version from src/_version.py
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path src/_version.py -Pattern '__version__\s*=\s*"([^"]+)"').Matches.Groups[1].Value
+          if (-not $v) { Write-Error "Could not parse __version__ from src/_version.py"; exit 1 }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Building version $v"
+
+      - name: Verify tag matches version
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $expected = "v${{ steps.ver.outputs.version }}"
+          if ($tag -ne $expected) {
+            Write-Error "Tag '$tag' does not match src/_version.py ('$expected'). Bump _version.py or retag."
+            exit 1
+          }
+
+      - name: Build release artifacts
+        run: python build_release.py
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: queueBot v${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            releases/queueBot-v${{ steps.ver.outputs.version }}-setup.exe
+            releases/queueBot-v${{ steps.ver.outputs.version }}-portable.zip
+            releases/queueBot.exe

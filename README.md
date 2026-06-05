@@ -18,13 +18,24 @@ A lightweight, automated tool for **League of Legends** and **Teamfight Tactics*
 
 ## 📥 Installation
 
-### Option 1: Portable Executable (Recommended)
+### Option 1: Installer (Recommended)
 1.  Go to the [Releases](../../releases) page.
-2.  Download the latest `queueBot-v<version>.zip`.
-3.  Extract the folder anywhere on your PC.
-4.  Run `queueBot.exe`.
+2.  Download `queueBot-v<version>-setup.exe`.
+3.  Run it. It installs for the current user (no admin prompt), adds a Start
+    Menu entry, and can optionally create a desktop shortcut and start with
+    Windows.
 
-### Option 2: Run from Source
+### Option 2: Portable
+1.  Download `queueBot-v<version>-portable.zip` from [Releases](../../releases).
+2.  Extract it anywhere and run `queueBot.exe`.
+
+> **Auto-updates:** both flavours check for new releases on launch. When one is
+> available you'll see an **Update** banner — one click downloads it and
+> restarts into the new version (the installer build updates silently; the
+> portable build swaps its own `.exe`). You can also check manually under
+> **Settings → About & Updates**.
+
+### Option 3: Run from Source
 If you are a developer, you can run it directly with Python.
 
 1.  Clone the repository.
@@ -80,7 +91,43 @@ pip install pyinstaller
 python -m PyInstaller queueBot.spec
 ```
 
-The output will be in the `dist/` folder. For a full clean build that also produces a zipped release under `releases/`, run `python build_release.py`.
+The output will be in the `dist/` folder. For a full clean build, run:
+
+```bash
+python build_release.py
+```
+
+That fetches League assets, compiles the Tailwind CSS, runs PyInstaller, and
+writes these artifacts to `releases/`:
+
+| Artifact | What it is |
+|---|---|
+| `queueBot-v<version>-setup.exe` | Inno Setup installer (the installed flavour) |
+| `queueBot-v<version>-portable.zip` | Zipped portable exe |
+| `queueBot.exe` | Bare exe — the asset the portable auto-updater downloads |
+
+The installer step needs [Inno Setup](https://jrsoftware.org/isdl.php) on your
+PATH; if it's missing, the script warns and still produces the portable
+artifacts. The installer script lives at `installer/queueBot.iss`.
+
+## 🚢 Releasing
+
+Releases are built and published by GitHub Actions
+([`.github/workflows/release.yml`](.github/workflows/release.yml)) on
+`windows-latest`:
+
+1.  Bump `__version__` in [`src/_version.py`](src/_version.py).
+2.  Commit, then tag and push:
+    ```bash
+    git tag v1.2.0
+    git push origin main --tags
+    ```
+3.  The workflow verifies the tag matches `_version.py`, builds all three
+    artifacts, and publishes a GitHub Release with auto-generated notes. Users
+    on older versions get the in-app update prompt.
+
+You can also trigger it manually from the **Actions** tab (it uses the version
+in `_version.py` and creates the matching tag).
 
 ## 📄 License
 

@@ -20,3 +20,6 @@ src/webui/assets/spells/
 
 # Node tooling for the Tailwind build (CSS itself is committed)
 node_modules/
+
+# Local Claude Code tooling (settings, worktrees) — not for the repo
+.claude/

@@ -12,12 +12,14 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from urllib.parse import quote
 
 import config
 import champ_select
 import companion
 import events
+import updater
 from notifications import send_discord_test
 from _version import __version__
 
@@ -305,6 +307,9 @@ class Api:
         self._lcu = lcu
         # Optional hook so the UI can ask to hide the window to tray.
         self._window = window_controller
+        # Clean-shutdown callback (set by main.py). The self-updater calls this
+        # so the app exits and releases the exe lock for the swap/installer.
+        self._on_exit = None
         # Tracks the frameless title bar's maximize/restore toggle (the window
         # backend has no "is maximized" query, so we own the bit).
         self._maximized = False
@@ -717,7 +722,32 @@ class Api:
             "qr": companion.qr_data_uri(url),
         }
 
+    def get_update_status(self):
+        """Cached self-update state for the update banner — never blocks on the
+        network. The background checker in updater.start_background() refreshes
+        this; {available, current, latest, notes, url} drive the UI."""
+        return updater.status()
+
+    def check_for_update(self):
+        """Force a fresh GitHub check (the Settings 'Check for updates' button).
+        Bounded by the request timeout, so it's safe to await from JS."""
+        return updater.check(force=True)
+
     # --- Mutations ------------------------------------------------------
+
+    def apply_update(self):
+        """Download and install the latest version, then quit so the new build
+        can take over. Returns immediately; progress shows in the activity feed.
+        Only meaningful for the packaged app."""
+        if not getattr(sys, "frozen", False):
+            return {"ok": False, "error": "Updates only apply to the packaged app"}
+        threading.Thread(
+            target=updater.apply,
+            kwargs={"on_exit": self._on_exit},
+            daemon=True,
+            name="apply-update",
+        ).start()
+        return {"ok": True, "started": True}
 
     def save_config(self, new_config):
         cfg = _normalize_config(new_config)

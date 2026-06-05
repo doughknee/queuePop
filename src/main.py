@@ -185,6 +185,19 @@ def main():
         except Exception:
             pass
 
+    # Let the self-updater quit the app cleanly (so the exe unlocks for the
+    # swap/installer). Underscore attr — see Api.__init__ on why public ones hang.
+    api._on_exit = shutdown
+
+    # Background check against GitHub Releases; surfaces an "update available"
+    # event + banner. Only useful for the packaged build.
+    if getattr(sys, "frozen", False):
+        try:
+            import updater
+            updater.start_background()
+        except Exception as e:
+            cfg.console.print(f"[warning]Update check unavailable: {e}[/]")
+
     # --- System Tray Icon, detached so the main thread runs the GUI loop ---
     tray_icon = TrayIcon(
         lcu_connector=lcu_connector,
