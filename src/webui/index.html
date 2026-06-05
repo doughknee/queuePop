@@ -205,6 +205,23 @@
        flanks are pointer-events:none so they fall through to this layer. */
     .appbar-drag { position: absolute; inset: 0; z-index: 0; }
 
+    /* queuePop "Queue Sigil" brand mark — gold hex ring, teal core, play
+       pennant. Geometry ported from the site's Mark (qPop/assets/svg). Shown
+       lit (gold + teal) since it's the app's own always-on identity. */
+    .qmark { display: inline-block; line-height: 0; }
+    .qmark svg { display: block; overflow: visible; }
+    /* Small app-identity glyph at the far left of the title bar. pointer-events
+       none so dragging the window still works over it. */
+    .brand-glyph { width: 25px; height: 25px; margin-right: 11px; flex-shrink: 0; pointer-events: none; }
+    /* Full lockup (mark + wordmark) for the About card. */
+    .brand-lockup { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+    .brand-lockup .qmark { width: 44px; height: 44px; flex-shrink: 0; }
+    .brand-word { font-family: Cinzel, Georgia, serif; text-transform: uppercase;
+      letter-spacing: 0.16em; font-size: 21px; line-height: 1; color: #F0E6D2; }
+    .brand-word b { color: #C8AA6E; font-weight: inherit; }
+    .brand-tag { font-family: Marcellus, Georgia, serif; font-size: 12px; color: #9f9b8d;
+      margin-top: 5px; letter-spacing: 0.015em; }
+
     /* Window min / maximize / close, pinned to the top-right corner. */
     .win-controls { position: absolute; top: 0; right: 0; z-index: 3; display: flex; align-items: stretch; height: 24px; }
     .win-btn {
@@ -1122,6 +1139,25 @@
       </div>
 
       <div class="nav-left">
+        <!-- queuePop app-identity glyph (the "Queue Sigil"). Decorative; the
+             pointer-events:none wrapper keeps window-drag working over it. -->
+        <span class="qmark brand-glyph" title="queuePop" aria-label="queuePop">
+          <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
+            <defs>
+              <radialGradient id="qmGlowBar" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
+                <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+            <circle cx="56" cy="54" r="26" fill="url(#qmGlowBar)" />
+            <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
+                     fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
+            <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
+                     fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
+            <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
+            <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
+          </svg>
+        </span>
         <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in design/play-button.svg). Hooks the
                app relies on: class="play-svg" (sizing), id="play-label" (state
@@ -1597,6 +1633,30 @@
         <!-- CARD: About & Updates -->
         <div id="set-about" class="hextech p-5 set-card">
           <div class="set-card-title">About &amp; Updates</div>
+          <!-- queuePop brand lockup: the Queue Sigil mark + wordmark + tagline. -->
+          <div class="brand-lockup">
+            <span class="qmark" title="queuePop" aria-label="queuePop">
+              <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
+                <defs>
+                  <radialGradient id="qmGlowAbout" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
+                    <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <circle cx="56" cy="54" r="26" fill="url(#qmGlowAbout)" />
+                <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
+                         fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
+                <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
+                         fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
+                <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
+                <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
+              </svg>
+            </span>
+            <div>
+              <div class="brand-word">queue<b>Pop</b></div>
+              <div class="brand-tag">Accepts the Ready Check the instant it pops.</div>
+            </div>
+          </div>
           <div class="set-sub">
             <div class="set-row" style="justify-content: space-between;">
               <span class="set-row-label">Installed version</span>
@@ -1607,6 +1667,10 @@
               <button id="about-check" class="upd-btn ghost">Check for updates</button>
               <button id="about-update" class="upd-btn hidden">Update now</button>
               <a id="about-notes" class="snav-link hidden" target="_blank" rel="noopener" style="border:0;padding:0;">Release notes ↗</a>
+            </div>
+            <div class="brand-links" style="display:flex; gap:8px; margin-top:14px;">
+              <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
+              <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
             </div>
           </div>
         </div>

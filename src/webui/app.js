@@ -2441,6 +2441,14 @@ $("about-notes") && $("about-notes").addEventListener("click", (e) => {
   if (updateState && updateState.url) { e.preventDefault(); api().open_external(updateState.url); }
 });
 
+// Brand links (GitHub, Tip Jar) — open in the real browser, never the WebView.
+document.querySelectorAll("[data-ext]").forEach((el) => {
+  el.addEventListener("click", (e) => {
+    e.preventDefault();
+    api().open_external(el.getAttribute("data-ext"));
+  });
+});
+
 // --- Boot ---------------------------------------------------------------
 async function boot() {
   // Build the UI; never let a single render error stop status polling.
