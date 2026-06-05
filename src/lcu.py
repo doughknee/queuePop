@@ -1,11 +1,37 @@
 import asyncio
 from lcu_driver import Connector
+import lcu_driver.connector as _lcu_connector
+from psutil import process_iter as _process_iter
 from rich.panel import Panel
 
 import config
 import events
 from champ_select import ChampSelect
 from notifications import send_discord_ping, send_desktop_notification
+
+# --- Cheap client discovery (perf fix) -------------------------------------
+# lcu_driver's stock _return_ux_process scans EVERY process's command line
+# (psutil.process_iter(attrs=["cmdline"])) and does so on a near-tight loop
+# while the League client is closed (Connector.start: scan → sleep 0.5s →
+# scan). On Windows, reading a process's cmdline opens the process and walks
+# its PEB, so a full scan of 300+ processes takes ~3s, and the pure-Python
+# iteration holds the GIL almost the whole time. That starves pywebview's
+# main-thread Win32 message pump, so dragging our frameless window stutters
+# badly — but ONLY while the client is offline (once connected the connector
+# sits idle on the websocket and never scans). Matching on process *name*
+# alone is ~400x cheaper (~7ms) and is all we need to find the client; the one
+# matched process still has its cmdline read lazily in Connection.__init__ to
+# pull the port/auth token. Patch the name the connector module resolved.
+_UX_PROCESS_NAMES = ("LeagueClientUx.exe", "LeagueClientUx")
+
+
+def _cheap_ux_process():
+    for proc in _process_iter(["name"]):
+        if proc.info.get("name") in _UX_PROCESS_NAMES:
+            yield proc
+
+
+_lcu_connector._return_ux_process = _cheap_ux_process
 
 # Gameflow phase -> (activity message, UI level, event kind). Drives the
 # general activity feed (desktop + phone) so users see match progress even with
