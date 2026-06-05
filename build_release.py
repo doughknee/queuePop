@@ -134,7 +134,7 @@ def build_installer():
         return
     iscc = _find_iscc()
     if not iscc:
-        print("⚠️  Inno Setup (ISCC) not found — skipping installer build.")
+        print("WARNING: Inno Setup (ISCC) not found - skipping installer build.")
         print("    Install it from https://jrsoftware.org/isdl.php to build the setup.exe.")
         return
     _ensure_releases_dir()
@@ -149,7 +149,7 @@ def build_installer():
 
 
 def main():
-    print("🔨 Building queueBot...")
+    print("Building queueBot...")
     clean_build_dirs()
     fetch_assets()
     build_css()
