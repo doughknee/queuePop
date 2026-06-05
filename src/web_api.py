@@ -93,7 +93,7 @@ def _platform(region):
 
 def external_profile_links(name, tag, region, platform):
     """Region-aware links to the player's profile on the major LoL tracker sites,
-    built from the Riot ID. Best-effort URL shapes — broken links degrade to the
+    built from the Riot ID. Best-effort URL shapes, broken links degrade to the
     site's search, and formats are easy to tweak here in one place."""
     if not name:
         return []
@@ -284,7 +284,7 @@ def _normalize_config(data):
         "user_id": (data.get("user_id") or "").strip(),
         "desktop_notifications": bool(data.get("desktop_notifications", True)),
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
-        # Order matters here — it's the display order of pinned queues.
+        # Order matters here, it's the display order of pinned queues.
         "favorite_queue_ids": _clean_queue_ids(
             data.get("favorite_queue_ids"), keep_order=True
         ),
@@ -301,7 +301,7 @@ class Api:
         # introspects this js_api object at startup (webview.util.get_functions)
         # and recurses into every PUBLIC non-callable attribute to expose its
         # methods to JS. A public `window_controller` makes it walk the entire
-        # WinForms/WebView2 COM object graph — hanging the window for ~20s with
+        # WinForms/WebView2 COM object graph, hanging the window for ~20s with
         # "maximum recursion depth exceeded" errors. The leading `_` makes
         # get_functions skip them (it ignores names starting with `_`).
         self._lcu = lcu
@@ -389,7 +389,7 @@ class Api:
 
     def get_match_history(self, count=10):
         """Recent matches for the local player: [{championId, win, kills, deaths,
-        assists, queueId, ts}], newest first. Best-effort — empty when the client
+        assists, queueId, ts}], newest first. Best-effort, empty when the client
         is closed or match history isn't reachable."""
         try:
             count = max(1, min(int(count), 20))
@@ -597,7 +597,7 @@ class Api:
     def get_rune_pages(self):
         """The user's own selectable rune pages [{id, name, primaryStyleId,
         subStyleId}] from the live client, for the per-champ rune picker. Excludes
-        queueBot's managed recommended page. Empty when the client isn't up."""
+        queuePop's managed recommended page. Empty when the client isn't up."""
 
         async def _fetch(conn):
             r = await conn.request("get", "/lol-perks/v1/pages")
@@ -625,7 +625,7 @@ class Api:
     def get_rune_info(self):
         """Rune-page status for the Recommended Runes settings panel:
         {pages:[{id,name}], managed:{id,name}|None, at_cap:bool}. `pages` lists
-        the user's own (claimable) pages; `managed` is queueBot's dedicated page
+        the user's own (claimable) pages; `managed` is queuePop's dedicated page
         if it exists; `at_cap` is true when no slot is free to create one."""
 
         async def _fetch(conn):
@@ -656,7 +656,7 @@ class Api:
         }
 
     def claim_rune_page(self, page_id):
-        """Hand an existing rune page over to queueBot: rename it to the managed
+        """Hand an existing rune page over to queuePop: rename it to the managed
         name (keeping its current runes) so the recommended-runes feature edits
         it from now on instead of touching the user's other pages."""
 
@@ -683,7 +683,7 @@ class Api:
 
         res = self._lcu.call(_claim, timeout=6.0)
         if res and res.get("ok"):
-            events.push("queueBot now manages that rune page", "success", kind="runes")
+            events.push("queuePop now manages that rune page", "success", kind="runes")
         return res or {"ok": False, "error": "Client not connected"}
 
     def get_champions(self):
@@ -723,7 +723,7 @@ class Api:
         }
 
     def get_update_status(self):
-        """Cached self-update state for the update banner — never blocks on the
+        """Cached self-update state for the update banner, never blocks on the
         network. The background checker in updater.start_background() refreshes
         this; {available, current, latest, notes, url} drive the UI."""
         return updater.status()
@@ -764,7 +764,7 @@ class Api:
             events.push(f"Failed to save settings: {e}", "danger")
             return {"ok": False, "error": str(e)}
 
-        # Hot-apply to the running connector — no restart required. Saved quietly
+        # Hot-apply to the running connector, no restart required. Saved quietly
         # (no activity-feed event): the UI auto-saves on every change and shows a
         # toast, so pushing an event here would flood the feed.
         self._lcu.config = cfg
@@ -793,7 +793,7 @@ class Api:
         return {"ok": ok, "error": err}
 
     def test_companion(self):
-        """Fire a synthetic queue-pop so a connected phone alarms — lets users
+        """Fire a synthetic queue-pop so a connected phone alarms, lets users
         confirm their companion setup without waiting for a real queue."""
         events.push("Test phone alert", "danger", kind="queue_pop")
         return {"ok": True, "running": companion.is_running()}
@@ -918,8 +918,8 @@ class Api:
         }
 
     def set_favorites(self, ids):
-        """Persist the pinned-queue list (order preserved). Saved quietly — no
-        activity-feed noise — since users may toggle stars rapidly."""
+        """Persist the pinned-queue list (order preserved). Saved quietly, no
+        activity-feed noise, since users may toggle stars rapidly."""
         valid = {q["id"] for q in QUICK_QUEUES}
         favorites = [q for q in _clean_queue_ids(ids, keep_order=True) if q in valid]
         cfg = dict(self._lcu.config or {})
@@ -1051,7 +1051,7 @@ class Api:
             except Exception:
                 pass
 
-            # Proxy the profile icon (cache by id — it rarely changes).
+            # Proxy the profile icon (cache by id, it rarely changes).
             icon_id = out["icon_id"]
             if icon_id is not None and icon_id not in self._icon_cache:
                 try:

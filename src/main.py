@@ -85,7 +85,7 @@ def main():
     """
     Main function to handle configuration and launch the tray icon.
     """
-    parser = argparse.ArgumentParser(description=f"queueBot Tool {__version__}")
+    parser = argparse.ArgumentParser(description=f"queuePop Tool {__version__}")
     parser.add_argument("--update", action="store_true", help="Force update of settings")
     args = parser.parse_args()
 
@@ -96,7 +96,7 @@ def main():
 
     # --- Single Instance Check ---
     # Create a named mutex. If it already exists, another instance is running.
-    mutex_name = "Global\\queueBot_Instance_Mutex"
+    mutex_name = "Global\\queuePop_Instance_Mutex"
     kernel32 = ctypes.WinDLL('kernel32')
     mutex = kernel32.CreateMutexW(None, False, mutex_name)
     last_error = kernel32.GetLastError()
@@ -105,9 +105,9 @@ def main():
         # If the console is visible (e.g. dev mode), print a message. 
         # Otherwise, just exit silently to avoid popping up a confusing window.
         if cfg.console:
-            cfg.console.print("[warning]queueBot is already running![/]")
+            cfg.console.print("[warning]queuePop is already running![/]")
         else:
-            print("queueBot is already running!")
+            print("queuePop is already running!")
         sys.exit(0)
 
     # --- Configuration ---
@@ -147,7 +147,7 @@ def main():
     index_path = webui_index()
 
     window = webview.create_window(
-        "queueBot",
+        "queuePop",
         url=index_path,
         js_api=api,
         width=740,
@@ -157,11 +157,11 @@ def main():
         # Drop the native OS chrome so the web UI can draw its own League-themed
         # title bar (min/maximize/close live in src/webui/window-chrome.js).
         # easy_drag=False so only the .pywebview-drag-region title bar drags the
-        # window — otherwise every mousedown on the body would move it.
+        # window, otherwise every mousedown on the body would move it.
         frameless=True,
         easy_drag=False,
     )
-    # Underscore attr on purpose — see Api.__init__: a public attribute holding
+    # Underscore attr on purpose, see Api.__init__: a public attribute holding
     # the window makes pywebview recurse the WebView2 COM graph and hang startup.
     api._window = window
 
@@ -186,7 +186,7 @@ def main():
             pass
 
     # Let the self-updater quit the app cleanly (so the exe unlocks for the
-    # swap/installer). Underscore attr — see Api.__init__ on why public ones hang.
+    # swap/installer). Underscore attr, see Api.__init__ on why public ones hang.
     api._on_exit = shutdown
 
     # Background check against GitHub Releases; surfaces an "update available"

@@ -57,7 +57,7 @@ def run_pyinstaller():
     print("Running PyInstaller...")
     try:
         # Using sys.executable ensures we use the same python environment
-        cmd = [sys.executable, "-m", "PyInstaller", "queueBot.spec"]
+        cmd = [sys.executable, "-m", "PyInstaller", "queuePop.spec"]
         subprocess.check_call(cmd)
         print("PyInstaller finished successfully.")
     except subprocess.CalledProcessError as e:
@@ -75,7 +75,7 @@ def _ensure_releases_dir():
 
 def _built_exe():
     """Path to the PyInstaller output exe; exits if it's missing."""
-    exe_name = "queueBot.exe" if sys.platform == "win32" else "queueBot"
+    exe_name = "queuePop.exe" if sys.platform == "win32" else "queuePop"
     source_file = os.path.join("dist", exe_name)
     if not os.path.exists(source_file):
         print(f"Error: Source file '{source_file}' does not exist.")
@@ -87,7 +87,7 @@ def create_zip_release():
     """Zips the built executable into the releases directory (portable flavour)."""
     _ensure_releases_dir()
     exe_name, source_file = _built_exe()
-    zip_path = os.path.join(RELEASES_DIR, f"queueBot-v{VERSION}-portable.zip")
+    zip_path = os.path.join(RELEASES_DIR, f"queuePop-v{VERSION}-portable.zip")
     print(f"Zipping portable release to {zip_path}...")
     try:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -99,11 +99,11 @@ def create_zip_release():
 
 
 def copy_bare_exe():
-    """Drop a bare queueBot.exe into releases/ — the asset the portable
+    """Drop a bare queuePop.exe into releases/, the asset the portable
     auto-updater downloads (no unzip needed)."""
     _ensure_releases_dir()
     _, source_file = _built_exe()
-    dest = os.path.join(RELEASES_DIR, "queueBot.exe")
+    dest = os.path.join(RELEASES_DIR, "queuePop.exe")
     print(f"Copying bare exe to {dest}...")
     shutil.copy2(source_file, dest)
 
@@ -139,17 +139,17 @@ def build_installer():
         return
     _ensure_releases_dir()
     print("Building installer with Inno Setup...")
-    cmd = [iscc, f"/DMyAppVersion={VERSION}", os.path.join("installer", "queueBot.iss")]
+    cmd = [iscc, f"/DMyAppVersion={VERSION}", os.path.join("installer", "queuePop.iss")]
     try:
         subprocess.check_call(cmd)
-        print(f"Installer created at {os.path.join(RELEASES_DIR, f'queueBot-v{VERSION}-setup.exe')}")
+        print(f"Installer created at {os.path.join(RELEASES_DIR, f'queuePop-v{VERSION}-setup.exe')}")
     except subprocess.CalledProcessError as e:
         print(f"Installer build failed with exit code {e.returncode}")
         sys.exit(e.returncode)
 
 
 def main():
-    print("Building queueBot...")
+    print("Building queuePop...")
     clean_build_dirs()
     fetch_assets()
     build_css()

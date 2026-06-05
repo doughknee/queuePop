@@ -24,7 +24,7 @@ def _text_to_list(text):
 class SettingsApp:
     def __init__(self, root, current_config, on_save_callback):
         self.root = root
-        self.root.title("queueBot Settings")
+        self.root.title("queuePop Settings")
         self.root.geometry("480x660")
         self.root.resizable(False, False)
 
@@ -302,7 +302,7 @@ def open_settings(current_config, on_save_callback=None):
             base_path = sys._MEIPASS
         else:
             base_path = os.path.abspath(".")
-        icon_path = os.path.join(base_path, "assets", "gnome-thresh.ico")
+        icon_path = os.path.join(base_path, "assets", "queuepop.ico")
         root.iconbitmap(icon_path)
     except Exception:
         pass

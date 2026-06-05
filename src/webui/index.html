@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>queueBot</title>
+  <title>queuePop</title>
   <!--
     Precompiled Tailwind (scripts: tailwind.config.js + tailwind.src.css → styles.css)
     and locally-vendored fonts, so the bundled app works fully offline.
@@ -123,10 +123,10 @@
       font-size: 9px; font-weight: 700; line-height: 1;
       color: #0A0E13; background: #C8AA6E;
     }
-    /* Mastery 10+ gets a teal chip — a small flex among one-tricks. */
+    /* Mastery 10+ gets a teal chip, a small flex among one-tricks. */
     .cm-lvl.cm-high { background: #0AC8B9; box-shadow: 0 0 6px -1px rgba(10,200,185,0.7); }
 
-    /* Champ-select role bar — icon-over-label tabs with a gold active state, a
+    /* Champ-select role bar, icon-over-label tabs with a gold active state, a
        lit ignite-from-bottom underline, and a small "configured" dot. */
     .role-tab {
       position: relative; flex: 1 1 0; display: flex; flex-direction: column;
@@ -188,7 +188,7 @@
        OS title bar disabled (main.py frameless=True). One header bar: PLAY
        (launch / quick-queue) on the left, the route icons centered and running
        the FULL height of the bar (top to bottom), and the live summoner badge
-       on the right — PLAY, the icons, and the summoner all share one vertical
+       on the right, PLAY, the icons, and the summoner all share one vertical
        centre line. The min/maximize/close buttons float in the top-right
        corner, above a full-bar drag layer that lets empty space drag the window
        while every button stays clickable.
@@ -205,7 +205,7 @@
        flanks are pointer-events:none so they fall through to this layer. */
     .appbar-drag { position: absolute; inset: 0; z-index: 0; }
 
-    /* Window min / maximize / close — pinned to the top-right corner. */
+    /* Window min / maximize / close, pinned to the top-right corner. */
     .win-controls { position: absolute; top: 0; right: 0; z-index: 3; display: flex; align-items: stretch; height: 24px; }
     .win-btn {
       width: 40px; display: grid; place-items: center;
@@ -217,7 +217,7 @@
     .win-btn:active { background: rgb(200 170 110 / 0.24); }
     .win-btn.close:hover { background: rgb(192 88 79 / 0.85); color: #F0E6D2; }
 
-    /* PLAY cluster — vertically centred in the bar, above the drag layer. The
+    /* PLAY cluster, vertically centred in the bar, above the drag layer. The
        wrapper is click-through so the space around PLAY drags the window; the
        button itself re-enables pointer events. */
     .nav-left { display: flex; align-items: center; height: 100%; position: relative; z-index: 1; pointer-events: none; }
@@ -236,7 +236,7 @@
     .play-btn:disabled { cursor: default; opacity: 0.5; }
 
     /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
-       it isn't trapped under the navbar's backdrop-blur stacking context — that
+       it isn't trapped under the navbar's backdrop-blur stacking context, that
        was hiding it behind the page content and eating the clicks. Markup +
        behavior live in app.js (buildQueueMenu / renderQueueMenu). */
     .queue-menu { position: fixed; z-index: 70; }
@@ -301,7 +301,7 @@
     .qm-chev svg { width: 100%; height: 100%; }
     .qm-section.collapsed .qm-chev { transform: rotate(-90deg); }
 
-    /* Collapse via grid-template-rows 1fr↔0fr — smooth, no JS height measuring
+    /* Collapse via grid-template-rows 1fr↔0fr, smooth, no JS height measuring
        (reliable in WebView2's Chromium). Inner wrapper hides the overflow. */
     .qm-sec-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .26s ease, opacity .2s ease; }
     .qm-section.collapsed .qm-sec-body { grid-template-rows: 0fr; opacity: 0; }
@@ -343,7 +343,7 @@
       padding: 2px 5px; color: #C8983C; border: 1px solid rgb(200 152 60 / 0.5); border-radius: 2px;
     }
 
-    /* Favorite star — outline by default, gold-filled when pinned. Pops on toggle. */
+    /* Favorite star, outline by default, gold-filled when pinned. Pops on toggle. */
     .qm-star {
       flex-shrink: 0; display: inline-flex; width: 20px; height: 20px; padding: 1px;
       align-items: center; justify-content: center; cursor: pointer; color: #5B5A56;
@@ -385,7 +385,7 @@
     /* Avatar on the left (just left of the window controls, vertically centred
        to line up with PLAY / the icons); name + rank to its right, sitting in
        the column directly under the window buttons. The `right` offset only
-       shifts the rendered position — it doesn't change the flex flow, so the
+       shifts the rendered position, it doesn't change the flex flow, so the
        centred route icons stay put. */
     .summoner { display: inline-flex; align-items: center; gap: 11px; background: transparent; border: 0; cursor: pointer; padding: 6px 4px 6px 10px; pointer-events: auto; position: relative; right: 20px; }
     .summoner-portrait { width: 42px; height: 42px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; overflow: hidden; transition: background-color .15s ease; }
@@ -402,13 +402,13 @@
     .summoner-sub { display: flex; align-items: center; gap: 8px; line-height: 1.2; margin-top: 1px; }
     .summoner-level { font-size: 11px; color: #9f9b8d; letter-spacing: 0.04em; }
     .summoner-level:empty { display: none; }
-    /* Rank — colored by tier (set inline from JS), with a leading tier dot. */
+    /* Rank, colored by tier (set inline from JS), with a leading tier dot. */
     .summoner-rank { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
     .summoner-rank:empty { display: none; }
     .summoner-rank::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: currentColor; margin-right: 5px; vertical-align: middle; }
     .summoner.offline { cursor: default; }
 
-    /* Pause / resume control — moved off the title bar onto the dashboard hero
+    /* Pause / resume control, moved off the title bar onto the dashboard hero
        strip, beside the Monitoring/Paused status it toggles. Hextech button;
        renderPause() in app.js sets its color to gold4 while paused. */
     .hero-pause {
@@ -435,7 +435,7 @@
 
     /* --- Live champ-select route --------------------------------------
        Its own tab (#tab-live), reached via the PLAY→LIVE button. The button
-       glows (gold ring/ico, teal frame — the hover look) while the live route
+       glows (gold ring/ico, teal frame, the hover look) while the live route
        is active, so it reads as the current view in place of a nav icon. */
     .play-btn.live-active .pb-ring  { fill: #C8AA6E; }
     .play-btn.live-active .pb-ico   { fill: #C8AA6E; }
@@ -524,7 +524,7 @@
     .loadout-panel { position: relative; width: min(440px, 92vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); animation: loIn .22s cubic-bezier(.2,.8,.2,1) both; }
     @keyframes loIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 
-    /* Splash header — champion's base-skin tile bled behind the name. */
+    /* Splash header, champion's base-skin tile bled behind the name. */
     .lo-hero { position: relative; height: 104px; flex-shrink: 0; overflow: hidden; background: #0A1420; }
     .lo-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 22%; opacity: 0.55; transform: scale(1.05); }
     .lo-hero-grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(1,10,19,0.15) 0%, rgba(1,10,19,0.55) 55%, #010a13 100%); }
@@ -580,7 +580,7 @@
     .lo-skin-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 3px 2px; font-size: 8px; line-height: 1.1; color: #F0E6D2; text-shadow: 0 1px 2px #000; background: linear-gradient(to top, rgba(1,10,19,0.92), transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
     .loadout-foot { padding: 12px 18px; border-top: 1px solid rgb(120 90 40 / 0.3); display: flex; justify-content: flex-end; flex-shrink: 0; }
 
-    /* Remove-X on a selected cell — centered on the top-right corner, shown on
+    /* Remove-X on a selected cell, centered on the top-right corner, shown on
        hover. Clicking a selected pick's body opens its loadout instead. */
     .cell-x { position: absolute; top: 0; right: 0; transform: translate(40%, -40%); width: 17px; height: 17px; display: grid; place-items: center; border-radius: 9999px; background: #C0584F; color: #F0E6D2; cursor: pointer; opacity: 0; transition: opacity .12s ease, background-color .12s ease, transform .12s ease; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
     .grid-cell.sel:hover .cell-x { opacity: 1; }
@@ -608,7 +608,7 @@
     .toast-ico { width: 15px; height: 15px; color: #0AC8B9; flex-shrink: 0; }
     .toast.err .toast-ico { color: #d56a60; }
 
-    /* Update banner — slides up bottom-left when a newer version is published.
+    /* Update banner, slides up bottom-left when a newer version is published.
        Persists (unlike the auto-save toast) until the user updates or dismisses. */
     .upd-banner {
       position: fixed; left: 18px; bottom: 18px; z-index: 95;
@@ -657,11 +657,11 @@
     .sw input:checked ~ .sw-track .sw-knob { transform: translateX(17px); background: #C8AA6E; }
     .sw input:focus-visible ~ .sw-track { outline-color: #0AC8B9; }
     /* A settings row: toggle, label (clickable), and a help "?" with a tooltip.
-       Single-line — the explanatory copy lives in the tooltip, not under it. */
+       Single-line, the explanatory copy lives in the tooltip, not under it. */
     .set-row { display: flex; align-items: center; gap: 11px; }
     .set-row-label { flex: 1; min-width: 0; font-size: 13.5px; color: #F0E6D2; line-height: 1.35; cursor: pointer; }
     .set-row-hint { font-size: 12.5px; color: #A8A192; line-height: 1.5; }
-    /* Help "?" — hover shows a floating tooltip (#tip, positioned by app.js). */
+    /* Help "?", hover shows a floating tooltip (#tip, positioned by app.js). */
     .help {
       display: inline-grid; place-items: center; width: 16px; height: 16px; flex-shrink: 0;
       border-radius: 9999px; outline: 1px solid rgb(160 130 70 / 0.75); outline-offset: -1px;
@@ -868,7 +868,7 @@
     .act-msg { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; color: #C9C2B0; word-break: break-word; }
     .act-time { flex-shrink: 0; font-size: 11px; color: #6f6a5d; font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 2px; }
 
-    /* Allowed-queue pills — a scalable wrap grid of toggle chips replacing the
+    /* Allowed-queue pills, a scalable wrap grid of toggle chips replacing the
        old 2-col checkbox list. The checkbox is hidden; the chip lights gold when
        checked. */
     .queue-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
@@ -904,7 +904,7 @@
     <svg class="upd-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
     <div class="upd-body">
       <span class="upd-title">Update available</span>
-      <span id="upd-sub" class="upd-sub">A new version of queueBot is ready.</span>
+      <span id="upd-sub" class="upd-sub">A new version of queuePop is ready.</span>
     </div>
     <div class="upd-actions">
       <button id="upd-now" class="upd-btn">Update</button>
@@ -1011,7 +1011,7 @@
 
   <div class="flex flex-col h-full">
 
-    <!-- Header bar — PLAY (launch / quick-queue) | route icons | summoner, with
+    <!-- Header bar, PLAY (launch / quick-queue) | route icons | summoner, with
          the window controls floating top-right. The full-bar drag layer is the
          only .pywebview-drag-region (a sibling behind everything) so empty space
          drags the window while every button stays clickable. -->
@@ -1122,7 +1122,7 @@
             <span class="acct-portrait"><img id="acct-icon" alt="" onerror="this.style.visibility='hidden'" /></span>
             <div class="acct-id">
               <div class="acct-name-row">
-                <span id="acct-name" class="acct-name">—</span><span id="acct-tag" class="acct-tag"></span>
+                <span id="acct-name" class="acct-name">, </span><span id="acct-tag" class="acct-tag"></span>
                 <button id="acct-copy-id" class="acct-copy" title="Copy Riot ID">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
                   <span class="acct-copy-label">Copy ID</span>
@@ -1168,14 +1168,14 @@
       <!-- DASHBOARD -->
       <section id="tab-dashboard" class="space-y-5">
 
-        <!-- Hero — live state: monitoring + pause on top; what the client is
+        <!-- Hero, live state: monitoring + pause on top; what the client is
              doing right now + connection beneath. -->
         <div class="hextech framed hero">
           <div class="hero-row hero-top">
             <span id="hero-dot" class="hero-dot"></span>
             <div class="hero-main">
               <p class="hero-kicker">Monitoring</p>
-              <p id="hero-status" class="hero-status">—</p>
+              <p id="hero-status" class="hero-status">, </p>
             </div>
             <button id="pause-btn" class="hextech hero-pause" title="Pause / resume monitoring">
               <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
@@ -1190,14 +1190,14 @@
               <span id="hero-live-ico" class="hero-live-ico"></span>
               <span class="hero-chip-text">
                 <span class="hero-kicker">Right now</span>
-                <span id="hero-live" class="hero-live">—</span>
+                <span id="hero-live" class="hero-live">, </span>
               </span>
             </span>
             <span class="hero-chip">
               <span id="hero-conn-dot" class="hero-conn-dot"></span>
               <span class="hero-chip-text">
                 <span class="hero-kicker">Client</span>
-                <span id="hero-client" class="hero-conn-text">—</span>
+                <span id="hero-client" class="hero-conn-text">, </span>
               </span>
             </span>
           </div>
@@ -1211,7 +1211,7 @@
               <img id="profile-icon" alt="" onerror="this.style.visibility='hidden'" />
             </span>
             <div class="profile-id">
-              <p id="profile-name" class="profile-name">—</p>
+              <p id="profile-name" class="profile-name">, </p>
               <p id="profile-tier" class="profile-tier"></p>
             </div>
             <div class="profile-champs">
@@ -1228,7 +1228,7 @@
           <div id="plan" class="space-y-2"></div>
         </div>
 
-        <!-- Activity — framed, scrollable, filterable, with timestamps and
+        <!-- Activity, framed, scrollable, filterable, with timestamps and
              per-game session dividers. -->
         <div class="hextech framed act-panel">
           <div class="act-head">
@@ -1300,7 +1300,7 @@
         </div>
       </section>
 
-      <!-- SETTINGS — single column with a sticky jump-nav on wide windows. Every
+      <!-- SETTINGS, single column with a sticky jump-nav on wide windows. Every
            change auto-saves; there is no Save button. A few broad cards, each
            split into labelled sub-sections; explanatory copy lives in the "?"
            tooltips rather than under each toggle. -->
@@ -1369,7 +1369,7 @@
             <div class="set-row">
               <span class="sw"><input id="aram_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="aram_enabled" class="set-row-label">Grab a higher-priority champ off the bench</label>
-              <span class="help" data-tip="Build your ARAM priority list on Champ Select → ARAM. queueBot grabs the highest-ranked champ that lands on the reroll bench and trades toward it. Summoner spells set there apply too.">?</span>
+              <span class="help" data-tip="Build your ARAM priority list on Champ Select → ARAM. queuePop grabs the highest-ranked champ that lands on the reroll bench and trades toward it. Summoner spells set there apply too.">?</span>
             </div>
           </div>
 
@@ -1379,12 +1379,12 @@
             <div class="set-sub-head">Recommended Runes</div>
             <p class="set-row-hint">
               Loadouts using <span class="text-gold2">Recommended</span> runes write to one dedicated
-              page (<span class="text-gold2">queueBot (auto)</span>) so your own pages stay untouched.
+              page (<span class="text-gold2">queuePop (auto)</span>) so your own pages stay untouched.
             </p>
             <p id="rune-managed-status" class="text-sm text-grey1"></p>
             <div id="rune-claim-wrap" class="hidden space-y-2">
-              <p class="text-sm text-gold4">Rune pages are full. Pick one for queueBot to manage
-                (renamed <span class="text-gold2">queueBot (auto)</span> and overwritten each game):</p>
+              <p class="text-sm text-gold4">Rune pages are full. Pick one for queuePop to manage
+                (renamed <span class="text-gold2">queuePop (auto)</span> and overwritten each game):</p>
               <div id="rune-claim-list" class="space-y-1.5"></div>
             </div>
             <div class="flex items-center gap-3 pt-0.5">
@@ -1414,7 +1414,7 @@
             <div class="set-row">
               <span class="sw"><input id="companion_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="companion_enabled" class="set-row-label">Alarm my phone when the queue pops</label>
-              <span class="help" data-tip="Opens a page on your home Wi-Fi — no app, no account. Scan the QR with your phone, tap Enable Alerts, and keep the tab open. Phone must be on the same Wi-Fi; Windows may ask to allow queueBot through the firewall the first time.">?</span>
+              <span class="help" data-tip="Opens a page on your home Wi-Fi, no app, no account. Scan the QR with your phone, tap Enable Alerts, and keep the tab open. Phone must be on the same Wi-Fi; Windows may ask to allow queuePop through the firewall the first time.">?</span>
             </div>
 
             <div id="companion-live" class="hidden companion-info">
@@ -1509,7 +1509,7 @@
           <div class="set-sub">
             <div class="set-row" style="justify-content: space-between;">
               <span class="set-row-label">Installed version</span>
-              <span id="about-version" class="text-gold2" style="font-family: Cinzel, Georgia, serif;">—</span>
+              <span id="about-version" class="text-gold2" style="font-family: Cinzel, Georgia, serif;">, </span>
             </div>
             <p id="about-update-msg" class="set-row-hint mb-2">You're up to date.</p>
             <div class="set-row" style="gap: 9px;">

@@ -1,10 +1,10 @@
 """
-Self-updater for queueBot.
+Self-updater for queuePop.
 
 A running single-file .exe can't overwrite itself on Windows (the file is
 locked), so updating is a two-act trick:
 
-  * Portable build  -> download the new queueBot.exe next to the current one,
+  * Portable build  -> download the new queuePop.exe next to the current one,
     spawn a tiny .bat that waits for THIS process to exit, swaps the file, and
     relaunches. Then we quit so the swap can happen.
   * Installed build -> download the Inno Setup installer and run it /SILENT.
@@ -32,17 +32,17 @@ import events
 from _version import __version__
 
 # --- Where we look -----------------------------------------------------------
-GITHUB_REPO = "brandon-relentnet/queueBot"
+GITHUB_REPO = "brandon-relentnet/queuePop"
 _LATEST_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 # GitHub requires a User-Agent on API requests; identify ourselves + version.
-_UA = f"queueBot/{__version__} (+https://github.com/{GITHUB_REPO})"
+_UA = f"queuePop/{__version__} (+https://github.com/{GITHUB_REPO})"
 
 # Don't hammer the API: cache the last result and only re-check this often.
 _CHECK_INTERVAL = 6 * 60 * 60  # 6 hours
 
 # Inno writes this uninstall key when the installer runs; its presence (with a
 # matching InstallLocation) is how we tell an installed build from a portable one.
-_UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\queueBot_is1"
+_UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\queuePop_is1"
 
 # Module-level cache shared between the background checker and the JS API.
 _lock = threading.Lock()
@@ -96,7 +96,7 @@ def is_newer(remote, local):
 
 def is_installed():
     """(installed?, install_dir). True when this exe was put here by the Inno
-    installer — detected via the uninstall registry key. Portable builds (run
+    installer, detected via the uninstall registry key. Portable builds (run
     from a download folder, a USB stick, etc.) return (False, None)."""
     if sys.platform != "win32":
         return (False, None)
@@ -181,7 +181,7 @@ def status():
 
 def check(force=False):
     """Return the latest update status, re-querying GitHub if the cache is stale
-    (or `force`). Safe to call from the UI thread — network is bounded by the
+    (or `force`). Safe to call from the UI thread, network is bounded by the
     request timeout."""
     if force or (time.time() - _last_check_ts) > _CHECK_INTERVAL or not _cache["checked"]:
         return _do_check()
@@ -211,7 +211,7 @@ def start_background():
 
 def _pick_asset(assets, installed):
     """Choose the right release asset for how this copy was installed.
-    Installed -> the Inno setup .exe. Portable -> the bare queueBot.exe, falling
+    Installed -> the Inno setup .exe. Portable -> the bare queuePop.exe, falling
     back to the portable .zip (which we extract)."""
     def find(pred):
         return next((a for a in assets if pred(a["name"].lower())), None)
@@ -220,7 +220,7 @@ def _pick_asset(assets, installed):
         return find(lambda n: n.endswith("setup.exe"))
     # Portable: prefer the bare exe; else the portable zip.
     return (
-        find(lambda n: n == "queuebot.exe")
+        find(lambda n: n == "queuepop.exe")
         or find(lambda n: n.endswith("portable.zip"))
         or find(lambda n: n.endswith(".zip"))
     )
@@ -294,7 +294,7 @@ def apply(on_exit=None):
             return {"ok": False, "error": "No matching download in the release"}
 
         events.push(f"Downloading v{snap['latest']}…", "info", kind="update")
-        tmp = tempfile.mkdtemp(prefix="queueBot-upd-")
+        tmp = tempfile.mkdtemp(prefix="queuePop-upd-")
         local = os.path.join(tmp, asset["name"])
         _download(asset["url"], local)
 
@@ -311,7 +311,7 @@ def apply(on_exit=None):
 
 def _apply_installed(setup_path, on_exit):
     """Run the Inno installer silently. AppMutex in the script lets Inno's
-    Restart Manager close us, replace files, and relaunch — but we also exit
+    Restart Manager close us, replace files, and relaunch, but we also exit
     ourselves so nothing is left holding the old exe."""
     # /SILENT shows a small progress bar (friendlier than a frozen window);
     # CLOSE/RESTARTAPPLICATIONS drives the Restart Manager handoff.
@@ -338,7 +338,7 @@ def _apply_portable(downloaded, tmp_dir, on_exit):
         new_exe = _extract_exe_from_zip(downloaded, tmp_dir)
 
     cur = _current_exe()
-    staged = os.path.join(os.path.dirname(cur), "queueBot.new.exe")
+    staged = os.path.join(os.path.dirname(cur), "queuePop.new.exe")
     # Replace any leftover from a previous attempt, then stage the download.
     try:
         if os.path.exists(staged):
@@ -351,7 +351,7 @@ def _apply_portable(downloaded, tmp_dir, on_exit):
         import shutil
         shutil.copy2(new_exe, staged)
 
-    bat_path = os.path.join(tmp_dir, "queueBot-update.bat")
+    bat_path = os.path.join(tmp_dir, "queuePop-update.bat")
     with open(bat_path, "w", encoding="ascii") as f:
         f.write(_RELAUNCH_BAT)
 
@@ -362,7 +362,7 @@ def _apply_portable(downloaded, tmp_dir, on_exit):
         creationflags=creationflags,
         close_fds=True,
     )
-    events.push("Update staged — restarting…", "info", kind="update")
+    events.push("Update staged, restarting…", "info", kind="update")
     _quit_soon(on_exit)
     return {"ok": True}
 

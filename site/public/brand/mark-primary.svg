@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+<defs><radialGradient id="gl" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.55"/><stop offset="100%" stop-color="#0AC8B9" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="54" r="26" fill="url(#gl)"/>
+<polygon points="96.00,54.00 84.28,82.28 56.00,94.00 27.72,82.28 16.00,54.00 27.72,25.72 56.00,14.00 84.28,25.72" fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter"/>
+<polygon points="80.00,54.00 72.97,70.97 56.00,78.00 39.03,70.97 32.00,54.00 39.03,37.03 56.00,30.00 72.97,37.03" fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65"/>
+<circle cx="56" cy="54" r="6.5" fill="#0AC8B9"/>
+<polygon points="74.00,71.00 78.00,99.00 105.00,85.00" fill="#C8AA6E" stroke="#C8983C" stroke-width="1"/>
+<polygon points="74.00,71.00 78.00,85.00 105.00,85.00" fill="#F0E6D2" opacity="0.20"/>
+</svg>

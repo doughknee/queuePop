@@ -1,18 +1,18 @@
-// queueBot phone companion — streams the LAN server's activity feed (SSE) and
+// queuePop phone companion, streams the LAN server's activity feed (SSE) and
 // alarms when the queue pops. Read-only; no config is ever changed from the phone.
 //
 // Reliability over plain http (no service worker / background push possible):
 //   * NoSleep.js keeps the screen awake (the Wake Lock API is secure-context
-//     only, so we use the proven hidden-video trick — works in insecure ctx).
+//     only, so we use the proven hidden-video trick, works in insecure ctx).
 //   * A near-silent WebAudio loop keeps the AudioContext from suspending so the
 //     alarm fires instantly; we also resume it whenever the tab regains focus.
 // This makes the "phone awake on my desk" case bulletproof. A fully locked phone
-// or a switched-away app still can't be woken — that genuinely needs push.
+// or a switched-away app still can't be woken, that genuinely needs push.
 
 const $ = (id) => document.getElementById(id);
 
 let lastId = 0; // highest event id seen (also the SSE resume cursor)
-let primed = false; // true after first 'synced' — suppresses alarms on backlog
+let primed = false; // true after first 'synced', suppresses alarms on backlog
 let armed = false;
 let alarming = false;
 
@@ -67,11 +67,11 @@ function playOnce() {
       customSource.start();
       return;
     }
-    // Custom file not ready yet — fall back to the default chime.
-    if (window.QueueBotAlarm) QueueBotAlarm.play(audioCtx, "chime");
+    // Custom file not ready yet, fall back to the default chime.
+    if (window.QueuePopAlarm) QueuePopAlarm.play(audioCtx, "chime");
     return;
   }
-  if (window.QueueBotAlarm) QueueBotAlarm.play(audioCtx, currentSound);
+  if (window.QueuePopAlarm) QueuePopAlarm.play(audioCtx, currentSound);
 }
 
 // --- Screen wake ------------------------------------------------------------
@@ -95,7 +95,7 @@ async function requestWakeLock() {
       wakeLock.addEventListener("release", () => (wakeLock = null));
     }
   } catch (_) {
-    /* unavailable over http — NoSleep covers it */
+    /* unavailable over http, NoSleep covers it */
   }
 }
 
@@ -162,14 +162,14 @@ function onLog(e) {
   lastId = Math.max(lastId, ev.id || 0);
   renderFeed([ev]);
   if (primed && ev.kind === "queue_pop") {
-    const m = (ev.message || "").match(/Queue popped:\s*([^—-]+)/i);
+    const m = (ev.message || "").match(/Queue popped:\s*([^, -]+)/i);
     startAlarm(m ? m[1].trim() : "");
   }
 }
 
 function connectStream() {
   if (!window.EventSource) {
-    // Very old browser — fall back to interval polling.
+    // Very old browser, fall back to interval polling.
     poll();
     setInterval(poll, 1500);
     return;
@@ -189,7 +189,7 @@ async function poll() {
     for (const ev of data.events || []) {
       lastId = Math.max(lastId, ev.id);
       if (primed && ev.kind === "queue_pop") {
-        const m = (ev.message || "").match(/Queue popped:\s*([^—-]+)/i);
+        const m = (ev.message || "").match(/Queue popped:\s*([^, -]+)/i);
         startAlarm(m ? m[1].trim() : "");
       }
       renderFeed([ev]);
@@ -207,7 +207,7 @@ async function pollStatus() {
     setConn(!!s.connected, s.connected ? (s.paused ? "Paused" : "Watching") : "Client closed");
     if (s.sound && s.sound !== currentSound) {
       currentSound = s.sound;
-      customBuffer = null; // sound changed — re-fetch on demand
+      customBuffer = null; // sound changed, re-fetch on demand
     }
     ensureCustomSound();
   } catch (_) {

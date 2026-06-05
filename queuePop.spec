@@ -6,7 +6,7 @@ a = Analysis(
     pathex=['src'],
     binaries=[],
     datas=[
-        ('assets/gnome-thresh.ico', 'assets'),
+        ('assets/queuepop.ico', 'assets'),
         ('src/webui', 'webui'),
     ],
     hiddenimports=(
@@ -29,7 +29,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='queueBot',
+    name='queuePop',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -42,5 +42,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets/gnome-thresh.ico'],
+    icon=['assets/queuepop.ico'],
 )

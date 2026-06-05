@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  queueBot PLAY button — full button as one SVG (emblem + banner).
+  Scratch copy for editing in Boxy SVG / any editor; not wired into the app.
+
+  How the app uses each tagged piece (keep these identifiable / keep the ids):
+    • .pb-ring     gold emblem ring   — resting #785A28, hover → #C8AA6E
+    • .pb-ico      play triangle      — resting #785A28, hover → #C8AA6E
+    • .pb-frame    banner outline     — resting #005A82, hover → #0AC8B9
+    • .pb-grad-end inner-blue gradient end stop — resting #005A82, hover → #0AC8B9
+    • #play-label  the "PLAY" text — the app swaps its text + font-size for
+                   "IN QUEUE" / "IN GAME" / etc., so leave it a <text> element.
+  Resting colors are presentation attributes here so it renders standalone; the
+  hover transitions are added back in CSS when I integrate it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 226 56" width="452" height="112">
+  <defs>
+    <radialGradient id="pbGrad" cx="50%" cy="40%" r="62%">
+      <stop offset="10%" stop-color="#0A323C"/>
+      <stop class="pb-grad-end" offset="100%" stop-color="#005A82"/>
+    </radialGradient>
+  </defs>
+
+  <!-- banner (drawn first so the emblem overlaps its left edge) -->
+  <g transform="translate(34,3)">
+    <rect x="150" y="0" width="39" height="50" fill="#0A323C"/>
+    <rect x="150" y="3" width="36" height="44" fill="#010A13"/>
+    <path class="pb-frame" fill="#005A82" d="M10 0 H158 L190 25 L158 50 H10 Q30 25 10 0"/>
+    <path fill="#1E2328" d="M15 3 H156 L185 25 L156 47 H15 Q32 25 15 3"/>
+    <text id="play-label" x="95" y="33" font-size="21" font-weight="700" fill="#F0E6D2"
+          text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1">PLAY</text>
+  </g>
+
+  <!-- emblem: gold ring -> black rim -> radial-blue fill -> play triangle -->
+  <circle class="pb-ring" cx="28" cy="28" r="27" fill="#785A28"/>
+  <circle cx="28" cy="28" r="24" fill="#010A13"/>
+  <circle cx="28" cy="28" r="22" fill="url(#pbGrad)"/>
+  <path class="pb-ico" fill="#785A28" d="M24 19 L24 37 L39 28 Z"/>
+</svg>

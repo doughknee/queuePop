@@ -1,9 +1,9 @@
-; Inno Setup script for queueBot.
+; Inno Setup script for queuePop.
 ;
 ; Builds the installed flavour of the app (the portable zip is produced
 ; separately by build_release.py). Compile with the version baked in:
 ;
-;     iscc /DMyAppVersion=1.2.0 installer\queueBot.iss
+;     iscc /DMyAppVersion=1.2.0 installer\queuePop.iss
 ;
 ; build_release.py and the GitHub release workflow pass /DMyAppVersion from
 ; src/_version.py, so the installer version always matches the build.
@@ -12,17 +12,17 @@
   #define MyAppVersion "0.0.0"
 #endif
 
-#define MyAppName "queueBot"
-#define MyAppExe "queueBot.exe"
+#define MyAppName "queuePop"
+#define MyAppExe "queuePop.exe"
 #define MyAppPublisher "Brandon Harris"
-#define MyAppUrl "https://github.com/brandon-relentnet/queueBot"
+#define MyAppUrl "https://github.com/brandon-relentnet/queuePop"
 
 [Setup]
-; AppId "queueBot" makes Inno write its uninstall data under
-; ...\Uninstall\queueBot_is1 — the exact key src/updater.py probes to tell an
+; AppId "queuePop" makes Inno write its uninstall data under
+; ...\Uninstall\queuePop_is1 — the exact key src/updater.py probes to tell an
 ; installed build from a portable one. Don't rename it without updating
 ; _UNINSTALL_KEY there too.
-AppId=queueBot
+AppId=queuePop
 ; All relative paths below (Source, SetupIconFile, OutputDir) resolve against
 ; this dir. The script lives in installer/, so ".." points at the project root
 ; where dist/, assets/, and releases/ actually are.
@@ -47,11 +47,11 @@ DisableDirPage=auto
 ; Restart Manager. The name matches the mutex created in src/main.py.
 CloseApplications=yes
 RestartApplications=yes
-AppMutex=queueBot_Instance_Mutex
+AppMutex=queuePop_Instance_Mutex
 
 OutputDir=releases
-OutputBaseFilename=queueBot-v{#MyAppVersion}-setup
-SetupIconFile=assets\gnome-thresh.ico
+OutputBaseFilename=queuePop-v{#MyAppVersion}-setup
+SetupIconFile=assets\queuepop.ico
 UninstallDisplayIcon={app}\{#MyAppExe}
 WizardStyle=modern
 Compression=lzma2

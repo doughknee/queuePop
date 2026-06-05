@@ -1,4 +1,4 @@
-/** Tailwind v3 config — compiles src/webui/styles.css for offline use. */
+/** Tailwind v3 config, compiles src/webui/styles.css for offline use. */
 module.exports = {
   content: ["./src/webui/**/*.{html,js}"],
   theme: {

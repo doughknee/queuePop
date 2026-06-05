@@ -46,7 +46,7 @@ TIMEOUT = 30
 
 
 def _get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "queueBot-asset-fetch"})
+    req = urllib.request.Request(url, headers={"User-Agent": "queuePop-asset-fetch"})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         return resp.read()
 

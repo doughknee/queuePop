@@ -1,4 +1,4 @@
-/* Frameless window chrome — minimize / maximize / close + edge resize.
+/* Frameless window chrome, minimize / maximize / close + edge resize.
    The window is created frameless (main.py), so this draws-as-native: it drives
    the pywebview window through the methods exposed in web_api.py. Dragging is
    handled by pywebview itself via the .pywebview-drag-region class on the bar. */

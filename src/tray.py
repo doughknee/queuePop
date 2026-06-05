@@ -30,7 +30,7 @@ class TrayIcon:
     def _create_menu(self):
         """Creates the menu items for the tray icon."""
         menu_items = [
-            item('Open queueBot', self.open_window, default=True),
+            item('Open queuePop', self.open_window, default=True),
             Menu.SEPARATOR,
             item('Pause/Resume', self.toggle_pause),
         ]
@@ -75,12 +75,12 @@ class TrayIcon:
             self.on_exit()
 
     def _build_icon(self):
-        icon_path = resource_path("assets/gnome-thresh.ico")
+        icon_path = resource_path("assets/queuepop.ico")
         image = Image.open(icon_path)
         self.icon = Icon(
-            "queueBot",
+            "queuePop",
             icon=image,
-            title="queueBot",
+            title="queuePop",
             menu=self._create_menu(),
         )
         return self.icon

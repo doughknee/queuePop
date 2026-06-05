@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM  queueBot stopper  --  double-click this file, or run  .\stop.cmd
+REM  queuePop stopper  --  double-click this file, or run  .\stop.cmd
 REM  (or use  make stop  /  make restart).
 REM
 REM  Kills the py/python process whose command line launched src\main.py.

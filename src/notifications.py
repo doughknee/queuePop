@@ -25,11 +25,11 @@ def send_desktop_notification(game_mode):
     Sends a native desktop notification.
     """
     try:
-        icon_path = resource_path("assets/gnome-thresh.ico")
+        icon_path = resource_path("assets/queuepop.ico")
         notification.notify(
             title="Queue Popped!",
             message=f"Accepting match for {game_mode}.",
-            app_name="queueBot",
+            app_name="queuePop",
             app_icon=icon_path,
             timeout=10  # Notification will disappear after 10 seconds
         )
@@ -45,7 +45,7 @@ def _discord_payload(user_id, title, description, fields=None):
         "title": title,
         "description": description,
         "color": _EMBED_GOLD,
-        "footer": {"text": "queueBot • auto-accepting"},
+        "footer": {"text": "queuePop • auto-accepting"},
     }
     if fields:
         embed["fields"] = fields
@@ -65,7 +65,7 @@ async def send_discord_ping(webhook_url, user_id, game_mode):
     payload = _discord_payload(
         user_id,
         title="⚡ Queue Popped",
-        description="Accepting your match automatically — get back to your PC!",
+        description="Accepting your match automatically, get back to your PC!",
         fields=[{"name": "Mode", "value": game_mode or "Unknown", "inline": True}],
     )
 
@@ -80,7 +80,7 @@ async def send_discord_ping(webhook_url, user_id, game_mode):
 async def _post_discord_test(webhook_url, user_id):
     payload = _discord_payload(
         user_id,
-        title="✅ queueBot test",
+        title="✅ queuePop test",
         description="Your Discord webhook is working. You'll get a ping like this "
                     "when your queue pops.",
     )
@@ -95,7 +95,7 @@ async def _post_discord_test(webhook_url, user_id):
 def send_discord_test(webhook_url, user_id):
     """
     Synchronously send a test message to the webhook. Returns (ok, error).
-    Safe to call from the pywebview/main thread — runs its own event loop.
+    Safe to call from the pywebview/main thread, runs its own event loop.
     """
     if not webhook_url:
         return False, "No webhook URL configured."

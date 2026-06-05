@@ -1,4 +1,4 @@
-﻿# Repository Guidelines
+# Repository Guidelines
 
 ## Project Structure & Module Organization
 - `src/` contains runtime code: `src/main.py` entry/tray bootstrap, `src/lcu.py` for LCU events, `src/config.py` config + Rich console, `src/notifications.py` dispatchers, `src/tray.py` tray UI, `src/gui.py` settings window, `src/_version.py` version string.
@@ -8,7 +8,7 @@
 ## Build, Test, and Development Commands
 - Install deps in a venv: `python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt`.
 - Run from source: `python src/main.py` (creates/reads `config.json` next to the binary or in `src/` when running unfrozen).
-- Build the tray executable: `python -m PyInstaller queueBot.spec`; full clean + zip: `python build_release.py` (outputs `queueBot.exe` under `dist/` and `releases/queueBot-v<version>.zip`).
+- Build the tray executable: `python -m PyInstaller queuePop.spec`; full clean + zip: `python build_release.py` (outputs `queuePop.exe` under `dist/` and `releases/queuePop-v<version>.zip`).
 - For manual webhook smoke test, set `WEBHOOK_URL` in `tests/test-msg.py` then run `python tests/test-msg.py`. PowerShell helper: `pwsh tests/test_vars.ps1`.
 
 ## Coding Style & Naming Conventions
@@ -27,4 +27,4 @@
 
 ## Security & Configuration Tips
 - Do not commit `config.json` or real Discord webhooks; use dummy values in shared files and redact logs.
-- Keep the tray icon at `assets/gnome-thresh.ico`; update `queueBot.spec` if new assets are added so PyInstaller bundles them.
+- Keep the tray icon at `assets/gnome-thresh.ico`; update `queuePop.spec` if new assets are added so PyInstaller bundles them.

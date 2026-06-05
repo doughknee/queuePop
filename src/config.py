@@ -90,7 +90,7 @@ def default_config():
 def load_or_create_config():
     """
     Loads configuration from config.json. If it's missing or corrupt, writes a
-    fresh default and returns it — the user configures via the app window rather
+    fresh default and returns it, the user configures via the app window rather
     than a blocking wizard.
     """
     # Ensure console is initialized if it hasn't been already (fallback)

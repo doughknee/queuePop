@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>queueBot Companion</title>
+  <title>queuePop Companion</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0A1428" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="queueBot" />
+  <meta name="apple-mobile-web-app-title" content="queuePop" />
   <!-- Vendored fonts (offline). Self-contained styles below so this page does
        not depend on the purged Tailwind build that index.html uses. -->
   <link rel="stylesheet" href="assets/fonts/fonts.css" />
@@ -54,7 +54,7 @@
     .lvl.success { background: #5cb85c; } .lvl.warning { background: #d6a32e; }
     .lvl.danger { background: var(--danger); } .lvl.info { background: var(--teal); }
 
-    /* Enable-alerts gate (covers everything until the user taps — needed to
+    /* Enable-alerts gate (covers everything until the user taps, needed to
        unlock audio autoplay on mobile browsers). */
     #gate {
       position: fixed; inset: 0; z-index: 40; display: grid; place-items: center;
@@ -87,7 +87,7 @@
 <body>
   <div id="gate">
     <div class="inner">
-      <h1>queueBot</h1>
+      <h1>queuePop</h1>
       <div class="sub">Phone Companion</div>
       <p class="muted" style="margin-top:18px;">
         Tap below to arm alerts, then leave this page open. When your queue pops,
@@ -101,7 +101,7 @@
   <div class="wrap">
     <div class="row between">
       <div>
-        <h1>queueBot</h1>
+        <h1>queuePop</h1>
         <div class="sub">Phone Companion</div>
       </div>
       <div class="row">
@@ -116,7 +116,7 @@
         <span class="status-txt" id="armed">Disarmed</span>
       </div>
       <p class="muted" style="margin-top:10px;">
-        Alerts fire when your League queue pops. queueBot auto-accepts the match —
+        Alerts fire when your League queue pops. queuePop auto-accepts the match, 
         this is just your nudge to come back.
       </p>
     </div>

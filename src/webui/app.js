@@ -1,4 +1,4 @@
-/* queueBot web UI logic — talks to Python via pywebview.api */
+/* queuePop web UI logic, talks to Python via pywebview.api */
 
 const api = () => window.pywebview.api;
 const $ = (id) => document.getElementById(id);
@@ -22,8 +22,8 @@ let nameToId = {}; // lowercased name/alias -> id
 let plan = {}; // role -> { bans: [name], picks: [name], spells: [id, id] }
 let spellList = []; // [{id, name}] summoner spells for the per-role pickers
 let activeRole = null; // currently edited role
-let activeMode = "picks"; // "picks" | "bans" — what the grid adds to
-let activeSort = "az"; // "az" | "mastery" | "recent" — grid ordering of unselected champs
+let activeMode = "picks"; // "picks" | "bans", what the grid adds to
+let activeSort = "az"; // "az" | "mastery" | "recent", grid ordering of unselected champs
 let masteryById = {}; // championId -> { level, points, lastPlayTime }
 let runePageList = []; // user's saved rune pages, loaded live for the loadout editor
 let loadoutRole = null; // role whose loadout is open in the editor
@@ -96,7 +96,7 @@ function rankScore(r) {
   if (!r || !r.tier) return -1;
   const ti = TIER_ORDER.indexOf(r.tier.toUpperCase());
   if (ti < 0) return -1;
-  // Apex tiers have no division — they rank purely by LP.
+  // Apex tiers have no division, they rank purely by LP.
   const div = APEX_TIERS.has(r.tier.toUpperCase())
     ? 0
     : DIV_VALUE[(r.division || "").toUpperCase()] || 0;
@@ -224,8 +224,8 @@ $("play-btn").addEventListener("click", async () => {
 // each section collapses (state persisted in localStorage). A star on each row
 // pins/unpins it; the same queue's star stays in sync across both sections.
 let qmQueues = [];     // [{id, name, group, ranked}]
-let qmGroups = [];     // [{key, label}] — section order
-let qmFavorites = [];  // [queueId] — display order of pinned queues
+let qmGroups = [];     // [{key, label}], section order
+let qmFavorites = [];  // [queueId], display order of pinned queues
 const QM_COLLAPSE_KEY = "qb_qm_collapsed";
 
 // Inline SVG glyphs (currentColor). Row icons key off the queue's group.
@@ -525,7 +525,7 @@ function renderProfile(info) {
       const lvl = m.level ?? "";
       const high = (m.level || 0) >= 10 ? " high" : "";
       return (
-        `<span class="pm-champ" title="${name} — Mastery ${m.level ?? "?"} · ${pts} pts">` +
+        `<span class="pm-champ" title="${name}, Mastery ${m.level ?? "?"} · ${pts} pts">` +
           `<span class="pm-portrait">` +
             `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
             `<span class="pm-lvl${high}">${lvl}</span>` +
@@ -617,7 +617,7 @@ async function renderAccountMastery() {
       const name = idToName(m.championId) || "";
       const high = (m.level || 0) >= 10 ? " high" : "";
       return (
-        `<span class="acct-champ" title="${name} — Mastery ${m.level ?? "?"} · ${(m.points || 0).toLocaleString()} pts">` +
+        `<span class="acct-champ" title="${name}, Mastery ${m.level ?? "?"} · ${(m.points || 0).toLocaleString()} pts">` +
           `<span class="acct-champ-portrait">` +
             `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
             `<span class="pm-lvl${high}">${m.level ?? ""}</span>` +
@@ -836,7 +836,7 @@ function heroLiveState(s) {
     case "WaitingForStats":
     case "EndOfGame": return { t: "Game ending…", ico: HERO_ICONS.flag };
     case "Lobby": return { t: "In lobby", ico: HERO_ICONS.lobby };
-    default: return { t: "Idle — ready", ico: HERO_ICONS.idle };
+    default: return { t: "Idle, ready", ico: HERO_ICONS.idle };
   }
 }
 
@@ -864,7 +864,7 @@ async function refreshStatus() {
     $("hero-status").classList.toggle("paused", !!s.paused);
     $("hero-dot").className =
       "hero-dot " + (s.paused ? "paused" : s.connected ? "live" : "");
-    // "Right now" — what the client/bot is actually doing.
+    // "Right now", what the client/bot is actually doing.
     const live = heroLiveState(s);
     $("hero-live").textContent = live.t;
     $("hero-live-ico").innerHTML = live.ico;
@@ -876,14 +876,14 @@ async function refreshStatus() {
       if (!s.companion_enabled) {
         note.textContent = "";
       } else if (!s.companion_running) {
-        note.textContent = "Server not running — save settings, then restart queueBot.";
+        note.textContent = "Server not running, save settings, then restart queuePop.";
         note.className = "text-xs text-gold4";
       } else if (s.companion_clients > 0) {
         const n = s.companion_clients;
         note.textContent = `● ${n} phone${n > 1 ? "s" : ""} connected`;
         note.className = "text-xs text-gold2";
       } else {
-        note.textContent = "Running — waiting for a phone to connect…";
+        note.textContent = "Running, waiting for a phone to connect…";
         note.className = "text-xs text-subText";
       }
     }
@@ -972,7 +972,7 @@ function renderActivity() {
     let label = "Earlier";
     if (s > 0) {
       const ev = sessionStart[s];
-      const m = ev && ev.message.match(/Queue popped:\s*(.+?)\s*[—-]/i);
+      const m = ev && ev.message.match(/Queue popped:\s*(.+?)\s*[, -]/i);
       label = (m ? m[1] : "Queue") + " · " + fmtAgoShort(ev && ev.ts);
     }
     return (
@@ -1024,7 +1024,7 @@ $("act-filters").addEventListener("click", (e) => {
 
 // --- Champion catalog (bundled, offline) -------------------------------
 async function loadCatalog() {
-  // Read via Python — WebView2 blocks fetch() of local files under file://.
+  // Read via Python, WebView2 blocks fetch() of local files under file://.
   try {
     catalog = (await api().get_champion_catalog()) || [];
   } catch (e) {
@@ -1082,7 +1082,7 @@ async function buildSettings() {
 // champ onto another to reorder priority. Search filters the whole grid.
 // On-disk shape: champ_select.roles.<role>.{picks,bans}.
 
-// Inline ARAM glyph (no position SVG exists for it) — a 4-way poke/mirror mark.
+// Inline ARAM glyph (no position SVG exists for it), a 4-way poke/mirror mark.
 const ARAM_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>';
 
@@ -1138,7 +1138,7 @@ function selectRole(role) {
   document.querySelectorAll(".role-tab").forEach((b) => {
     b.classList.toggle("active", b.dataset.role === role);
   });
-  // ARAM has no bans — hide the toggle and force Picks (its picks list doubles
+  // ARAM has no bans, hide the toggle and force Picks (its picks list doubles
   // as the bench-swap + trade priority order).
   const isAram = role === "aram";
   $("mode-bans").classList.toggle("hidden", isAram);
@@ -1160,7 +1160,7 @@ function setMode(mode) {
   if (hint) {
     if (activeRole === "aram") {
       hint.innerHTML =
-        `Your ARAM <span class="text-gold2">priority list</span> — queueBot grabs ` +
+        `Your ARAM <span class="text-gold2">priority list</span>, queuePop grabs ` +
         `the highest-ranked of these off the reroll bench (and trades toward it). ` +
         `Click to add; drag to reorder.`;
     } else {
@@ -1168,7 +1168,7 @@ function setMode(mode) {
       const word = isBan ? "bans" : "picks";
       const color = isBan ? "text-red-400" : "text-gold2";
       hint.innerHTML =
-        `Click to add — your <span class="${color}">${word}</span> move to the front, ` +
+        `Click to add, your <span class="${color}">${word}</span> move to the front, ` +
         `numbered by priority. Drag a numbered champ onto another to reorder.`;
     }
   }
@@ -1189,7 +1189,7 @@ function setSort(sort) {
 }
 
 // Order the unselected champions by the active sort. Selected champs are never
-// passed here — they stay pinned to the front in their priority order.
+// passed here, they stay pinned to the front in their priority order.
 function sortChamps(arr) {
   const byName = (a, b) => a.name.localeCompare(b.name);
   if (activeSort === "mastery") {
@@ -1210,7 +1210,7 @@ function sortChamps(arr) {
 }
 
 // Lower-edge overlay for a cell, shown only under the Mastery/Recent sorts (the
-// A–Z view stays clean): a gold mastery-level chip plus a contextual stat —
+// A–Z view stays clean): a gold mastery-level chip plus a contextual stat, 
 // points under Mastery, "time ago" under Recent.
 function cellMeta(id) {
   if (activeSort !== "mastery" && activeSort !== "recent") return "";
@@ -1535,7 +1535,7 @@ function renderPlan(c) {
 
   const slot = (label, name, count, ban) => {
     const extra = count > 1 ? `<span class="plan-extra">+${count - 1}</span>` : "";
-    const body = name ? planChampHtml(name, ban) + extra : `<span class="plan-none">—</span>`;
+    const body = name ? planChampHtml(name, ban) + extra : `<span class="plan-none">, </span>`;
     return `<span class="plan-slot"><span class="plan-slot-label">${label}</span>${body}</span>`;
   };
 
@@ -1654,7 +1654,7 @@ $("sound-preview").addEventListener("click", () => {
     previewCtx = AC ? new AC() : null;
   }
   if (previewCtx && previewCtx.state === "suspended") previewCtx.resume();
-  if (previewCtx && window.QueueBotAlarm) QueueBotAlarm.play(previewCtx, sel);
+  if (previewCtx && window.QueuePopAlarm) QueuePopAlarm.play(previewCtx, sel);
 });
 
 $("sound-pick").addEventListener("click", async () => {
@@ -1688,9 +1688,9 @@ $("companion-test").addEventListener("click", async () => {
   s.className = "text-xs text-subText";
   const res = await api().test_companion();
   if (res && res.running) {
-    flashStatus(s, "✓ Sent — your phone should alarm", true);
+    flashStatus(s, "✓ Sent, your phone should alarm", true);
   } else {
-    flashStatus(s, "Server isn't running yet — restart queueBot", false);
+    flashStatus(s, "Server isn't running yet, restart queuePop", false);
   }
   setTimeout(() => (s.textContent = ""), 4000);
 });
@@ -1703,7 +1703,7 @@ $("discord-test").addEventListener("click", async () => {
     $("webhook_url").value.trim(),
     $("user_id").value.trim(),
   );
-  if (res && res.ok) flashStatus(s, "✓ Sent — check Discord", true);
+  if (res && res.ok) flashStatus(s, "✓ Sent, check Discord", true);
   else flashStatus(s, "✗ " + ((res && res.error) || "Failed"), false);
   setTimeout(() => (s.textContent = ""), 5000);
 });
@@ -1752,7 +1752,7 @@ async function openLoadout(role, champId) {
   $("lo-spell-pop").classList.add("hidden");
   buildLoadoutSkin(lo);
   $("loadout-modal").classList.remove("hidden");
-  await buildLoadoutRunes(lo); // async (live client) — fine to populate after show
+  await buildLoadoutRunes(lo); // async (live client), fine to populate after show
 }
 
 function closeLoadout() {
@@ -1888,7 +1888,7 @@ $("lo-rune-on").addEventListener("change", () => {
 
 // --- Skins: an enable toggle + two modes -----------------------------------
 //   "Pick a skin"     → lo.skin is a single skin id; choosing one dims the rest.
-//   "Random favorite" → lo.skin is an array of ids; queueBot picks one at random
+//   "Random favorite" → lo.skin is an array of ids; queuePop picks one at random
 //                       (from the ones you own) when the champ locks in.
 // 0 / [] means "enabled but nothing chosen yet" (pruned to "off" on save).
 function skinMode(lo) {
@@ -1906,9 +1906,9 @@ function markSkinMode(lo) {
   if (hint)
     hint.textContent =
       m === "favorite"
-        ? "Pick any number — queueBot randomly chooses one of these each game."
+        ? "Pick any number, queuePop randomly chooses one of these each game."
         : m === "pick"
-          ? "queueBot sets this exact skin (if you own it)."
+          ? "queuePop sets this exact skin (if you own it)."
           : "";
 }
 
@@ -1952,7 +1952,7 @@ $("lo-skin-modes").addEventListener("click", (e) => {
   scheduleSave();
 });
 
-// Fetch a champion's skins once, then reuse — clicks just retag the selection
+// Fetch a champion's skins once, then reuse, clicks just retag the selection
 // so the grid never re-fetches or flickers.
 async function loadSkins(champId) {
   if (skinCache[champId]) return skinCache[champId];
@@ -2030,8 +2030,8 @@ document.querySelectorAll("#loadout-modal [data-lo-close]").forEach((el) =>
   el.addEventListener("click", closeLoadout),
 );
 
-// --- Recommended Runes: manage queueBot's dedicated rune page ------------
-// Recommended-runes writes to one page named "queueBot (auto)". If the user is
+// --- Recommended Runes: manage queuePop's dedicated rune page ------------
+// Recommended-runes writes to one page named "queuePop (auto)". If the user is
 // at their rune-page cap with no such page, they pick one here to hand over.
 async function refreshRuneInfo() {
   const status = $("rune-managed-status");
@@ -2040,7 +2040,7 @@ async function refreshRuneInfo() {
   try { info = (await api().get_rune_info()) || info; } catch (_) {}
 
   if (info.managed) {
-    status.innerHTML = `✓ queueBot manages the <span class="text-gold2">${info.managed.name}</span> page.`;
+    status.innerHTML = `✓ queuePop manages the <span class="text-gold2">${info.managed.name}</span> page.`;
     status.className = "text-sm text-gold2";
     wrap.classList.add("hidden");
     return;
@@ -2067,7 +2067,7 @@ async function refreshRuneInfo() {
     wrap.classList.remove("hidden");
   } else {
     status.textContent =
-      "queueBot will create its own “queueBot (auto)” page automatically (a slot is free).";
+      "queuePop will create its own “queuePop (auto)” page automatically (a slot is free).";
     status.className = "text-sm text-subText";
     wrap.classList.add("hidden");
   }
@@ -2082,7 +2082,7 @@ $("rune-claim-list").addEventListener("click", async (e) => {
   s.className = "text-xs text-subText";
   const res = await api().claim_rune_page(btn.dataset.claim);
   if (res && res.ok) {
-    flashStatus(s, "✓ queueBot will use that page", true);
+    flashStatus(s, "✓ queuePop will use that page", true);
     refreshRuneInfo();
   } else {
     flashStatus(s, "✗ " + ((res && res.error) || "Failed"), false);
@@ -2093,7 +2093,7 @@ $("rune-claim-list").addEventListener("click", async (e) => {
 // --- Auto-save ----------------------------------------------------------
 // There is no Save button: every settings + champ-select change persists on its
 // own. Saves are debounced so rapid edits (typing, dragging) coalesce into one
-// write, and a toast confirms. We never re-loadConfig() after saving — that
+// write, and a toast confirms. We never re-loadConfig() after saving, that
 // would rebuild the grids and reset focus/scroll mid-edit; JS state is the
 // source of truth while the user is editing.
 let saveTimer = null;
@@ -2128,7 +2128,7 @@ function scheduleSave() {
 // number/text fields (Chromium fires `input` for all of them). Buttons don't
 // fire `input`, so test/refresh/preview clicks never trigger a stray save.
 $("tab-settings").addEventListener("input", scheduleSave);
-// Picking a custom sound file mutates JS state (no input event) — save it too.
+// Picking a custom sound file mutates JS state (no input event), save it too.
 $("sound-pick").addEventListener("click", () => setTimeout(scheduleSave, 0));
 
 // "Auto-accept any queue" hides/reveals the specific-queue picker.
@@ -2229,9 +2229,9 @@ function renderUpdate(s) {
   updateState = s || null;
   const has = !!(s && s.available && s.latest);
 
-  // About card — always reflects the most recent check.
+  // About card, always reflects the most recent check.
   const ver = $("about-version");
-  if (ver) ver.textContent = "v" + ((s && s.current) || "—");
+  if (ver) ver.textContent = "v" + ((s && s.current) || ", ");
   const msg = $("about-update-msg");
   const aUpd = $("about-update");
   const aNotes = $("about-notes");
@@ -2248,7 +2248,7 @@ function renderUpdate(s) {
     aNotes && aNotes.classList.add("hidden");
   }
 
-  // Banner — only when an update exists and the user hasn't dismissed it.
+  // Banner, only when an update exists and the user hasn't dismissed it.
   const sub = $("upd-sub");
   if (has && sub) sub.textContent = `v${s.current} → v${s.latest}. Update now?`;
   showUpdateBanner(has && !updateDismissed && !updating);
@@ -2279,7 +2279,7 @@ async function doUpdate(btn) {
       showToast((res && res.error) || "Update failed", false);
       renderUpdate(updateState); // re-show the banner so they can retry
     }
-    // On success the app quits and the new build relaunches — nothing more to do.
+    // On success the app quits and the new build relaunches, nothing more to do.
   } catch (e) {
     updating = false;
     if (btn) { btn.disabled = false; btn.textContent = label; }
@@ -2315,7 +2315,7 @@ async function boot() {
     await buildQueueMenu();
     await loadConfig();
   } catch (e) {
-    console.error("queueBot UI build error:", e);
+    console.error("queuePop UI build error:", e);
   }
   await refreshStatus();
   await refreshSummoner();

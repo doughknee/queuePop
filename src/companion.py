@@ -2,7 +2,7 @@
 LAN phone companion server.
 
 Serves a tiny, read-only web page on the local network so your phone can act as
-a queue-pop alarm without installing anything — you just open the page in the
+a queue-pop alarm without installing anything, you just open the page in the
 phone's browser (scan a QR from Settings) and keep the tab open.
 
 Design notes:
@@ -59,7 +59,7 @@ def webui_dir():
 def get_lan_ip():
     """
     Best-effort LAN IP of this machine. Opens a UDP socket toward a public
-    address and reads back the local endpoint the OS would route through — no
+    address and reads back the local endpoint the OS would route through, no
     packets are actually sent. Falls back to 127.0.0.1.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -212,7 +212,7 @@ def _serve(port, lcu):
     except OSError as e:
         _running = False
         if config.console:
-            config.console.log(f"[yellow]Companion server failed to bind :{port} — {e}[/]")
+            config.console.log(f"[yellow]Companion server failed to bind :{port}, {e}[/]")
         events.push(f"Phone companion couldn't start on port {port}", "warning")
         return
 

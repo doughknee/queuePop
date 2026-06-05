@@ -35,7 +35,7 @@ if not logger.handlers:
     logger.propagate = False
 
 # Roles as reported by the LCU `assignedPosition` field, in display order.
-# ARAM is intentionally NOT here — `assignedPosition` is never "aram", so adding
+# ARAM is intentionally NOT here, `assignedPosition` is never "aram", so adding
 # it would break position resolution in _process. It's a virtual editor tab only.
 ROLES = ["top", "jungle", "middle", "bottom", "utility"]
 ROLE_LABELS = {
@@ -58,7 +58,7 @@ EDITOR_ROLES = ROLES + [ARAM_ROLE]
 # Per-champ skin preference (loadout.skin):
 #   "off"            don't change the skin
 #   <skinId int>     pick this exact skin
-#   [skinId, …]      "random favorite" — pick one of these at random (from the
+#   [skinId, …]      "random favorite", pick one of these at random (from the
 #                    ones actually owned) when the champ locks in.
 
 # Summoner spells offered in the per-role picker (LCU spell ids → name), in
@@ -74,15 +74,15 @@ SUMMONER_SPELLS = [
     {"id": 6, "name": "Ghost"},
     {"id": 1, "name": "Cleanse"},
     {"id": 13, "name": "Clarity"},
-    {"id": 32, "name": "Mark/Dash"},  # Snowball — ARAM only
+    {"id": 32, "name": "Mark/Dash"},  # Snowball, ARAM only
 ]
 SPELL_IDS = {s["id"] for s in SUMMONER_SPELLS}
 SPELL_NAMES = {s["id"]: s["name"] for s in SUMMONER_SPELLS}
 
-# Name of the single rune page queueBot manages when auto-runes is on. We
+# Name of the single rune page queuePop manages when auto-runes is on. We
 # delete + recreate this one page each game so pages never pile up and the
 # user's own pages are never touched.
-RUNE_PAGE_NAME = "queueBot (auto)"
+RUNE_PAGE_NAME = "queuePop (auto)"
 
 
 class ChampSelect:
@@ -188,7 +188,7 @@ class ChampSelect:
     # --- Event entry point ---------------------------------------------
 
     def _any_automation(self, cs):
-        """True if any champ-select automation is on — auto pick/ban, runes,
+        """True if any champ-select automation is on, auto pick/ban, runes,
         trades, ARAM bench, or skins. Used to decide whether the loop runs (the
         individual features are still gated separately inside _process)."""
         if (cs.get("enabled")
@@ -336,7 +336,7 @@ class ChampSelect:
 
         # === Time-critical: BAN + PICK first ============================
         # These run before any cosmetic handler (spells/trades/skins/runes) so a
-        # slow LCU call — e.g. fetching recommended runes — can never delay a
+        # slow LCU call, e.g. fetching recommended runes, can never delay a
         # lock-in and risk a dodge. Gated on an assigned-role preference.
         if role_cfg:
             # --- Ban: hover then commit, ONLY during the real ban phase. The
@@ -429,7 +429,7 @@ class ChampSelect:
         """Whether it's time to lock our pick. Instant by default; otherwise lock
         once `lock_in_at_seconds` would remain in an assumed ~30s pick window,
         measured from when our turn was detected. We don't trust the client's
-        phase timer here — it runs ahead of the per-pick sub-timer, which made us
+        phase timer here, it runs ahead of the per-pick sub-timer, which made us
         lock seconds late."""
         if cs.get('instant_lock', True):
             return True
@@ -438,7 +438,7 @@ class ChampSelect:
         except (TypeError, ValueError):
             lock_at = DEFAULT_LOCK_SECONDS
         if self._pick_open is None:
-            return False  # not detected yet — wait for the next poll
+            return False  # not detected yet, wait for the next poll
         elapsed = time.monotonic() - self._pick_open
         return elapsed >= max(0.0, DEFAULT_PICK_WINDOW - lock_at)
 
@@ -459,7 +459,7 @@ class ChampSelect:
         display = self.id_to_name.get(champion_id, champion_id)
 
         # The client only lets us *complete* an action whose champion is already
-        # hovered. So we always hover first, then lock on a subsequent poll —
+        # hovered. So we always hover first, then lock on a subsequent poll, 
         # this is what made picks work and bans (which we used to lock in one
         # shot) silently fail.
         if state != ('hover', champion_id):
@@ -509,7 +509,7 @@ class ChampSelect:
 
     async def _apply_spells(self, connection, spells):
         """Set our summoner spells for the current champ select via my-selection.
-        `spells` is [spell1Id, spell2Id]. Best-effort — logs and moves on."""
+        `spells` is [spell1Id, spell2Id]. Best-effort, logs and moves on."""
         s1, s2 = spells[0], spells[1]
         n1 = SPELL_NAMES.get(s1, s1)
         n2 = SPELL_NAMES.get(s2, s2)
@@ -534,7 +534,7 @@ class ChampSelect:
         Reuses a single managed page (editing it in place when possible) so we
         never accumulate pages or touch the user's own. Returns True when done
         (applied, or a non-retryable failure like the rune-page cap) and False
-        when the caller should retry — the recommendation endpoint 404s for a
+        when the caller should retry, the recommendation endpoint 404s for a
         beat right after lock before the client computes it."""
         try:
             # Try the position/map-qualified endpoint first (computes on demand),
@@ -561,7 +561,7 @@ class ChampSelect:
                 else:
                     self._log(f"{ep} -> HTTP {rec.status}")
             if not pages:
-                return False  # retry — not computed yet
+                return False  # retry, not computed yet
 
             # Prefer a recommendation for the champ we're locking; else first.
             page = next((p for p in pages if p.get('championId') == champion_id), None)
@@ -612,24 +612,24 @@ class ChampSelect:
 
             new_id = existing_id
             if existing_id is not None:
-                # Our managed page exists — edit it in place (no slot needed).
+                # Our managed page exists, edit it in place (no slot needed).
                 resp = await connection.request(
                     'put', f'/lol-perks/v1/pages/{existing_id}', data=body
                 )
             else:
-                # No managed page yet — try to create one (needs a free slot).
+                # No managed page yet, try to create one (needs a free slot).
                 resp = await connection.request('post', '/lol-perks/v1/pages', data=body)
                 if resp.status >= 400:
                     detail = await self._safe_text(resp)
                     self._log(f"rune POST -> HTTP {resp.status} {detail}")
                     # At the rune-page cap (League gives 2 by default) we can't
                     # add a page, and we never overwrite the user's own pages
-                    # without consent — they pick a page for queueBot in
+                    # without consent, they pick a page for queuePop in
                     # Settings → Recommended Runes. Notify once per session.
                     if not self._rune_cap_warned:
                         self._rune_cap_warned = True
                         events.push(
-                            "Rune pages are full — choose a page for queueBot in "
+                            "Rune pages are full, choose a page for queuePop in "
                             "Settings → Recommended Runes to enable auto runes.",
                             "warning", kind="runes_full",
                         )
@@ -645,7 +645,7 @@ class ChampSelect:
                     self._log(f"rune create: couldn't read new page id: {e!r}")
 
             # `current: true` in the body usually selects it, but set it
-            # explicitly too — some client versions ignore the create flag.
+            # explicitly too, some client versions ignore the create flag.
             if new_id is not None:
                 try:
                     await connection.request('put', '/lol-perks/v1/currentpage', data=new_id)
@@ -668,7 +668,7 @@ class ChampSelect:
 
     async def _select_rune_page(self, connection, page_id):
         """Make one of the user's existing rune pages the current/active page.
-        No page creation — just selects what they built in the client."""
+        No page creation, just selects what they built in the client."""
         try:
             page_id = int(page_id)
         except (TypeError, ValueError):
@@ -692,7 +692,7 @@ class ChampSelect:
     def _my_champion(self, session, local_cell, locked_only=False):
         """The championId we're committed to: our pick action on the Rift, or our
         assigned champ in ARAM. With `locked_only`, only counts a *completed*
-        (locked) pick — used for skins, which can't be set until lock-in. 0 until
+        (locked) pick, used for skins, which can't be set until lock-in. 0 until
         a champ qualifies."""
         for round_actions in session.get('actions', []) or []:
             for action in round_actions:
@@ -871,7 +871,7 @@ class ChampSelect:
     async def _handle_skins(self, connection, my_champ, skin_pref):
         """Select a skin for our locked champ from its loadout preference, once
         per champ per session. `skin_pref` is a specific skinId (int) or a list
-        of skinIds (a "random favorite" — one is chosen at random from those
+        of skinIds (a "random favorite", one is chosen at random from those
         actually owned). The skin carousel (/skin-carousel-skins) only returns
         data once a champ is locked, so this no-ops (without marking done) until
         then."""
@@ -888,7 +888,7 @@ class ChampSelect:
         except Exception as e:
             self._log(f"skins fetch raised: {e!r}")
             return
-        # Empty/unavailable carousel means we're not locked yet — retry later
+        # Empty/unavailable carousel means we're not locked yet, retry later
         # rather than marking this champ handled.
         if not isinstance(skins, list) or not skins:
             return
@@ -899,7 +899,7 @@ class ChampSelect:
             return bool(s.get('unlocked') or own.get('owned') or rented) and not s.get('disabled')
 
         owned = [s for s in skins if selectable(s)]
-        # We have the carousel — commit to handling this champ once now, whatever
+        # We have the carousel, commit to handling this champ once now, whatever
         # we pick, so random/best don't churn a new skin on every poll.
         self._skin_for = my_champ
         if not owned:

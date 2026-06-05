@@ -1,10 +1,10 @@
-// Shared alarm-sound synthesizer — used by both the phone companion and the
+// Shared alarm-sound synthesizer, used by both the phone companion and the
 // desktop Settings "Preview" button. Pure WebAudio (no files, fully offline,
 // no copyright). Each preset schedules ONE play; the caller repeats it.
 
 (function () {
   // Bell-like partial: sine fundamental + a slightly inharmonic overtone, with
-  // a quick attack and an exponential decay — that's what reads as "chime".
+  // a quick attack and an exponential decay, that's what reads as "chime".
   function bell(ctx, freq, t0, dur, peak) {
     const o = ctx.createOscillator();
     const o2 = ctx.createOscillator();
@@ -48,7 +48,7 @@
   };
 
   const PRESETS = {
-    // Warm rising bell arpeggio — the default. Pleasant + clearly attention-getting.
+    // Warm rising bell arpeggio, the default. Pleasant + clearly attention-getting.
     chime(ctx) {
       const t = ctx.currentTime + 0.02;
       [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => bell(ctx, f, t + i * 0.12, 0.9, 0.28));
@@ -88,7 +88,7 @@
     },
   };
 
-  window.QueueBotAlarm = {
+  window.QueuePopAlarm = {
     presetIds: ["chime", "ping", "arcade", "siren"],
     labels: {
       chime: "Chime",

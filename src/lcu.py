@@ -9,13 +9,13 @@ from notifications import send_discord_ping, send_desktop_notification
 
 # Gameflow phase -> (activity message, UI level, event kind). Drives the
 # general activity feed (desktop + phone) so users see match progress even with
-# auto pick/ban off. ReadyCheck is intentionally omitted — the queue-pop event
+# auto pick/ban off. ReadyCheck is intentionally omitted, the queue-pop event
 # from ready_check_changed already covers it (and alarms the phone).
 PHASE_EVENTS = {
     "Lobby": ("In lobby", "info", "lobby"),
     "Matchmaking": ("Searching for a match…", "info", "searching"),
     "ChampSelect": ("Champ select started", "info", "champ_select"),
-    "InProgress": ("Game started — good luck!", "success", "game_start"),
+    "InProgress": ("Game started, good luck!", "success", "game_start"),
     "EndOfGame": ("Game over", "info", "game_end"),
 }
 
@@ -75,7 +75,7 @@ class LCU:
         takes the live connection and returns a JSON-serialisable result.
 
         Returns None if the client isn't connected, or the request fails/times
-        out — callers treat None as "no data / not available".
+        out, callers treat None as "no data / not available".
         """
         conn = self._connection
         if not self.connected or conn is None or not self.loop.is_running():
@@ -134,7 +134,7 @@ class LCU:
                 style="danger",
                 padding=(1, 2)
             ))
-            events.push(f"Queue popped: {game_mode} — accepting…", "danger", kind="queue_pop")
+            events.push(f"Queue popped: {game_mode}, accepting…", "danger", kind="queue_pop")
             
             # --- Actions ---
             # 1. Send Desktop Notification
@@ -162,7 +162,7 @@ class LCU:
     async def gameflow_phase_changed(self, connection, event):
         """Push a general activity event on each gameflow phase transition, so
         the feed (and phone) reflect match progress regardless of auto pick/ban.
-        Fires independently of `paused` — it's informational only."""
+        Fires independently of `paused`, it's informational only."""
         phase = event.data
         if not isinstance(phase, str) or phase == self.gameflow_phase:
             return
