@@ -245,7 +245,8 @@
     /* The panel itself. Sharp hextech corners, gold hairline, teal-tinted glow.
        max-height + scroll so the TFT section never runs off a short window. */
     .qm-panel {
-      width: 274px; max-height: calc(100vh - 116px); overflow-y: auto; overflow-x: hidden;
+      box-sizing: border-box; width: 300px; overflow: hidden;
+      transition: height .28s cubic-bezier(.2,.8,.2,1);
       background: linear-gradient(180deg, #04101d 0%, #010a13 60%);
       outline: 1px solid rgb(200 170 110 / 0.45); outline-offset: -1px;
       box-shadow: 0 18px 40px -12px rgba(0,0,0,0.8), 0 0 22px -10px rgba(10,200,185,0.4);
@@ -254,6 +255,14 @@
     /* Re-runs every time the menu un-hides (display:none → block). */
     .queue-menu:not(.hidden) .qm-panel { animation: qmIn .2s cubic-bezier(.2,.8,.2,1) both; transform-origin: top left; }
     @keyframes qmIn { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: none; } }
+
+    /* Crossfaded views inside the panel (Play ↔ Edit). The outgoing view floats
+       out of flow and fades; the incoming one fades up into place. */
+    .qm-view { transition: opacity .2s ease, transform .26s cubic-bezier(.2,.8,.2,1); }
+    .qm-view-out { position: absolute; top: 0; left: 0; right: 0; opacity: 0; transform: translateY(-8px); pointer-events: none; }
+    .qm-view-in { opacity: 0; transform: translateY(10px); }
+    /* Scroll lives on the inner lists now, so the panel height can animate. */
+    .qm-list, .qm-elist { max-height: calc(100vh - 188px); overflow-y: auto; overflow-x: hidden; }
 
     /* Gold corner accents, matching .framed elsewhere. */
     .qm-panel { position: relative; }
@@ -264,9 +273,67 @@
     .qm-panel::after  { bottom: 2px; right: 2px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
 
     .qm-title {
-      padding: 4px 16px 8px; font-family: Cinzel, Georgia, serif; font-size: 10px;
-      letter-spacing: 0.18em; text-transform: uppercase; color: #785A28;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px 9px 16px; font-family: Cinzel, Georgia, serif; font-size: 12px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #8a6a32;
     }
+    .qm-title > span { flex: 1 1 auto; }
+    .qm-edit {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 11px; background: transparent; border: 1px solid rgb(120 90 40 / 0.4);
+      border-radius: 3px; cursor: pointer; color: #C8AA6E; font-family: Cinzel, Georgia, serif;
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+    }
+    .qm-edit svg { width: 14px; height: 14px; }
+    .qm-edit:hover { color: #F0E6D2; border-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
+
+    /* Last-played "replay" row: faint gold wash + a gold left accent always on. */
+    .qm-row.qm-replay { background: linear-gradient(90deg, rgb(200 170 110 / 0.14), transparent 75%); }
+    .qm-row.qm-replay::after { height: 70%; }
+    .qm-pill.qm-last { color: #E2C887; border-color: rgb(226 200 135 / 0.6); }
+
+    /* Edit mode: grouped catalog with per-mode include toggles. */
+    .qm-egroup { border-top: 1px solid rgb(120 90 40 / 0.16); }
+    .qm-egroup:first-child { border-top: 0; }
+    .qm-ehead {
+      padding: 9px 16px 4px; font-family: Cinzel, Georgia, serif; font-size: 11px;
+      letter-spacing: 0.13em; text-transform: uppercase; color: #8a6a32;
+    }
+    .qm-erow {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 9px 14px 9px 16px; background: transparent; border: 0; cursor: pointer;
+      text-align: left; color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 14.5px;
+      transition: color .15s ease, background-color .12s ease;
+    }
+    .qm-erow:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.07); }
+    .qm-echeck {
+      flex-shrink: 0; width: 17px; height: 17px; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease;
+    }
+    .qm-echeck svg { width: 13px; height: 13px; }
+    .qm-erow.on .qm-echeck { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qm-erow.on { color: #F0E6D2; }
+    .qm-ename { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Edit-mode preference toggle (e.g. "always show last played"). */
+    .qm-opt {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 11px 14px 11px 16px; background: rgb(1 10 19 / 0.3); border: 0;
+      border-bottom: 1px solid rgb(120 90 40 / 0.16); cursor: pointer; text-align: left;
+      color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 14px;
+      transition: color .15s ease, background-color .12s ease;
+    }
+    .qm-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.07); }
+    .qm-optcheck {
+      flex-shrink: 0; width: 17px; height: 17px; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease;
+    }
+    .qm-optcheck svg { width: 13px; height: 13px; }
+    .qm-optcheck.on { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qm-optlabel { flex: 1 1 auto; }
 
     /* --- Section --- */
     .qm-section { border-top: 1px solid rgb(120 90 40 / 0.16); }
@@ -309,10 +376,10 @@
 
     /* --- Queue row --- */
     .qm-row {
-      position: relative; display: flex; align-items: center; gap: 10px;
-      width: 100%; padding: 8px 12px 8px 16px; background: transparent; border: 0;
+      position: relative; display: flex; align-items: center; gap: 12px;
+      width: 100%; padding: 10px 12px 10px 16px; background: transparent; border: 0;
       cursor: pointer; text-align: left; overflow: hidden;
-      color: #A09B8C; font-family: Marcellus, Georgia, serif; font-size: 13px;
+      color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 15px;
       animation: qmRowIn .26s ease both; animation-delay: calc(var(--i, 0) * 26ms);
     }
     @keyframes qmRowIn { from { opacity: 0; transform: translateX(-9px); } to { opacity: 1; transform: none; } }
@@ -334,13 +401,13 @@
     .qm-row-content { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; transition: transform .18s ease; }
     .qm-row:hover .qm-row-content { transform: translateX(3px); }
 
-    .qm-ico { display: inline-flex; width: 18px; height: 18px; color: #0AC8B9; flex-shrink: 0; transition: color .15s ease, filter .15s ease; }
+    .qm-ico { display: inline-flex; width: 20px; height: 20px; color: #0AC8B9; flex-shrink: 0; transition: color .15s ease, filter .15s ease; }
     .qm-ico svg { width: 100%; height: 100%; }
     .qm-row:hover .qm-ico { color: #2dd4c4; filter: drop-shadow(0 0 5px rgb(10 200 185 / 0.55)); }
     .qm-name { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .qm-pill {
-      flex-shrink: 0; font-family: Cinzel, Georgia, serif; font-size: 8px; letter-spacing: 0.12em;
-      padding: 2px 5px; color: #C8983C; border: 1px solid rgb(200 152 60 / 0.5); border-radius: 2px;
+      flex-shrink: 0; font-family: Cinzel, Georgia, serif; font-size: 9.5px; letter-spacing: 0.1em;
+      padding: 2px 6px; color: #C8983C; border: 1px solid rgb(200 152 60 / 0.5); border-radius: 2px;
     }
 
     /* Favorite star, outline by default, gold-filled when pinned. Pops on toggle. */
@@ -362,8 +429,8 @@
     @keyframes qmRowOut { to { opacity: 0; transform: translateX(16px); } }
 
     .qm-empty {
-      padding: 9px 16px 11px; font-family: Marcellus, Georgia, serif; font-size: 11.5px;
-      font-style: italic; color: #6f6a5d; line-height: 1.4;
+      padding: 11px 16px 13px; font-family: Marcellus, Georgia, serif; font-size: 13px;
+      font-style: italic; color: #8a8475; line-height: 1.45;
     }
     .qm-empty .qm-empty-star { color: #C8AA6E; font-style: normal; }
 
@@ -886,6 +953,30 @@
     .qp input:checked ~ .qp-name { color: #F0E6D2; }
     .qp:has(input:checked) { background: rgb(200 170 110 / 0.12); outline-color: #C8AA6E; }
     .qp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qp-rank { margin-left: auto; flex-shrink: 0; font-size: 8.5px; letter-spacing: .06em; font-weight: 700;
+      color: #C8AA6E; background: rgb(200 170 110 / 0.14); padding: 1px 4px; border-radius: 2px; }
+
+    /* Grouped, collapsible Allowed-Queues picker. */
+    .qsel-group { border-top: 1px solid rgb(120 90 40 / 0.18); }
+    .qsel-group:first-child { border-top: 0; }
+    .qsel-head { display: flex; align-items: center; gap: 6px; }
+    .qsel-toggle { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; padding: 9px 2px;
+      background: none; border: 0; cursor: pointer; color: #C8AA6E; font-size: 11px; font-weight: 600;
+      letter-spacing: .07em; text-transform: uppercase; }
+    .qsel-toggle:hover { color: #F0E6D2; }
+    .qsel-chev { display: inline-flex; width: 13px; height: 13px; transition: transform .2s ease; }
+    .qsel-chev svg { width: 100%; height: 100%; }
+    .qsel-group.collapsed .qsel-chev { transform: rotate(-90deg); }
+    .qsel-label { flex: 0 0 auto; }
+    .qsel-count { font-size: 10px; color: #7a6a44; background: rgb(120 90 40 / 0.18);
+      padding: 0 6px; border-radius: 8px; line-height: 16px; }
+    .qsel-all { flex-shrink: 0; background: none; border: 0; cursor: pointer; color: #6c6556;
+      font-size: 10.5px; letter-spacing: .05em; padding: 4px 6px; transition: color .15s ease; }
+    .qsel-all:hover { color: #C8AA6E; }
+    .qsel-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .24s ease, opacity .18s ease;
+      opacity: 1; }
+    .qsel-group.collapsed .qsel-body { grid-template-rows: 0fr; opacity: 0; }
+    .qsel-body > .queue-pills { overflow: hidden; min-height: 0; padding-bottom: 10px; }
   </style>
 </head>
 <body class="text-grey1 antialiased h-screen overflow-hidden">

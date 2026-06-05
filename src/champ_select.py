@@ -367,8 +367,11 @@ class ChampSelect:
                         await self._commit(connection, my_pick, chosen, 'pick',
                                            action_state, lock=False, intent=True)
         else:
-            # ARAM/blind with no role config: nothing to pick/ban here, but the
-            # cosmetic handlers below still run. Log once for diagnostics.
+            # No assigned-role pick/ban here (ARAM, Blind, or unconfigured).
+            # ARAM has no usable opening pick: the pick-action PATCH is accepted
+            # but ignored, and the client random-assigns a champ at the buzzer
+            # regardless, so we grab our preferred champs off the reroll bench
+            # below instead. The cosmetic handlers still run. Log once.
             sig2 = ("no-role", position)
             if sig2 != self._last_sig:
                 self._last_sig = sig2

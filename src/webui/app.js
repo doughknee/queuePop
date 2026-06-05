@@ -199,6 +199,7 @@ function updatePlay(s) {
   label.setAttribute("font-size", text.length > 5 ? "14" : "21");
   btn.disabled = disabled;
   btn.dataset.mode = mode;
+  if (mode === "queue") btn.title = "Choose a queue";
 }
 
 $("play-btn").addEventListener("click", async () => {
@@ -218,15 +219,18 @@ $("play-btn").addEventListener("click", async () => {
   }
 });
 
-// --- Quick-queue dropdown: grouped, collapsible, favoritable -----------
-// Built from get_quick_queues() → {queues, groups, favorites}. Favorites is a
-// reserved section pinned at the top; the rest are grouped by game/mode and
-// each section collapses (state persisted in localStorage). A star on each row
-// pins/unpins it; the same queue's star stays in sync across both sections.
-let qmQueues = [];     // [{id, name, group, ranked}]
-let qmGroups = [];     // [{key, label}], section order
-let qmFavorites = [];  // [queueId], display order of pinned queues
-const QM_COLLAPSE_KEY = "qb_qm_collapsed";
+// --- Quick-queue dropdown -----------------------------------------------
+// Built from get_quick_queues() → {queues, groups, favorites, last, show_last}.
+// Clicking PLAY opens the dropdown: a flat, uncluttered list of just the modes
+// you chose to show (stored in favorite_queue_ids). If "show last played" is on,
+// your most recent mode is pinned on top. An Edit toggle flips to a grouped,
+// sorted catalog where you pick which modes appear and toggle the last-played pin.
+let qmQueues = [];      // [{id, name, group, ranked}] — curated quick queues
+let qmGroups = [];      // [{key, label}] section order (edit mode only)
+let qmShown = [];       // [queueId] the user chose to show (persisted as favorites)
+let qmLast = null;      // most recently started queue id
+let qmShowLast = true;  // pin the last-played mode on top of the dropdown
+let qmEditing = false;  // dropdown is in "choose modes" edit mode
 
 // Inline SVG glyphs (currentColor). Row icons key off the queue's group.
 const QM_ICONS = {
@@ -245,16 +249,25 @@ const QM_STAR =
   '<svg viewBox="0 0 24 24"><path d="M12 3.1l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.6 9.2l5.8-.8z"/></svg>';
 const QM_CHEVRON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 7 7 7-7"/></svg>';
+const QM_EDIT =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+const QM_CHECK =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
-function qmLoadCollapsed() {
-  try { return new Set(JSON.parse(localStorage.getItem(QM_COLLAPSE_KEY) || "[]")); }
-  catch (_) { return new Set(); }
-}
-function qmSaveCollapsed(set) {
-  try { localStorage.setItem(QM_COLLAPSE_KEY, JSON.stringify([...set])); } catch (_) {}
-}
 function qmGroupIcon(key) { return QM_ICONS[key] || QM_ICONS.rift; }
 function qmQueueById(id) { return qmQueues.find((q) => q.id === Number(id)); }
+// Drop a redundant leading group label so the catalog doesn't read
+// "Teamfight Tactics ..." on every TFT row. "Teamfight Tactics (Ranked)" → "Ranked".
+function qmStripPrefix(name, label) {
+  const n = (name || "").trim();
+  const l = (label || "").trim();
+  if (l && n.toLowerCase().startsWith(l.toLowerCase())) {
+    let rest = n.slice(l.length).replace(/^[\s:·\-–—]+/, "").trim();
+    rest = rest.replace(/^\((.*)\)$/, "$1").trim();
+    if (rest) return rest;
+  }
+  return n;
+}
 
 async function buildQueueMenu() {
   const menu = $("queue-menu");
@@ -263,127 +276,176 @@ async function buildQueueMenu() {
   try { data = (await api().get_quick_queues()) || {}; } catch (_) {}
   qmQueues = data.queues || [];
   qmGroups = data.groups || [];
-  qmFavorites = (data.favorites || []).filter((id) => qmQueueById(id));
+  qmShown = (data.favorites || []).filter((id) => qmQueueById(id));
+  qmLast = qmQueueById(data.last) ? Number(data.last) : null;
+  qmShowLast = data.show_last !== false; // default on
   renderQueueMenu();
   // One delegated handler survives every re-render of the panel's innards.
   menu.addEventListener("click", onQueueMenuClick);
 }
 
-function qmRowHtml(q, idx) {
-  const fav = qmFavorites.includes(q.id);
+function qmRowHtml(q, idx, opts) {
+  opts = opts || {};
+  const pill = opts.replay
+    ? '<span class="qm-pill qm-last">LAST</span>'
+    : (q.ranked ? '<span class="qm-pill">RANKED</span>' : "");
   return (
-    `<button type="button" class="qm-row" data-qid="${q.id}" style="--i:${idx}">` +
+    `<button type="button" class="qm-row${opts.replay ? " qm-replay" : ""}" ` +
+      `data-qid="${q.id}" style="--i:${idx}">` +
       `<span class="qm-row-content">` +
         `<span class="qm-ico">${qmGroupIcon(q.group)}</span>` +
         `<span class="qm-name">${q.name}</span>` +
-        (q.ranked ? '<span class="qm-pill">RANKED</span>' : "") +
+        pill +
       `</span>` +
-      `<span class="qm-star${fav ? " on" : ""}" data-fav="${q.id}" ` +
-        `title="${fav ? "Unpin from favorites" : "Pin to favorites"}">${QM_STAR}</span>` +
     `</button>`
   );
 }
 
-function qmSectionHtml(key, label, queues, collapsed) {
-  const isFav = key === "favorites";
-  const body = queues.length
-    ? queues.map((q, i) => qmRowHtml(q, i)).join("")
-    : isFav
-      ? '<div class="qm-empty">Tap the <span class="qm-empty-star">☆</span> on any queue to pin it here for one-click access.</div>'
-      : '<div class="qm-empty">Nothing here.</div>';
+// Normal view: last-played on top (optional), then the chosen modes (or, until
+// the user curates any, the full curated list so the menu is never empty). Flat,
+// no group headers, no sorting — order is the user's pick / the backend's order.
+function qmNormalInner() {
+  const last = qmShowLast && qmLast != null ? qmQueueById(qmLast) : null;
+  let chosen = qmShown.map(qmQueueById).filter(Boolean);
+  if (!chosen.length) chosen = qmQueues.slice();
+  if (last) chosen = chosen.filter((q) => q.id !== last.id);
+
+  let rows = last ? qmRowHtml(last, 0, { replay: true }) : "";
+  rows += chosen.map((q, i) => qmRowHtml(q, i + 1)).join("");
+  if (!rows) {
+    rows = '<div class="qm-empty">No modes shown. Tap <span class="qm-empty-star">✎ Edit</span> to choose some.</div>';
+  }
   return (
-    `<div class="qm-section${collapsed ? " collapsed" : ""}${isFav ? " qm-fav" : ""}" data-group="${key}">` +
-      `<button type="button" class="qm-sec-head" data-toggle="${key}">` +
-        `<span class="qm-sec-ico">${QM_ICONS[key] || QM_ICONS.favorites}</span>` +
-        `<span class="qm-sec-label">${label}</span>` +
-        `<span class="qm-sec-count">${queues.length || ""}</span>` +
-        `<span class="qm-chev">${QM_CHEVRON}</span>` +
-      `</button>` +
-      `<div class="qm-sec-body"><div class="qm-sec-inner">${body}</div></div>` +
-    `</div>`
+    '<div class="qm-title"><span>Play</span>' +
+      `<button type="button" class="qm-edit" data-edit="1">${QM_EDIT}<span>Edit</span></button>` +
+    "</div>" +
+    `<div class="qm-list">${rows}</div>`
   );
 }
 
+// Edit view: the full catalog grouped + sorted, each row a toggle for whether
+// it shows in the normal view. Group prefix stripped from names for clarity.
+function qmEditInner() {
+  let secs = "";
+  for (const g of qmGroups) {
+    const qs = qmQueues.filter((q) => q.group === g.key);
+    if (!qs.length) continue;
+    secs +=
+      `<div class="qm-egroup"><div class="qm-ehead">${g.label}</div>` +
+      qs.map((q) => {
+        const on = qmShown.includes(q.id);
+        const nm = qmStripPrefix(q.name, g.label);
+        return (
+          `<button type="button" class="qm-erow${on ? " on" : ""}" data-toggle="${q.id}">` +
+            `<span class="qm-echeck">${on ? QM_CHECK : ""}</span>` +
+            `<span class="qm-ename">${nm}</span>` +
+            (q.ranked ? '<span class="qm-pill">RANKED</span>' : "") +
+          "</button>"
+        );
+      }).join("") +
+      "</div>";
+  }
+  const lastToggle =
+    '<button type="button" class="qm-opt" data-showlast="1">' +
+      `<span class="qm-optcheck${qmShowLast ? " on" : ""}">${qmShowLast ? QM_CHECK : ""}</span>` +
+      '<span class="qm-optlabel">Always show last played mode on top</span>' +
+    "</button>";
+  return (
+    '<div class="qm-title"><span>Choose modes</span>' +
+      '<button type="button" class="qm-edit" data-done="1"><span>Done</span></button>' +
+    "</div>" +
+    `<div class="qm-elist">${lastToggle}${secs}</div>`
+  );
+}
+
+function qmInner() { return qmEditing ? qmEditInner() : qmNormalInner(); }
+
+// Full (re)build — used on open. The panel wraps a single .qm-view that
+// swapQueueView() crossfades when flipping between Play and Edit.
 function renderQueueMenu() {
   const menu = $("queue-menu");
   if (!menu) return;
-  const collapsed = qmLoadCollapsed();
-  const favQueues = qmFavorites.map(qmQueueById).filter(Boolean);
-  let html = '<div class="qm-panel"><div class="qm-title">Choose a queue</div>';
-  html += qmSectionHtml("favorites", "Favorites", favQueues, collapsed.has("favorites"));
-  for (const g of qmGroups) {
-    const qs = qmQueues.filter((q) => q.group === g.key);
-    if (qs.length) html += qmSectionHtml(g.key, g.label, qs, collapsed.has(g.key));
-  }
-  html += "</div>";
-  menu.innerHTML = html;
+  menu.innerHTML = `<div class="qm-panel"><div class="qm-view">${qmInner()}</div></div>`;
 }
 
-// Re-render only the Favorites section so the group sections (and the panel's
-// open animation) aren't disturbed when a star is toggled.
-function renderFavoritesSection() {
-  const sec = $("queue-menu")?.querySelector('.qm-section[data-group="favorites"]');
-  if (!sec) return;
-  const favQueues = qmFavorites.map(qmQueueById).filter(Boolean);
-  sec.querySelector(".qm-sec-inner").innerHTML = favQueues.length
-    ? favQueues.map((q, i) => qmRowHtml(q, i)).join("")
-    : '<div class="qm-empty">Tap the <span class="qm-empty-star">☆</span> on any queue to pin it here for one-click access.</div>';
-  const count = sec.querySelector(".qm-sec-count");
-  if (count) count.textContent = favQueues.length || "";
+// Smooth Play↔Edit swap: float the old view out of flow and fade it, drop the
+// new view in faded/offset, and tween the panel height between the two. Avoids
+// the hard innerHTML "cut".
+function swapQueueView() {
+  const menu = $("queue-menu");
+  const panel = menu && menu.querySelector(".qm-panel");
+  const oldView = panel && panel.querySelector(".qm-view:not(.qm-view-out)");
+  if (!panel || !oldView) { renderQueueMenu(); return; }
+
+  const startH = panel.offsetHeight;
+
+  const newView = document.createElement("div");
+  newView.className = "qm-view qm-view-in";
+  newView.innerHTML = qmInner();
+
+  oldView.classList.add("qm-view-out"); // position:absolute + fades to 0
+  panel.appendChild(newView);
+
+  // Measure the panel's natural height with the new view, then animate to it
+  // from the locked start height. (box-sizing:border-box ⇒ offsetHeight == the
+  // height we set, so this is exact regardless of padding/border.)
+  panel.style.height = "auto";
+  const endH = panel.offsetHeight;
+  panel.style.height = startH + "px";
+  panel.getBoundingClientRect();          // reflow so the next change animates
+  panel.style.height = endH + "px";
+  requestAnimationFrame(() => newView.classList.remove("qm-view-in"));
+
+  clearTimeout(panel._swapT);
+  panel._swapT = setTimeout(() => {
+    oldView.remove();
+    panel.style.height = ""; // back to auto for content-driven sizing
+  }, 320);
 }
 
-// Keep every star for a given queue id in lock-step with qmFavorites.
-function qmSyncStars(id) {
-  const on = qmFavorites.includes(Number(id));
-  $("queue-menu")?.querySelectorAll(`.qm-star[data-fav="${id}"]`).forEach((s) => {
-    s.classList.toggle("on", on);
-    s.title = on ? "Unpin from favorites" : "Pin to favorites";
-  });
-}
-
-async function toggleFavorite(id, starEl) {
+// Toggle whether a mode shows in the normal view (persisted as favorites).
+async function toggleShown(id, rowEl) {
   id = Number(id);
-  const adding = !qmFavorites.includes(id);
-  if (adding) qmFavorites.push(id);
-  else qmFavorites = qmFavorites.filter((x) => x !== id);
-  try { await api().set_favorites(qmFavorites); } catch (_) {}
-
-  if (starEl) replay(starEl, "pop");
-  qmSyncStars(id);
-
-  // Unpinning from within the Favorites list: animate that row out first.
-  const favSec = $("queue-menu")?.querySelector('.qm-section[data-group="favorites"]');
-  if (!adding && starEl && favSec && favSec.contains(starEl)) {
-    const row = starEl.closest(".qm-row");
-    if (row) {
-      row.classList.add("qm-removing");
-      setTimeout(renderFavoritesSection, 180);
-      return;
-    }
+  if (qmShown.includes(id)) qmShown = qmShown.filter((x) => x !== id);
+  else qmShown.push(id);
+  const on = qmShown.includes(id);
+  if (rowEl) {
+    rowEl.classList.toggle("on", on);
+    const chk = rowEl.querySelector(".qm-echeck");
+    if (chk) chk.innerHTML = on ? QM_CHECK : "";
   }
-  renderFavoritesSection();
-}
-
-function toggleSection(key) {
-  const sec = $("queue-menu")?.querySelector(`.qm-section[data-group="${key}"]`);
-  if (!sec) return;
-  const collapsed = qmLoadCollapsed();
-  if (sec.classList.toggle("collapsed")) collapsed.add(key);
-  else collapsed.delete(key);
-  qmSaveCollapsed(collapsed);
+  try { await api().set_favorites(qmShown); } catch (_) {}
 }
 
 async function startQuickQueue(id) {
+  qmEditing = false;
   closeQueueMenu();
   await api().start_queue(id);
+  qmLast = Number(id);
   refreshStatus(); // flip PLAY → IN QUEUE
 }
 
+// Toggle the "always show last played on top" preference.
+async function toggleShowLast(el) {
+  qmShowLast = !qmShowLast;
+  if (el) {
+    el.classList.toggle("on", qmShowLast);
+    el.innerHTML = qmShowLast ? QM_CHECK : "";
+  }
+  try { await api().set_show_last_queue(qmShowLast); } catch (_) {}
+}
+
 function onQueueMenuClick(e) {
-  const star = e.target.closest(".qm-star");
-  if (star) { e.stopPropagation(); toggleFavorite(star.dataset.fav, star); return; }
-  const head = e.target.closest(".qm-sec-head");
-  if (head) { toggleSection(head.dataset.toggle); return; }
+  // The menu rewrites its own innerHTML on Edit/Done, which detaches the clicked
+  // node — so stop the click here, or the document outside-click handler would
+  // see a detached target, think the click was outside, and close the menu.
+  e.stopPropagation();
+  if (e.target.closest("[data-edit]")) { qmEditing = true; swapQueueView(); return; }
+  if (e.target.closest("[data-done]")) { qmEditing = false; swapQueueView(); return; }
+  const showlast = e.target.closest("[data-showlast]");
+  if (showlast) { toggleShowLast(showlast.querySelector(".qm-optcheck")); return; }
+  const tog = e.target.closest("[data-toggle]");
+  if (tog) { toggleShown(tog.dataset.toggle, tog); return; }
   const row = e.target.closest(".qm-row");
   if (row) startQuickQueue(row.dataset.qid);
 }
@@ -403,13 +465,21 @@ function toggleQueueMenu() {
   if (menu.classList.contains("hidden")) openQueueMenu();
   else closeQueueMenu();
 }
-function closeQueueMenu() { $("queue-menu")?.classList.add("hidden"); }
-// Click outside closes the queue menu.
+function closeQueueMenu() {
+  const menu = $("queue-menu");
+  if (!menu) return;
+  menu.classList.add("hidden");
+  if (qmEditing) { qmEditing = false; renderQueueMenu(); } // reopen in normal view
+}
+// Click outside closes the queue menu. The PLAY button toggles it via its own
+// handler; clicks inside the menu call stopPropagation, so they never reach here.
 document.addEventListener("click", (e) => {
   const menu = $("queue-menu");
   const btn = $("play-btn");
   if (!menu || menu.classList.contains("hidden")) return;
-  if (!menu.contains(e.target) && btn && !btn.contains(e.target)) closeQueueMenu();
+  if (menu.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;
+  closeQueueMenu();
 });
 
 // --- Live summoner badge -----------------------------------------------
@@ -546,7 +616,7 @@ $("summoner-btn").addEventListener("click", () => {
 // tracker site (built server-side from the Riot ID).
 const QUEUE_SHORT = {
   420: "Ranked Solo/Duo", 440: "Ranked Flex", 430: "Blind Pick", 400: "Draft Pick",
-  490: "Quickplay", 450: "ARAM", 700: "Clash", 1700: "Arena", 1900: "URF",
+  490: "Quickplay", 450: "ARAM", 2400: "ARAM Mayhem", 700: "Clash", 1700: "Arena", 1900: "URF",
   900: "ARURF", 1090: "TFT", 1100: "Ranked TFT", 1160: "TFT Double Up", 830: "Co-op vs AI",
   840: "Co-op vs AI", 850: "Co-op vs AI",
 };
@@ -1051,23 +1121,88 @@ async function loadMastery() {
 }
 
 // --- Settings build (queues + role pickers) ----------------------------
+const QP_CHECK =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const QSEL_COLLAPSE_KEY = "qb_qsel_collapsed";
+function qselLoadCollapsed() {
+  try { return new Set(JSON.parse(localStorage.getItem(QSEL_COLLAPSE_KEY) || "[]")); }
+  catch (_) { return new Set(); }
+}
+function qselSaveCollapsed(set) {
+  try { localStorage.setItem(QSEL_COLLAPSE_KEY, JSON.stringify([...set])); } catch (_) {}
+}
+
+// Render the Allowed-Queues picker as collapsible, grouped sections. Each
+// section has a select-all toggle; the checkboxes keep `data-queue` so
+// loadConfigIntoForm / gatherConfig work unchanged.
+function renderQueuePicker(queues, groups) {
+  const wrap = $("queues");
+  if (!wrap) return;
+  const collapsed = qselLoadCollapsed();
+  const order = groups && groups.length ? groups : [{ key: "other", label: "Other" }];
+  let html = "";
+  for (const g of order) {
+    const qs = queues.filter((q) => q.group === g.key);
+    if (!qs.length) continue;
+    const isCol = collapsed.has(g.key);
+    html +=
+      `<div class="qsel-group${isCol ? " collapsed" : ""}" data-group="${g.key}">` +
+        `<div class="qsel-head">` +
+          `<button type="button" class="qsel-toggle" data-toggle="${g.key}">` +
+            `<span class="qsel-chev">${QM_CHEVRON}</span>` +
+            `<span class="qsel-label">${g.label}</span>` +
+            `<span class="qsel-count">${qs.length}</span>` +
+          `</button>` +
+          `<button type="button" class="qsel-all" data-all="${g.key}">All</button>` +
+        `</div>` +
+        `<div class="qsel-body"><div class="queue-pills">` +
+          qs.map((q) =>
+            `<label class="qp" title="${q.name}">` +
+              `<input type="checkbox" data-queue="${q.id}" data-grp="${g.key}" />` +
+              `<span class="qp-check">${QP_CHECK}</span>` +
+              `<span class="qp-name">${q.name}</span>` +
+              (q.ranked ? `<span class="qp-rank">RANKED</span>` : "") +
+            `</label>`
+          ).join("") +
+        `</div></div>` +
+      `</div>`;
+  }
+  wrap.innerHTML = html || '<p class="set-row-hint">No queues available.</p>';
+}
+
+// One delegated handler: collapse a section, or toggle all of its checkboxes.
+function onQueuePickerClick(e) {
+  const toggle = e.target.closest(".qsel-toggle");
+  if (toggle) {
+    const key = toggle.dataset.toggle;
+    const sec = $("queues")?.querySelector(`.qsel-group[data-group="${key}"]`);
+    if (!sec) return;
+    const collapsed = qselLoadCollapsed();
+    if (sec.classList.toggle("collapsed")) collapsed.add(key);
+    else collapsed.delete(key);
+    qselSaveCollapsed(collapsed);
+    return;
+  }
+  const all = e.target.closest(".qsel-all");
+  if (all) {
+    const boxes = [...$("queues").querySelectorAll(`input[data-grp="${all.dataset.all}"]`)];
+    const turnOn = boxes.some((b) => !b.checked); // all-on ⇒ clear, else select all
+    boxes.forEach((b) => { b.checked = turnOn; });
+    return;
+  }
+}
+
 async function buildSettings() {
-  const queues = await api().get_queue_map();
+  const data = (await api().get_queue_map()) || {};
+  const queues = data.queues || [];
+  const groups = data.groups || [];
   queueMap = {};
   for (const q of queues) queueMap[q.id] = q.name;
-  const qWrap = $("queues");
-  qWrap.innerHTML = "";
-  const QP_CHECK =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  for (const q of queues) {
-    const label = document.createElement("label");
-    label.className = "qp";
-    label.title = q.name;
-    label.innerHTML =
-      `<input type="checkbox" data-queue="${q.id}" />` +
-      `<span class="qp-check">${QP_CHECK}</span>` +
-      `<span class="qp-name">${q.name}</span>`;
-    qWrap.appendChild(label);
+  renderQueuePicker(queues, groups);
+  const wrap = $("queues");
+  if (wrap && !wrap.dataset.bound) {
+    wrap.dataset.bound = "1";
+    wrap.addEventListener("click", onQueuePickerClick);
   }
 
   roles = await api().get_roles();

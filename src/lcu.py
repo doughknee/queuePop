@@ -97,11 +97,31 @@ class LCU:
             if lobby.status == 200:
                 data = await lobby.json()
                 queue_id = data.get('gameConfig', {}).get('queueId')
-                queue_name = config.QUEUE_ID_MAP.get(queue_id, f"Unknown (ID: {queue_id})")
+                queue_name = await self._resolve_queue_name(connection, queue_id)
                 return queue_name, queue_id
         except Exception as e:
             config.console.log(f"[danger]Could not retrieve queue info: {e}[/]")
         return "Unknown Mode", None
+
+    async def _resolve_queue_name(self, connection, queue_id):
+        """Human name for a queue id. Static map first (nice short names), then
+        the client's live queue list so rotating modes (e.g. ARAM Mayhem)
+        resolve without being hardcoded."""
+        if queue_id is None:
+            return "Unknown Mode"
+        name = config.QUEUE_ID_MAP.get(queue_id)
+        if name:
+            return name
+        try:
+            r = await connection.request('get', f'/lol-game-queues/v1/queues/{queue_id}')
+            if r.status == 200:
+                q = await r.json()
+                live = (q.get('name') or q.get('shortName') or '').strip()
+                if live:
+                    return live
+        except Exception as e:
+            config.console.log(f"[warning]Queue name lookup failed: {e}[/]")
+        return f"Unknown (ID: {queue_id})"
 
     async def ready_check_changed(self, connection, event):
         if self.paused:

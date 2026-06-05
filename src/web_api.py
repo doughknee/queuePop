@@ -26,34 +26,136 @@ from _version import __version__
 
 # Sections in the PLAY dropdown, in display order. The "favorites" section is
 # rendered separately (pinned, reserved) and isn't listed here.
+# Display order + labels for queue groups. Shared by the PLAY quick-queue
+# dropdown and the Allowed-Queues picker (the dropdown shows only QUICK_GROUPS).
 QUEUE_GROUPS = [
     {"key": "rift", "label": "Summoner's Rift"},
     {"key": "aram", "label": "ARAM"},
-    {"key": "featured", "label": "Featured"},
+    {"key": "featured", "label": "Featured & Rotating"},
     {"key": "tft", "label": "Teamfight Tactics"},
+    {"key": "clash", "label": "Clash"},
+    {"key": "coop", "label": "Co-op vs. AI"},
+    {"key": "tutorial", "label": "Tutorial"},
+    {"key": "other", "label": "Other"},
 ]
+# The "useful" groups surfaced in the PLAY dropdown (skip Clash/co-op/tutorial).
+QUICK_GROUPS = ("rift", "aram", "featured", "tft")
+_GROUP_ORDER = {g["key"]: i for i, g in enumerate(QUEUE_GROUPS)}
 
-# Queues offered in the PLAY quick-queue picker, grouped by `group` (one of the
-# QUEUE_GROUPS keys). Every entry creates a lobby + starts matchmaking through
-# the same /lol-lobby endpoints, TFT included. `ranked` just drives a badge.
-QUICK_QUEUES = [
-    # Summoner's Rift
-    {"id": 400, "name": "Draft Pick", "group": "rift"},
-    {"id": 430, "name": "Blind Pick", "group": "rift"},
-    {"id": 490, "name": "Quickplay", "group": "rift"},
-    {"id": 420, "name": "Ranked Solo/Duo", "group": "rift", "ranked": True},
-    {"id": 440, "name": "Ranked Flex", "group": "rift", "ranked": True},
-    # ARAM
-    {"id": 450, "name": "ARAM", "group": "aram"},
-    # Featured / rotating
-    {"id": 1700, "name": "Arena", "group": "featured"},
-    # Teamfight Tactics
-    {"id": 1090, "name": "TFT Normal", "group": "tft"},
-    {"id": 1100, "name": "TFT Ranked", "group": "tft", "ranked": True},
-    {"id": 1130, "name": "TFT Hyper Roll", "group": "tft"},
-    {"id": 1160, "name": "TFT Double Up", "group": "tft"},
-    {"id": 1220, "name": "Tocker's Trials", "group": "tft"},
-]
+# mapId -> arena/rift name, used to disambiguate same-named queues (e.g. the
+# several "Clash" entries) and never shown on its own.
+_MAP_NAMES = {
+    11: "Summoner's Rift", 12: "Howling Abyss", 21: "Nexus Blitz",
+    22: "Convergence", 30: "Rings of Wrath", 33: "The Arena", 35: "Swarm",
+}
+# Fallback group/ranked for the static map (used only when the client is offline
+# so the picker still renders the staples).
+_STATIC_GROUP = {
+    400: "rift", 430: "rift", 490: "rift", 420: "rift", 440: "rift",
+    450: "aram", 2400: "aram", 1700: "featured",
+    1090: "tft", 1100: "tft", 1130: "tft", 1160: "tft", 1220: "tft",
+}
+_RANKED_IDS = {420, 440, 1100}
+
+
+def _queue_group(q):
+    """Bucket a live queue object into one of the QUEUE_GROUPS keys."""
+    cat = q.get("category")
+    mode = (q.get("gameMode") or "").upper()
+    qtype = (q.get("type") or "").upper()
+    name = (q.get("name") or "").upper()
+    mid = q.get("mapId")
+    if "TUTORIAL" in mode or "TUTORIAL" in qtype:
+        return "tutorial"
+    if cat == "VersusAi":
+        return "coop"
+    if mode == "TFT" or "TFT" in qtype:
+        return "tft"
+    if "CLASH" in qtype or "CLASH" in name:
+        return "clash"
+    if mid == 12 or mode == "ARAM":
+        return "aram"
+    # Standard Summoner's Rift modes (Draft/Blind/Ranked/Quickplay/Swiftplay).
+    if mid == 11 and mode in ("CLASSIC", "SWIFTPLAY"):
+        return "rift"
+    return "featured"
+
+
+def _disambiguate(items):
+    """Make display names unique. For each set of same-named queues, append the
+    first distinguishing field (map, then mode, short name, description, type)
+    whose values are all distinct; fall back to a numeric suffix."""
+    by_name = {}
+    for it in items:
+        by_name.setdefault(it["name"], []).append(it)
+    for base, group in by_name.items():
+        if len(group) < 2:
+            continue
+        for field in ("_map", "_mode", "_short", "_desc", "_type"):
+            vals = [(it.get(field) or "").strip() for it in group]
+            if all(vals) and len(set(vals)) == len(group):
+                for it, v in zip(group, vals):
+                    it["name"] = f"{base} · {v}"
+                break
+        else:
+            for i, it in enumerate(group, 1):
+                it["name"] = f"{base} ({i})"
+
+
+def _enrich_live_queues(live):
+    """Classify, disambiguate, and clean the client's live queue list. Keeps
+    currently-offered, non-custom queues. Returns [{id, name, group, ranked}]."""
+    items, seen = [], set()
+    for q in live:
+        qid = q.get("id")
+        if not isinstance(qid, int) or qid < 0 or qid in seen:
+            continue
+        if q.get("category") == "Custom":
+            continue
+        if q.get("queueAvailability") not in (None, "Available"):
+            continue
+        name = (q.get("name") or q.get("shortName") or "").strip()
+        if not name:
+            continue
+        seen.add(qid)
+        items.append({
+            "id": qid,
+            "name": name,
+            "group": _queue_group(q),
+            "ranked": bool(q.get("isRanked")),
+            "_map": _MAP_NAMES.get(q.get("mapId"), ""),
+            "_mode": (q.get("gameMode") or "").title(),
+            "_short": (q.get("shortName") or "").strip(),
+            "_desc": (q.get("description") or "").strip(),
+            "_type": (q.get("type") or "").strip(),
+        })
+    _disambiguate(items)
+    for it in items:  # strip the private disambiguation helpers
+        for k in [k for k in it if k.startswith("_")]:
+            del it[k]
+    return items
+
+
+def _static_queue_items():
+    """Offline fallback list built from the static name map."""
+    return [
+        {"id": qid, "name": name,
+         "group": _STATIC_GROUP.get(qid, "other"), "ranked": qid in _RANKED_IDS}
+        for qid, name in config.QUEUE_ID_MAP.items()
+    ]
+
+
+def _sort_queue_items(items):
+    items.sort(key=lambda it: (_GROUP_ORDER.get(it["group"], 99), it["name"].lower()))
+    return items
+
+
+async def _fetch_game_queues(conn):
+    """Raw /lol-game-queues/v1/queues payload, or None on a non-200."""
+    r = await conn.request("get", "/lol-game-queues/v1/queues")
+    if r.status != 200:
+        return None
+    return await r.json()
 
 # LCU region code -> op.gg region slug. The client reports either short codes
 # (NA, EUW) or platform ids (NA1, EUW1); cover both.
@@ -277,6 +379,14 @@ def _clean_queue_ids(ids, keep_order=False):
     return clean if keep_order else sorted(set(clean))
 
 
+def _coerce_queue_id(value):
+    """A single queue id as int, or None for missing/invalid."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _normalize_config(data):
     data = data or {}
     return {
@@ -288,6 +398,8 @@ def _normalize_config(data):
         "favorite_queue_ids": _clean_queue_ids(
             data.get("favorite_queue_ids"), keep_order=True
         ),
+        "last_queue_id": _coerce_queue_id(data.get("last_queue_id")),
+        "show_last_queue": bool(data.get("show_last_queue", True)),
         "companion": _normalize_companion(data.get("companion")),
         "champ_select": _normalize_champ_select(data.get("champ_select")),
     }
@@ -344,7 +456,35 @@ class Api:
         return _normalize_config(self._lcu.config or {})
 
     def get_queue_map(self):
-        return [{"id": qid, "name": name} for qid, name in config.QUEUE_ID_MAP.items()]
+        """Grouped, disambiguated queue list for the auto-accept picker. Prefers
+        the client's live list so new/rotating modes (e.g. ARAM Mayhem) appear
+        on their own, falling back to the static map when offline. Always
+        includes any queue the user has already allow-listed, so a saved
+        selection is never silently dropped while its mode is rotated out
+        (gatherConfig only persists queues that render a checkbox).
+
+        Returns {queues: [{id, name, group, ranked}], groups: [{key, label}]}."""
+        live = self._lcu.call(_fetch_game_queues, timeout=6.0)
+        items = _enrich_live_queues(live) if isinstance(live, list) else _static_queue_items()
+        have = {it["id"] for it in items}
+
+        # Never drop a queue the user already allow-listed (it may be a mode that
+        # has since rotated out of the live list).
+        for qid in (self._lcu.config or {}).get("allowed_queue_ids", []) or []:
+            try:
+                qid = int(qid)
+            except (TypeError, ValueError):
+                continue
+            if qid not in have:
+                items.append({
+                    "id": qid,
+                    "name": config.QUEUE_ID_MAP.get(qid, f"Queue {qid}"),
+                    "group": _STATIC_GROUP.get(qid, "other"),
+                    "ranked": qid in _RANKED_IDS,
+                })
+                have.add(qid)
+
+        return {"queues": _sort_queue_items(items), "groups": QUEUE_GROUPS}
 
     def get_roles(self):
         return [
@@ -751,12 +891,18 @@ class Api:
 
     def save_config(self, new_config):
         cfg = _normalize_config(new_config)
-        # The Settings form doesn't carry favorites; don't let saving it wipe
-        # the pinned-queue list (managed separately via set_favorites()).
+        # The Settings form carries neither the shown-queues list nor the
+        # last-played queue; don't let saving it wipe those (both are managed
+        # separately, via set_favorites() and start_queue()).
+        prev = self._lcu.config or {}
         if "favorite_queue_ids" not in (new_config or {}):
             cfg["favorite_queue_ids"] = _clean_queue_ids(
-                (self._lcu.config or {}).get("favorite_queue_ids"), keep_order=True
+                prev.get("favorite_queue_ids"), keep_order=True
             )
+        if "last_queue_id" not in (new_config or {}):
+            cfg["last_queue_id"] = _coerce_queue_id(prev.get("last_queue_id"))
+        if "show_last_queue" not in (new_config or {}):
+            cfg["show_last_queue"] = bool(prev.get("show_last_queue", True))
         try:
             with open(config.CONFIG_FILE, "w") as f:
                 json.dump(cfg, f, indent=4)
@@ -906,22 +1052,44 @@ class Api:
             return {"ok": False, "error": str(e)}
 
     def get_quick_queues(self):
-        """Everything the PLAY dropdown needs in one call: the grouped queue
-        list, the section order/labels, and the user's pinned favorites."""
+        """Everything the PLAY dropdown needs in one call: the curated grouped
+        queue list (the genuinely playable modes — Rift/ARAM/Featured/TFT,
+        skipping Clash, co-op-vs-AI and tutorials), the section order/labels,
+        and the user's pinned favorites. Live-sourced, static fallback offline."""
         cfg = self._lcu.config or {}
+        live = self._lcu.call(_fetch_game_queues, timeout=6.0)
+        base = _enrich_live_queues(live) if isinstance(live, list) else _static_queue_items()
+        quick = _sort_queue_items([it for it in base if it["group"] in QUICK_GROUPS])
+        groups = [g for g in QUEUE_GROUPS if g["key"] in QUICK_GROUPS]
         return {
-            "queues": [dict(q) for q in QUICK_QUEUES],
-            "groups": [dict(g) for g in QUEUE_GROUPS],
+            "queues": quick,
+            "groups": groups,
             "favorites": _clean_queue_ids(
                 cfg.get("favorite_queue_ids"), keep_order=True
             ),
+            "last": cfg.get("last_queue_id"),
+            "show_last": bool(cfg.get("show_last_queue", True)),
         }
+
+    def set_show_last_queue(self, value):
+        """Persist whether the last-played mode pins to the top of the PLAY
+        dropdown. Saved quietly (toggled from the dropdown's edit view)."""
+        cfg = dict(self._lcu.config or {})
+        cfg["show_last_queue"] = bool(value)
+        cfg = _normalize_config(cfg)
+        try:
+            with open(config.CONFIG_FILE, "w") as f:
+                json.dump(cfg, f, indent=4)
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+        self._lcu.config = cfg
+        return {"ok": True, "show_last_queue": cfg["show_last_queue"]}
 
     def set_favorites(self, ids):
         """Persist the pinned-queue list (order preserved). Saved quietly, no
-        activity-feed noise, since users may toggle stars rapidly."""
-        valid = {q["id"] for q in QUICK_QUEUES}
-        favorites = [q for q in _clean_queue_ids(ids, keep_order=True) if q in valid]
+        activity-feed noise, since users may toggle stars rapidly. Stored as
+        cleaned ints; the dropdown only renders favorites that still exist."""
+        favorites = _clean_queue_ids(ids, keep_order=True)
         cfg = dict(self._lcu.config or {})
         cfg["favorite_queue_ids"] = favorites
         cfg = _normalize_config(cfg)
@@ -955,7 +1123,23 @@ class Api:
         if res.get("ok"):
             name = config.QUEUE_ID_MAP.get(qid, f"queue {qid}")
             events.push(f"Queue started: {name}", "success", kind="queue")
+            self._remember_last_queue(qid)
         return res
+
+    def _remember_last_queue(self, qid):
+        """Persist the most recently started queue so the PLAY dropdown can
+        offer a one-click 'play again'. Best-effort, never blocks the queue."""
+        cfg = dict(self._lcu.config or {})
+        if cfg.get("last_queue_id") == qid:
+            return
+        cfg["last_queue_id"] = qid
+        cfg = _normalize_config(cfg)
+        try:
+            with open(config.CONFIG_FILE, "w") as f:
+                json.dump(cfg, f, indent=4)
+        except Exception as e:
+            config.console.log(f"[warning]Could not save last queue: {e}[/]")
+        self._lcu.config = cfg
 
     def cancel_queue(self):
         """Stop searching for a match."""

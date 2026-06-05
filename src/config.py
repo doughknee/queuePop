@@ -37,7 +37,7 @@ QUEUE_ID_MAP = {
     1090: "TFT Normal", 1100: "TFT Ranked", 1130: "TFT Hyper Roll",
     1160: "TFT Double Up", 420: "Ranked Solo/Duo", 440: "Ranked Flex",
     400: "Draft Pick", 430: "Blind Pick", 450: "ARAM", 1700: "Arena",
-    1220: "Tocker's Trials"
+    1220: "Tocker's Trials", 2400: "ARAM Mayhem"
 }
 
 def default_config():
@@ -47,8 +47,12 @@ def default_config():
         "user_id": "",
         "desktop_notifications": True,
         "allowed_queue_ids": [],
-        # Queue ids pinned to the top of the PLAY dropdown (order = display order).
+        # Queue ids shown in the PLAY dropdown (order = display order).
         "favorite_queue_ids": [],
+        # Most recently started queue, for the PLAY dropdown's "play again".
+        "last_queue_id": None,
+        # Pin the last-played mode to the top of the PLAY dropdown.
+        "show_last_queue": True,
         "companion": {
             "enabled": False,
             "port": 8420,
