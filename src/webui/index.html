@@ -210,9 +210,6 @@
        lit (gold + teal) since it's the app's own always-on identity. */
     .qmark { display: inline-block; line-height: 0; }
     .qmark svg { display: block; overflow: visible; }
-    /* Small app-identity glyph at the far left of the title bar. pointer-events
-       none so dragging the window still works over it. */
-    .brand-glyph { width: 25px; height: 25px; margin-right: 11px; flex-shrink: 0; pointer-events: none; }
     /* Full lockup (mark + wordmark) for the About card. */
     .brand-lockup { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
     .brand-lockup .qmark { width: 44px; height: 44px; flex-shrink: 0; }
@@ -246,8 +243,14 @@
     .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
     .pb-ring, .pb-ico, .pb-frame { transition: fill .15s ease; }
     .pb-grad-end { transition: stop-color .15s ease; }
+    /* Queue Sigil inside the medallion: hex ring + pennant ignite bronze→gold
+       (like .pb-ico), the core dot dark-teal→teal (like .pb-frame). */
+    .pb-sig-ring { transition: stroke .15s ease; }
+    .pb-sig-core { transition: fill .15s ease; }
     .play-btn:hover:not(:disabled) .pb-ring  { fill: #C8AA6E; }
     .play-btn:hover:not(:disabled) .pb-ico   { fill: #C8AA6E; }
+    .play-btn:hover:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
+    .play-btn:hover:not(:disabled) .pb-sig-core { fill: #0AC8B9; }
     .play-btn:hover:not(:disabled) .pb-frame { fill: #0AC8B9; }
     .play-btn:hover:not(:disabled) .pb-grad-end { stop-color: #0AC8B9; }
     .play-btn:disabled { cursor: default; opacity: 0.5; }
@@ -523,6 +526,8 @@
        is active, so it reads as the current view in place of a nav icon. */
     .play-btn.live-active .pb-ring  { fill: #C8AA6E; }
     .play-btn.live-active .pb-ico   { fill: #C8AA6E; }
+    .play-btn.live-active .pb-sig-ring { stroke: #C8AA6E; }
+    .play-btn.live-active .pb-sig-core { fill: #0AC8B9; }
     .play-btn.live-active .pb-frame { fill: #0AC8B9; }
     .play-btn.live-active .pb-grad-end { stop-color: #0AC8B9; }
     .play-btn.live-active .play-svg { filter: drop-shadow(0 0 7px rgba(10, 200, 185, 0.55)); animation: livePulse 2s ease-in-out infinite; }
@@ -1139,25 +1144,6 @@
       </div>
 
       <div class="nav-left">
-        <!-- queuePop app-identity glyph (the "Queue Sigil"). Decorative; the
-             pointer-events:none wrapper keeps window-drag working over it. -->
-        <span class="qmark brand-glyph" title="queuePop" aria-label="queuePop">
-          <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
-            <defs>
-              <radialGradient id="qmGlowBar" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
-                <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
-              </radialGradient>
-            </defs>
-            <circle cx="56" cy="54" r="26" fill="url(#qmGlowBar)" />
-            <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
-                     fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
-            <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
-                     fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
-            <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
-            <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
-          </svg>
-        </span>
         <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in design/play-button.svg). Hooks the
                app relies on: class="play-svg" (sizing), id="play-label" (state
@@ -1177,7 +1163,18 @@
             <circle class="pb-ring" cx="258.54" cy="242.543" r="27" fill="#785a28" style="stroke-width:1px"/>
             <circle cx="258.54" cy="242.543" r="24" fill="#010a13" style="stroke-width:1px"/>
             <circle cx="258.54" cy="242.543" r="22" fill="url(#pbGrad)" style="stroke-width:1px"/>
-            <path class="pb-ico" fill="#785a28" d="M254.54 233.543v18l15-9z" style="stroke-width:1px"/>
+            <!-- queuePop "Queue Sigil" stamped into the medallion in place of the
+                 plain play triangle: gold hex ring, teal core, gold pennant.
+                 Ignites bronze→gold+teal with the rest of the button (.pb-sig-*
+                 classes mirror .pb-ico/.pb-frame). Geometry ported from the
+                 site's Mark, scaled to sit inside the r22 core. -->
+            <g transform="translate(258.54 242.543) scale(0.38) translate(-56 -54)">
+              <polygon class="pb-sig-ring"
+                       points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
+                       fill="none" stroke="#785a28" stroke-width="8" stroke-linejoin="miter"/>
+              <circle class="pb-sig-core" cx="56" cy="54" r="6.5" fill="#005a82"/>
+              <polygon class="pb-ico" points="74,71 78,99 105,85" fill="#785a28"/>
+            </g>
           </svg>
         </button>
       </div>
