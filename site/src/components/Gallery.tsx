@@ -16,6 +16,13 @@ const SHOTS = [
     sub: 'Pin your favorite modes, Rift, ARAM, every TFT queue, and launch straight from the app.',
     glow: 'gold' as const,
   },
+  {
+    src: '/shots/profile.png',
+    alt: 'queuePop profile, live rank, champion mastery, and recent match history',
+    caption: 'Your climb at a glance',
+    sub: 'Live rank and LP, champion mastery, and recent matches, pulled straight from your client.',
+    glow: 'teal' as const,
+  },
 ]
 
 export function Gallery() {
@@ -31,7 +38,7 @@ export function Gallery() {
         <div className="rule-diamond mx-auto mt-8 w-40" />
       </Reveal>
 
-      <div className="mt-14 grid gap-8 md:grid-cols-2">
+      <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {SHOTS.map((s, i) => (
           <Reveal key={s.src} delay={i * 110}>
             <Shot src={s.src} alt={s.alt} glow={s.glow} />

@@ -15,6 +15,8 @@ A lightweight, automated tool for **League of Legends** and **Teamfight Tactics*
 | ![Settings](docs/screenshots/settings.png) | ![Champion select](docs/screenshots/champ-select.png) |
 | **Per-champion loadouts** | **One-click queue** |
 | ![Loadout editor](docs/screenshots/loadout.png) | ![Queue launcher](docs/screenshots/queue.png) |
+| **Rank & mastery at a glance** | **Every queue, including TFT** |
+| ![Profile overview](docs/screenshots/profile.png) | ![Full queue picker](docs/screenshots/queue-all.png) |
 
 ## 🚀 Features
 
