@@ -10,12 +10,15 @@
   auto-update (installed vs portable); `src/_version.py` version string.
 - `src/webui/` — the web UI (HTML/CSS/JS) rendered by pywebview. Downloaded
   League assets land under `src/webui/assets/` (gitignored; see scripts below).
-- `assets/queuepop.ico` — app icon, bundled into the exe by `queuePop.spec` and
-  referenced at runtime via the `resource_path("assets/queuepop.ico")` pattern.
+- `assets/queuepop.ico` — app icon, bundled into the exe by `scripts/queuePop.spec`
+  and referenced at runtime via the `resource_path("assets/queuepop.ico")` pattern.
 - `brand/` — brand kit master (marks, lockups, fonts, `play-button.svg`,
   `brand-guidelines.html`). Reference material; not consumed by any build — the
   app and site each carry their own derived copies.
-- `scripts/` — dev tooling: `fetch_assets.py` (download champion/role icons),
+- `scripts/` — all build/dev tooling, invoked from the repo root so their
+  relative paths resolve: `build_release.py` (release orchestrator),
+  `queuePop.spec` (PyInstaller), `tailwind.config.js`, `run.cmd` / `stop.cmd`
+  (launch/kill the app), `fetch_assets.py` (download champion/role icons), and
   `lcu_docs_gen.py` + `lcuapi.txt` (regenerate the `docs/lcu/` API reference).
 - `docs/` — `screenshots/` (README images) and `lcu/` (vendored LCU API reference).
 - `installer/queuePop.iss` — Inno Setup script for the installed build.
@@ -25,12 +28,12 @@
 ## Build, Test, and Development Commands
 - Install deps: `pip install -r requirements.txt`.
 - Run from source: `py src/main.py` (use the `py` launcher — bare `python`
-  resolves to the broken Windows Store stub here). Or `run.cmd` / `make run`.
+  resolves to the broken Windows Store stub here). Or `scripts\run.cmd` / `make run`.
 - Rebuild Tailwind CSS after markup changes: `make css`.
-- Build the release: `py build_release.py` — fetches assets, compiles CSS, runs
-  PyInstaller, and writes `releases/queuePop-v<version>-setup.exe`,
+- Build the release: `py scripts/build_release.py` — fetches assets, compiles CSS,
+  runs PyInstaller, and writes `releases/queuePop-v<version>-setup.exe`,
   `releases/queuePop-v<version>-portable.zip`, and a bare `releases/queuePop.exe`.
-  PyInstaller alone: `py -m PyInstaller queuePop.spec`.
+  PyInstaller alone: `py -m PyInstaller scripts/queuePop.spec`.
 
 ## Coding Style & Naming Conventions
 - Target Python 3.14 on Windows; PEP 8, 4-space indents, snake_case
@@ -62,5 +65,5 @@
 ## Security & Configuration Tips
 - Never commit `config.json` or real Discord webhooks — both are gitignored; use
   dummy values in any shared examples and redact logs.
-- Update `queuePop.spec` (and `installer/queuePop.iss` if needed) when adding new
-  bundled assets so PyInstaller and the installer pick them up.
+- Update `scripts/queuePop.spec` (and `installer/queuePop.iss` if needed) when
+  adding new bundled assets so PyInstaller and the installer pick them up.

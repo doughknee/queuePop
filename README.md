@@ -109,13 +109,13 @@ To build the executable yourself using PyInstaller:
 
 ```bash
 pip install pyinstaller
-python -m PyInstaller queuePop.spec
+python -m PyInstaller scripts/queuePop.spec
 ```
 
 The output will be in the `dist/` folder. For a full clean build, run:
 
 ```bash
-python build_release.py
+python scripts/build_release.py
 ```
 
 That fetches League assets, compiles the Tailwind CSS, runs PyInstaller, and
