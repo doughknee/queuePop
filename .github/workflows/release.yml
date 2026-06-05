@@ -47,13 +47,16 @@ jobs:
         run: |
           $tag = "v${{ steps.ver.outputs.version }}"
           gh release view $tag --repo "${{ github.repository }}" *> $null
-          if ($LASTEXITCODE -eq 0) {
+          $exists = $LASTEXITCODE -eq 0
+          $global:LASTEXITCODE = 0  # gh returns 1 when not found; don't fail the step
+          if ($exists) {
             "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            Write-Host "::notice::Release $tag already exists — skipping build."
+            Write-Host "::notice::Release $tag already exists, skipping build."
           } else {
             "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             Write-Host "Building release $tag"
           }
+          exit 0
 
       - name: Set up Python
         if: steps.check.outputs.exists == 'false'
