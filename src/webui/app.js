@@ -1069,14 +1069,21 @@ async function refreshEvents() {
   try {
     const { events } = await api().get_events(lastEventId);
     let popped = false;
+    let updateEvent = false;
     for (const ev of events) {
       lastEventId = Math.max(lastEventId, ev.id);
       activityLog.push(ev);
       if (ev.kind === "queue_pop" || /queue popped/i.test(ev.message)) popped = true;
+      if (ev.kind === "update") updateEvent = true;
     }
     while (activityLog.length > 200) activityLog.shift();
     renderActivity(); // also refreshes relative times when there are no new events
     if (popped && !firstActivityLoad) flashPop(); // celebrate, but not on backfill
+    // The background updater posts its result to the activity feed (1s poll) long
+    // before the 60s update-status poll would notice. Pull the fresh status now so
+    // the banner + Settings card light up in step with the activity line, instead
+    // of lagging up to a minute behind it.
+    if (updateEvent) refreshUpdate();
     firstActivityLoad = false;
   } catch (e) {
     /* ignore */
@@ -2379,7 +2386,13 @@ function renderUpdate(s) {
   } else {
     if (msg) {
       msg.className = "set-row-hint mb-2";
-      msg.textContent = s && s.error ? "Couldn't reach the update server." : "You're up to date.";
+      // Don't claim "up to date" before the first check has actually run — the
+      // background check completes a few seconds after launch. Saying it's
+      // current while a check is still pending is the bug that made Settings
+      // disagree with the activity feed.
+      msg.textContent = s && s.error
+        ? "Couldn't reach the update server."
+        : (s && s.checked ? "You're up to date." : "Checking for updates…");
     }
     aUpd && aUpd.classList.add("hidden");
     aNotes && aNotes.classList.add("hidden");
