@@ -241,26 +241,24 @@
        the tagged sub-shapes (pb-ring/pb-ico/pb-frame + the gradient end stop). */
     .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; pointer-events: auto; }
     .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
-    /* Hover: the whole button lifts + scales and casts a teal/gold glow, the
-       hex ring ignites gold, the emblem core blooms teal, the banner goes teal,
-       and PLAY brightens. Click gives a quick press-in. */
-    .play-btn { transition: transform .2s cubic-bezier(.2,.8,.25,1); transform-origin: left center; }
-    .play-svg { transition: filter .2s ease; }
+    /* Hover: no size change — just illuminate. The hex ring lights to gold and
+       the teal elements (banner frame, emblem core, inner bloom) come up and
+       gently pulse so the teal energy looks alive. No drop-shadow. */
     .pb-frame, #play-label { transition: fill .18s ease; }
     .pb-sig-ring { transition: stroke .18s ease; }
     .pb-sig-core { transition: fill .18s ease; }
     .pb-coreglow { transition: opacity .22s ease; }
-    .play-btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.05); }
-    .play-btn:hover:not(:disabled) .play-svg {
-      filter: drop-shadow(0 0 11px rgba(10, 200, 185, 0.55)) drop-shadow(0 0 4px rgba(200, 170, 110, 0.4));
-    }
     .play-btn:hover:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
-    .play-btn:hover:not(:disabled) .pb-sig-core { fill: #0AC8B9; }
-    .play-btn:hover:not(:disabled) .pb-coreglow { opacity: 1; }
-    .play-btn:hover:not(:disabled) .pb-frame { fill: #0AC8B9; }
-    .play-btn:hover:not(:disabled) #play-label { fill: #ffffff; }
-    .play-btn:active:not(:disabled) { transform: scale(0.985); }
+    .play-btn:hover:not(:disabled) #play-label  { fill: #ffffff; }
+    .play-btn:hover:not(:disabled) .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
     .play-btn:disabled { cursor: default; opacity: 0.5; }
+    /* "Alive" teal: the teal lines shimmer between teal and bright cyan and the
+       inner bloom breathes. Shared by hover and the live-active state. */
+    @keyframes pbTealAlive    { 0%, 100% { fill: #0AC8B9; } 50% { fill: #4FE3D4; } }
+    @keyframes pbCoreAlive    { 0%, 100% { fill: #0AC8B9; } 50% { fill: #8CF2E6; } }
+    @keyframes pbBloomBreathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 
     /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
        it isn't trapped under the navbar's backdrop-blur stacking context, that
@@ -531,15 +529,12 @@
        Its own tab (#tab-live), reached via the PLAY→LIVE button. The button
        glows (gold ring/ico, teal frame, the hover look) while the live route
        is active, so it reads as the current view in place of a nav icon. */
+    /* Live (queue popped): same "alive teal" illumination, persistent. No shadow. */
     .play-btn.live-active .pb-sig-ring { stroke: #C8AA6E; }
-    .play-btn.live-active .pb-sig-core { fill: #0AC8B9; }
-    .play-btn.live-active .pb-coreglow { opacity: 1; }
-    .play-btn.live-active .pb-frame { fill: #0AC8B9; }
-    .play-btn.live-active .play-svg { filter: drop-shadow(0 0 7px rgba(10, 200, 185, 0.55)); animation: livePulse 2s ease-in-out infinite; }
-    @keyframes livePulse {
-      0%, 100% { filter: drop-shadow(0 0 5px rgba(10, 200, 185, 0.4)); }
-      50%      { filter: drop-shadow(0 0 11px rgba(10, 200, 185, 0.75)); }
-    }
+    .play-btn.live-active #play-label  { fill: #ffffff; }
+    .play-btn.live-active .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
+    .play-btn.live-active .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
+    .play-btn.live-active .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
 
     .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .cs-phase { font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #C8AA6E; }
