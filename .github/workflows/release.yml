@@ -3,13 +3,15 @@ name: Release
 # Builds the portable zip, bare exe, and Inno Setup installer on Windows, then
 # publishes them to a GitHub Release.
 #
-#   * Push a version tag  ->  git tag v1.2.0 && git push origin v1.2.0
-#   * Or click "Run workflow" on the Actions tab (uses the version in
-#     src/_version.py and creates the matching tag + release).
+# Triggers automatically when src/_version.py changes on main (i.e. when you bump
+# the version), creating the matching v<version> tag + release. You can also run
+# it manually from the Actions tab ("Run workflow"). If a release for the current
+# version already exists, the build is skipped, so re-touching the file is safe.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths:
+      - "src/_version.py"
   workflow_dispatch:
 
 permissions:
@@ -28,7 +30,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Read version from src/_version.py
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path src/_version.py -Pattern '__version__\s*=\s*"([^"]+)"').Matches.Groups[1].Value
+          if (-not $v) { Write-Error "Could not parse __version__ from src/_version.py"; exit 1 }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Version is $v"
+
+      - name: Skip if this version is already released
+        id: check
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.ver.outputs.version }}"
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "::notice::Release $tag already exists — skipping build."
+          } else {
+            "exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Building release $tag"
+          }
+
       - name: Set up Python
+        if: steps.check.outputs.exists == 'false'
         uses: actions/setup-python@v6
         with:
           # Matches the dev/build interpreter so CI reproduces your known-good
@@ -37,49 +65,34 @@ jobs:
           python-version: "3.14"
 
       - name: Set up Node
+        if: steps.check.outputs.exists == 'false'
         uses: actions/setup-node@v6
         with:
           node-version: "20"
 
       - name: Install Inno Setup
+        if: steps.check.outputs.exists == 'false'
         run: choco install innosetup --no-progress -y
 
       - name: Install Python dependencies
+        if: steps.check.outputs.exists == 'false'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Read version from src/_version.py
-        id: ver
-        shell: pwsh
-        run: |
-          $v = (Select-String -Path src/_version.py -Pattern '__version__\s*=\s*"([^"]+)"').Matches.Groups[1].Value
-          if (-not $v) { Write-Error "Could not parse __version__ from src/_version.py"; exit 1 }
-          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Building version $v"
-
-      - name: Verify tag matches version
-        if: github.ref_type == 'tag'
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $expected = "v${{ steps.ver.outputs.version }}"
-          if ($tag -ne $expected) {
-            Write-Error "Tag '$tag' does not match src/_version.py ('$expected'). Bump _version.py or retag."
-            exit 1
-          }
-
       - name: Build release artifacts
+        if: steps.check.outputs.exists == 'false'
         run: python build_release.py
 
       - name: Publish GitHub Release
+        if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.ver.outputs.version }}
-          name: queueBot v${{ steps.ver.outputs.version }}
+          name: queuePop v${{ steps.ver.outputs.version }}
           generate_release_notes: true
           files: |
-            releases/queueBot-v${{ steps.ver.outputs.version }}-setup.exe
-            releases/queueBot-v${{ steps.ver.outputs.version }}-portable.zip
-            releases/queueBot.exe
+            releases/queuePop-v${{ steps.ver.outputs.version }}-setup.exe
+            releases/queuePop-v${{ steps.ver.outputs.version }}-portable.zip
+            releases/queuePop.exe
