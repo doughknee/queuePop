@@ -1,8 +1,7 @@
 export const LINKS = {
   download: 'https://github.com/brandon-relentnet/queuePop/releases/latest',
   github: 'https://github.com/brandon-relentnet/queuePop',
-  // TODO(brandon): replace with your real tip-jar URL (Ko-fi or GitHub Sponsors)
-  donate: 'https://ko-fi.com/queuepop',
+  donate: 'https://buymeacoffee.com/doughknee',
   releases: 'https://github.com/brandon-relentnet/queuePop/releases',
 } as const
 
