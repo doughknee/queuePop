@@ -1,13 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 from PyInstaller.utils.hooks import collect_submodules
 
+# PyInstaller resolves a spec's input paths relative to the spec file's own
+# directory, not the working directory. This spec lives in scripts/, so anchor
+# everything to the repo root (one level up) and use absolute paths. SPECPATH is
+# the directory containing this .spec file.
+ROOT = os.path.dirname(SPECPATH)
+
 a = Analysis(
-    ['src/main.py'],
-    pathex=['src'],
+    [os.path.join(ROOT, 'src', 'main.py')],
+    pathex=[os.path.join(ROOT, 'src')],
     binaries=[],
     datas=[
-        ('assets/queuepop.ico', 'assets'),
-        ('src/webui', 'webui'),
+        (os.path.join(ROOT, 'assets', 'queuepop.ico'), 'assets'),
+        (os.path.join(ROOT, 'src', 'webui'), 'webui'),
     ],
     hiddenimports=(
         ['rich', 'pystray', 'PIL', 'webview', 'clr', 'aiohttp', 'qrcode']
@@ -42,5 +49,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets/queuepop.ico'],
+    icon=[os.path.join(ROOT, 'assets', 'queuepop.ico')],
 )
