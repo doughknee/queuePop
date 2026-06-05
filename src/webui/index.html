@@ -241,18 +241,25 @@
        the tagged sub-shapes (pb-ring/pb-ico/pb-frame + the gradient end stop). */
     .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; pointer-events: auto; }
     .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
-    .pb-ring, .pb-ico, .pb-frame { transition: fill .15s ease; }
-    .pb-grad-end { transition: stop-color .15s ease; }
-    /* Queue Sigil inside the medallion: hex ring + pennant ignite bronze→gold
-       (like .pb-ico), the core dot dark-teal→teal (like .pb-frame). */
-    .pb-sig-ring { transition: stroke .15s ease; }
-    .pb-sig-core { transition: fill .15s ease; }
-    .play-btn:hover:not(:disabled) .pb-ring  { fill: #C8AA6E; }
-    .play-btn:hover:not(:disabled) .pb-ico   { fill: #C8AA6E; }
+    /* Hover: the whole button lifts + scales and casts a teal/gold glow, the
+       hex ring ignites gold, the emblem core blooms teal, the banner goes teal,
+       and PLAY brightens. Click gives a quick press-in. */
+    .play-btn { transition: transform .2s cubic-bezier(.2,.8,.25,1); transform-origin: left center; }
+    .play-svg { transition: filter .2s ease; }
+    .pb-frame, #play-label { transition: fill .18s ease; }
+    .pb-sig-ring { transition: stroke .18s ease; }
+    .pb-sig-core { transition: fill .18s ease; }
+    .pb-coreglow { transition: opacity .22s ease; }
+    .play-btn:hover:not(:disabled) { transform: translateY(-1px) scale(1.05); }
+    .play-btn:hover:not(:disabled) .play-svg {
+      filter: drop-shadow(0 0 11px rgba(10, 200, 185, 0.55)) drop-shadow(0 0 4px rgba(200, 170, 110, 0.4));
+    }
     .play-btn:hover:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
     .play-btn:hover:not(:disabled) .pb-sig-core { fill: #0AC8B9; }
+    .play-btn:hover:not(:disabled) .pb-coreglow { opacity: 1; }
     .play-btn:hover:not(:disabled) .pb-frame { fill: #0AC8B9; }
-    .play-btn:hover:not(:disabled) .pb-grad-end { stop-color: #0AC8B9; }
+    .play-btn:hover:not(:disabled) #play-label { fill: #ffffff; }
+    .play-btn:active:not(:disabled) { transform: scale(0.985); }
     .play-btn:disabled { cursor: default; opacity: 0.5; }
 
     /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
@@ -524,12 +531,10 @@
        Its own tab (#tab-live), reached via the PLAY→LIVE button. The button
        glows (gold ring/ico, teal frame, the hover look) while the live route
        is active, so it reads as the current view in place of a nav icon. */
-    .play-btn.live-active .pb-ring  { fill: #C8AA6E; }
-    .play-btn.live-active .pb-ico   { fill: #C8AA6E; }
     .play-btn.live-active .pb-sig-ring { stroke: #C8AA6E; }
     .play-btn.live-active .pb-sig-core { fill: #0AC8B9; }
+    .play-btn.live-active .pb-coreglow { opacity: 1; }
     .play-btn.live-active .pb-frame { fill: #0AC8B9; }
-    .play-btn.live-active .pb-grad-end { stop-color: #0AC8B9; }
     .play-btn.live-active .play-svg { filter: drop-shadow(0 0 7px rgba(10, 200, 185, 0.55)); animation: livePulse 2s ease-in-out infinite; }
     @keyframes livePulse {
       0%, 100% { filter: drop-shadow(0 0 5px rgba(10, 200, 185, 0.4)); }
@@ -1150,9 +1155,11 @@
                text swap), and the .pb-* classes (hover). -->
           <svg class="play-svg" aria-hidden="true" viewBox="231.54 215.543 216.801 54">
             <defs>
-              <radialGradient id="pbGrad" cx="50%" cy="40%" r="62%">
-                <stop offset=".1" stop-color="#0a323c"/>
-                <stop class="pb-grad-end" offset="1" stop-color="#005a82"/>
+              <!-- Teal energy bloom inside the hex, faded in on hover / live. -->
+              <radialGradient id="pbCoreGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.85"/>
+                <stop offset="55%" stop-color="#0AC8B9" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0"/>
               </radialGradient>
             </defs>
             <path fill="#0a323c" d="M410.983 218.364h36.867v46.717h-36.867z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
@@ -1171,6 +1178,7 @@
             <g transform="translate(258.54 242.543) scale(0.6) translate(-56 -54)">
               <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
                        fill="#1e2328"/>
+              <circle class="pb-coreglow" cx="56" cy="54" r="33" fill="url(#pbCoreGlow)" opacity="0"/>
               <polygon class="pb-sig-ring"
                        points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
                        fill="none" stroke="#785a28" stroke-width="7" stroke-linejoin="miter"/>
