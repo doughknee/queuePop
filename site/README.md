@@ -16,19 +16,36 @@ npm run dev        # http://localhost:3000
 ## Build
 
 ```bash
-npm run build      # outputs .output/ (Nitro server), deploy to Vercel / Netlify
-npm run start      # run the production build locally
+npm run build      # prerenders the page to static files in dist/client/
+npm run preview    # preview the production build locally
 ```
 
-TanStack Start prerenders the single route, so it also drops cleanly onto static
-hosts. Deploy targets: Vercel or Netlify (zero-config), or static export for
-GitHub Pages.
+The route is prerendered to plain HTML + assets in `dist/client/`, so this is a
+fully static site, no Node server at runtime.
+
+## Deploy (Docker / Coolify)
+
+A `Dockerfile` builds the site and serves `dist/client/` with nginx. In Coolify:
+
+- Build Pack: **Dockerfile**
+- Base Directory: **/site**
+- Dockerfile: **./Dockerfile**
+- Port: **80**
+
+Or build it anywhere:
+
+```bash
+docker build -t queuepop-site ./site
+docker run -p 8080:80 queuepop-site   # http://localhost:8080
+```
+
+Any static host also works, just upload `dist/client/`.
 
 ## Things to wire up before launch
 
 - **Donate URL**, `src/data/content.ts` → `LINKS.donate` (Ko-fi / GitHub Sponsors).
-- **OG image**, drop a `public/og-image.png` and reference it in `src/routes/__root.tsx`.
-- Confirm the **download/GitHub** links in `src/data/content.ts`.
+- Confirm the **download/GitHub** links in `src/data/content.ts` (point at the
+  `queuePop` repo, which must exist + have a release for the download to resolve).
 
 ## Structure
 

@@ -6,7 +6,12 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    tanstackStart(),
+    // Static marketing site: prerender the route to HTML so it can be served
+    // by any static host (nginx) — no Node server needed at runtime.
+    tanstackStart({
+      prerender: { enabled: true, crawlLinks: true },
+      pages: [{ path: '/' }],
+    }),
     viteReact(),
   ],
 })
