@@ -180,7 +180,7 @@ function updatePlay(s) {
   if (!btn || !label) return;
   let text = "PLAY", mode = "queue", disabled = false;
   if (!s.connected) {
-    text = "PLAY"; mode = "launch"; // no client → launch it
+    text = "LAUNCH"; mode = "launch"; // no client → launch it
   } else {
     switch (s.gameflow_phase) {
       case "Matchmaking": text = "IN QUEUE"; mode = "cancel"; break;
@@ -196,7 +196,7 @@ function updatePlay(s) {
   }
   label.textContent = text;
   // Shrink the banner text for longer states so it stays inside the tag.
-  label.setAttribute("font-size", text.length > 5 ? "14" : "21");
+  label.setAttribute("font-size", text.length <= 4 ? "21" : text.length <= 6 ? "17" : "14");
   btn.disabled = disabled;
   btn.dataset.mode = mode;
   if (mode === "queue") btn.title = "Choose a queue";
@@ -458,6 +458,7 @@ function openQueueMenu() {
   menu.style.left = Math.round(r.left) + "px";
   menu.style.top = Math.round(r.bottom + 4) + "px";
   menu.classList.remove("hidden");
+  btn.classList.add("menu-open"); // keep PLAY illuminated while choosing a queue
 }
 function toggleQueueMenu() {
   const menu = $("queue-menu");
@@ -469,6 +470,7 @@ function closeQueueMenu() {
   const menu = $("queue-menu");
   if (!menu) return;
   menu.classList.add("hidden");
+  $("play-btn")?.classList.remove("menu-open");
   if (qmEditing) { qmEditing = false; renderQueueMenu(); } // reopen in normal view
 }
 // Click outside closes the queue menu. The PLAY button toggles it via its own

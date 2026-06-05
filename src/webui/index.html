@@ -248,11 +248,17 @@
     .pb-sig-ring { transition: stroke .18s ease; }
     .pb-sig-core { transition: fill .18s ease; }
     .pb-coreglow { transition: opacity .22s ease; }
-    .play-btn:hover:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
-    .play-btn:hover:not(:disabled) #play-label  { fill: #ffffff; }
-    .play-btn:hover:not(:disabled) .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
-    .play-btn:hover:not(:disabled) .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
-    .play-btn:hover:not(:disabled) .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
+    /* Same illumination on hover AND while the queue dropdown is open (.menu-open). */
+    .play-btn:hover:not(:disabled) .pb-sig-ring,
+    .play-btn.menu-open:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
+    .play-btn:hover:not(:disabled) #play-label,
+    .play-btn.menu-open:not(:disabled) #play-label  { fill: #ffffff; }
+    .play-btn:hover:not(:disabled) .pb-frame,
+    .play-btn.menu-open:not(:disabled) .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-sig-core,
+    .play-btn.menu-open:not(:disabled) .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-coreglow,
+    .play-btn.menu-open:not(:disabled) .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
     .play-btn:disabled { cursor: default; opacity: 0.5; }
     /* "Alive" teal: the teal lines shimmer between teal and bright cyan and the
        inner bloom breathes. Shared by hover and the live-active state. */
