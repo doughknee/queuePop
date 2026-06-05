@@ -30,13 +30,14 @@ A `Dockerfile` builds the site and serves `dist/client/` with nginx. In Coolify:
 - Build Pack: **Dockerfile**
 - Base Directory: **/site**
 - Dockerfile: **./Dockerfile**
-- Port: **80**
+- Port (Ports Exposes): **3000** — must match the container's listen port (nginx
+  listens on 3000, which is Coolify's default). A mismatch shows as "Bad Gateway".
 
 Or build it anywhere:
 
 ```bash
 docker build -t queuepop-site ./site
-docker run -p 8080:80 queuepop-site   # http://localhost:8080
+docker run -p 8080:3000 queuepop-site   # http://localhost:8080
 ```
 
 Any static host also works, just upload `dist/client/`.

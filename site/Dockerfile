@@ -7,7 +7,7 @@
 #   - Build Pack:     Dockerfile
 #   - Base Directory: /site         (this folder is the build context)
 #   - Dockerfile:     ./Dockerfile
-#   - Port:           80
+#   - Port:           3000          (matches Coolify's default "Ports Exposes")
 
 # ---- Build stage ---------------------------------------------------------
 FROM node:22-alpine AS build
@@ -27,9 +27,9 @@ FROM nginx:1.27-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/client /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1
 
 # nginx:alpine already runs: nginx -g 'daemon off;'
