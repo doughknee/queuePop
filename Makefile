@@ -1,4 +1,4 @@
-# queueBot dev tasks -- run from the repo root.
+# queuePop dev tasks -- run from the repo root.
 #
 # NOTE: `make` is not installed by default on Windows. Install it once with
 #   winget install ezwinports.make      (or)   choco install make
@@ -13,7 +13,7 @@ PY := py
 .PHONY: help run stop restart css build clean
 
 help:
-	@echo queueBot dev tasks:
+	@echo queuePop dev tasks:
 	@echo   make run     - launch the app (web UI + tray), detached
 	@echo   make stop    - kill the running app
 	@echo   make restart - stop then relaunch (handy while iterating)
@@ -33,14 +33,14 @@ run:
 # resolves the script even where the current-directory search is disabled
 # (the NoDefaultCurrentDirectoryInExePath policy) -- same reason run uses it.
 stop:
-	@echo Stopping queueBot...
+	@echo Stopping queuePop...
 	cmd /c .\stop.cmd
 
 # Stop, give the old process a moment to release its tray icon / sockets,
 # then relaunch.
 restart: stop
 	@powershell -NoProfile -Command "Start-Sleep -Milliseconds 800"
-	@echo Restarting queueBot...
+	@echo Restarting queuePop...
 	cmd /c .\run.cmd
 
 css:

@@ -1,7 +1,7 @@
 """Convert the raw Swagger HTML dump (lcuapi.txt) into a friendly Markdown
 reference: an index plus one file per tag, under docs/lcu/.
 
-Usage:  py tools/lcu_docs_gen.py
+Usage:  py scripts/lcu_docs_gen.py
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "lcuapi.txt"
+SRC = Path(__file__).resolve().parent / "lcuapi.txt"
 OUT = ROOT / "docs" / "lcu"
 
 TAG_RE = re.compile(
