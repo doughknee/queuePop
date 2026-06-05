@@ -1160,19 +1160,18 @@
             <path class="pb-frame" fill="#005a82" d="M278.643 218.364h139.903l30.249 23.358-30.249 23.359H278.643q18.905-23.36 0-46.717" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
             <path fill="#1e2328" d="M283.369 221.167h133.286l27.414 20.555-27.414 20.556H283.369q16.07-20.556 0-41.111" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
             <text id="play-label" x="359.54" y="250.543" font-size="21" font-weight="700" fill="#f0e6d2" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
-            <circle class="pb-ring" cx="258.54" cy="242.543" r="27" fill="#785a28" style="stroke-width:1px"/>
-            <circle cx="258.54" cy="242.543" r="24" fill="#010a13" style="stroke-width:1px"/>
-            <circle cx="258.54" cy="242.543" r="22" fill="url(#pbGrad)" style="stroke-width:1px"/>
-            <!-- queuePop "Queue Sigil" stamped into the medallion in place of the
-                 plain play triangle: gold hex ring, teal core, gold pennant.
-                 Ignites bronze→gold+teal with the rest of the button (.pb-sig-*
-                 classes mirror .pb-ico/.pb-frame). Geometry ported from the
-                 site's Mark, scaled to sit inside the r22 core. -->
-            <g transform="translate(258.54 242.543) scale(0.38) translate(-56 -54)">
+            <!-- The Queue Sigil IS the emblem now: a hex badge (teal-gradient
+                 fill + gold hex ring) replacing the round medallion, with the
+                 teal core dot and gold pennant. Scaled to the old medallion's
+                 footprint and centered on it; ignites bronze→gold+teal via the
+                 same .pb-* classes as the banner. -->
+            <g transform="translate(258.54 242.543) scale(0.6) translate(-56 -54)">
+              <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
+                       fill="url(#pbGrad)"/>
               <polygon class="pb-sig-ring"
                        points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
-                       fill="none" stroke="#785a28" stroke-width="8" stroke-linejoin="miter"/>
-              <circle class="pb-sig-core" cx="56" cy="54" r="6.5" fill="#005a82"/>
+                       fill="none" stroke="#785a28" stroke-width="7" stroke-linejoin="miter"/>
+              <circle class="pb-sig-core" cx="56" cy="54" r="7" fill="#005a82"/>
               <polygon class="pb-ico" points="74,71 78,99 105,85" fill="#785a28"/>
             </g>
           </svg>
