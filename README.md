@@ -20,6 +20,8 @@ A lightweight, automated tool for **League of Legends** and **Teamfight Tactics*
 
 *   **Auto-Accept Queues:** Instantly accepts the "Ready Check" popup.
 *   **Auto Pick & Ban:** Automatically bans and picks champions based on your assigned role, with ordered backup picks if your first choice is banned or taken. Hovers your pick and auto-locks it just before the timer runs out.
+*   **ARAM Bench Grab:** In ARAM, automatically swaps to your highest-priority champion the moment it appears on the reroll bench, and applies that champ's loadout (runes, summoner spells, skin).
+*   **Per-Champion Loadouts:** Save runes, summoner spells, and a skin per champion; they're applied automatically once you're locked in.
 *   **System Tray Integration:** Runs silently in the background; minimize to tray to keep your taskbar clean.
 *   **Discord Notifications:** Get a ping on your phone (via Discord Webhook) when your queue pops!
 *   **Game Mode Detection:** Smartly identifies if it's Ranked, ARAM, or TFT.
@@ -73,7 +75,16 @@ Open **Settings** from the tray icon and switch to the **Champ Select** tab:
 2.  For each role, enter comma-separated champion names for **Ban(s)** and **Pick(s)**, e.g. `Ahri, Syndra, Lux`. Picks are tried in order, so list backups in case your first choice is banned or already taken by a teammate.
 3.  Set the **lock-in** timer (default `1` second). Your pick is *hovered* immediately, so you can still change it manually, and force-locked once the phase has this many seconds left.
 
-> Only applies to queues with assigned roles (Draft Pick, Ranked Solo/Duo, Ranked Flex). Modes without roles (ARAM, Blind) are ignored.
+> Role-based pick & ban applies to queues with assigned roles (Draft Pick, Ranked Solo/Duo, Ranked Flex). Blind Pick has no roles and is left alone.
+
+### ARAM
+ARAM doesn't let you pick a champion outright — you're dealt a random one and
+share a reroll bench with your team. So instead of picking, queuePop **watches
+the bench and instantly grabs your highest-priority champ** the moment it shows
+up, trying your list in order. Open **Settings → Champ Select**, tick **Enable
+ARAM**, and enter a comma-separated priority list (e.g. `Ziggs, Lux, Ashe`).
+Whatever champ you end up on gets its saved loadout (runes, spells, skin)
+applied automatically. Works in ARAM and ARAM Mayhem.
 
 ### Modifying Settings
 *   **Right-click** the system tray icon and select **Exit** to close the app.
