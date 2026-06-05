@@ -3,7 +3,13 @@ import { BtnPrimary, BtnGhost } from './ui'
 import { Icon } from './icons'
 import { Shot } from './Shot'
 
-const BADGES = ['Free & open source', 'Windows', 'Official LCU API', 'No input hijacking']
+const BADGES = [
+  'Free & open source',
+  'No telemetry',
+  'Windows',
+  'Official LCU API',
+  'No input hijacking',
+]
 
 export function Hero() {
   return (
