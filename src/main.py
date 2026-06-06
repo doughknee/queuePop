@@ -86,8 +86,7 @@ def main():
     Main function to handle configuration and launch the tray icon.
     """
     parser = argparse.ArgumentParser(description=f"queuePop Tool {__version__}")
-    parser.add_argument("--update", action="store_true", help="Force update of settings")
-    args = parser.parse_args()
+    parser.parse_args()
 
     # --- ALWAYS Ensure Console Exists ---
     # We need a console for background threads to log to, even if hidden.
@@ -108,11 +107,6 @@ def main():
             cfg.console.print("[warning]queuePop is already running![/]")
         else:
             print("queuePop is already running!")
-        sys.exit(0)
-
-    # --- Configuration ---
-    if args.update:
-        cfg.open_settings_ui(cfg.load_or_create_config())
         sys.exit(0)
 
     # --- Load Settings ---

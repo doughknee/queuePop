@@ -147,6 +147,13 @@
     .role-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
     .role-dot { position: absolute; top: 7px; right: 50%; transform: translateX(20px); width: 6px; height: 6px; border-radius: 9999px; background: transparent; transition: background-color .18s ease, box-shadow .18s ease; }
     .role-dot.on { background: #C8AA6E; box-shadow: 0 0 5px rgba(200,170,110,0.8); }
+    /* ARAM tab when "auto highest mastery" is on: dimmed + an "auto" marker; it
+       stays clickable so the panel can point the user back to the setting. */
+    .role-tab.auto { color: #6f6a5a; }
+    .role-tab.auto::after { content: "auto"; position: absolute; top: 6px; right: 50%;
+      transform: translateX(26px); font-family: Cinzel, Georgia, serif; font-size: 8px;
+      letter-spacing: 0.06em; text-transform: uppercase; color: #C8AA6E; opacity: 0.85; }
+    .role-tab.auto .role-dot { display: none; }
 
     /* Sort segmented control on the champ-select toolbar. Hextech hairline box;
        the active option fills gold for a strong, clear current-state read. */
@@ -1402,7 +1409,7 @@
           <div id="role-bar" class="flex border-b border-b-icon/20 shrink-0"></div>
 
           <!-- Picks / Bans toggle + search -->
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
+          <div id="champ-toolbar" class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
             <div class="flex shrink-0">
               <button id="mode-picks" data-mode="picks"
                 class="mode-btn px-4 py-1.5 text-sm font-serif border-b-2 border-transparent text-icon">Picks</button>
@@ -1431,6 +1438,22 @@
 
           <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
                style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));"></div>
+
+          <!-- Shown instead of the ARAM grid when "auto highest mastery" is on:
+               the priority list is unused, so there's nothing to edit here. -->
+          <div id="aram-locked" class="hidden flex-1 min-h-0 flex flex-col items-center justify-center gap-4 text-center p-8">
+            <span class="role-ico" style="width:48px;height:48px;color:#C8AA6E;opacity:0.85"></span>
+            <p class="font-display text-gold2 text-xl tracking-wide">ARAM is on auto-pilot</p>
+            <p class="text-sm text-subText max-w-sm leading-relaxed">
+              queuePop auto-picks your <span class="text-gold2">highest-mastery champ available</span>
+              every game, so this list isn't used. Turn off
+              <span class="text-gold2">Auto-pick my highest-mastery champ</span> in Settings to sort champs yourself.
+            </p>
+            <button id="aram-goto-settings"
+              class="hextech font-display tracking-wide px-6 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">
+              Open ARAM settings →
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1504,6 +1527,11 @@
               <span class="sw"><input id="aram_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="aram_enabled" class="set-row-label">Grab a higher-priority champ off the bench</label>
               <span class="help" data-tip="Build your ARAM priority list on Champ Select → ARAM. queuePop grabs the highest-ranked champ that lands on the reroll bench and trades toward it. Summoner spells set there apply too.">?</span>
+            </div>
+            <div class="set-row">
+              <span class="sw"><input id="aram_auto_mastery" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="aram_auto_mastery" class="set-row-label">Auto-pick my highest-mastery champ available</label>
+              <span class="help" data-tip="Skip sorting all ~180 champs. queuePop always reaches for the highest-mastery champ you own among your roll and the reroll bench. Works in every ARAM mode. Turning this on disables the Champ Select → ARAM list (it's no longer used).">?</span>
             </div>
           </div>
 

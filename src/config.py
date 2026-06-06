@@ -3,8 +3,6 @@ import os
 import sys
 from rich.console import Console
 from rich.theme import Theme
-from rich.panel import Panel
-from rich.prompt import Prompt
 
 # Ensure we find config.json relative to this script, not the CWD
 if getattr(sys, 'frozen', False):
@@ -85,8 +83,11 @@ def default_config():
             # priority pick, and accept incoming offers that are an upgrade.
             "trades": {"enabled": False},
             # Auto-grab a higher-priority champ off the ARAM reroll bench (uses
-            # roles.aram.picks as the priority order).
-            "aram": {"enabled": False},
+            # roles.aram.picks as the priority order). With `auto_mastery` on the
+            # priority order is ignored and we always reach for the highest-mastery
+            # champ available (current + bench), so users skip sorting all ~180
+            # champs; it also disables the ARAM editor tab.
+            "aram": {"enabled": False, "auto_mastery": False},
         },
     }
 
@@ -115,24 +116,3 @@ def load_or_create_config():
     except Exception as e:
         console.print(f"[warning]Could not write default config: {e}[/]")
     return cfg
-
-def open_settings_ui(current_config=None, on_save_callback=None):
-    """
-    Launches the GUI for configuration.
-    """
-    import gui
-    
-    if current_config is None:
-        current_config = default_config()
-
-    # This callback updates the in-memory config if needed, though usually the caller reloads it
-    # or the app restarts. For now, we return the new config if we can, but since the GUI is blocking
-    # and writes to file, we can just reload from file after it closes.
-    
-    gui.open_settings(current_config, on_save_callback=on_save_callback)
-    
-    # Reload to confirm what was saved
-    if os.path.exists(CONFIG_FILE):
-         with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    return current_config

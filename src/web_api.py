@@ -2,9 +2,9 @@
 Bridge object exposed to the web UI via pywebview's `js_api`.
 
 The frontend calls these methods as `pywebview.api.<method>(...)` and receives
-the (JSON-serializable) return values as resolved Promises. All config shaping
-mirrors the normalization that the old Tkinter settings window performed, so a
-config saved from the web UI is byte-identical to one saved from the legacy GUI.
+the (JSON-serializable) return values as resolved Promises. `save_config`
+normalizes the incoming config (see `_normalize_config`) before writing it to
+disk so the on-disk shape stays stable regardless of what the UI sends.
 """
 
 import base64
@@ -330,7 +330,10 @@ def _normalize_champ_select(cs):
         "lock_in_at_seconds": max(0, lock),
         "roles": roles,
         "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
-        "aram": {"enabled": bool((cs.get("aram", {}) or {}).get("enabled", False))},
+        "aram": {
+            "enabled": bool((cs.get("aram", {}) or {}).get("enabled", False)),
+            "auto_mastery": bool((cs.get("aram", {}) or {}).get("auto_mastery", False)),
+        },
     }
 
 
