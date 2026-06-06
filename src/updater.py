@@ -226,15 +226,25 @@ def _pick_asset(assets, installed):
     )
 
 
-def _download(url, dest):
-    """Stream a release asset to `dest` (follows GitHub's redirect to the CDN)."""
+def _download(url, dest, on_progress=None):
+    """Stream a release asset to `dest` (follows GitHub's redirect to the CDN).
+    Calls `on_progress(downloaded_bytes, total_bytes)` as data arrives so the UI
+    can show progress; `total` is 0 when the server omits Content-Length."""
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
     with urllib.request.urlopen(req, timeout=60) as resp, open(dest, "wb") as f:
+        try:
+            total = int(resp.headers.get("Content-Length") or 0)
+        except (TypeError, ValueError):
+            total = 0
+        done = 0
         while True:
             chunk = resp.read(64 * 1024)
             if not chunk:
                 break
             f.write(chunk)
+            done += len(chunk)
+            if on_progress:
+                on_progress(done, total)
 
 
 def _extract_exe_from_zip(zip_path, out_dir):
@@ -296,7 +306,28 @@ def apply(on_exit=None):
         events.push(f"Downloading v{snap['latest']}…", "info", kind="update")
         tmp = tempfile.mkdtemp(prefix="queuePop-upd-")
         local = os.path.join(tmp, asset["name"])
-        _download(asset["url"], local)
+
+        # Report download progress in coarse steps so a big installer over a slow
+        # connection doesn't look frozen (the button just says "Updating…").
+        last_bucket = [-1]
+
+        def _progress(done, total):
+            if not total:
+                return
+            pct = int(done * 100 / total)
+            bucket = pct // 20  # notify at ~0/20/40/60/80/100%
+            if bucket != last_bucket[0]:
+                last_bucket[0] = bucket
+                events.push(
+                    f"Downloading v{snap['latest']}… {pct}% "
+                    f"of {total / (1024 * 1024):.0f} MB",
+                    "info", kind="update",
+                )
+
+        _download(asset["url"], local, _progress)
+        events.push(
+            f"Downloaded v{snap['latest']}, preparing install…", "info", kind="update"
+        )
 
         if installed:
             return _apply_installed(local, on_exit)
