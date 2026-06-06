@@ -1,4 +1,5 @@
 import argparse
+import re
 import sys
 import os
 import threading
@@ -19,12 +20,46 @@ from _version import __version__
 
 
 def webui_index():
-    """Absolute path to the web UI entry point, for dev and frozen builds."""
+    """Absolute path to the web UI entry point, for dev and frozen builds.
+
+    In a frozen build we hand WebView2 a per-version boot copy whose local JS/CSS
+    URLs carry a ?v=<version> cache-buster. The WebView2 profile persists across a
+    self-update, so without this the relaunched build can serve the *previous*
+    version's cached app.js/styles.css — showing a stale UI until a second manual
+    restart. Versioned URLs guarantee a fresh build always loads fresh assets."""
     if getattr(sys, 'frozen', False):
         base = sys._MEIPASS  # PyInstaller extraction dir
     else:
         base = os.path.dirname(os.path.abspath(__file__))  # src/
-    return os.path.join(base, "webui", "index.html")
+    webui = os.path.join(base, "webui")
+    index = os.path.join(webui, "index.html")
+    if getattr(sys, 'frozen', False):
+        try:
+            return _versioned_index(webui, index)
+        except Exception:
+            pass  # any trouble: fall back to the plain index
+    return index
+
+
+def _versioned_index(webui_dir, index_path):
+    """Write a sibling boot copy of index.html with ?v=<version> appended to its
+    local .js/.css references and return its path. Lives in the same dir so the
+    relative asset URLs still resolve."""
+    with open(index_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    def bust(m):
+        attr, url = m.group(1), m.group(2)
+        if url.startswith(("http:", "https:", "data:", "//")):
+            return m.group(0)  # leave remote/inline refs alone
+        sep = "&" if "?" in url else "?"
+        return f'{attr}="{url}{sep}v={__version__}"'
+
+    html = re.sub(r'(src|href)="([^"]+\.(?:js|css))"', bust, html)
+    out = os.path.join(webui_dir, f"index.boot.{__version__}.html")
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
+    return out
 
 def get_console_window():
     """Returns the handle to the console window."""
