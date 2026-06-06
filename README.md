@@ -80,21 +80,26 @@ Open **Settings** from the tray icon and switch to the **Champ Select** tab:
 > Role-based pick & ban applies to queues with assigned roles (Draft Pick, Ranked Solo/Duo, Ranked Flex). Blind Pick has no roles and is left alone.
 
 ### ARAM
-ARAM doesn't let you pick a champion outright — you're dealt a random one and
-share a reroll bench with your team. So instead of picking, queuePop **watches
-the bench and instantly grabs your highest-priority champ** the moment it shows
-up, trying your list in order. Open **Settings → Champ Select**, tick **Enable
-ARAM**, and enter a comma-separated priority list (e.g. `Ziggs, Lux, Ashe`).
+ARAM doesn't let you pick a champion outright — you're dealt one and share a
+bench with your team. So instead of picking, queuePop **watches the bench and
+instantly grabs the best champ available** the moment it shows up. Two ways to
+choose "best", both under **Settings → Champ Select → ARAM**:
+
+*   **Priority list** — tick **Grab a higher-priority champ off the bench** and
+    build a ranked list on **Champ Select → ARAM** (e.g. `Ziggs, Lux, Ashe`);
+    queuePop trades toward the highest-ranked one available.
+*   **Highest mastery** — tick **Auto-pick my highest-mastery champ available**
+    to skip sorting ~180 champs entirely; queuePop always reaches for the
+    highest-mastery champ you own. This disables the ARAM editor tab (the list
+    is no longer used).
+
 Whatever champ you end up on gets its saved loadout (runes, spells, skin)
-applied automatically. Works in ARAM and ARAM Mayhem.
+applied automatically. Works in every ARAM mode (ARAM, ARAM Mayhem, …).
 
 ### Modifying Settings
+*   Open the app window and use the **Settings** tab — every change auto-saves.
 *   **Right-click** the system tray icon and select **Exit** to close the app.
-*   Run the app with the `--update` flag to restart the wizard:
-    ```bash
-    queuePop.exe --update
-    ```
-    *(Or simply delete the `config.json` file and restart the app)*.
+*   *(To start fresh, delete the `config.json` file and restart the app.)*
 
 ## 🖥️ Usage
 

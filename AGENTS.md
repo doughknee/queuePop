@@ -3,8 +3,8 @@
 ## Project Structure & Module Organization
 - `src/` — runtime code. Entry/bootstrap `src/main.py` (tray + webview + LCU loop);
   `src/lcu.py` LCU client + event subscription; `src/champ_select.py` auto
-  pick/ban + ARAM bench; `src/web_api.py` pywebview `js_api` bridge; `src/gui.py`
-  settings window; `src/tray.py` tray icon/menu; `src/notifications.py` Discord +
+  pick/ban + ARAM bench; `src/web_api.py` pywebview `js_api` bridge;
+  `src/tray.py` tray icon/menu; `src/notifications.py` Discord +
   desktop alerts; `src/companion.py` LAN companion server (phone); `src/config.py`
   config + Rich console; `src/events.py` event constants; `src/updater.py`
   auto-update (installed vs portable); `src/_version.py` version string.
