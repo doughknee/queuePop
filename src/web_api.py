@@ -661,7 +661,8 @@ class Api:
             # Trades are with our own team; resolve each cell's champ for display.
             cell_champ = {p["cellId"]: p["championId"] for p in my_team}
             trades = []
-            for t in session.get("trades") or []:
+            # Newer clients renamed champ trades to "championSwaps".
+            for t in session.get("trades") or session.get("championSwaps") or []:
                 state = t.get("state") or ""
                 if state in ("", "INVALID"):
                     continue
