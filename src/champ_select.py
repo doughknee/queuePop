@@ -803,7 +803,9 @@ class ChampSelect:
         if not my_champ:
             return
         my_rank = self._rank(my_champ, pri)
-        trades = session.get('trades', []) or []
+        # Newer clients renamed champ trades to "championSwaps"; the legacy
+        # `trades` array still mirrors it for now, so read whichever is present.
+        trades = session.get('trades') or session.get('championSwaps') or []
         trade_by_cell = {t.get('cellId'): t for t in trades}
 
         # Incoming offers: accept upgrades, otherwise notify (each once).
@@ -817,8 +819,11 @@ class ChampSelect:
                 if self._trade_state.get(('recv', tid)) != 'accepted':
                     self._trade_state[('recv', tid)] = 'accepted'
                     ok = await self._post_trade(connection, tid, 'accept')
-                    config.console.print(f"[success]🔁 Accepted trade for {their_name}[/]")
-                    events.push(f"Accepted trade for {their_name}", "success", kind="trade")
+                    if ok:
+                        config.console.print(f"[success]🔁 Accepted trade for {their_name}[/]")
+                        events.push(f"Accepted trade for {their_name}", "success", kind="trade")
+                    else:
+                        events.push(f"Trade accept failed for {their_name}", "warning", kind="trade")
                     self._log(f"trade {tid} accept -> {their_name} ok={ok}")
             elif self._trade_state.get(('recv', tid)) != 'notified':
                 self._trade_state[('recv', tid)] = 'notified'
@@ -848,23 +853,33 @@ class ChampSelect:
         self._trade_state[('req', tid)] = 'requested'
         their_name = self.id_to_name.get(cell_champ.get(best_cell, 0), 'champ')
         ok = await self._post_trade(connection, tid, 'request')
-        config.console.print(f"[info]🔁 Requesting trade for {their_name}[/]")
-        events.push(f"Requesting trade for {their_name}", "info", kind="trade")
+        if ok:
+            config.console.print(f"[info]🔁 Requesting trade for {their_name}[/]")
+            events.push(f"Requesting trade for {their_name}", "info", kind="trade")
+        else:
+            events.push(f"Trade request failed for {their_name}", "warning", kind="trade")
         self._log(f"trade {tid} request -> {their_name} ok={ok}")
 
     async def _post_trade(self, connection, trade_id, action):
-        """POST a trade action (request/accept/decline). True on success."""
-        try:
-            resp = await connection.request(
-                'post', f'/lol-champ-select/v1/session/trades/{trade_id}/{action}'
-            )
-        except Exception as e:
-            self._log(f"trade {trade_id} {action} raised: {e!r}")
-            return False
-        if resp.status >= 400:
-            self._log(f"trade {trade_id} {action} -> HTTP {resp.status}")
-            return False
-        return True
+        """POST a trade action (request/accept/decline). True on success.
+        Champ trades moved to /champion-swaps (the /trades routes 404 on
+        current clients), so try the new path first and fall back to the
+        legacy one for older clients."""
+        for ep in (
+            f'/lol-champ-select/v1/session/champion-swaps/{trade_id}/{action}',
+            f'/lol-champ-select/v1/session/trades/{trade_id}/{action}',
+        ):
+            try:
+                resp = await connection.request('post', ep)
+            except Exception as e:
+                self._log(f"trade {trade_id} {action} raised: {e!r}")
+                return False
+            if resp.status < 400:
+                return True
+            self._log(f"trade {trade_id} {action} {ep} -> HTTP {resp.status}")
+            if resp.status != 404:
+                return False
+        return False
 
     # --- ARAM bench ----------------------------------------------------
 
