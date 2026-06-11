@@ -24,7 +24,7 @@ let spellList = []; // [{id, name}] summoner spells for the per-role pickers
 let activeRole = null; // currently edited role
 let activeMode = "picks"; // "picks" | "bans", what the grid adds to
 let activeSort = "az"; // "az" | "mastery" | "recent", grid ordering of unselected champs
-let aramAutoMastery = false; // when on, the ARAM editor tab is locked (mastery auto-picks instead)
+let aramAutoMastery = false; // true when the ARAM champ-priority mode isn't "list" (editor tab locked)
 let masteryById = {}; // championId -> { level, points, lastPlayTime }
 let runePageList = []; // user's saved rune pages, loaded live for the loadout editor
 let loadoutRole = null; // role whose loadout is open in the editor
@@ -1262,9 +1262,10 @@ function buildChampTab() {
   // Mirror the ARAM glyph into the locked panel so it matches its role tab.
   const lockIco = document.querySelector("#aram-locked .role-ico");
   if (lockIco) lockIco.innerHTML = ARAM_ICON;
-  // The "auto highest mastery" toggle locks/unlocks the ARAM editor tab live.
-  $("aram_auto_mastery").addEventListener("change", (e) =>
-    setAramAutoMastery(e.target.checked),
+  // The champ-priority mode locks/unlocks the ARAM editor tab live (any mode
+  // other than the hand-built list means the list is unused).
+  $("aram_mode").addEventListener("change", (e) =>
+    setAramMode(e.target.value),
   );
   $("aram-goto-settings").addEventListener("click", () => {
     activateTab("settings");
@@ -1292,8 +1293,17 @@ function updateChampView(enabled) {
 
 // When "auto highest mastery" is on, the ARAM priority list is unused: dim its
 // tab and swap the grid for a notice that links back to the setting.
-function setAramAutoMastery(on) {
-  aramAutoMastery = !!on;
+// Human wording for each auto mode, mirrored into the locked-panel blurb.
+const ARAM_MODE_LABELS = {
+  highest: "by highest mastery",
+  lowest: "by lowest mastery — learning new champs",
+  random: "at random — chaos mode",
+};
+
+function setAramMode(mode) {
+  aramAutoMastery = mode !== "list";
+  const blurb = $("aram-locked-mode");
+  if (blurb && ARAM_MODE_LABELS[mode]) blurb.textContent = ARAM_MODE_LABELS[mode];
   updateAramTab();
   applyAramLock();
 }
@@ -1587,10 +1597,13 @@ async function loadConfig() {
   updateLockDelayRow();
   const csCfg = c.champ_select || {};
   $("trades_enabled").checked = !!(csCfg.trades && csCfg.trades.enabled);
-  $("aram_enabled").checked = !!(csCfg.aram && csCfg.aram.enabled);
-  aramAutoMastery = !!(csCfg.aram && csCfg.aram.auto_mastery);
-  $("aram_auto_mastery").checked = aramAutoMastery;
-  updateAramTab();
+  const aramCfg = csCfg.aram || {};
+  $("aram_enabled").checked = !!(aramCfg.enabled || aramCfg.auto_mastery);
+  const aramMode = ["list", "highest", "lowest", "random"].includes(aramCfg.mode)
+    ? aramCfg.mode
+    : aramCfg.auto_mastery ? "highest" : "list";
+  $("aram_mode").value = aramMode;
+  setAramMode(aramMode);
   updateChampView(champEnabled);
 
   const allowedIds = (c.allowed_queue_ids || []).map(Number);
@@ -1663,7 +1676,9 @@ function gatherConfig() {
       trades: { enabled: $("trades_enabled").checked },
       aram: {
         enabled: $("aram_enabled").checked,
-        auto_mastery: $("aram_auto_mastery").checked,
+        mode: $("aram_mode").value,
+        // Legacy flag kept in sync so a pre-mode build still reads this config.
+        auto_mastery: $("aram_enabled").checked && $("aram_mode").value === "highest",
       },
       roles: rolesOut,
     },

@@ -94,12 +94,14 @@ def default_config():
             # Auto-trade champions with teammates: request a trade for a higher-
             # priority pick, and accept incoming offers that are an upgrade.
             "trades": {"enabled": False},
-            # Auto-grab a higher-priority champ off the ARAM reroll bench (uses
-            # roles.aram.picks as the priority order). With `auto_mastery` on the
-            # priority order is ignored and we always reach for the highest-mastery
-            # champ available (current + bench), so users skip sorting all ~180
-            # champs; it also disables the ARAM editor tab.
-            "aram": {"enabled": False, "auto_mastery": False},
+            # ARAM automation: pick the best of the offered 2-3 champs at the
+            # start, then keep grabbing upgrades off the reroll bench. `mode`
+            # sets what "best" means (see champ_select.ARAM_MODES): the
+            # hand-built roles.aram.picks list, highest mastery, lowest mastery
+            # (learn new champs), or a per-session random shuffle. Non-list
+            # modes disable the ARAM editor tab. `auto_mastery` is the legacy
+            # pre-mode flag, kept for configs written by older builds.
+            "aram": {"enabled": False, "mode": "highest", "auto_mastery": False},
         },
     }
 
