@@ -1293,11 +1293,15 @@ function updateChampView(enabled) {
 
 // When "auto highest mastery" is on, the ARAM priority list is unused: dim its
 // tab and swap the grid for a notice that links back to the setting.
-// Human wording for each auto mode, mirrored into the locked-panel blurb.
+// Auto modes (everything except the hand-built list) and the human wording
+// mirrored into the locked-panel blurb.
+const ARAM_MODES = ["list", "highest", "lowest", "random", "rusty", "milestone"];
 const ARAM_MODE_LABELS = {
   highest: "by highest mastery",
   lowest: "by lowest mastery — learning new champs",
   random: "at random — chaos mode",
+  rusty: "by rust — least recently played first",
+  milestone: "by mastery milestone — closest level-up first",
 };
 
 function setAramMode(mode) {
@@ -1599,7 +1603,7 @@ async function loadConfig() {
   $("trades_enabled").checked = !!(csCfg.trades && csCfg.trades.enabled);
   const aramCfg = csCfg.aram || {};
   $("aram_enabled").checked = !!(aramCfg.enabled || aramCfg.auto_mastery);
-  const aramMode = ["list", "highest", "lowest", "random"].includes(aramCfg.mode)
+  const aramMode = ARAM_MODES.includes(aramCfg.mode)
     ? aramCfg.mode
     : aramCfg.auto_mastery ? "highest" : "list";
   $("aram_mode").value = aramMode;

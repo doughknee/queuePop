@@ -57,12 +57,16 @@ EDITOR_ROLES = ROLES + [ARAM_ROLE]
 
 # ARAM champ-priority modes (champ_select.aram.mode): what the subset pick,
 # bench grabs, and trades all chase.
-#   "list"     the hand-built Champ Select → ARAM list
-#   "highest"  highest mastery first (the classic auto_mastery behavior)
-#   "lowest"   lowest mastery first, never-played champs at the very front,
-#              for players grinding new champs
-#   "random"   one per-session shuffle of every champ, chased consistently
-ARAM_MODES = ("list", "highest", "lowest", "random")
+#   "list"      the hand-built Champ Select → ARAM list
+#   "highest"   highest mastery first (the classic auto_mastery behavior)
+#   "lowest"    lowest mastery first, never-played champs at the very front,
+#               for players grinding new champs
+#   "random"    one per-session shuffle of every champ, chased consistently
+#   "rusty"     least recently played first; never-played champs rank last
+#               (you can't be rusty on a champ you never played)
+#   "milestone" closest to the next mastery level first, for progression
+#               grinders; banked level-ups (0 points needed) come first
+ARAM_MODES = ("list", "highest", "lowest", "random", "rusty", "milestone")
 
 # Per-champ skin preference (loadout.skin):
 #   "off"            don't change the skin
@@ -124,7 +128,7 @@ class ChampSelect:
         self._trade_out = None     # our live outgoing request: {'id', 'cell'} or None
         self._trade_last = {}      # tradeId -> monotonic time of our last action (cooldown)
         self._bench_target = None  # championId we last tried to grab off the bench
-        self._mastery_pts = None  # championId -> mastery points, cached per session
+        self._mastery_rows = None  # championId -> mastery facts, cached per session
         self._mastery_ids = None  # championIds sorted by mastery (desc), cached per session
         self._random_ids = None   # per-session shuffle for the "random" ARAM mode
         # monotonic time our pick turn was first detected (isInProgress). The
@@ -247,7 +251,7 @@ class ChampSelect:
         self._trade_out = None
         self._trade_last = {}
         self._bench_target = None
-        self._mastery_pts = None
+        self._mastery_rows = None
         self._mastery_ids = None
         self._random_ids = None
         self._pick_open = None
@@ -784,11 +788,12 @@ class ChampSelect:
         except ValueError:
             return 10 ** 6
 
-    async def _mastery_points(self, connection):
-        """championId -> mastery points, cached for the session. None while the
-        client hasn't produced mastery data yet (callers retry next poll)."""
-        if self._mastery_pts is not None:
-            return self._mastery_pts
+    async def _mastery_data(self, connection):
+        """championId -> {'points', 'last', 'until_next'} from the client's
+        mastery data, cached for the session. None while the client hasn't
+        produced it yet (callers retry next poll)."""
+        if self._mastery_rows is not None:
+            return self._mastery_rows
         try:
             resp = await connection.request(
                 'get', '/lol-champion-mastery/v1/local-player/champion-mastery'
@@ -806,14 +811,25 @@ class ChampSelect:
             return None
         if isinstance(data, dict):
             data = data.get('championMasteryList') or []
-        pts = {}
+        rows = {}
         for m in data or []:
             cid = m.get('championId')
             if cid:
-                pts[cid] = m.get('championPoints', 0) or 0
-        self._mastery_pts = pts
-        self._log(f"mastery loaded ({len(pts)} champs)")
-        return pts
+                rows[cid] = {
+                    'points': m.get('championPoints', 0) or 0,
+                    'last': m.get('lastPlayTime', 0) or 0,
+                    'until_next': m.get('championPointsUntilNextLevel', 0) or 0,
+                }
+        self._mastery_rows = rows
+        self._log(f"mastery loaded ({len(rows)} champs)")
+        return rows
+
+    async def _mastery_points(self, connection):
+        """championId -> mastery points, or None while data is unavailable."""
+        rows = await self._mastery_data(connection)
+        if rows is None:
+            return None
+        return {cid: r['points'] for cid, r in rows.items()}
 
     async def _mastery_ranked(self, connection):
         """The player's championIds ordered by mastery points (highest first),
@@ -852,6 +868,23 @@ class ChampSelect:
                 self._random_ids = ids
                 self._log(f"random priority shuffled ({len(ids)} champs)")
             return self._random_ids or []
+        if mode == 'rusty':
+            rows = await self._mastery_data(connection)
+            if rows is None:
+                return []
+            # Longest-untouched first. Never-played champs aren't in the rows,
+            # so they naturally rank last — "lowest" is the mode for them.
+            return sorted(rows, key=lambda c: rows[c]['last'])
+        if mode == 'milestone':
+            rows = await self._mastery_data(connection)
+            if rows is None:
+                return []
+            # Fewest points to the next mastery level first. until_next <= 0
+            # means the points are already banked and the level-up just needs
+            # games played — that's as close as it gets. Ties: higher points
+            # first, so deep mains edge out fresh picks at equal distance.
+            return sorted(rows, key=lambda c: (max(0, rows[c]['until_next']),
+                                               -rows[c]['points']))
         return self._priority_ids(active_picks)
 
     # --- ARAM subset pick ----------------------------------------------
