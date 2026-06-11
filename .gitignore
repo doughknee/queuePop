@@ -12,6 +12,13 @@ venv/
 config.json
 *.log
 
+# ARAM pick-window diagnostic output (scripts/capture_aram_pick.py)
+scripts/aram_pick_capture.jsonl
+scripts/capture_watcher.out
+scripts/capture_watcher.err
+scripts/dev_app.out
+scripts/dev_app.err
+
 # Downloaded League assets — regenerated via scripts/fetch_assets.py
 src/webui/assets/champions/
 src/webui/assets/positions/

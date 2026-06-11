@@ -55,6 +55,19 @@ ARAM_ROLE = "aram"
 # for config normalization and the get_roles() UI list. ROLES stays position-only.
 EDITOR_ROLES = ROLES + [ARAM_ROLE]
 
+# ARAM champ-priority modes (champ_select.aram.mode): what the subset pick,
+# bench grabs, and trades all chase.
+#   "list"      the hand-built Champ Select → ARAM list
+#   "highest"   highest mastery first (the classic auto_mastery behavior)
+#   "lowest"    lowest mastery first, never-played champs at the very front,
+#               for players grinding new champs
+#   "random"    one per-session shuffle of every champ, chased consistently
+#   "rusty"     least recently played first; never-played champs rank last
+#               (you can't be rusty on a champ you never played)
+#   "milestone" closest to the next mastery level first, for progression
+#               grinders; banked level-ups (0 points needed) come first
+ARAM_MODES = ("list", "highest", "lowest", "random", "rusty", "milestone")
+
 # Per-champ skin preference (loadout.skin):
 #   "off"            don't change the skin
 #   <skinId int>     pick this exact skin
@@ -111,9 +124,13 @@ class ChampSelect:
         self._rune_try_for = None  # championId we're currently retrying recommended runes for
         self._rune_tries = 0       # recommended-pages 404s briefly post-lock; bounded retry
         self._rune_cap_warned = False  # notified once per session that pages are full
-        self._trade_state = {}     # (kind, tradeId) -> 'requested'|'accepted'|'notified'
+        self._trade_state = {}     # (kind, tradeId) -> 'accepted'|'notified'|'declined'
+        self._trade_out = None     # our live outgoing request: {'id', 'cell'} or None
+        self._trade_last = {}      # tradeId -> monotonic time of our last action (cooldown)
         self._bench_target = None  # championId we last tried to grab off the bench
+        self._mastery_rows = None  # championId -> mastery facts, cached per session
         self._mastery_ids = None  # championIds sorted by mastery (desc), cached per session
+        self._random_ids = None   # per-session shuffle for the "random" ARAM mode
         # monotonic time our pick turn was first detected (isInProgress). The
         # client's phase timer runs ahead of the per-pick sub-timer, so we anchor
         # our lock countdown to detection and assume a ~30s pick window instead.
@@ -231,8 +248,12 @@ class ChampSelect:
         self._rune_tries = 0
         self._rune_cap_warned = False
         self._trade_state = {}
+        self._trade_out = None
+        self._trade_last = {}
         self._bench_target = None
+        self._mastery_rows = None
         self._mastery_ids = None
+        self._random_ids = None
         self._pick_open = None
         # action_id -> ('hover'|'locked', championId) so we don't spam the API
         action_state = {}
@@ -338,6 +359,21 @@ class ChampSelect:
             self._log(f"phase={phase} pos={position} ban={_brief(my_ban)} "
                       f"pick={_brief(my_pick)} unavailable={sorted(unavailable)}")
 
+        # The champ-priority order driving the ARAM subset pick, trades, and
+        # the bench, as resolved championIds. In ARAM the priority mode picks
+        # the ranking (hand list, highest/lowest mastery, or random); on the
+        # Rift it's always the assigned role's picks list. Computed before the
+        # pick logic because ARAM's subset pick needs it (on the Rift this is
+        # list-only, no LCU call, so it can't delay picks).
+        aram_toggle = cs.get('aram') or {}
+        aram_on = is_aram and bool(aram_toggle.get('enabled')
+                                   or aram_toggle.get('auto_mastery'))
+        aram_mode = self._aram_mode(aram_toggle)
+        if aram_on and aram_mode != 'list':
+            pri = await self._aram_priority(connection, aram_mode, active_picks)
+        else:
+            pri = self._priority_ids(active_picks)
+
         # === Time-critical: BAN + PICK first ============================
         # These run before any cosmetic handler (spells/trades/skins/runes) so a
         # slow LCU call, e.g. fetching recommended runes, can never delay a
@@ -370,12 +406,23 @@ class ChampSelect:
                     else:
                         await self._commit(connection, my_pick, chosen, 'pick',
                                            action_state, lock=False, intent=True)
+        elif (aram_on and my_pick is not None and phase == 'BAN_PICK'
+                and my_pick.get('isInProgress')):
+            # ARAM's opening pick: the client offers a 2-3 champ subset for
+            # ~10s, then random-assigns one at the buzzer (benching the rest).
+            # The offered ids are only exposed by the lobby-team-builder
+            # mirror, NOT the session; picking a champ outside the subset
+            # returns 204 but is silently ignored, which is why this looked
+            # impossible before. Hover-then-lock the best offered champ.
+            subset = await self._subset_champions(connection)
+            if subset:
+                chosen = await self._best_subset_pick(connection, subset, pri)
+                if chosen:
+                    await self._commit(connection, my_pick, chosen, 'pick',
+                                       action_state, lock=True)
         else:
-            # No assigned-role pick/ban here (ARAM, Blind, or unconfigured).
-            # ARAM has no usable opening pick: the pick-action PATCH is accepted
-            # but ignored, and the client random-assigns a champ at the buzzer
-            # regardless, so we grab our preferred champs off the reroll bench
-            # below instead. The cosmetic handlers still run. Log once.
+            # No assigned-role pick/ban here (Blind, unconfigured, or ARAM
+            # automation off). The cosmetic handlers still run. Log once.
             sig2 = ("no-role", position)
             if sig2 != self._last_sig:
                 self._last_sig = sig2
@@ -383,9 +430,24 @@ class ChampSelect:
                           f"{[(p.get('cellId'), p.get('assignedPosition')) for p in my_team]}")
 
         # === Non-urgent automation (may make several LCU calls) =========
-        # Everything below is driven by the per-(role, champ) loadout: spells,
-        # runes, and skin. role_key is the assigned role on the Rift, or ARAM.
+        # Order matters: bench first (instant, free, unilateral), then trades
+        # (slow, consensual — decided against our post-bench champ), then the
+        # cosmetics (spells/runes/skin), which just re-key off whatever champ
+        # we end the poll holding.
         role_key = position if role_cfg else (ARAM_ROLE if is_aram else None)
+
+        # --- ARAM bench: grab a higher-priority champ off the reroll bench. ---
+        swapped = False
+        if aram_on:
+            swapped = await self._handle_bench(connection, session, local_cell, pri)
+
+        # --- Trades: request/accept/cancel toward upgrades (Rift or ARAM).
+        # Skipped on a swap tick: the session snapshot still shows our old
+        # champ, so any trade decision would be made against stale data. ---
+        if not swapped and (cs.get('trades') or {}).get('enabled'):
+            await self._handle_trades(connection, session, local_cell, pri)
+
+        # --- Cosmetics, driven by the per-(role, champ) loadout. ---
         loadout = self._loadout(cs, role_key, my_champ)
 
         # --- Summoner spells: set once per champ from its loadout. ---
@@ -393,28 +455,6 @@ class ChampSelect:
         if my_champ and self._spells_for != my_champ and len(spells) >= 2:
             self._spells_for = my_champ
             await self._apply_spells(connection, spells)
-
-        # The champ-priority order driving trades + the ARAM bench, as resolved
-        # championIds. In ARAM with "auto highest mastery" on we ignore the
-        # hand-built list and rank by champion mastery (highest first) so we
-        # always reach for the best champ the player owns; otherwise it's the
-        # active picks list in priority order.
-        aram_toggle = cs.get('aram') or {}
-        aram_auto_mastery = is_aram and bool(aram_toggle.get('auto_mastery'))
-        if aram_auto_mastery:
-            pri = await self._mastery_ranked(connection)
-        else:
-            pri = self._priority_ids(active_picks)
-
-        # --- Trades: request/accept upgrades (Rift or ARAM). ---
-        if (cs.get('trades') or {}).get('enabled'):
-            await self._handle_trades(connection, session, local_cell, pri)
-
-        # --- ARAM bench: grab a higher-priority champ off the reroll bench.
-        # `auto_mastery` engages the bench grab on its own (no priority list to
-        # build), so it counts the same as the explicit toggle here. ---
-        if is_aram and (aram_toggle.get('enabled') or aram_toggle.get('auto_mastery')):
-            await self._handle_bench(connection, session, local_cell, pri)
 
         locked_champ = self._my_champion(session, local_cell, locked_only=True)
 
@@ -748,50 +788,158 @@ class ChampSelect:
         except ValueError:
             return 10 ** 6
 
-    async def _mastery_ranked(self, connection):
-        """The player's championIds ordered by mastery points (highest first),
-        cached for the session. Used as the ARAM priority order when "auto
-        highest mastery" is on so the user never has to sort champs themselves.
-        Returns [] if the client has no mastery data yet (retried next poll)."""
-        if self._mastery_ids is not None:
-            return self._mastery_ids
+    async def _mastery_data(self, connection):
+        """championId -> {'points', 'last', 'until_next'} from the client's
+        mastery data, cached for the session. None while the client hasn't
+        produced it yet (callers retry next poll)."""
+        if self._mastery_rows is not None:
+            return self._mastery_rows
         try:
             resp = await connection.request(
                 'get', '/lol-champion-mastery/v1/local-player/champion-mastery'
             )
         except Exception as e:
             self._log(f"mastery fetch raised: {e!r}")
-            return []
+            return None
         if resp.status != 200:
             self._log(f"mastery fetch -> HTTP {resp.status}")
-            return []  # leave cache unset so we retry once it's available
+            return None  # leave cache unset so we retry once it's available
         try:
             data = await resp.json()
         except Exception as e:
             self._log(f"mastery decode raised: {e!r}")
-            return []
+            return None
         if isinstance(data, dict):
             data = data.get('championMasteryList') or []
-        rows = []
+        rows = {}
         for m in data or []:
             cid = m.get('championId')
             if cid:
-                rows.append((cid, m.get('championPoints', 0) or 0))
-        rows.sort(key=lambda r: r[1], reverse=True)
-        self._mastery_ids = [cid for cid, _ in rows]
-        self._log(f"mastery ranking loaded ({len(self._mastery_ids)} champs)")
+                rows[cid] = {
+                    'points': m.get('championPoints', 0) or 0,
+                    'last': m.get('lastPlayTime', 0) or 0,
+                    'until_next': m.get('championPointsUntilNextLevel', 0) or 0,
+                }
+        self._mastery_rows = rows
+        self._log(f"mastery loaded ({len(rows)} champs)")
+        return rows
+
+    async def _mastery_points(self, connection):
+        """championId -> mastery points, or None while data is unavailable."""
+        rows = await self._mastery_data(connection)
+        if rows is None:
+            return None
+        return {cid: r['points'] for cid, r in rows.items()}
+
+    async def _mastery_ranked(self, connection):
+        """The player's championIds ordered by mastery points (highest first),
+        cached for the session. Returns [] until mastery data is available."""
+        if self._mastery_ids is None:
+            pts = await self._mastery_points(connection)
+            if pts is None:
+                return []
+            self._mastery_ids = sorted(pts, key=pts.get, reverse=True)
         return self._mastery_ids
+
+    def _aram_mode(self, aram_toggle):
+        """The active ARAM priority mode, honoring the legacy auto_mastery
+        flag from configs written before `mode` existed."""
+        mode = aram_toggle.get('mode')
+        if mode not in ARAM_MODES:
+            mode = 'highest' if aram_toggle.get('auto_mastery') else 'list'
+        return mode
+
+    async def _aram_priority(self, connection, mode, active_picks):
+        """The resolved championId priority order for an ARAM mode (see
+        ARAM_MODES). 'lowest' covers every known champ with never-played ones
+        first; 'random' shuffles once per session so the subset pick, bench,
+        and trades all chase the same surprise target."""
+        if mode == 'highest':
+            return await self._mastery_ranked(connection)
+        if mode == 'lowest':
+            pts = await self._mastery_points(connection)
+            if pts is None:
+                return []
+            return sorted(self.id_to_name, key=lambda c: (pts.get(c, 0), c))
+        if mode == 'random':
+            if self._random_ids is None and self.id_to_name:
+                ids = list(self.id_to_name)
+                random.shuffle(ids)
+                self._random_ids = ids
+                self._log(f"random priority shuffled ({len(ids)} champs)")
+            return self._random_ids or []
+        if mode == 'rusty':
+            rows = await self._mastery_data(connection)
+            if rows is None:
+                return []
+            # Longest-untouched first. Never-played champs aren't in the rows,
+            # so they naturally rank last — "lowest" is the mode for them.
+            return sorted(rows, key=lambda c: rows[c]['last'])
+        if mode == 'milestone':
+            rows = await self._mastery_data(connection)
+            if rows is None:
+                return []
+            # Fewest points to the next mastery level first. until_next <= 0
+            # means the points are already banked and the level-up just needs
+            # games played — that's as close as it gets. Ties: higher points
+            # first, so deep mains edge out fresh picks at equal distance.
+            return sorted(rows, key=lambda c: (max(0, rows[c]['until_next']),
+                                               -rows[c]['points']))
+        return self._priority_ids(active_picks)
+
+    # --- ARAM subset pick ----------------------------------------------
+
+    async def _subset_champions(self, connection):
+        """The 2-3 championIds ARAM offers us to pick from at the start of
+        champ select, or [] when no subset is up. Only the lobby-team-builder
+        mirror exposes this list (404s outside the pick window)."""
+        try:
+            resp = await connection.request(
+                'get', '/lol-lobby-team-builder/champ-select/v1/subset-champion-list'
+            )
+        except Exception as e:
+            self._log(f"subset list raised: {e!r}")
+            return []
+        if resp.status != 200:
+            return []
+        try:
+            data = await resp.json()
+        except Exception as e:
+            self._log(f"subset list decode raised: {e!r}")
+            return []
+        if not isinstance(data, list):
+            return []
+        return [c for c in data if isinstance(c, int) and c > 0]
+
+    async def _best_subset_pick(self, connection, subset, pri):
+        """The offered champ to pick: best by the active priority order, then
+        by mastery when none of the offered champs are ranked (so a hand-built
+        list that misses all three still picks sensibly), else the first."""
+        best = min(subset, key=lambda c: self._rank(c, pri))
+        if self._rank(best, pri) < 10 ** 6:
+            return best
+        mastery = await self._mastery_ranked(connection)
+        if mastery:
+            return min(subset, key=lambda c: self._rank(c, mastery))
+        return subset[0]
 
     # --- Trades --------------------------------------------------------
 
+    # Seconds to sit out after cancelling/requesting a trade before touching
+    # the same trade again, so a flapping rank (e.g. mid-swap lobby churn)
+    # can't spam a teammate with request/cancel cycles.
+    TRADE_COOLDOWN = 3.0
+
     async def _handle_trades(self, connection, session, local_cell, pri):
-        """Auto-trade toward a higher-priority pick:
-          * request a trade with the teammate holding the best champ that
-            out-ranks ours (once per trade), and
+        """Auto-trade toward a higher-priority pick. A trade is a standing
+        offer, not an action, so this reconciles rather than fire-and-forgets:
           * accept an incoming trade when the offered champ out-ranks ours,
-            otherwise just notify.
-        `pri` is the resolved championId priority order (lower index = better).
-        No-ops until champs are locked (trades only exist late in champ select)."""
+            re-verified at the moment we act (otherwise just notify once), and
+          * keep at most ONE live outgoing request, always aimed at the best
+            upgrade a teammate is holding, cancelling it the moment it goes
+            stale (we out-grew it via a bench swap, or a better target appeared)
+            so a late accept can never downgrade us.
+        `pri` is the resolved championId priority order (lower index = better)."""
         my_team = session.get('myTeam', []) or []
         cell_champ = {}
         my_champ = 0
@@ -806,9 +954,9 @@ class ChampSelect:
         # Newer clients renamed champ trades to "championSwaps"; the legacy
         # `trades` array still mirrors it for now, so read whichever is present.
         trades = session.get('trades') or session.get('championSwaps') or []
-        trade_by_cell = {t.get('cellId'): t for t in trades}
 
-        # Incoming offers: accept upgrades, otherwise notify (each once).
+        # Incoming offers: accept upgrades (the upgrade check runs right here,
+        # against our CURRENT champ), otherwise notify (each once).
         for t in trades:
             if t.get('state') != 'RECEIVED':
                 continue
@@ -830,7 +978,7 @@ class ChampSelect:
                 events.push(f"Trade requested by {their_name}", "info", kind="trade")
                 self._log(f"trade {tid} received (no upgrade): {their_name}")
 
-        # Outgoing: request the single best upgrade a teammate is holding.
+        # The single best upgrade a teammate is holding right now.
         best_cell, best_rank = None, my_rank
         for p in my_team:
             cell = p.get('cellId')
@@ -842,18 +990,47 @@ class ChampSelect:
             r = self._rank(c, pri)
             if r < best_rank:
                 best_rank, best_cell = r, cell
-        if best_cell is None:
+
+        now = time.monotonic()
+
+        # Reconcile our outstanding request before anything else: forget it if
+        # it resolved (accepted/declined/expired), cancel it if it no longer
+        # points at the best upgrade.
+        out = self._trade_out
+        if out:
+            t = next((x for x in trades if x.get('id') == out['id']), None)
+            state = (t or {}).get('state')
+            if state == 'DECLINED':
+                # They said no to this pairing; don't pester them again.
+                self._trade_state[('req', out['id'])] = 'declined'
+            if state not in ('SENT', 'BUSY'):
+                self._trade_out = None
+            elif out['cell'] != best_cell:
+                ok = await self._post_trade(connection, out['id'], 'cancel')
+                name = self.id_to_name.get(cell_champ.get(out['cell'], 0), 'champ')
+                events.push(f"Cancelled trade request for {name} (no longer an upgrade)",
+                            "info", kind="trade")
+                self._log(f"trade {out['id']} cancel -> {name} ok={ok}")
+                self._trade_last[out['id']] = now
+                self._trade_out = None
+                return  # re-evaluate next poll against fresh trade state
+
+        # Request the best upgrade (one live request at a time).
+        if best_cell is None or self._trade_out:
             return
-        t = trade_by_cell.get(best_cell)
+        t = next((x for x in trades if x.get('cellId') == best_cell), None)
         if not t or t.get('state') != 'AVAILABLE':
             return
         tid = t.get('id')
-        if self._trade_state.get(('req', tid)) == 'requested':
+        if self._trade_state.get(('req', tid)) == 'declined':
             return
-        self._trade_state[('req', tid)] = 'requested'
+        if now - self._trade_last.get(tid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
+            return
+        self._trade_last[tid] = now
         their_name = self.id_to_name.get(cell_champ.get(best_cell, 0), 'champ')
         ok = await self._post_trade(connection, tid, 'request')
         if ok:
+            self._trade_out = {'id': tid, 'cell': best_cell}
             config.console.print(f"[info]🔁 Requesting trade for {their_name}[/]")
             events.push(f"Requesting trade for {their_name}", "info", kind="trade")
         else:
@@ -887,17 +1064,18 @@ class ChampSelect:
         """Grab a higher-priority champ off the ARAM reroll bench. Re-evaluates
         each poll so a later, better roll is taken too; a per-target guard (plus
         the client's own swap cooldown) keeps us from spamming the endpoint.
-        `pri` is the resolved championId priority order (lower index = better),
-        either the configured list or the player's mastery ranking."""
+        `pri` is the resolved championId priority order (lower index = better).
+        Returns True when a swap was made (our champ changed under this poll's
+        session snapshot, so the caller skips trade decisions this tick)."""
         if not pri:
-            return
+            return False
         my_champ = 0
         for p in session.get('myTeam', []) or []:
             if p.get('cellId') == local_cell:
                 my_champ = p.get('championId') or 0
                 break
         if not my_champ:
-            return
+            return False
 
         bench = []
         for b in session.get('benchChampions') or []:
@@ -907,7 +1085,7 @@ class ChampSelect:
         if not bench:
             bench = [b for b in (session.get('benchChampionIds') or []) if b]
         if not bench:
-            return
+            return False
 
         my_rank = self._rank(my_champ, pri)
         best, best_rank = None, my_rank
@@ -916,7 +1094,7 @@ class ChampSelect:
             if r < best_rank:
                 best_rank, best = r, cid
         if best is None or self._bench_target == best:
-            return
+            return False
 
         # Set the guard before the request so a rejected swap (cooldown) doesn't
         # re-fire every poll; it clears naturally when a better target appears.
@@ -928,13 +1106,14 @@ class ChampSelect:
             )
         except Exception as e:
             self._log(f"bench swap raised: {e!r}")
-            return
+            return False
         if resp.status < 400:
             config.console.print(f"[success]🔀 Grabbed {name} off the bench[/]")
             events.push(f"Grabbed {name} off the bench", "success", kind="bench_swap")
             self._log(f"bench swap -> {name} ({best})")
-        else:
-            self._log(f"bench swap {best} -> HTTP {resp.status}")
+            return True
+        self._log(f"bench swap {best} -> HTTP {resp.status}")
+        return False
 
     # --- Skins ---------------------------------------------------------
 

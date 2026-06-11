@@ -330,10 +330,23 @@ def _normalize_champ_select(cs):
         "lock_in_at_seconds": max(0, lock),
         "roles": roles,
         "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
-        "aram": {
-            "enabled": bool((cs.get("aram", {}) or {}).get("enabled", False)),
-            "auto_mastery": bool((cs.get("aram", {}) or {}).get("auto_mastery", False)),
-        },
+        "aram": _normalize_aram(cs.get("aram")),
+    }
+
+
+def _normalize_aram(aram):
+    """ARAM settings with the priority `mode`, honoring the legacy
+    auto_mastery flag from configs written before modes existed (and writing
+    it back in sync so an older build still reads something sane)."""
+    aram = aram or {}
+    mode = aram.get("mode")
+    if mode not in champ_select.ARAM_MODES:
+        mode = "highest" if aram.get("auto_mastery") else "list"
+    enabled = bool(aram.get("enabled", False) or aram.get("auto_mastery", False))
+    return {
+        "enabled": enabled,
+        "mode": mode,
+        "auto_mastery": enabled and mode == "highest",
     }
 
 

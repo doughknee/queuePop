@@ -1439,15 +1439,16 @@
           <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
                style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));"></div>
 
-          <!-- Shown instead of the ARAM grid when "auto highest mastery" is on:
-               the priority list is unused, so there's nothing to edit here. -->
+          <!-- Shown instead of the ARAM grid when the champ priority mode isn't
+               "My ARAM list": the priority list is unused, nothing to edit here. -->
           <div id="aram-locked" class="hidden flex-1 min-h-0 flex flex-col items-center justify-center gap-4 text-center p-8">
             <span class="role-ico" style="width:48px;height:48px;color:#C8AA6E;opacity:0.85"></span>
             <p class="font-display text-gold2 text-xl tracking-wide">ARAM is on auto-pilot</p>
             <p class="text-sm text-subText max-w-sm leading-relaxed">
-              queuePop auto-picks your <span class="text-gold2">highest-mastery champ available</span>
-              every game, so this list isn't used. Turn off
-              <span class="text-gold2">Auto-pick my highest-mastery champ</span> in Settings to sort champs yourself.
+              queuePop ranks champs <span id="aram-locked-mode" class="text-gold2">by mastery</span>
+              automatically, so this list isn't used. Set
+              <span class="text-gold2">Champ priority</span> to <span class="text-gold2">My ARAM list</span>
+              in Settings to sort champs yourself.
             </p>
             <button id="aram-goto-settings"
               class="hextech font-display tracking-wide px-6 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">
@@ -1525,13 +1526,21 @@
             <div class="set-sub-head">ARAM</div>
             <div class="set-row">
               <span class="sw"><input id="aram_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="aram_enabled" class="set-row-label">Grab a higher-priority champ off the bench</label>
-              <span class="help" data-tip="Build your ARAM priority list on Champ Select → ARAM. queuePop grabs the highest-ranked champ that lands on the reroll bench and trades toward it. Summoner spells set there apply too.">?</span>
+              <label for="aram_enabled" class="set-row-label">Auto-manage my ARAM champ select</label>
+              <span class="help" data-tip="queuePop picks the best of the 2-3 champs you're offered at the start, then keeps grabbing upgrades off the reroll bench (and trades toward better ones, if auto-trade is on). 'Best' is set by the champ priority below.">?</span>
             </div>
             <div class="set-row">
-              <span class="sw"><input id="aram_auto_mastery" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="aram_auto_mastery" class="set-row-label">Auto-pick my highest-mastery champ available</label>
-              <span class="help" data-tip="Skip sorting all ~180 champs. queuePop always reaches for the highest-mastery champ you own among your roll and the reroll bench. Works in every ARAM mode. Turning this on disables the Champ Select → ARAM list (it's no longer used).">?</span>
+              <label for="aram_mode" class="set-row-label">Champ priority</label>
+              <select id="aram_mode"
+                class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
+                <option value="highest">Highest mastery</option>
+                <option value="lowest">Lowest mastery — learn new champs</option>
+                <option value="rusty">Rusty — least recently played</option>
+                <option value="milestone">Mastery milestone — closest level-up</option>
+                <option value="random">Random — chaos mode</option>
+                <option value="list">My ARAM list</option>
+              </select>
+              <span class="help" data-tip="What counts as an upgrade. Highest mastery chases your most-played champs; lowest chases champs you've barely (or never) touched; rusty chases the champs you haven't played in the longest; milestone chases whichever champ is closest to its next mastery level; random commits to one shuffled order per lobby; My ARAM list uses your hand-sorted Champ Select → ARAM list (the other modes disable that tab).">?</span>
             </div>
           </div>
 
