@@ -1,10 +1,10 @@
-/* Settings page: the queue picker, DOM↔store sync for every settings control,
-   the rune-page management card, and the jump-nav scroll spy.
+/* Settings page: the queue picker, DOM↔store sync for the page's controls,
+   and the jump-nav scroll spy. (Champ-select settings live on the Champ
+   Select page since Phase 1; this page shrinks further in later phases.)
 
    Write path: a delegated `input` listener syncs the page's controls into
    QP.store.config and schedules a save (buttons don't fire `input`, so
-   test/refresh/preview clicks never trigger a stray save). The champ editor
-   writes into the store directly and never passes through here. */
+   test/refresh/preview clicks never trigger a stray save). */
 
 // --- Allowed-queues picker ----------------------------------------------
 const QP_CHECK =
@@ -118,23 +118,6 @@ function hydrateSettings() {
   toggleCustomSoundRow();
   refreshCompanion();
 
-  const champEnabled = !!(c.champ_select && c.champ_select.enabled);
-  $("champ_enabled").checked = champEnabled;
-  $("instant_lock").checked = (c.champ_select && c.champ_select.instant_lock) ?? true;
-  $("lock_seconds").value =
-    (c.champ_select && c.champ_select.lock_in_at_seconds) ?? 1;
-  updateLockDelayRow();
-  const csCfg = c.champ_select || {};
-  $("trades_enabled").checked = !!(csCfg.trades && csCfg.trades.enabled);
-  const aramCfg = csCfg.aram || {};
-  $("aram_enabled").checked = !!(aramCfg.enabled || aramCfg.auto_mastery);
-  const aramMode = ARAM_MODES.includes(aramCfg.mode)
-    ? aramCfg.mode
-    : aramCfg.auto_mastery ? "highest" : "list";
-  $("aram_mode").value = aramMode;
-  setAramMode(aramMode);
-  updateChampView(champEnabled);
-
   const allowedIds = (c.allowed_queue_ids || []).map(Number);
   const acceptAny = allowedIds.length === 0;
   $("queue_all").checked = acceptAny;
@@ -146,8 +129,8 @@ function hydrateSettings() {
 }
 
 // --- Sync: settings DOM → store.config ------------------------------------
-// The champ-select roles/loadouts live in the store already (the editor edits
-// them in place); this covers every other control on the page.
+// Champ-select settings write straight into the store from their own page;
+// this covers every control still living on the Settings page.
 function syncSettingsToStore() {
   const c = QP.store.config;
   c.webhook_url = $("webhook_url").value;
@@ -171,18 +154,6 @@ function syncSettingsToStore() {
     sound_file: customSoundPath || "",
   };
 
-  const cs = (c.champ_select ||= {});
-  cs.enabled = $("champ_enabled").checked;
-  cs.instant_lock = $("instant_lock").checked;
-  cs.lock_in_at_seconds = Number($("lock_seconds").value) || 0;
-  cs.trades = { enabled: $("trades_enabled").checked };
-  cs.aram = {
-    enabled: $("aram_enabled").checked,
-    mode: $("aram_mode").value,
-    // Legacy flag kept in sync so a pre-mode build still reads this config.
-    auto_mastery: $("aram_enabled").checked && $("aram_mode").value === "highest",
-  };
-
   QP.bus.emit("config:changed", { path: "settings" });
   QP.store.scheduleSave();
 }
@@ -195,77 +166,6 @@ $("tab-settings").addEventListener("input", syncSettingsToStore);
 // "Auto-accept any queue" hides/reveals the specific-queue picker.
 $("queue_all").addEventListener("change", () => {
   $("queue-select").classList.toggle("hidden", $("queue_all").checked);
-});
-
-// Instant-lock toggle hides the "lock when N seconds left" delay row.
-function updateLockDelayRow() {
-  $("lock-delay-row").classList.toggle("hidden", $("instant_lock").checked);
-}
-$("instant_lock").addEventListener("change", updateLockDelayRow);
-
-// --- Recommended Runes: manage queuePop's dedicated rune page ------------
-// Recommended-runes writes to one page named "queuePop (auto)". If the user is
-// at their rune-page cap with no such page, they pick one here to hand over.
-async function refreshRuneInfo() {
-  const status = $("rune-managed-status");
-  const wrap = $("rune-claim-wrap");
-  let info = { pages: [], managed: null, at_cap: false };
-  try { info = (await api().get_rune_info()) || info; } catch (_) {}
-
-  if (info.managed) {
-    status.innerHTML = `✓ queuePop manages the <span class="text-gold2">${info.managed.name}</span> page.`;
-    status.className = "text-sm text-gold2";
-    wrap.classList.add("hidden");
-    return;
-  }
-  if (!info.pages.length && !info.at_cap) {
-    status.textContent = "Connect the League client to manage rune pages.";
-    status.className = "text-sm text-subText";
-    wrap.classList.add("hidden");
-    return;
-  }
-  if (info.at_cap) {
-    status.textContent = "No dedicated page yet, and your rune pages are full.";
-    status.className = "text-sm text-gold4";
-    $("rune-claim-list").innerHTML = info.pages
-      .map(
-        (p) =>
-          `<div class="flex items-center justify-between gap-3 text-sm">` +
-            `<span class="text-grey1">${p.name}</span>` +
-            `<button class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer" ` +
-            `data-claim="${p.id}">Use this page</button>` +
-          `</div>`,
-      )
-      .join("");
-    wrap.classList.remove("hidden");
-  } else {
-    status.textContent =
-      "queuePop will create its own “queuePop (auto)” page automatically (a slot is free).";
-    status.className = "text-sm text-subText";
-    wrap.classList.add("hidden");
-  }
-}
-
-$("rune-refresh").addEventListener("click", refreshRuneInfo);
-$("rune-claim-list").addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-claim]");
-  if (!btn) return;
-  const s = $("rune-claim-status");
-  s.textContent = "Assigning…";
-  s.className = "text-xs text-subText";
-  const res = await api().claim_rune_page(btn.dataset.claim);
-  if (res && res.ok) {
-    flashStatus(s, "✓ queuePop will use that page", true);
-    refreshRuneInfo();
-  } else {
-    flashStatus(s, "✗ " + ((res && res.error) || "Failed"), false);
-  }
-  setTimeout(() => (s.textContent = ""), 4000);
-});
-
-// Refresh live rune-page status when entering Settings.
-QP.bus.on("route", ({ tab }) => {
-  if (tab === "settings") refreshRuneInfo();
 });
 
 // --- Settings jump-nav (sticky sidebar on wide windows) --------------------

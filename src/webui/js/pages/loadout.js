@@ -48,7 +48,9 @@ function closeLoadout() {
   if (lo && !(lo.spells || []).length && lo.rune === "off" && skinOff)
     delete los[String(loadoutChamp)];
   $("loadout-modal").classList.add("hidden");
-  renderGrid($("champ-search").value); // refresh the loadout dot
+  renderTray(); // refresh the loadout dot on the tray slot
+  updateBadge(loadoutRole);
+  QP.bus.emit("config:changed", { path: "champ_select.roles" });
   scheduleSave();
 }
 

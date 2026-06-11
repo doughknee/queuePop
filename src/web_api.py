@@ -312,41 +312,74 @@ def _clean_loadouts(val):
 def _normalize_champ_select(cs):
     cs = cs or {}
     roles_in = cs.get("roles", {}) or {}
+    aram_in = cs.get("aram", {}) or {}
     roles = {}
     for role in champ_select.EDITOR_ROLES:
         rc = roles_in.get(role, {}) or {}
+        mode = rc.get("mode")
+        if mode not in champ_select.ROLE_MODES:
+            mode = None
+        if role == champ_select.ARAM_ROLE and mode is None:
+            # Import the pre-fallback ARAM mode keys (aram.mode/auto_mastery).
+            legacy = aram_in.get("mode")
+            if legacy in champ_select.ARAM_MODES and legacy != "list":
+                mode = legacy
+            elif aram_in.get("auto_mastery"):
+                mode = "highest"
+        spells = []
+        for s in (rc.get("default_spells") or [])[:2]:
+            try:
+                s = int(s)
+            except (TypeError, ValueError):
+                continue
+            if s in champ_select.SPELL_IDS and s not in spells:
+                spells.append(s)
         roles[role] = {
             "bans": _text_to_list(rc.get("bans")),
             "picks": _text_to_list(rc.get("picks")),
             "loadouts": _clean_loadouts(rc.get("loadouts")),
+            "mode": mode or "off",
+            "default_spells": spells if len(spells) == 2 else [],
         }
     try:
         lock = int(cs.get("lock_in_at_seconds", champ_select.DEFAULT_LOCK_SECONDS))
     except (TypeError, ValueError):
         lock = champ_select.DEFAULT_LOCK_SECONDS
+    pick_spot = str(cs.get("pick_spot", "off"))
+    if pick_spot not in ("off", "1", "2", "3", "4", "5"):
+        pick_spot = "off"
+    preferred = str(cs.get("preferred_role", "off"))
+    if preferred not in ("off",) + tuple(champ_select.ROLES):
+        preferred = "off"
     return {
         "enabled": bool(cs.get("enabled", False)),
         "instant_lock": bool(cs.get("instant_lock", True)),
         "lock_in_at_seconds": max(0, lock),
+        "pick_spot": pick_spot,
+        "preferred_role": preferred,
+        "show_intent": bool(cs.get("show_intent", True)),
+        "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
         "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
-        "aram": _normalize_aram(cs.get("aram")),
+        "aram": _normalize_aram(aram_in, roles[champ_select.ARAM_ROLE]["mode"]),
     }
 
 
-def _normalize_aram(aram):
-    """ARAM settings with the priority `mode`, honoring the legacy
-    auto_mastery flag from configs written before modes existed (and writing
-    it back in sync so an older build still reads something sane)."""
+def _normalize_aram(aram, aram_role_mode):
+    """The ARAM block: `enabled` gates the automation; mode/auto_mastery are
+    legacy mirrors of roles.aram.mode, kept in sync so a pre-fallback build
+    still reads this config sensibly."""
     aram = aram or {}
-    mode = aram.get("mode")
-    if mode not in champ_select.ARAM_MODES:
-        mode = "highest" if aram.get("auto_mastery") else "list"
     enabled = bool(aram.get("enabled", False) or aram.get("auto_mastery", False))
+    try:
+        delay = min(5.0, max(0.0, float(aram.get("bench_delay", 0) or 0)))
+    except (TypeError, ValueError):
+        delay = 0.0
     return {
         "enabled": enabled,
-        "mode": mode,
-        "auto_mastery": enabled and mode == "highest",
+        "mode": "list" if aram_role_mode == "off" else aram_role_mode,
+        "auto_mastery": enabled and aram_role_mode == "highest",
+        "bench_delay": delay,
     }
 
 

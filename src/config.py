@@ -75,33 +75,55 @@ def default_config():
             # and lock `lock_in_at_seconds` before the ~30s pick window ends.
             "instant_lock": True,
             "lock_in_at_seconds": 1,
+            # Preferred pick position in Draft/Ranked: "off" or "1".."5". When
+            # set, queuePop trades pick order with teammates toward that spot
+            # (requests the holder's swap, accepts incoming swaps that move us
+            # closer) during the planning/ban phase.
+            "pick_spot": "off",
+            # Apply the client's recommended rune page to EVERY locked champ by
+            # default (no per-champ setup). A loadout that names a specific
+            # page (or "recommended") overrides this for that champ.
+            "auto_runes": False,
+            # Hover our intended pick during planning so the team sees it.
+            # Off = stay hidden until we actually pick (no ban-sniping).
+            "show_intent": True,
+            # Preferred assigned role in Draft/Ranked: "off" or a position key.
+            # When autofilled elsewhere, queuePop requests a position swap with
+            # whoever holds it (and accepts incoming swaps that grant it).
+            "preferred_role": "off",
             # Picks/bans are the per-role lists. Everything else (summoner spells,
             # rune page, skin) lives in a per-(role, champion) loadout so the same
             # champ can run different setups by role:
             #   loadouts: {championId: {spells:[id,id],
             #                           rune:"off"|"recommended"|pageId,
             #                           skin:"off"|skinId|[skinId, …]}}
+            # default_spells: [id, id] applied when the locked champ has no
+            # spells in its loadout (the per-champ loadout always wins).
             "roles": {
-                "top": {"bans": [], "picks": [], "loadouts": {}},
-                "jungle": {"bans": [], "picks": [], "loadouts": {}},
-                "middle": {"bans": [], "picks": [], "loadouts": {}},
-                "bottom": {"bans": [], "picks": [], "loadouts": {}},
-                "utility": {"bans": [], "picks": [], "loadouts": {}},
+                "top": {"bans": [], "picks": [], "loadouts": {}, "mode": "off", "default_spells": []},
+                "jungle": {"bans": [], "picks": [], "loadouts": {}, "mode": "off", "default_spells": []},
+                "middle": {"bans": [], "picks": [], "loadouts": {}, "mode": "off", "default_spells": []},
+                "bottom": {"bans": [], "picks": [], "loadouts": {}, "mode": "off", "default_spells": []},
+                "utility": {"bans": [], "picks": [], "loadouts": {}, "mode": "off", "default_spells": []},
                 # ARAM has no assigned role; its picks list doubles as the
                 # bench-swap + trade priority order. Bans unused (no ARAM bans).
-                "aram": {"bans": [], "picks": [], "loadouts": {}},
+                # Every role carries a fallback `mode` (champ_select.ROLE_MODES):
+                # the priority order is the picks list first, then all remaining
+                # champs ranked by the mode ("off" = list only). ARAM defaults
+                # to highest-mastery fallback; Rift roles to off.
+                "aram": {"bans": [], "picks": [], "loadouts": {}, "mode": "highest", "default_spells": []},
             },
             # Auto-trade champions with teammates: request a trade for a higher-
             # priority pick, and accept incoming offers that are an upgrade.
             "trades": {"enabled": False},
-            # ARAM automation: pick the best of the offered 2-3 champs at the
-            # start, then keep grabbing upgrades off the reroll bench. `mode`
-            # sets what "best" means (see champ_select.ARAM_MODES): the
-            # hand-built roles.aram.picks list, highest mastery, lowest mastery
-            # (learn new champs), or a per-session random shuffle. Non-list
-            # modes disable the ARAM editor tab. `auto_mastery` is the legacy
-            # pre-mode flag, kept for configs written by older builds.
-            "aram": {"enabled": False, "mode": "highest", "auto_mastery": False},
+            # ARAM automation gate: pick the best of the offered 2-3 champs at
+            # the start, then keep grabbing upgrades off the reroll bench. The
+            # ranking itself comes from roles.aram (picks list + fallback mode);
+            # `mode`/`auto_mastery` here are legacy mirrors kept in sync for
+            # configs read by pre-fallback builds. bench_delay: seconds a bench
+            # upgrade must sit there before we grab it (courtesy window).
+            "aram": {"enabled": False, "mode": "highest", "auto_mastery": False,
+                     "bench_delay": 0},
         },
     }
 

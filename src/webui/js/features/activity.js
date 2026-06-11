@@ -12,7 +12,8 @@ let firstActivityLoad = true;
 const EV_CAT = {
   queue_pop: "match", match: "match", queue: "match",
   champ: "champ", spells: "champ", runes: "champ",
-  trade: "champ", bench_swap: "champ", skin: "champ",
+  trade: "champ", bench_swap: "champ", skin: "champ", pick_swap: "champ",
+  role_swap: "champ",
 };
 function eventCat(ev) { return EV_CAT[ev.kind] || "system"; }
 

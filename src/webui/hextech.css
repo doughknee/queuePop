@@ -999,3 +999,288 @@
       opacity: 1; }
     .qsel-group.collapsed .qsel-body { grid-template-rows: 0fr; opacity: 0; }
     .qsel-body > .queue-pills { overflow: hidden; min-height: 0; padding-bottom: 10px; }
+
+/* === Phase 1: Champ Select page (tray + gate + ARAM mode cards) ========= */
+
+/* Live banner: a slim gold-washed strip while champ select is running. */
+.cs-banner { display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  background: linear-gradient(to right, rgb(200 170 110 / 0.12), transparent);
+  border-bottom: 1px solid rgb(120 90 40 / 0.35); }
+.cs-banner-text { font-family: Cinzel, Georgia, serif; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #E2C887; }
+.cs-banner-btn { margin-left: auto; font-size: 12.5px; color: #0AC8B9;
+  cursor: pointer; letter-spacing: 0.02em; }
+.cs-banner-btn:hover { color: #5eead4; text-decoration: underline; }
+
+/* Per-tab gate enable control. */
+.gate-enable { display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 10px 22px; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+.gate-enable:hover { outline-color: #C8AA6E; }
+
+/* Plan tray. */
+.tray-rows { display: flex; align-items: flex-start; gap: 18px; }
+.tray-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tray-grow { flex: 1 1 auto; }
+.tray-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+.tray-label.ban { color: #c0584f; }
+.tray { display: flex; flex-wrap: wrap; gap: 9px; }
+.tray-slot { position: relative; width: 52px; height: 52px; flex: 0 0 auto;
+  outline: 2px solid #C8AA6E; outline-offset: -1px; cursor: pointer;
+  background: rgb(1 10 19 / 0.55); transition: transform .12s ease; }
+.tray-slot:hover { transform: scale(1.06); z-index: 2; }
+.tray-slot[draggable="true"] { cursor: grab; }
+.tray-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tray-slot.ban { outline-color: #c0584f; }
+.tray-slot.ban img { filter: saturate(0.55) brightness(0.8); }
+.tray-slot:hover .cell-x { opacity: 1; }
+.tray-slot.drag-src { opacity: 0.45; }
+.tray-slot .tray-initials { display: grid; place-items: center; width: 100%;
+  height: 100%; font-family: Cinzel, Georgia, serif; color: #C8AA6E; font-size: 14px; }
+.tray-slot.ghost { outline: 1.5px dashed rgb(120 90 40 / 0.7); display: grid;
+  place-items: center; color: #8b8674; font-size: 20px; background: transparent; }
+.tray-slot.ghost:hover { outline-color: #C8AA6E; color: #C8AA6E; }
+.tray-slot.ghost.ban { outline-color: rgb(192 88 79 / 0.55); }
+.tray-slot.ghost.ban:hover, .tray-slot.ghost.armed { outline-color: #c0584f;
+  outline-style: solid; color: #c0584f; background: rgb(192 88 79 / 0.12); }
+@keyframes tray-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.18); }
+  100% { transform: scale(1); } }
+.tray-slot.pulse { animation: tray-pulse 0.45s ease; z-index: 3; }
+.tray-caption { font-size: 12.5px; color: #9f9b8d; margin-top: 8px; line-height: 1.4; }
+
+/* Ban-armed catalog: the next click bans, so hovers ring red. */
+#champ-grid.ban-armed .grid-cell:hover { outline-color: #c0584f; }
+
+/* ARAM priority mode cards. */
+#aram-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 12px 16px 10px; border-bottom: 1px solid rgb(201 191 150 / 0.2); }
+.aram-mode-card { display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 8px 10px; cursor: pointer; background: rgb(1 10 19 / 0.35);
+  outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+  transition: outline-color .15s ease, background-color .15s ease; }
+.aram-mode-card:hover { outline-color: #C8AA6E; }
+.aram-mode-card.on { outline: 2px solid #C8AA6E; background: rgb(200 170 110 / 0.10); }
+.amc-name { font-family: Cinzel, Georgia, serif; font-size: 12px;
+  letter-spacing: 0.06em; color: #F0E6D2; }
+.aram-mode-card.on .amc-name { color: #E2C887; }
+.amc-cap { font-size: 11px; color: #9f9b8d; line-height: 1.35; }
+
+/* Match-behavior strip. */
+.behavior-row { display: flex; align-items: center; gap: 10px; }
+.behavior-label { font-family: Cinzel, Georgia, serif; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; }
+.lock-delay { display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; color: #A09B8C; }
+
+/* Recommended-runes panel (collapsible). */
+.rune-panel { border-top: 1px solid rgb(201 191 150 / 0.15); padding-top: 6px; }
+.rune-summary { cursor: pointer; user-select: none; font-family: Cinzel, Georgia, serif;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8b8674; }
+.rune-summary:hover { color: #C8AA6E; }
+
+/* The ARAM priority list can hold 50+ champs - cap the tray so the catalog keeps room. */
+#pick-tray { max-height: 188px; overflow-y: auto; }
+
+
+/* Keep the remove X inside tray slots so the tray's scroll overflow can't clip it. */
+.tray-slot .cell-x { top: 1px; right: 1px; transform: none; }
+.tray-slot .cell-x:hover { transform: scale(1.15); }
+
+
+/* Ghost slots: calm hover (no scale - the lift felt broken on empty trays). */
+.tray-slot.ghost { transition: none; }
+.tray-slot.ghost:hover { transform: none; }
+/* Drop-target feedback while dragging over a tray. */
+.tray.drop-hover { outline: 1px dashed #C8AA6E; outline-offset: 3px; background: rgb(200 170 110 / 0.05); }
+.tray.bans.drop-hover { outline-color: #c0584f; background: rgb(192 88 79 / 0.06); }
+/* Catalog cells are drag sources too. */
+.grid-cell.drag-src { opacity: 0.45; }
+
+
+/* === Phase 1 fixes ======================================================== */
+
+/* .hidden must always win against the display rules above (hextech.css loads
+   after styles.css, so without these the banner/mode-cards never hid — the
+   "thin empty bar" under the role tabs was the empty #aram-modes padding). */
+.cs-banner.hidden,
+#aram-modes.hidden,
+.tray-rows.hidden,
+.lock-delay.hidden { display: none; }
+
+/* Fixed tray proportions: picks 2/3, bans 1/3 — no layout shift as lists grow. */
+.tray-col.tray-grow { flex: 2 1 0; min-width: 0; }
+#ban-tray-col { flex: 1 1 0; min-width: 0; }
+
+/* Calm tray hovers: scaling tiles inside a scrollable tray clipped at the
+   edges and read as jank. Hover = ignite the ring + brighten, no movement. */
+.tray-slot { transition: outline-color .12s ease; }
+.tray-slot:hover { transform: none; }
+.tray-slot:not(.ghost):not(.ban):hover { outline-color: #F0E6D2; }
+.tray-slot.ban:hover { outline-color: #e07a70; }
+.tray-slot:hover img { filter: brightness(1.15); }
+.tray-slot.ban:hover img { filter: saturate(0.55) brightness(1.0); }
+
+/* Fallback ranking chip row (under the tray). */
+.fallback-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.fallback-row .sort-seg { flex-wrap: wrap; }
+
+
+/* Compact tray header line: label + inline fallback dropdown. */
+.tray-head-row { display: flex; align-items: baseline; gap: 7px; min-height: 18px; }
+.fallback-mini { display: inline-flex; align-items: baseline; gap: 5px; font-size: 11.5px; color: #8b8674; }
+.fallback-select { font-size: 11.5px; padding: 1px 4px; color: #C8AA6E; }
+
+
+/* === Phase 1 polish: dropdown, cog panel, catalog fade =================== */
+
+/* Fallback dropdown: a real hextech control instead of the native select. */
+.fallback-select {
+  appearance: none; -webkit-appearance: none;
+  background: rgb(1 10 19 / 0.7)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C8AA6E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>")
+    no-repeat right 6px center / 9px;
+  padding: 2px 22px 2px 9px;
+  font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.03em;
+  color: #C8AA6E; cursor: pointer;
+  outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px;
+  transition: color .15s ease, outline-color .15s ease;
+}
+.fallback-select:hover, .fallback-select:focus { color: #F0E6D2; outline-color: #C8AA6E; }
+.fallback-select option { background: #0A1428; color: #F0E6D2; }
+
+/* Match settings: cog summary + fold in/out animation. */
+.cs-set-summary { display: flex; align-items: center; gap: 8px; cursor: pointer;
+  user-select: none; list-style: none; font-family: Cinzel, Georgia, serif;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #8b8674; transition: color .15s ease; }
+.cs-set-summary::-webkit-details-marker { display: none; }
+.cs-set-summary:hover { color: #C8AA6E; }
+.cs-cog { width: 15px; height: 15px; transition: transform .3s ease, color .15s ease; }
+#champ-settings[open] .cs-cog { transform: rotate(90deg); color: #C8AA6E; }
+#champ-settings[open] .cs-set-summary { color: #C8AA6E; }
+.cs-set-body { display: flex; flex-direction: column; gap: 13px;
+  padding: 14px 4px 8px; overflow: hidden; }
+#champ-settings[open] .cs-set-body { animation: cs-set-in .22s ease; }
+.cs-set-body.closing { animation: cs-set-out .16s ease forwards; }
+@keyframes cs-set-in { from { opacity: 0; transform: translateY(-7px); }
+  to { opacity: 1; transform: none; } }
+@keyframes cs-set-out { to { opacity: 0; transform: translateY(-7px); } }
+.rune-block { padding-top: 11px; }
+
+/* Catalog fades out at its bottom edge, above Match settings. */
+#champ-grid {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 2 ============================================== */
+
+/* Match settings: right-aligned cog control; JS height-tween owns the fold
+   (neutralize the old keyframe approach). */
+.cs-set-summary { justify-content: flex-end; padding: 2px 0; }
+#champ-settings[open] .cs-set-body { animation: none; }
+.cs-set-body.closing { animation: none; }
+
+/* Tray headers: equal fixed height so the picks and bans rows align even
+   though only the picks side carries the fallback dropdown. */
+.tray-head-row { height: 24px; align-items: center; }
+
+/* Planned champs keep (and brighten) their ring on hover — the base hover
+   rule let the scaled portrait swallow the 2px sel outline. */
+.grid-cell.sel:hover { outline: 2px solid #F0E6D2; outline-offset: -2px; }
+.grid-cell.sel.ban:hover { outline: 2px solid #e07a70; outline-offset: -2px; }
+
+/* Top fade joins the bottom fade only while scrolled. */
+#champ-grid.scrolled-top {
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent, black 30px, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom,
+    transparent, black 30px, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 3 ============================================== */
+
+/* Match settings becomes a popover anchored above the cog button: animating
+   an overlay never reflows the grid, so the fold is smooth. */
+#champ-settings { position: relative; overflow: visible; }
+.cs-set-summary { width: max-content; margin-left: auto; padding: 4px 12px;
+  outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+  background: rgb(1 10 19 / 0.4); }
+.cs-set-summary:hover { outline-color: #C8AA6E; }
+.cs-set-body {
+  position: absolute; right: 14px; bottom: calc(100% + 10px);
+  width: min(500px, calc(100vw - 56px));
+  padding: 18px 20px 16px; gap: 15px; z-index: 40;
+  background: linear-gradient(180deg, rgb(10 20 40 / 0.98), rgb(2 13 23 / 0.99));
+  outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px;
+  box-shadow: 0 12px 34px rgb(0 0 0 / 0.65), 0 0 24px -8px rgb(10 200 185 / 0.3);
+  overflow: visible;
+}
+#champ-settings[open] .cs-set-body { animation: none; }
+.rune-block { padding-top: 12px; }
+
+/* Selection ring as an overlay border: children can't paint over it, so the
+   ring survives hover/scale on every side. */
+.grid-cell.sel { outline: none; }
+.grid-cell.sel:hover { outline: none; }
+.grid-cell.sel.ban:hover { outline: none; }
+.grid-cell.sel::after { content: ""; position: absolute; inset: 0;
+  border: 2px solid #C8AA6E; pointer-events: none; z-index: 2; }
+.grid-cell.sel.ban::after { border-color: #c0584f; }
+.grid-cell.sel:hover::after { border-color: #F0E6D2; }
+.grid-cell.sel.ban:hover::after { border-color: #e07a70; }
+
+/* Top fade mirrors the bottom fade exactly. */
+#champ-grid.scrolled-top {
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent, black 34px, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom,
+    transparent, black 34px, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 4 ============================================== */
+
+/* Keep the cog button (and its popover) clear of the window scrollbar. */
+.cs-set-summary { margin-right: 12px; }
+.cs-set-body { right: 26px; }
+
+/* Tray slots get the same overlay-border ring fix as the catalog: children
+   can't paint over ::after, so the ring survives hover on every side. The
+   ghost "+" keeps its dashed outline styling. */
+.tray-slot:not(.ghost) { outline: none; }
+.tray-slot:not(.ghost)::after { content: ""; position: absolute; inset: 0;
+  border: 2px solid #C8AA6E; pointer-events: none; z-index: 2; }
+.tray-slot.ban:not(.ghost)::after { border-color: #c0584f; }
+.tray-slot:not(.ghost):hover::after { border-color: #F0E6D2; }
+.tray-slot.ban:not(.ghost):hover::after { border-color: #e07a70; }
+
+/* Match-settings rows: label + control, with a one-line caption beneath. */
+.behavior-group { display: flex; flex-direction: column; gap: 5px; }
+.behavior-label { min-width: 122px; }
+.behavior-cap { font-size: 11.5px; color: #9f9b8d; line-height: 1.4; margin: 0; }
+
+/* Queue badges + compact rune status (Match settings). */
+.q-pill { display: inline-block; margin-left: 8px; padding: 1px 6px; font-family: Cinzel, Georgia, serif; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px; vertical-align: 1px; }
+.q-pill.teal { color: #0AC8B9; outline-color: rgb(10 200 185 / 0.4); }
+.rune-status { font-size: 13px; }
+.rune-block { border-top: 1px solid rgb(201 191 150 / 0.12); padding-top: 13px; }
+
+
+/* Match-settings section headers (Draft & Ranked / ARAM / Any queue). */
+.cs-sec { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8b8674; border-bottom: 1px solid rgb(120 90 40 / 0.3); padding-bottom: 4px; margin-top: 2px; }
+.cs-sec:first-child { margin-top: 0; }
+.rune-block { border-top: 0; padding-top: 0; }
+
+
+/* Per-role default summoner spells (tray header). */
+.def-spells { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 11.5px; color: #8b8674; }
+.def-spell-slot { width: 22px; height: 22px; display: grid; place-items: center; cursor: pointer; color: #8b8674; font-size: 14px; outline: 1px dashed rgb(120 90 40 / 0.6); outline-offset: -1px; background: rgb(1 10 19 / 0.5); }
+.def-spell-slot:hover, .def-spell-slot.active { outline-color: #C8AA6E; color: #C8AA6E; }
+.def-spell-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.def-spell-slot:has(img) { outline-style: solid; }
+#tray-wrap { position: relative; }
+.def-spell-pop { position: absolute; right: 16px; top: 30px; z-index: 35; display: grid; grid-template-columns: repeat(6, 30px); gap: 5px; padding: 9px; background: rgb(2 13 23 / 0.98); outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; box-shadow: 0 8px 22px rgb(0 0 0 / 0.6); }
+.def-spell-pop .lo-spell-opt { width: 30px; height: 30px; }
+.def-spell-pop .lo-spell-clear { grid-column: 1 / -1; }
+.def-spell-pop.hidden { display: none; }
+

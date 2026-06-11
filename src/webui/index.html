@@ -388,74 +388,175 @@
         </div>
       </section>
 
-      <!-- CHAMP SELECT -->
+      <!-- CHAMP SELECT: the whole feature on one page — the plan editor AND its
+           settings. Role tabs always render; the five Rift tabs gate on
+           champ_select.enabled and the ARAM tab on aram.enabled via an inline
+           enable card (no dead-ends, no trips to Settings). -->
       <section id="tab-champ" class="hidden h-full">
+        <div class="hextech h-full flex flex-col overflow-hidden">
 
-        <!-- Disabled state -->
-        <div id="champ-disabled" class="hextech h-full flex flex-col items-center justify-center gap-4 text-center p-8">
-          <img src="assets/positions/middle.svg" class="h-12 w-12 opacity-50" onerror="this.style.display='none'" />
-          <p class="font-display text-gold2 text-xl tracking-wide">Auto Pick / Ban is off</p>
-          <p class="text-sm text-subText max-w-sm leading-relaxed">
-            Turn it on in Settings, then come back here to set your bans and picks for each role.
-          </p>
-          <button id="goto-settings"
-            class="hextech font-display tracking-wide px-6 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">
-            Enable in Settings →
-          </button>
-        </div>
+          <!-- Live banner: only while a champ select is actually running. -->
+          <div id="champ-live-banner" class="hidden cs-banner shrink-0">
+            <span class="act-live dot-pulse"></span>
+            <span class="cs-banner-text">Champ select in progress</span>
+            <button id="champ-open-live" type="button" class="cs-banner-btn">Open live view →</button>
+          </div>
 
-        <!-- Enabled editor -->
-        <div id="champ-enabled-view" class="hextech h-full flex flex-col overflow-hidden hidden">
-          <!-- Role selector -->
+          <!-- Role selector (always visible) -->
           <div id="role-bar" class="flex border-b border-b-icon/20 shrink-0"></div>
 
-          <!-- Picks / Bans toggle + search -->
-          <div id="champ-toolbar" class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
-            <div class="flex shrink-0">
-              <button id="mode-picks" data-mode="picks"
-                class="mode-btn px-4 py-1.5 text-sm font-serif border-b-2 border-transparent text-icon">Picks</button>
-              <button id="mode-bans" data-mode="bans"
-                class="mode-btn px-4 py-1.5 text-sm font-serif border-b-2 border-transparent text-icon">Bans</button>
-            </div>
-            <input id="champ-search" type="text" placeholder="Search champions…"
-              class="hextech-input flex-1 px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
-            <div class="sort-seg" id="sort-seg" role="group" aria-label="Sort champions">
-              <button type="button" class="sort-opt active" data-sort="az" title="Alphabetical (A–Z)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"/><path d="M3 8l4-4 4 4"/><path d="M13 6h7M13 12h5M13 18h3"/></svg>
-                <span>A–Z</span>
-              </button>
-              <button type="button" class="sort-opt" data-sort="mastery" title="Most mastery first">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8z"/></svg>
-                <span>Mastery</span>
-              </button>
-              <button type="button" class="sort-opt" data-sort="recent" title="Recently played first">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
-                <span>Recent</span>
-              </button>
-            </div>
+          <!-- Per-tab gate: shown in place of the editor when the active tab's
+               feature is off; the toggle enables it right here. -->
+          <div id="champ-gate" class="hidden flex-1 min-h-0 flex-col items-center justify-center gap-4 text-center p-8">
+            <span id="champ-gate-ico" class="role-ico" style="width:48px;height:48px;color:#C8AA6E;opacity:0.85"></span>
+            <p id="champ-gate-title" class="font-display text-gold2 text-xl tracking-wide"></p>
+            <p id="champ-gate-caption" class="text-sm text-subText max-w-sm leading-relaxed"></p>
+            <label class="gate-enable">
+              <span class="sw"><input id="champ-gate-toggle" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <span class="font-display tracking-wide text-gold2 text-sm">Enable</span>
+            </label>
           </div>
 
-          <p id="champ-hint" class="text-sm text-subText px-4 pt-3 shrink-0"></p>
+          <!-- Editor -->
+          <div id="champ-editor" class="flex-1 min-h-0 flex flex-col overflow-hidden">
 
-          <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
-               style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));"></div>
+            <!-- Plan tray: ordered picks + a compact bans row. The tray is the
+                 ONLY place with manage affordances (drag / remove / loadout).
+                 The fallback ranking is the small inline dropdown — list
+                 first, then that mode for every champ you didn't list. -->
+            <div id="tray-wrap" class="shrink-0 px-4 pt-3 pb-2 border-b border-b-icon/20">
+              <div class="tray-rows">
+                <div class="tray-col tray-grow">
+                  <span class="tray-head-row">
+                    <span class="tray-label" id="pick-tray-label">Picks</span>
+                    <span class="fallback-mini">
+                      <span>— if it runs out:</span>
+                      <select id="fallback-mode" class="hextech-input fallback-select"></select>
+                    </span>
+                    <span class="def-spells" id="def-spells"
+                      title="Default summoner spells for this role — applied when the locked champ has no loadout spells">
+                      <span>spells:</span>
+                      <button type="button" class="def-spell-slot" id="def-spell-0" data-slot="0">+</button>
+                      <button type="button" class="def-spell-slot" id="def-spell-1" data-slot="1">+</button>
+                    </span>
+                  </span>
+                  <div id="def-spell-pop" class="def-spell-pop hidden"></div>
+                  <div id="pick-tray" class="tray"></div>
+                </div>
+                <div class="tray-col" id="ban-tray-col">
+                  <span class="tray-head-row"><span class="tray-label ban" id="ban-tray-label">Bans</span></span>
+                  <div id="ban-tray" class="tray bans"></div>
+                </div>
+              </div>
+              <p id="tray-caption" class="tray-caption"></p>
+            </div>
 
-          <!-- Shown instead of the ARAM grid when the champ priority mode isn't
-               "My ARAM list": the priority list is unused, nothing to edit here. -->
-          <div id="aram-locked" class="hidden flex-1 min-h-0 flex flex-col items-center justify-center gap-4 text-center p-8">
-            <span class="role-ico" style="width:48px;height:48px;color:#C8AA6E;opacity:0.85"></span>
-            <p class="font-display text-gold2 text-xl tracking-wide">ARAM is on auto-pilot</p>
-            <p class="text-sm text-subText max-w-sm leading-relaxed">
-              queuePop ranks champs <span id="aram-locked-mode" class="text-gold2">by mastery</span>
-              automatically, so this list isn't used. Set
-              <span class="text-gold2">Champ priority</span> to <span class="text-gold2">My ARAM list</span>
-              in Settings to sort champs yourself.
-            </p>
-            <button id="aram-goto-settings"
-              class="hextech font-display tracking-wide px-6 py-2.5 text-gold2 hover:text-gold1 cursor-pointer">
-              Open ARAM settings →
-            </button>
+            <!-- Catalog: add-only (tray handles everything else). -->
+            <div id="champ-toolbar" class="flex items-center gap-3 px-4 py-3 border-b border-b-icon/20 shrink-0">
+              <input id="champ-search" type="text" placeholder="Search champions…"
+                class="hextech-input flex-1 px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+              <div class="sort-seg" id="sort-seg" role="group" aria-label="Sort champions">
+                <button type="button" class="sort-opt active" data-sort="az" title="Alphabetical (A–Z)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16"/><path d="M3 8l4-4 4 4"/><path d="M13 6h7M13 12h5M13 18h3"/></svg>
+                  <span>A–Z</span>
+                </button>
+                <button type="button" class="sort-opt" data-sort="mastery" title="Most mastery first">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-1.8 11H4.8z"/></svg>
+                  <span>Mastery</span>
+                </button>
+                <button type="button" class="sort-opt" data-sort="recent" title="Recently played first">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>
+                  <span>Recent</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="champ-grid" class="grid gap-2 flex-1 min-h-0 overflow-y-auto p-4 pt-3 content-start"
+                 style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));"></div>
           </div>
+
+          <!-- Match settings: set-once configuration (lock timing, trades, the
+               managed rune page), collapsed to one summary line so the tray +
+               catalog keep the room. -->
+          <details id="champ-settings" class="shrink-0 border-t border-b-icon/20 px-5 py-3">
+            <summary class="cs-set-summary" id="champ-settings-summary">
+              <svg class="cs-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Match settings</span>
+            </summary>
+            <div class="cs-set-body">
+              <div class="cs-sec">Draft &amp; Ranked</div>
+              <div class="behavior-row">
+                <span class="behavior-label">Prefer role</span>
+                <div class="sort-seg" id="role-seg" role="group" aria-label="Preferred role">
+                  <button type="button" class="sort-opt" data-role="off">Off</button>
+                  <button type="button" class="sort-opt" data-role="top">Top</button>
+                  <button type="button" class="sort-opt" data-role="jungle">Jg</button>
+                  <button type="button" class="sort-opt" data-role="middle">Mid</button>
+                  <button type="button" class="sort-opt" data-role="bottom">Bot</button>
+                  <button type="button" class="sort-opt" data-role="utility">Sup</button>
+                </div>
+                <span class="help" data-tip="When autofilled away from this role, asks whoever holds it to swap, and accepts incoming role swaps that grant it. Declined requests aren't repeated.">?</span>
+              </div>
+              <div class="behavior-row">
+                <span class="behavior-label">Pick order</span>
+                <div class="sort-seg" id="spot-seg" role="group" aria-label="Preferred pick position">
+                  <button type="button" class="sort-opt" data-spot="off">Off</button>
+                  <button type="button" class="sort-opt" data-spot="1">1st</button>
+                  <button type="button" class="sort-opt" data-spot="2">2nd</button>
+                  <button type="button" class="sort-opt" data-spot="3">3rd</button>
+                  <button type="button" class="sort-opt" data-spot="4">4th</button>
+                  <button type="button" class="sort-opt" data-spot="5">5th</button>
+                </div>
+                <span class="help" data-tip="Trades turn order with teammates toward this draft spot — 1st picks earliest, 5th sees the most picks before committing. Accepts incoming spot swaps that move you closer; declined requests aren't repeated.">?</span>
+              </div>
+              <div class="behavior-row">
+                <span class="behavior-label">Lock my pick</span>
+                <div class="sort-seg" id="lock-seg" role="group" aria-label="Lock timing">
+                  <button type="button" class="sort-opt" data-lock="instant">Instantly</button>
+                  <button type="button" class="sort-opt" data-lock="delay">Near the buzzer</button>
+                </div>
+                <span id="lock-delay-row" class="lock-delay hidden">
+                  <input id="lock_seconds" type="number" min="0" max="30" value="1"
+                    class="hextech-input w-12 px-1 py-0.5 text-center text-gold1 outline-none" />
+                  <span>s left</span>
+                </span>
+                <span class="help" data-tip="When queuePop confirms the pick it's hovering. 'Near the buzzer' keeps it flexible until the timer is almost out.">?</span>
+              </div>
+              <div class="behavior-row">
+                <span class="behavior-label">Show pick intent</span>
+                <span class="sw"><input id="show_intent" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span class="help" data-tip="Hover your planned pick during planning so teammates see it. Off keeps it hidden until you lock — no ban-sniping.">?</span>
+              </div>
+              <div class="cs-sec">ARAM</div>
+              <div class="behavior-row">
+                <span class="behavior-label">Champion trades</span>
+                <span class="sw"><input id="trades_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span class="help" data-tip="Swaps champions with a teammate holding one you ranked higher. Works in any queue that allows trading — ARAM in practice. One live request at a time, cancelled the moment it goes stale.">?</span>
+              </div>
+              <div class="behavior-row">
+                <span class="behavior-label">Bench grab delay</span>
+                <div class="sort-seg" id="delay-seg" role="group" aria-label="Bench grab delay">
+                  <button type="button" class="sort-opt" data-delay="0">Off</button>
+                  <button type="button" class="sort-opt" data-delay="1">1s</button>
+                  <button type="button" class="sort-opt" data-delay="2">2s</button>
+                  <button type="button" class="sort-opt" data-delay="3">3s</button>
+                </div>
+                <span class="help" data-tip="Courtesy window: an upgrade must sit on the bench this long before queuePop grabs it, so teammates get a look-in.">?</span>
+              </div>
+              <div class="cs-sec">Any queue</div>
+              <div class="behavior-row">
+                <span class="behavior-label">Auto runes</span>
+                <span class="sw"><input id="auto_runes" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span id="rune-managed-status" class="rune-status"></span>
+                <span class="help" data-tip="Applies the client's recommended rune page to every champ you lock — no per-champ setup. A loadout that names a specific page overrides it. Pages are written to one managed page ('queuePop (auto)'); your own pages are never touched.">?</span>
+              </div>
+              <div id="rune-claim-wrap" class="hidden space-y-1.5">
+                <p class="text-sm text-gold4">Your rune pages are full — pick one for queuePop to take over:</p>
+                <div id="rune-claim-list" class="space-y-1.5"></div>
+                <span id="rune-claim-status" class="text-xs text-subText"></span>
+              </div>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -466,14 +567,9 @@
       <section id="tab-settings" class="hidden pb-2">
         <div class="settings-shell">
 
-          <!-- Jump-nav (wide windows only) -->
+          <!-- Jump-nav (wide windows only). Champ-select settings moved to the
+               Champ Select page itself (Phase 1 of the UI refactor). -->
           <aside class="settings-nav">
-            <div class="snav-group">
-              <span class="snav-cat">Champ Select</span>
-              <span class="snav-link" data-jump="set-champ-pick">Auto Pick / Ban</span>
-              <span class="snav-link" data-jump="set-champ-aram">ARAM</span>
-              <span class="snav-link" data-jump="set-champ-runes">Runes</span>
-            </div>
             <div class="snav-group">
               <span class="snav-cat">Notifications</span>
               <span class="snav-link" data-jump="set-notif-desktop">Desktop</span>
@@ -491,81 +587,6 @@
           </aside>
 
           <div class="settings-col">
-
-        <!-- CARD: Champ Select -->
-        <div class="hextech p-5 set-card">
-          <div class="set-card-title">Champ Select</div>
-
-          <div id="set-champ-pick" class="set-sub">
-            <div class="set-sub-head">Auto Pick / Ban</div>
-            <div class="set-row">
-              <span class="sw"><input id="champ_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="champ_enabled" class="set-row-label">Enable Auto Pick / Ban</label>
-              <span class="help" data-tip="Set bans, picks & summoner spells per role on the Champ Select tab. Applies to queues with assigned roles (Draft / Ranked).">?</span>
-            </div>
-            <div class="set-row">
-              <span class="sw"><input id="instant_lock" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="instant_lock" class="set-row-label">Lock in instantly on my turn</label>
-              <span class="help" data-tip="Lock your pick the moment it's your turn. Turn off to wait and lock near the end of the timer instead.">?</span>
-            </div>
-            <div id="lock-delay-row" class="flex items-center gap-2 text-sm text-grey1" style="padding-left:50px">
-              <span>Otherwise lock with</span>
-              <input id="lock_seconds" type="number" min="0" max="30" value="1"
-                class="hextech-input w-14 px-2 py-1 text-center text-gold1 outline-none" />
-              <span>s left</span>
-            </div>
-            <div class="set-row">
-              <span class="sw"><input id="trades_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="trades_enabled" class="set-row-label">Auto-trade toward a higher-priority pick</label>
-              <span class="help" data-tip="Trades toward your higher-priority pick when a teammate has it, and accepts upgrade offers. Works in any queue.">?</span>
-            </div>
-          </div>
-
-          <div class="set-divider"></div>
-
-          <div id="set-champ-aram" class="set-sub">
-            <div class="set-sub-head">ARAM</div>
-            <div class="set-row">
-              <span class="sw"><input id="aram_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-              <label for="aram_enabled" class="set-row-label">Auto-manage my ARAM champ select</label>
-              <span class="help" data-tip="queuePop picks the best of the 2-3 champs you're offered at the start, then keeps grabbing upgrades off the reroll bench (and trades toward better ones, if auto-trade is on). 'Best' is set by the champ priority below.">?</span>
-            </div>
-            <div class="set-row">
-              <label for="aram_mode" class="set-row-label">Champ priority</label>
-              <select id="aram_mode"
-                class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
-                <option value="highest">Highest mastery</option>
-                <option value="lowest">Lowest mastery — learn new champs</option>
-                <option value="rusty">Rusty — least recently played</option>
-                <option value="milestone">Mastery milestone — closest level-up</option>
-                <option value="random">Random — chaos mode</option>
-                <option value="list">My ARAM list</option>
-              </select>
-              <span class="help" data-tip="What counts as an upgrade. Highest mastery chases your most-played champs; lowest chases champs you've barely (or never) touched; rusty chases the champs you haven't played in the longest; milestone chases whichever champ is closest to its next mastery level; random commits to one shuffled order per lobby; My ARAM list uses your hand-sorted Champ Select → ARAM list (the other modes disable that tab).">?</span>
-            </div>
-          </div>
-
-          <div class="set-divider"></div>
-
-          <div id="set-champ-runes" class="set-sub">
-            <div class="set-sub-head">Recommended Runes</div>
-            <p class="set-row-hint">
-              Loadouts using <span class="text-gold2">Recommended</span> runes write to one dedicated
-              page (<span class="text-gold2">queuePop (auto)</span>) so your own pages stay untouched.
-            </p>
-            <p id="rune-managed-status" class="text-sm text-grey1"></p>
-            <div id="rune-claim-wrap" class="hidden space-y-2">
-              <p class="text-sm text-gold4">Rune pages are full. Pick one for queuePop to manage
-                (renamed <span class="text-gold2">queuePop (auto)</span> and overwritten each game):</p>
-              <div id="rune-claim-list" class="space-y-1.5"></div>
-            </div>
-            <div class="flex items-center gap-3 pt-0.5">
-              <button id="rune-refresh"
-                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Refresh</button>
-              <span id="rune-claim-status" class="text-xs text-subText"></span>
-            </div>
-          </div>
-        </div>
 
         <!-- CARD: Notifications & Alerts -->
         <div class="hextech p-5 set-card">
