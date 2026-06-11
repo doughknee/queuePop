@@ -1,10 +1,10 @@
-/* Settings page: the queue picker, DOM↔store sync for the page's controls,
-   and the jump-nav scroll spy. (Champ-select settings live on the Champ
-   Select page since Phase 1; this page shrinks further in later phases.)
+/* Settings page, now a one-release stub: just the Allowed Queues picker and
+   the jump-nav scroll spy. (Champ-select settings moved to the Champ Select
+   page in Phase 1; notifications moved to the Alerts page in Phase 2; the
+   queue picker moves to Home and this page disappears in Phase 3.)
 
    Write path: a delegated `input` listener syncs the page's controls into
-   QP.store.config and schedules a save (buttons don't fire `input`, so
-   test/refresh/preview clicks never trigger a stray save). */
+   QP.store.config and schedules a save. */
 
 // --- Allowed-queues picker ----------------------------------------------
 const QP_CHECK =
@@ -99,25 +99,8 @@ async function buildSettings() {
 }
 
 // --- Hydrate: store.config → settings DOM --------------------------------
-let customSoundPath = ""; // absolute path to the user's custom alarm file
-
 function hydrateSettings() {
   const c = QP.store.config;
-  $("webhook_url").value = c.webhook_url || "";
-  $("user_id").value = c.user_id || "";
-  $("desktop_notifications").checked = !!c.desktop_notifications;
-
-  const comp = c.companion || {};
-  $("companion_enabled").checked = !!comp.enabled;
-  $("companion_port").value = comp.port || 8420;
-  $("companion_sound").value = comp.sound || "chime";
-  customSoundPath = comp.sound_file || "";
-  $("sound-file-name").textContent = customSoundPath
-    ? customSoundPath.split(/[\\/]/).pop()
-    : "No file chosen";
-  toggleCustomSoundRow();
-  refreshCompanion();
-
   const allowedIds = (c.allowed_queue_ids || []).map(Number);
   const acceptAny = allowedIds.length === 0;
   $("queue_all").checked = acceptAny;
@@ -129,13 +112,10 @@ function hydrateSettings() {
 }
 
 // --- Sync: settings DOM → store.config ------------------------------------
-// Champ-select settings write straight into the store from their own page;
-// this covers every control still living on the Settings page.
+// Champ-select and alerts settings write into the store from their own pages;
+// this covers the queue picker, the only thing still living here.
 function syncSettingsToStore() {
   const c = QP.store.config;
-  c.webhook_url = $("webhook_url").value;
-  c.user_id = $("user_id").value;
-  c.desktop_notifications = $("desktop_notifications").checked;
 
   // "Auto-accept any queue" on ⇒ empty list (the backend treats [] as "all").
   // Off ⇒ only the specific queues the user ticked.
@@ -147,20 +127,12 @@ function syncSettingsToStore() {
   }
   c.allowed_queue_ids = allowed;
 
-  c.companion = {
-    enabled: $("companion_enabled").checked,
-    port: Number($("companion_port").value) || 8420,
-    sound: $("companion_sound").value,
-    sound_file: customSoundPath || "",
-  };
-
   QP.bus.emit("config:changed", { path: "settings" });
   QP.store.scheduleSave();
 }
 
-// Settings controls: one delegated listener covers checkboxes, selects, and the
-// number/text fields (Chromium fires `input` for all of them). Buttons don't
-// fire `input`, so test/refresh/preview clicks never trigger a stray save.
+// Settings controls: one delegated listener covers the checkboxes (buttons
+// don't fire `input`, so collapse/select-all clicks sync explicitly).
 $("tab-settings").addEventListener("input", syncSettingsToStore);
 
 // "Auto-accept any queue" hides/reveals the specific-queue picker.

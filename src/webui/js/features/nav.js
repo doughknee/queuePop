@@ -4,16 +4,13 @@
    the summoner badge. Emits a "route" bus event on every change. */
 
 let activeTab = "dashboard";
+const NAV_TABS = ["live", "dashboard", "champ", "alerts", "settings", "about", "account"];
 function activateTab(tab) {
   activeTab = tab;
   document.querySelectorAll(".nav-route").forEach((b) => {
     b.classList.toggle("active", b.dataset.tab === tab);
   });
-  $("tab-live").classList.toggle("hidden", tab !== "live");
-  $("tab-dashboard").classList.toggle("hidden", tab !== "dashboard");
-  $("tab-champ").classList.toggle("hidden", tab !== "champ");
-  $("tab-settings").classList.toggle("hidden", tab !== "settings");
-  $("tab-account").classList.toggle("hidden", tab !== "account");
+  for (const t of NAV_TABS) $(`tab-${t}`).classList.toggle("hidden", t !== tab);
   replay($(`tab-${tab}`), "fade-up");
   // The PLAY button doubles as the live-route indicator; the summoner badge
   // doubles as the account-route indicator.

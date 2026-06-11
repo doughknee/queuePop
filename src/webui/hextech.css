@@ -797,10 +797,36 @@
     .snav-link { display: block; padding: 6px 11px; cursor: pointer; border-left: 2px solid transparent;
       color: #C4BDAD; font-family: Marcellus, Georgia, serif; font-size: 13.5px;
       transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+    .snav-link.hidden { display: none; } /* the About "Release notes" link reuses this class */
     .snav-link:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
     .snav-link.active { color: #F0E6D2; border-left-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
 
     .companion-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .companion-info.hidden { display: none; }
+
+    /* --- Alerts + About pages: one centered column of cards -------------- */
+    .page-col { width: 100%; max-width: 720px; margin: 0 auto; display: flex;
+      flex-direction: column; gap: 16px; }
+    .page-col.hidden { display: none; }
+
+    /* Phone-companion workflow card: the live status line + collapsed options */
+    .comp-status { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
+    .comp-status.hidden { display: none; }
+    .comp-dot { width: 9px; height: 9px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .comp-dot.ok { background: #0AC8B9; box-shadow: 0 0 7px rgba(10, 200, 185, 0.7); }
+    .comp-dot.warn { background: #C8983C; box-shadow: 0 0 7px rgba(200, 152, 60, 0.55); }
+    .comp-status-text { font-size: 13px; color: #A09B8C; min-width: 0; overflow-wrap: anywhere; }
+    .comp-status-text.ok { color: #C8AA6E; }
+    .comp-status-text.warn { color: #C8983C; }
+    .comp-opts > summary { cursor: pointer; user-select: none; font-size: 13px;
+      color: #C8AA6E; transition: color .15s ease; }
+    .comp-opts > summary:hover { color: #F0E6D2; }
+    .comp-opts-body { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+    .comp-opts-body.hidden { display: none; }
+
+    /* About page: the lockup leads the page, so let it breathe a little */
+    .about-hero .qmark { width: 56px; height: 56px; }
+    .about-hero .brand-word { font-size: 26px; }
 
     /* QR modal (phone companion). Reuses .skin-modal/.skin-backdrop/.skin-head. */
     .qr-panel { position: relative; width: min(360px, 92vw); display: flex; flex-direction: column;

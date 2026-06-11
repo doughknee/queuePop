@@ -1,8 +1,52 @@
-/* Phone companion + Discord wiring (the Notifications card on the settings
-   page; becomes its own Alerts page in Phase 2). */
+/* Alerts page: desktop notifications, the phone-companion workflow card, and
+   Discord. Owns DOM↔store sync for every control on the page (split out of
+   the Settings page in Phase 2 of the UI refactor).
 
-let previewCtx = null; // lazily-created AudioContext for the sound preview
+   Write path: a delegated `input` listener syncs the page's controls into
+   QP.store.config and schedules a save (buttons don't fire `input`, so
+   test/preview/copy clicks never trigger a stray save). */
 
+let previewCtx = null;     // lazily-created AudioContext for the sound preview
+let customSoundPath = "";  // absolute path to the user's custom alarm file
+let companionUrl = "";     // last-known companion URL (status line, copy, QR)
+
+// --- Hydrate: store.config → alerts DOM ------------------------------------
+function hydrateAlerts() {
+  const c = QP.store.config;
+  $("webhook_url").value = c.webhook_url || "";
+  $("user_id").value = c.user_id || "";
+  $("desktop_notifications").checked = !!c.desktop_notifications;
+
+  const comp = c.companion || {};
+  $("companion_enabled").checked = !!comp.enabled;
+  $("companion_port").value = comp.port || 8420;
+  $("companion_sound").value = comp.sound || "chime";
+  customSoundPath = comp.sound_file || "";
+  $("sound-file-name").textContent = customSoundPath
+    ? customSoundPath.split(/[\\/]/).pop()
+    : "No file chosen";
+  toggleCustomSoundRow();
+  refreshCompanion();
+}
+
+// --- Sync: alerts DOM → store.config ----------------------------------------
+function syncAlertsToStore() {
+  const c = QP.store.config;
+  c.webhook_url = $("webhook_url").value;
+  c.user_id = $("user_id").value;
+  c.desktop_notifications = $("desktop_notifications").checked;
+  c.companion = {
+    enabled: $("companion_enabled").checked,
+    port: Number($("companion_port").value) || 8420,
+    sound: $("companion_sound").value,
+    sound_file: customSoundPath || "",
+  };
+  QP.bus.emit("config:changed", { path: "alerts" });
+  QP.store.scheduleSave();
+}
+$("tab-alerts").addEventListener("input", syncAlertsToStore);
+
+// --- Phone companion: the stateful workflow card -----------------------------
 async function refreshCompanion() {
   const live = $("companion-live");
   if (!$("companion_enabled").checked) {
@@ -16,44 +60,46 @@ async function refreshCompanion() {
     info = await api().get_companion_info();
   } catch (_) {}
 
-  $("companion-url").textContent = info.url || "";
+  companionUrl = info.url || "";
   const qrUrl = $("qr-url");
-  if (qrUrl) qrUrl.textContent = info.url || "";
+  if (qrUrl) qrUrl.textContent = companionUrl;
   const qr = $("companion-qr");
   if (info.qr) qr.src = info.qr;
-  // #companion-note (live running / connected-device status) is owned by the
-  // status subscriber below so it updates without re-fetching the QR.
+  renderCompanionStatus(); // fold the fresh URL into the status line now
 }
 
-// Companion server status note: driven by the live status snapshot.
-QP.bus.on("status", (s) => {
+// Status line: server state + URL + connected-phone count, from the live
+// status snapshot. Amber until a phone has actually paired; teal once one has.
+let companionStatusSnap = null;
+function renderCompanionStatus() {
+  const s = companionStatusSnap;
   const note = $("companion-note");
-  if (!note) return;
-  if (!s.companion_enabled) {
-    note.textContent = "";
-  } else if (!s.companion_running) {
-    note.textContent = "Server not running, save settings, then restart queuePop.";
-    note.className = "text-xs text-gold4";
+  const dot = $("companion-status-dot");
+  if (!s || !note) return;
+  const at = companionUrl ? ` at ${companionUrl}` : "";
+  let text, tone, canCopy = false;
+  if (!s.companion_running) {
+    text = "Not running — save settings, then restart queuePop.";
+    tone = "warn";
   } else if (s.companion_clients > 0) {
     const n = s.companion_clients;
-    note.textContent = `● ${n} phone${n > 1 ? "s" : ""} connected`;
-    note.className = "text-xs text-gold2";
+    text = `Running${at} — ${n} phone${n > 1 ? "s" : ""} connected`;
+    tone = "ok";
+    canCopy = true;
   } else {
-    note.textContent = "Running, waiting for a phone to connect…";
-    note.className = "text-xs text-subText";
+    text = `Running${at} — no phones connected yet`;
+    tone = "warn";
+    canCopy = true;
   }
-});
-
-function validateWebhook() {
-  const v = $("webhook_url").value.trim();
-  const hint = $("webhook_hint");
-  if (!v || /^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\//i.test(v)) {
-    hint.classList.add("hidden");
-  } else {
-    hint.textContent = "That doesn't look like a Discord webhook URL.";
-    hint.classList.remove("hidden");
-  }
+  note.textContent = text;
+  note.className = "comp-status-text " + tone;
+  dot.className = "comp-dot " + tone;
+  $("companion-copy").classList.toggle("hidden", !canCopy || !companionUrl);
 }
+QP.bus.on("status", (s) => {
+  companionStatusSnap = s;
+  renderCompanionStatus();
+});
 
 function toggleCustomSoundRow() {
   const isCustom = $("companion_sound").value === "custom";
@@ -85,12 +131,12 @@ $("sound-pick").addEventListener("click", async () => {
     customSoundPath = res.path;
     $("sound-file-name").textContent = res.name || res.path;
     // Picking a file mutates JS state only (no input event); sync + save.
-    syncSettingsToStore();
+    syncAlertsToStore();
   }
 });
 
 $("companion-copy").addEventListener("click", async () => {
-  const ok = await copyText($("companion-url").textContent);
+  const ok = await copyText(companionUrl);
   const btn = $("companion-copy");
   const orig = btn.textContent;
   btn.textContent = ok ? "Copied!" : "Copy failed";
@@ -118,6 +164,18 @@ $("companion-test").addEventListener("click", async () => {
   }
   setTimeout(() => (s.textContent = ""), 4000);
 });
+
+// --- Discord -----------------------------------------------------------------
+function validateWebhook() {
+  const v = $("webhook_url").value.trim();
+  const hint = $("webhook_hint");
+  if (!v || /^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\//i.test(v)) {
+    hint.classList.add("hidden");
+  } else {
+    hint.textContent = "That doesn't look like a Discord webhook URL.";
+    hint.classList.remove("hidden");
+  }
+}
 
 $("discord-test").addEventListener("click", async () => {
   const s = $("discord-test-status");

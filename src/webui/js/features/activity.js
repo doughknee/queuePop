@@ -90,6 +90,9 @@ async function refreshEvents() {
       activityLog.push(ev);
       if (ev.kind === "queue_pop" || /queue popped/i.test(ev.message)) popped = true;
       if (ev.kind === "update") updateEvent = true;
+      // Per-event fan-out: the live-view ticker and the updater's progress
+      // mirroring pick individual events off the bus.
+      QP.bus.emit("activity:event", ev);
     }
     while (activityLog.length > 200) activityLog.shift();
     renderActivity(); // also refreshes relative times when there are no new events

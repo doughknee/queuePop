@@ -214,10 +214,25 @@
           </svg>
         </button>
         <div class="nav-div"></div>
+        <button class="nav-route" data-tab="alerts" title="Alerts" aria-label="Alerts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </button>
+        <div class="nav-div"></div>
         <button class="nav-route" data-tab="settings" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+        <div class="nav-div"></div>
+        <button class="nav-route" data-tab="about" title="About queuePop" aria-label="About queuePop">
+          <!-- The Queue Sigil (brand mark) as a stroke icon: outer hex + core. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="miter">
+            <polygon points="21,12 18.36,18.36 12,21 5.64,18.36 3,12 5.64,5.64 12,3 18.36,5.64" />
+            <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
           </svg>
         </button>
       </div>
@@ -560,39 +575,15 @@
         </div>
       </section>
 
-      <!-- SETTINGS, single column with a sticky jump-nav on wide windows. Every
-           change auto-saves; there is no Save button. A few broad cards, each
-           split into labelled sub-sections; explanatory copy lives in the "?"
-           tooltips rather than under each toggle. -->
-      <section id="tab-settings" class="hidden pb-2">
-        <div class="settings-shell">
+      <!-- ALERTS: how queuePop reaches you when the queue pops. Three cards:
+           Desktop, the Phone Companion workflow, Discord. Every change
+           auto-saves; explanatory copy lives in the "?" tooltips. -->
+      <section id="tab-alerts" class="hidden pb-2">
+        <div class="page-col">
 
-          <!-- Jump-nav (wide windows only). Champ-select settings moved to the
-               Champ Select page itself (Phase 1 of the UI refactor). -->
-          <aside class="settings-nav">
-            <div class="snav-group">
-              <span class="snav-cat">Notifications</span>
-              <span class="snav-link" data-jump="set-notif-desktop">Desktop</span>
-              <span class="snav-link" data-jump="set-notif-phone">Phone</span>
-              <span class="snav-link" data-jump="set-notif-discord">Discord</span>
-            </div>
-            <div class="snav-group">
-              <span class="snav-cat">Queues</span>
-              <span class="snav-link" data-jump="set-queues">Allowed Queues</span>
-            </div>
-            <div class="snav-group">
-              <span class="snav-cat">App</span>
-              <span class="snav-link" data-jump="set-about">About &amp; Updates</span>
-            </div>
-          </aside>
-
-          <div class="settings-col">
-
-        <!-- CARD: Notifications & Alerts -->
-        <div class="hextech p-5 set-card">
-          <div class="set-card-title">Notifications &amp; Alerts</div>
-
-          <div id="set-notif-desktop" class="set-sub">
+          <!-- CARD: Desktop -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Desktop</div>
             <div class="set-row">
               <span class="sw"><input id="desktop_notifications" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="desktop_notifications" class="set-row-label">Windows desktop notifications</label>
@@ -600,10 +591,11 @@
             </div>
           </div>
 
-          <div class="set-divider"></div>
-
-          <div id="set-notif-phone" class="set-sub">
-            <div class="set-sub-head">Phone Companion</div>
+          <!-- CARD: Phone Companion — a stateful workflow card: toggle → live
+               status line (server / URL / connected-phone count, amber until a
+               phone pairs) → QR + test. Port and sound collapse into a fold. -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Phone Companion</div>
             <div class="set-row">
               <span class="sw"><input id="companion_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="companion_enabled" class="set-row-label">Alarm my phone when the queue pops</label>
@@ -611,47 +603,50 @@
             </div>
 
             <div id="companion-live" class="hidden companion-info">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs text-subText uppercase tracking-wide">Open on phone</span>
-                <span id="companion-url" class="text-sm text-gold2 break-all"></span>
-                <button id="companion-copy" class="text-xs text-gold5 underline cursor-pointer">Copy</button>
+              <div class="comp-status">
+                <span id="companion-status-dot" class="comp-dot"></span>
+                <span id="companion-note" class="comp-status-text"></span>
+                <button id="companion-copy" class="hidden text-xs text-gold5 underline cursor-pointer shrink-0">Copy link</button>
+              </div>
+              <div class="flex items-center gap-3 flex-wrap">
                 <button id="companion-qr-btn"
-                  class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Show QR code</button>
-              </div>
-              <div class="flex items-center gap-2 flex-wrap text-sm text-grey1">
-                <span>Port</span>
-                <input id="companion_port" type="number" min="1024" max="65535" value="8420"
-                  class="hextech-input w-20 px-2 py-1 text-center text-gold1 outline-none" />
-                <span class="text-subText px-1">·</span>
-                <span>Sound</span>
-                <select id="companion_sound"
-                  class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
-                  <option value="chime">Chime</option>
-                  <option value="ping">Ping</option>
-                  <option value="arcade">Arcade</option>
-                  <option value="siren">Siren (loud)</option>
-                  <option value="custom">Custom file…</option>
-                </select>
-                <button id="sound-preview" class="text-xs text-gold5 underline cursor-pointer">Preview</button>
-              </div>
-              <div id="custom-sound-row" class="hidden flex items-center gap-2 flex-wrap text-sm text-grey1">
-                <button id="sound-pick"
-                  class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Choose file…</button>
-                <span id="sound-file-name" class="text-xs text-subText break-all">No file chosen</span>
-              </div>
-              <div class="flex items-center gap-3">
+                  class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Show QR code</button>
                 <button id="companion-test"
                   class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Test phone alert</button>
                 <span id="companion-test-status" class="text-xs text-subText"></span>
               </div>
-              <p id="companion-note" class="text-xs text-gold4"></p>
+              <details class="comp-opts">
+                <summary>Sound &amp; connection options</summary>
+                <div class="comp-opts-body">
+                  <div class="flex items-center gap-2 flex-wrap text-sm text-grey1">
+                    <span>Sound</span>
+                    <select id="companion_sound"
+                      class="hextech-input px-2 py-1 text-gold1 outline-none cursor-pointer">
+                      <option value="chime">Chime</option>
+                      <option value="ping">Ping</option>
+                      <option value="arcade">Arcade</option>
+                      <option value="siren">Siren (loud)</option>
+                      <option value="custom">Custom file…</option>
+                    </select>
+                    <button id="sound-preview" class="text-xs text-gold5 underline cursor-pointer">Preview</button>
+                    <span class="text-subText px-1">·</span>
+                    <span>Port</span>
+                    <input id="companion_port" type="number" min="1024" max="65535" value="8420"
+                      class="hextech-input w-20 px-2 py-1 text-center text-gold1 outline-none" />
+                  </div>
+                  <div id="custom-sound-row" class="hidden flex items-center gap-2 flex-wrap text-sm text-grey1">
+                    <button id="sound-pick"
+                      class="hextech px-3 py-1 text-xs text-gold2 hover:text-gold1 cursor-pointer">Choose file…</button>
+                    <span id="sound-file-name" class="text-xs text-subText break-all">No file chosen</span>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
 
-          <div class="set-divider"></div>
-
-          <div id="set-notif-discord" class="set-sub">
-            <div class="set-sub-head">Discord</div>
+          <!-- CARD: Discord -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Discord</div>
             <label class="block">
               <span class="text-sm text-subText">Webhook URL</span>
               <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
@@ -680,7 +675,72 @@
               <button id="discord-docs" class="mt-2 text-gold5 underline cursor-pointer">Open Discord's webhook guide ↗</button>
             </details>
           </div>
+
         </div>
+      </section>
+
+      <!-- ABOUT: brand lockup, version + self-update, links. The update
+           controls are wired by js/features/update.js. -->
+      <section id="tab-about" class="hidden pb-2">
+        <div class="page-col">
+          <div class="hextech p-5 set-card">
+            <!-- queuePop brand lockup: the Queue Sigil mark + wordmark + tagline. -->
+            <div class="brand-lockup about-hero">
+              <span class="qmark" title="queuePop" aria-label="queuePop">
+                <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
+                  <defs>
+                    <radialGradient id="qmGlowAbout" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
+                      <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <circle cx="56" cy="54" r="26" fill="url(#qmGlowAbout)" />
+                  <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
+                           fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
+                  <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
+                           fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
+                  <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
+                  <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
+                </svg>
+              </span>
+              <div>
+                <div class="brand-word">queue<b>Pop</b></div>
+                <div class="brand-tag">Accepts the Ready Check the instant it pops.</div>
+              </div>
+            </div>
+            <div class="set-sub">
+              <div class="set-row" style="justify-content: space-between;">
+                <span class="set-row-label">Installed version</span>
+                <span id="about-version" class="text-gold2" style="font-family: Cinzel, Georgia, serif;">, </span>
+              </div>
+              <p id="about-update-msg" class="set-row-hint mb-2">You're up to date.</p>
+              <div class="set-row" style="gap: 9px;">
+                <button id="about-check" class="upd-btn ghost">Check for updates</button>
+                <button id="about-update" class="upd-btn hidden">Update now</button>
+                <a id="about-notes" class="snav-link hidden" target="_blank" rel="noopener" style="border:0;padding:0;">Release notes ↗</a>
+              </div>
+              <div class="brand-links" style="display:flex; gap:8px; margin-top:14px;">
+                <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
+                <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS, a one-release stub: only Allowed Queues remains (it moves
+           to Home in Phase 3, and this page disappears). -->
+      <section id="tab-settings" class="hidden pb-2">
+        <div class="settings-shell">
+
+          <aside class="settings-nav">
+            <div class="snav-group">
+              <span class="snav-cat">Queues</span>
+              <span class="snav-link" data-jump="set-queues">Allowed Queues</span>
+            </div>
+          </aside>
+
+          <div class="settings-col">
 
         <!-- CARD: Allowed Queues -->
         <div id="set-queues" class="hextech p-5 set-card">
@@ -693,51 +753,6 @@
           <div id="queue-select" class="hidden">
             <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
             <div id="queues" class="queue-pills"></div>
-          </div>
-        </div>
-
-        <!-- CARD: About & Updates -->
-        <div id="set-about" class="hextech p-5 set-card">
-          <div class="set-card-title">About &amp; Updates</div>
-          <!-- queuePop brand lockup: the Queue Sigil mark + wordmark + tagline. -->
-          <div class="brand-lockup">
-            <span class="qmark" title="queuePop" aria-label="queuePop">
-              <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
-                <defs>
-                  <radialGradient id="qmGlowAbout" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
-                    <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
-                  </radialGradient>
-                </defs>
-                <circle cx="56" cy="54" r="26" fill="url(#qmGlowAbout)" />
-                <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
-                         fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
-                <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
-                         fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
-                <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
-                <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
-              </svg>
-            </span>
-            <div>
-              <div class="brand-word">queue<b>Pop</b></div>
-              <div class="brand-tag">Accepts the Ready Check the instant it pops.</div>
-            </div>
-          </div>
-          <div class="set-sub">
-            <div class="set-row" style="justify-content: space-between;">
-              <span class="set-row-label">Installed version</span>
-              <span id="about-version" class="text-gold2" style="font-family: Cinzel, Georgia, serif;">, </span>
-            </div>
-            <p id="about-update-msg" class="set-row-hint mb-2">You're up to date.</p>
-            <div class="set-row" style="gap: 9px;">
-              <button id="about-check" class="upd-btn ghost">Check for updates</button>
-              <button id="about-update" class="upd-btn hidden">Update now</button>
-              <a id="about-notes" class="snav-link hidden" target="_blank" rel="noopener" style="border:0;padding:0;">Release notes ↗</a>
-            </div>
-            <div class="brand-links" style="display:flex; gap:8px; margin-top:14px;">
-              <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
-              <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
-            </div>
           </div>
         </div>
 

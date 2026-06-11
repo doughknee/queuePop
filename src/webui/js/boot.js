@@ -30,6 +30,7 @@ async function boot() {
     await buildQueueMenu();
     await QP.store.load();
     hydrateSettings();
+    hydrateAlerts();
     hydratePlan();
     renderPlan(QP.store.config);
   } catch (e) {

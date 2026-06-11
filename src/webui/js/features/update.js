@@ -1,11 +1,12 @@
 /* Self-update: the Python side (updater.py) checks GitHub Releases in the
    background and caches the result; we poll that cache, show a bottom-left
-   banner when a newer version exists, and mirror the state in the Settings
-   "About & Updates" card. */
+   banner when a newer version exists, and mirror the state (including live
+   download progress) on the About page. */
 
 let updateState = null;
 let updateDismissed = false; // "Later" hides the banner for this session only
 let updating = false;        // an update is downloading/installing
+let updatingBtn = null;      // the button that kicked it off (progress mirror)
 
 function showUpdateBanner(show) {
   const b = $("upd-banner");
@@ -70,6 +71,7 @@ QP.bus.on("update:event", () => refreshUpdate());
 async function doUpdate(btn) {
   if (updating) return;
   updating = true;
+  updatingBtn = btn || null;
   showUpdateBanner(false);
   const label = btn ? btn.textContent : null;
   if (btn) { btn.disabled = true; btn.textContent = "Updating…"; }
@@ -78,6 +80,7 @@ async function doUpdate(btn) {
     const res = await api().apply_update();
     if (!res || !res.ok) {
       updating = false;
+      updatingBtn = null;
       if (btn) { btn.disabled = false; btn.textContent = label; }
       showToast((res && res.error) || "Update failed", false);
       renderUpdate(updateState); // re-show the banner so they can retry
@@ -85,10 +88,21 @@ async function doUpdate(btn) {
     // On success the app quits and the new build relaunches, nothing more to do.
   } catch (e) {
     updating = false;
+    updatingBtn = null;
     if (btn) { btn.disabled = false; btn.textContent = label; }
     showToast("Update failed", false);
   }
 }
+
+// While an update runs, updater.py posts coarse progress to the activity feed
+// ("Downloading v1.4.0… 40% of 60 MB"); mirror it on the button so the About
+// page shows movement instead of a frozen "Updating…".
+QP.bus.on("activity:event", (ev) => {
+  if (!updating || !updatingBtn || ev.kind !== "update") return;
+  const pct = ev.message.match(/(\d+)\s*%/);
+  if (pct) updatingBtn.textContent = `Downloading… ${pct[1]}%`;
+  else if (/preparing install/i.test(ev.message)) updatingBtn.textContent = "Installing…";
+});
 
 $("upd-now") && $("upd-now").addEventListener("click", () => doUpdate($("upd-now")));
 $("upd-later") && $("upd-later").addEventListener("click", () => {
