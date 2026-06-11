@@ -338,6 +338,22 @@ class ChampSelect:
             self._log(f"phase={phase} pos={position} ban={_brief(my_ban)} "
                       f"pick={_brief(my_pick)} unavailable={sorted(unavailable)}")
 
+        # The champ-priority order driving the ARAM subset pick, trades, and
+        # the bench, as resolved championIds. In ARAM with "auto highest
+        # mastery" on we ignore the hand-built list and rank by champion
+        # mastery (highest first) so we always reach for the best champ the
+        # player owns; otherwise it's the active picks list in priority order.
+        # Computed before the pick logic because ARAM's subset pick needs it
+        # (on the Rift this is list-only, no LCU call, so it can't delay picks).
+        aram_toggle = cs.get('aram') or {}
+        aram_on = is_aram and bool(aram_toggle.get('enabled')
+                                   or aram_toggle.get('auto_mastery'))
+        aram_auto_mastery = is_aram and bool(aram_toggle.get('auto_mastery'))
+        if aram_auto_mastery:
+            pri = await self._mastery_ranked(connection)
+        else:
+            pri = self._priority_ids(active_picks)
+
         # === Time-critical: BAN + PICK first ============================
         # These run before any cosmetic handler (spells/trades/skins/runes) so a
         # slow LCU call, e.g. fetching recommended runes, can never delay a
@@ -370,12 +386,23 @@ class ChampSelect:
                     else:
                         await self._commit(connection, my_pick, chosen, 'pick',
                                            action_state, lock=False, intent=True)
+        elif (aram_on and my_pick is not None and phase == 'BAN_PICK'
+                and my_pick.get('isInProgress')):
+            # ARAM's opening pick: the client offers a 2-3 champ subset for
+            # ~10s, then random-assigns one at the buzzer (benching the rest).
+            # The offered ids are only exposed by the lobby-team-builder
+            # mirror, NOT the session; picking a champ outside the subset
+            # returns 204 but is silently ignored, which is why this looked
+            # impossible before. Hover-then-lock the best offered champ.
+            subset = await self._subset_champions(connection)
+            if subset:
+                chosen = await self._best_subset_pick(connection, subset, pri)
+                if chosen:
+                    await self._commit(connection, my_pick, chosen, 'pick',
+                                       action_state, lock=True)
         else:
-            # No assigned-role pick/ban here (ARAM, Blind, or unconfigured).
-            # ARAM has no usable opening pick: the pick-action PATCH is accepted
-            # but ignored, and the client random-assigns a champ at the buzzer
-            # regardless, so we grab our preferred champs off the reroll bench
-            # below instead. The cosmetic handlers still run. Log once.
+            # No assigned-role pick/ban here (Blind, unconfigured, or ARAM
+            # automation off). The cosmetic handlers still run. Log once.
             sig2 = ("no-role", position)
             if sig2 != self._last_sig:
                 self._last_sig = sig2
@@ -394,18 +421,6 @@ class ChampSelect:
             self._spells_for = my_champ
             await self._apply_spells(connection, spells)
 
-        # The champ-priority order driving trades + the ARAM bench, as resolved
-        # championIds. In ARAM with "auto highest mastery" on we ignore the
-        # hand-built list and rank by champion mastery (highest first) so we
-        # always reach for the best champ the player owns; otherwise it's the
-        # active picks list in priority order.
-        aram_toggle = cs.get('aram') or {}
-        aram_auto_mastery = is_aram and bool(aram_toggle.get('auto_mastery'))
-        if aram_auto_mastery:
-            pri = await self._mastery_ranked(connection)
-        else:
-            pri = self._priority_ids(active_picks)
-
         # --- Trades: request/accept upgrades (Rift or ARAM). ---
         if (cs.get('trades') or {}).get('enabled'):
             await self._handle_trades(connection, session, local_cell, pri)
@@ -413,7 +428,7 @@ class ChampSelect:
         # --- ARAM bench: grab a higher-priority champ off the reroll bench.
         # `auto_mastery` engages the bench grab on its own (no priority list to
         # build), so it counts the same as the explicit toggle here. ---
-        if is_aram and (aram_toggle.get('enabled') or aram_toggle.get('auto_mastery')):
+        if aram_on:
             await self._handle_bench(connection, session, local_cell, pri)
 
         locked_champ = self._my_champion(session, local_cell, locked_only=True)
@@ -781,6 +796,42 @@ class ChampSelect:
         self._mastery_ids = [cid for cid, _ in rows]
         self._log(f"mastery ranking loaded ({len(self._mastery_ids)} champs)")
         return self._mastery_ids
+
+    # --- ARAM subset pick ----------------------------------------------
+
+    async def _subset_champions(self, connection):
+        """The 2-3 championIds ARAM offers us to pick from at the start of
+        champ select, or [] when no subset is up. Only the lobby-team-builder
+        mirror exposes this list (404s outside the pick window)."""
+        try:
+            resp = await connection.request(
+                'get', '/lol-lobby-team-builder/champ-select/v1/subset-champion-list'
+            )
+        except Exception as e:
+            self._log(f"subset list raised: {e!r}")
+            return []
+        if resp.status != 200:
+            return []
+        try:
+            data = await resp.json()
+        except Exception as e:
+            self._log(f"subset list decode raised: {e!r}")
+            return []
+        if not isinstance(data, list):
+            return []
+        return [c for c in data if isinstance(c, int) and c > 0]
+
+    async def _best_subset_pick(self, connection, subset, pri):
+        """The offered champ to pick: best by the active priority order, then
+        by mastery when none of the offered champs are ranked (so a hand-built
+        list that misses all three still picks sensibly), else the first."""
+        best = min(subset, key=lambda c: self._rank(c, pri))
+        if self._rank(best, pri) < 10 ** 6:
+            return best
+        mastery = await self._mastery_ranked(connection)
+        if mastery:
+            return min(subset, key=lambda c: self._rank(c, mastery))
+        return subset[0]
 
     # --- Trades --------------------------------------------------------
 

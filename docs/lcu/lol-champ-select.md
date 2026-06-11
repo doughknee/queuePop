@@ -100,4 +100,20 @@ player (404 "No ongoing … swap." otherwise), e.g. for position swaps:
 
 Mirrored (same shapes) under `/lol-lobby-team-builder/champ-select/v1/…` and a
 `/lol-champ-select-legacy/v1/session/champion-swaps/…` family for legacy
-queues; queuePop uses the `/lol-champ-select/v1` family only.
+queues; queuePop uses the `/lol-champ-select/v1` family for everything below.
+
+## ARAM subset pick (the "choose from 2-3" window)
+
+`allowSubsetChampionPicks: true` in the session. The offered champion ids are
+exposed ONLY by the lobby-team-builder mirror:
+
+```
+GET /lol-lobby-team-builder/champ-select/v1/subset-champion-list  →  [518, 895]
+```
+
+(404 "no available pickable subset champion data" outside the window.) The ids
+are not in the session, not in `pickable-champion-ids` (whole roster), and not
+flagged in the grid or disabled lists. Picking uses the normal action flow —
+PATCH hover, then PATCH `completed: true` — and works (verified live, client
+16.12), **but only for champs in the subset**: a PATCH for any other champ
+returns 204 and is silently ignored.
