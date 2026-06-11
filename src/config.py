@@ -4,6 +4,18 @@ import sys
 from rich.console import Console
 from rich.theme import Theme
 
+# Console output must never crash the app: with stdout redirected to a pipe or
+# file, Windows defaults to cp1252, which can't encode the emoji we print — and
+# a UnicodeEncodeError inside an async event handler silently kills it (e.g.
+# the connected handler died before setting connected=True, leaving the UI
+# stuck on "searching"). Force UTF-8 and replace anything unencodable.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 # Ensure we find config.json relative to this script, not the CWD
 if getattr(sys, 'frozen', False):
     # If frozen (compiled), store config next to the executable
