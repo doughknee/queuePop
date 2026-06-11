@@ -59,6 +59,14 @@ function featureOn(role) {
 }
 
 // --- Build ----------------------------------------------------------------
+// Fetch the role list + summoner spells, then build the page. Called once at
+// boot (was part of the old Settings page's build).
+async function buildChampPage() {
+  roles = await api().get_roles();
+  try { spellList = (await api().get_summoner_spells()) || []; } catch (_) { spellList = []; }
+  buildChampTab();
+}
+
 function buildChampTab() {
   const bar = $("role-bar");
   bar.innerHTML = "";

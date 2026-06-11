@@ -17,6 +17,7 @@ function champIconById(id) { return id ? `assets/champions/${id}.png` : null; }
 function enterChampSelect() {
   if (inChampSelect) return;
   inChampSelect = true;
+  lastAutoEv = null; // each champ select starts with a clean ticker
   activateTab("live");
   refreshChampLive();
   QP.poll.start("champlive");
@@ -33,6 +34,19 @@ function showLiveView() { activateTab("live"); }   // PLAY = LIVE
 QP.bus.on("status", (s) => {
   if (s.connected && s.gameflow_phase === "ChampSelect") enterChampSelect();
   else exitChampSelect();
+});
+
+// Automation ticker: the latest thing queuePop did this champ select (lock,
+// trade, bench grab, swap, runes, skin), straight off the events bus. Rendered
+// as a one-line strip above the teams on the next champ-live poll.
+const TICKER_KINDS = new Set([
+  "champ", "spells", "trade", "bench_swap", "pick_swap", "role_swap", "runes", "skin",
+]);
+const TICKER_ICON =
+  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 13h6l-1 9 10-12h-6z"/></svg>';
+let lastAutoEv = null;
+QP.bus.on("activity:event", (ev) => {
+  if (TICKER_KINDS.has(ev.kind)) lastAutoEv = ev;
 });
 
 $("champ-live").addEventListener("click", (e) => {
@@ -95,8 +109,22 @@ function csMini(c, ban) {
   );
 }
 
+// Explicit trade-state words (LCU states → what's actually happening).
+const TRADE_WORDS = {
+  SENT: "requesting…",
+  RECEIVED: "incoming offer",
+  ACCEPTED: "accepted",
+  DECLINED: "declined — cooldown",
+  CANCELLED: "cancelled",
+};
+
 function renderChampLive(cs) {
   const phase = (cs.phase || "Champ Select").replace(/_/g, " ");
+
+  const ticker = lastAutoEv
+    ? `<div class="cs-ticker"><span class="cs-ticker-ico">${TICKER_ICON}</span>` +
+      `<span class="cs-ticker-msg">${escapeHtml(lastAutoEv.message)}</span></div>`
+    : "";
 
   const bansMy = (cs.bans?.my || []).map((b) => csMini(b, true)).join("");
   const bansTheir = (cs.bans?.their || []).map((b) => csMini(b, true)).join("");
@@ -108,10 +136,11 @@ function renderChampLive(cs) {
       : "";
 
   const trades = (cs.trades || [])
+    .filter((tr) => TRADE_WORDS[tr.state]) // AVAILABLE/BUSY = nothing happening
     .map(
       (tr) =>
         `<span class="cs-trade">${tr.name || "Cell " + tr.cellId}` +
-        `<span class="st">${(tr.state || "").toLowerCase()}</span></span>`,
+        `<span class="st">${TRADE_WORDS[tr.state]}</span></span>`,
     )
     .join("");
   const tradesStrip = trades
@@ -131,6 +160,7 @@ function renderChampLive(cs) {
       `<span class="cs-phase">${phase}</span>` +
       `<button id="cs-to-dash" type="button" class="cs-dash-btn">Dashboard ▸</button>` +
     `</div>` +
+    ticker +
     `<div class="cs-teams">` +
       `<div><div class="cs-team-title mine">Your Team</div>` +
         (cs.myTeam || []).map(csRow).join("") +

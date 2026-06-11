@@ -8,7 +8,7 @@ const QP_MANIFEST = [
   "features/nav", "features/status", "features/play", "features/summoner",
   "features/activity", "features/update",
   "pages/home", "pages/live", "pages/account", "pages/champ", "pages/loadout",
-  "pages/settings", "pages/notifications",
+  "pages/notifications",
 ];
 
 (function assertModules() {
@@ -26,10 +26,11 @@ async function boot() {
   // Build the UI; never let a single render error stop status polling.
   try {
     await loadCatalog();
-    await buildSettings();
+    await buildQueues();
+    await buildChampPage();
     await buildQueueMenu();
     await QP.store.load();
-    hydrateSettings();
+    hydrateQueues();
     hydrateAlerts();
     hydratePlan();
     renderPlan(QP.store.config);

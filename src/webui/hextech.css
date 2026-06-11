@@ -574,6 +574,16 @@
     .cs-trade { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #A09B8C; padding: 3px 8px; outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; }
     .cs-trade .st { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #C8AA6E; }
 
+    /* Automation ticker: the latest thing queuePop did this champ select,
+       one line above the teams. */
+    .cs-ticker { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-width: 0;
+      background: rgb(10 200 185 / 0.05); outline: 1px solid rgb(10 200 185 / 0.22); outline-offset: -1px; }
+    .cs-ticker.hidden { display: none; }
+    .cs-ticker-ico { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center; color: #0AC8B9; }
+    .cs-ticker-ico svg { width: 14px; height: 14px; }
+    .cs-ticker-msg { font-size: 12.5px; color: #C8AA6E; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
     /* --- Skin-favorites picker modal ----------------------------------- */
     .skin-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; }
     .skin-modal.hidden { display: none; }
@@ -768,15 +778,7 @@
     }
     .tip.show { opacity: 1; transform: none; }
 
-    /* --- Settings layout ------------------------------------------------
-       One readable column (no mismatched-height grid), centered, with a sticky
-       jump-nav on wide windows. A handful of broad cards, each split into
-       labelled sub-sections, rather than many tiny cards. */
-    .settings-shell { display: flex; gap: 28px; justify-content: center; align-items: flex-start; }
-    .settings-col { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px;
-      /* Trailing room so the last section can scroll up under the sticky nav and
-         get highlighted (otherwise the page bottoms out before reaching it). */
-      padding-bottom: 40vh; }
+    /* --- Setting-card primitives (Alerts / About / the Home queue card) -- */
     .set-card { display: flex; flex-direction: column; gap: 16px; }
     .set-card-title { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 0.12em;
       text-transform: uppercase; color: #E2C887; padding-bottom: 8px;
@@ -786,20 +788,13 @@
       text-transform: uppercase; color: #C8AA6E; }
     .set-divider { height: 1px; background: linear-gradient(to right, rgb(120 90 40 / 0.45), transparent); }
 
-    .settings-nav { display: none; }
-    @media (min-width: 1040px) {
-      .settings-nav { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 4px;
-        width: 176px; flex-shrink: 0; padding-top: 2px; }
-    }
-    .snav-group { display: flex; flex-direction: column; gap: 3px; }
-    .snav-cat { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.13em;
-      text-transform: uppercase; color: #C8983C; padding: 0 0 5px 11px; }
+    /* Quiet text-link button (the About "Release notes" link; the class name
+       survives from the old Settings jump-nav it was borrowed from). */
     .snav-link { display: block; padding: 6px 11px; cursor: pointer; border-left: 2px solid transparent;
       color: #C4BDAD; font-family: Marcellus, Georgia, serif; font-size: 13.5px;
       transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
-    .snav-link.hidden { display: none; } /* the About "Release notes" link reuses this class */
+    .snav-link.hidden { display: none; }
     .snav-link:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
-    .snav-link.active { color: #F0E6D2; border-left-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
 
     .companion-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
     .companion-info.hidden { display: none; }
@@ -900,10 +895,19 @@
     .plan-lo { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; flex-shrink: 0; }
     .plan-lo img { width: 16px; height: 16px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
     .plan-lo-badge { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 5px; color: #0AC8B9; outline: 1px solid rgb(10 200 185 / 0.4); outline-offset: -1px; }
-    .plan-extras-line { padding-top: 10px; margin-top: 4px; border-top: 1px solid rgb(120 90 40 / 0.2); display: flex; flex-direction: column; gap: 5px; }
-    .plan-extra-row { font-size: 12px; }
-    .plan-extra-row .k { color: #785A28; margin-right: 8px; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
-    .plan-extra-row .v { color: #C8AA6E; }
+    /* Feature-state chips: one glanceable line under the plan rows; every
+       chip clicks through to the Champ Select page. Dim = feature off. */
+    .plan-chips { padding-top: 10px; margin-top: 4px; border-top: 1px solid rgb(120 90 40 / 0.2);
+      display: flex; flex-wrap: wrap; gap: 7px; }
+    .plan-chips.hidden { display: none; }
+    .plan-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 0;
+      cursor: pointer; background: rgb(200 170 110 / 0.07); color: #C8AA6E;
+      font-family: Marcellus, Georgia, serif; font-size: 12px;
+      outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .plan-chip:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.14); outline-color: rgb(200 170 110 / 0.55); }
+    .plan-chip.off { color: #7c776a; background: transparent; outline-color: rgb(120 90 40 / 0.22); }
+    .plan-chip.off:hover { color: #A09B8C; outline-color: rgb(120 90 40 / 0.4); }
 
     /* --- Account route ------------------------------------------------- */
     .acct-head { display: flex; align-items: center; gap: 18px; }

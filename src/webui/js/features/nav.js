@@ -4,7 +4,7 @@
    the summoner badge. Emits a "route" bus event on every change. */
 
 let activeTab = "dashboard";
-const NAV_TABS = ["live", "dashboard", "champ", "alerts", "settings", "about", "account"];
+const NAV_TABS = ["live", "dashboard", "champ", "alerts", "about", "account"];
 function activateTab(tab) {
   activeTab = tab;
   document.querySelectorAll(".nav-route").forEach((b) => {

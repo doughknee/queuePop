@@ -221,13 +221,6 @@
           </svg>
         </button>
         <div class="nav-div"></div>
-        <button class="nav-route" data-tab="settings" title="Settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-        <div class="nav-div"></div>
         <button class="nav-route" data-tab="about" title="About queuePop" aria-label="About queuePop">
           <!-- The Queue Sigil (brand mark) as a stroke icon: outer hex + core. -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="miter">
@@ -357,6 +350,21 @@
                 <span id="hero-client" class="hero-conn-text">, </span>
               </span>
             </span>
+          </div>
+        </div>
+
+        <!-- Auto-Accept: which queues queuePop accepts (migrated from Settings
+             in Phase 3 — the page's primary task lives next to the hero). -->
+        <div id="queues-card" class="hextech framed p-5 set-card">
+          <div class="set-card-title">Auto-Accept</div>
+          <div class="set-row">
+            <span class="sw"><input id="queue_all" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="queue_all" class="set-row-label">Auto-accept any queue</label>
+            <span class="help" data-tip="On: accept whatever queue pops. Turn off to auto-accept only the specific queues you pick below.">?</span>
+          </div>
+          <div id="queue-select" class="hidden">
+            <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
+            <div id="queues" class="queue-pills"></div>
           </div>
         </div>
 
@@ -728,37 +736,6 @@
         </div>
       </section>
 
-      <!-- SETTINGS, a one-release stub: only Allowed Queues remains (it moves
-           to Home in Phase 3, and this page disappears). -->
-      <section id="tab-settings" class="hidden pb-2">
-        <div class="settings-shell">
-
-          <aside class="settings-nav">
-            <div class="snav-group">
-              <span class="snav-cat">Queues</span>
-              <span class="snav-link" data-jump="set-queues">Allowed Queues</span>
-            </div>
-          </aside>
-
-          <div class="settings-col">
-
-        <!-- CARD: Allowed Queues -->
-        <div id="set-queues" class="hextech p-5 set-card">
-          <div class="set-card-title">Allowed Queues</div>
-          <div class="set-row">
-            <span class="sw"><input id="queue_all" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-            <label for="queue_all" class="set-row-label">Auto-accept any queue</label>
-            <span class="help" data-tip="On: accept whatever queue pops. Turn off to auto-accept only the specific queues you pick below.">?</span>
-          </div>
-          <div id="queue-select" class="hidden">
-            <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
-            <div id="queues" class="queue-pills"></div>
-          </div>
-        </div>
-
-          </div>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -783,7 +760,6 @@
   <script src="js/pages/account.js"></script>
   <script src="js/pages/champ.js"></script>
   <script src="js/pages/loadout.js"></script>
-  <script src="js/pages/settings.js"></script>
   <script src="js/pages/notifications.js"></script>
   <script src="js/boot.js"></script>
 </body>
