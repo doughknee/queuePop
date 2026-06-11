@@ -1,0 +1,133 @@
+{
+    "webhook_url": "",
+    "user_id": "",
+    "desktop_notifications": true,
+    "allowed_queue_ids": [],
+    "favorite_queue_ids": [],
+    "last_queue_id": 1100,
+    "show_last_queue": true,
+    "companion": {
+        "enabled": false,
+        "port": 8420,
+        "sound": "chime",
+        "sound_file": ""
+    },
+    "champ_select": {
+        "enabled": true,
+        "instant_lock": true,
+        "lock_in_at_seconds": 1,
+        "roles": {
+            "top": {
+                "bans": [],
+                "picks": [],
+                "loadouts": {}
+            },
+            "jungle": {
+                "bans": [],
+                "picks": [],
+                "loadouts": {}
+            },
+            "middle": {
+                "bans": [
+                    "Annie"
+                ],
+                "picks": [
+                    "Ezreal",
+                    "Fizz"
+                ],
+                "loadouts": {
+                    "81": {
+                        "spells": [
+                            4,
+                            21
+                        ],
+                        "rune": 1810169469,
+                        "skin": [
+                            81009,
+                            81019,
+                            81033,
+                            81023,
+                            81054,
+                            81021,
+                            81007,
+                            81003,
+                            81002
+                        ]
+                    },
+                    "105": {
+                        "spells": [
+                            4,
+                            14
+                        ],
+                        "rune": "recommended",
+                        "skin": 105035
+                    }
+                }
+            },
+            "bottom": {
+                "bans": [
+                    "Lulu",
+                    "Draven"
+                ],
+                "picks": [
+                    "Ezreal"
+                ],
+                "loadouts": {
+                    "81": {
+                        "spells": [
+                            4,
+                            21
+                        ],
+                        "rune": 1810169469,
+                        "skin": [
+                            81023,
+                            81033,
+                            81021,
+                            81009,
+                            81019,
+                            81054,
+                            81065,
+                            81002,
+                            81003,
+                            81007
+                        ]
+                    }
+                }
+            },
+            "utility": {
+                "bans": [
+                    "Lulu"
+                ],
+                "picks": [
+                    "Pyke"
+                ],
+                "loadouts": {}
+            },
+            "aram": {
+                "bans": [],
+                "picks": [
+                    "Jhin",
+                    "Ezreal",
+                    "Thresh",
+                    "Aphelios",
+                    "Caitlyn",
+                    "Vayne",
+                    "Pyke",
+                    "Samira",
+                    "Lucian",
+                    "Kai'Sa",
+                    "Senna"
+                ],
+                "loadouts": {}
+            }
+        },
+        "trades": {
+            "enabled": true
+        },
+        "aram": {
+            "enabled": true,
+            "mode": "lowest",
+            "auto_mastery": false
+        }
+    }
+}
