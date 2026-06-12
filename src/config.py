@@ -59,6 +59,14 @@ def default_config():
         # the toggle is off so flipping it back doesn't lose the setup.
         "discord_enabled": False,
         "desktop_notifications": True,
+        # Which events fan out to desktop + Discord (the phone companion alarms
+        # on queue pops only, by design — see lcu._alert).
+        "alert_events": {
+            "queue_pop": True,
+            "champ_select": False,
+            "game_start": False,
+            "disconnect": False,
+        },
         "allowed_queue_ids": [],
         # Queue ids shown in the PLAY dropdown (order = display order).
         "favorite_queue_ids": [],

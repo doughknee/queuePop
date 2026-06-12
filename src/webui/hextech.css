@@ -826,9 +826,27 @@
     .comp-opts-body { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
     .comp-opts-body.hidden { display: none; }
 
+    /* Alerts page: the event matrix (reuses the queue-pill checkboxes) and
+       the per-channel "last sent" proof lines. */
+    .alert-ev-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .alert-ev-row.hidden { display: none; }
+    .alert-last { margin-left: auto; font-size: 11px; color: #8a8472; white-space: nowrap; }
+
     /* About page: the lockup leads the page, so let it breathe a little */
     .about-hero .qmark { width: 56px; height: 56px; }
     .about-hero .brand-word { font-size: 26px; }
+
+    /* Service Record: lifetime counters + the diagnostics row */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+    .stat-grid.hidden { display: none; }
+    .stat-tile { display: flex; flex-direction: column; gap: 4px; padding: 11px 13px;
+      background: rgb(200 170 110 / 0.04);
+      outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; }
+    .stat-num { font-family: Cinzel, Georgia, serif; font-size: 21px; line-height: 1; color: #E2C887; }
+    .stat-label { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: #8a8472; }
+    .diag-line { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: #A09B8C; }
+    .diag-line.hidden { display: none; }
+    .legal-note { font-size: 10.5px; color: #6f6a5d; line-height: 1.55; }
 
     /* Release Notes card: the history scrolls in place so the page stays put */
     .rel-notes { max-height: 46vh; overflow-y: auto; min-height: 0;
@@ -877,15 +895,24 @@
     .hero-conn-dot.on { background: #0AC8B9; box-shadow: 0 0 7px rgba(10,200,185,0.7); }
     .hero-conn-text { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #A09B8C; margin-top: 2px; white-space: nowrap; }
 
-    /* --- Dashboard profile --------------------------------------------- */
-    .profile-head { display: flex; align-items: center; gap: 16px; }
-    .profile-portrait { width: 58px; height: 58px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
-    .profile-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
-    .profile-id { display: flex; flex-direction: column; min-width: 0; }
-    .profile-name { font-family: Cinzel, Georgia, serif; font-size: 20px; color: #F0E6D2; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .profile-tier { font-family: Marcellus, Georgia, serif; font-size: 13px; margin-top: 4px; color: #A09B8C; }
-    .profile-champs { margin-left: auto; text-align: right; min-width: 0; }
-    .profile-champs-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #8a8472; margin-bottom: 7px; }
+    /* --- Dashboard profile strip (full breakdown lives on Account) ------ */
+    .profile-strip { display: flex; align-items: center; gap: 13px; width: 100%;
+      padding: 9px 16px; border: 0; cursor: pointer; text-align: left;
+      color: inherit; min-width: 0; }
+    .profile-strip.hidden { display: none; }
+    .profile-strip:hover .ps-arrow { color: #F0E6D2; transform: translateX(2px); }
+    .ps-portrait { width: 38px; height: 38px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
+    .ps-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .ps-id { display: flex; flex-direction: column; min-width: 0; }
+    .ps-name { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #F0E6D2; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ps-tier { font-family: Marcellus, Georgia, serif; font-size: 11.5px; color: #A09B8C; white-space: nowrap; }
+    .ps-record { margin-left: auto; font-size: 12px; color: #8a8472; white-space: nowrap; flex-shrink: 0; }
+    .ps-champs { display: flex; gap: 5px; flex-shrink: 0; }
+    .ps-champ { width: 26px; height: 26px; display: block; }
+    .ps-champ img { width: 100%; height: 100%; object-fit: cover; display: block;
+      outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; }
+    .ps-arrow { width: 16px; height: 16px; color: #785A28; flex-shrink: 0;
+      transition: color .15s ease, transform .15s ease; }
     .profile-mastery { display: flex; gap: 11px; justify-content: flex-end; }
     .pm-champ { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .pm-portrait { position: relative; }

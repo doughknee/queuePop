@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 from urllib.parse import quote
 
 import config
@@ -20,8 +21,12 @@ import champ_select
 import companion
 import events
 import updater
-from notifications import send_discord_test
+import notifications
+from notifications import send_discord_test, send_desktop_event
+import stats
 from _version import __version__
+
+_START_TS = time.time()  # app start, for the About diagnostics uptime
 
 
 # Sections in the PLAY dropdown, in display order. The "favorites" section is
@@ -466,6 +471,13 @@ def _normalize_config(data):
             data.get("discord_enabled", bool((data.get("webhook_url") or "").strip()))
         ),
         "desktop_notifications": bool(data.get("desktop_notifications", True)),
+        # Additive key (2026-06): which events fan out to desktop + Discord.
+        # Queue pop defaults on (it's the product); the rest default off. The
+        # phone companion alarms on queue pops only, by design.
+        "alert_events": {
+            k: bool((data.get("alert_events") or {}).get(k, k == "queue_pop"))
+            for k in ("queue_pop", "champ_select", "game_start", "disconnect")
+        },
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
         # Order matters here, it's the display order of pinned queues.
         "favorite_queue_ids": _clean_queue_ids(
@@ -522,6 +534,8 @@ class Api:
             "companion_enabled": bool((cfg.get("companion", {}) or {}).get("enabled")),
             "companion_running": companion.is_running(),
             "companion_clients": companion.client_count(),
+            # channel -> {ts, what}: the Alerts page's "last sent" lines.
+            "alert_last": dict(notifications.last_sent),
             "version": __version__,
         }
 
@@ -1003,6 +1017,32 @@ class Api:
             "warning" if self._lcu.paused else "success",
         )
         return self._lcu.paused
+
+    def test_desktop(self):
+        """Send a test Windows notification (the Alerts page's Desktop card)."""
+        ok = send_desktop_event("queuePop test",
+                                "Desktop notifications are working.",
+                                what="Test message")
+        if ok:
+            events.push("Desktop test notification sent", "success")
+        return {"ok": ok, "error": None if ok else "Couldn't show a notification"}
+
+    def get_stats(self):
+        """Lifetime service-record counters + app diagnostics for About."""
+        return {
+            "stats": stats.snapshot(),
+            "uptime_seconds": int(time.time() - _START_TS),
+            "config_dir": os.path.dirname(config.CONFIG_FILE),
+            "frozen": bool(getattr(sys, "frozen", False)),
+        }
+
+    def open_config_folder(self):
+        """Open the config/log folder in Explorer (About's diagnostics row)."""
+        try:
+            os.startfile(os.path.dirname(config.CONFIG_FILE))
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
     def test_discord(self, webhook_url=None, user_id=None):
         """Send a test message to the given webhook (so users can test what

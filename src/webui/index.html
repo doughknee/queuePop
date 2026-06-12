@@ -353,8 +353,40 @@
           </div>
         </div>
 
+        <!-- Profile strip: one line — portrait, name, top rank, record, top
+             champs. The full breakdown lives on the Account page; the whole
+             strip clicks through (shown once the client is connected). -->
+        <button id="profile-strip" type="button" class="hextech framed profile-strip hidden"
+                title="Open your account page">
+          <span class="ps-portrait"><img id="profile-icon" alt="" onerror="this.style.visibility='hidden'" /></span>
+          <span class="ps-id">
+            <span id="profile-name" class="ps-name">, </span>
+            <span id="profile-tier" class="ps-tier"></span>
+          </span>
+          <span id="profile-record" class="ps-record"></span>
+          <span id="profile-mastery" class="ps-champs"></span>
+          <svg class="ps-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+        <!-- Activity, framed, scrollable, filterable, with timestamps and
+             per-game session dividers — the page's heartbeat, so it sits high. -->
+        <div class="hextech framed act-panel">
+          <div class="act-head">
+            <span class="act-title"><span class="act-live dot-pulse"></span>Activity</span>
+            <div class="act-filters" id="act-filters">
+              <button class="act-filter active" data-cat="all">All</button>
+              <button class="act-filter" data-cat="match">Matches</button>
+              <button class="act-filter" data-cat="champ">Champ Select</button>
+              <button class="act-filter" data-cat="system">System</button>
+            </div>
+          </div>
+          <div id="activity" class="act-body">
+            <p class="act-empty">Waiting for events…</p>
+          </div>
+        </div>
+
         <!-- Auto-Accept: which queues queuePop accepts (migrated from Settings
-             in Phase 3 — the page's primary task lives next to the hero). -->
+             in Phase 3). -->
         <div id="queues-card" class="hextech framed p-5 set-card">
           <div class="set-card-title">Auto-Accept</div>
           <div class="set-row">
@@ -370,46 +402,10 @@
           </div>
         </div>
 
-        <!-- Profile: portrait, rank breakdown with win-rate bars, top champions
-             (shown once the client is connected). -->
-        <div id="profile-panel" class="hextech framed p-5 hidden">
-          <div class="profile-head">
-            <span class="profile-portrait">
-              <img id="profile-icon" alt="" onerror="this.style.visibility='hidden'" />
-            </span>
-            <div class="profile-id">
-              <p id="profile-name" class="profile-name">, </p>
-              <p id="profile-tier" class="profile-tier"></p>
-            </div>
-            <div class="profile-champs">
-              <p class="profile-champs-label">Top Champions</p>
-              <div id="profile-mastery" class="profile-mastery"></div>
-            </div>
-          </div>
-          <div id="profile-ranked" class="profile-ranked"></div>
-        </div>
-
         <!-- Champ-select plan: per-role pick/ban portraits + loadout chips. -->
         <div id="plan-panel" class="hextech framed p-5 space-y-3 hidden">
           <div class="sec-head mb-1"><h3>Champ Select Plan</h3><div class="rule"></div></div>
           <div id="plan" class="space-y-2"></div>
-        </div>
-
-        <!-- Activity, framed, scrollable, filterable, with timestamps and
-             per-game session dividers. -->
-        <div class="hextech framed act-panel">
-          <div class="act-head">
-            <span class="act-title"><span class="act-live dot-pulse"></span>Activity</span>
-            <div class="act-filters" id="act-filters">
-              <button class="act-filter active" data-cat="all">All</button>
-              <button class="act-filter" data-cat="match">Matches</button>
-              <button class="act-filter" data-cat="champ">Champ Select</button>
-              <button class="act-filter" data-cat="system">System</button>
-            </div>
-          </div>
-          <div id="activity" class="act-body">
-            <p class="act-empty">Waiting for events…</p>
-          </div>
         </div>
       </section>
 
@@ -599,13 +595,32 @@
       <section id="tab-alerts" class="hidden pb-2">
         <div class="page-col">
 
+          <!-- CARD: which events reach you (governs Desktop + Discord; the
+               phone alarm fires on queue pops only — that's its whole job). -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Alert Me About</div>
+            <div class="alert-ev-row">
+              <label class="qp" title="The ready check appears"><input type="checkbox" data-ev="queue_pop" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Queue pops</span></label>
+              <label class="qp" title="Champ select begins"><input type="checkbox" data-ev="champ_select" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Champ select starts</span></label>
+              <label class="qp" title="The loading screen comes up"><input type="checkbox" data-ev="game_start" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Game starts</span></label>
+              <label class="qp" title="The League client closes or drops"><input type="checkbox" data-ev="disconnect" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Client disconnects</span></label>
+              <span class="help" data-tip="These events go to every channel below that's switched on. The phone companion is the exception — its alarm only fires on queue pops.">?</span>
+            </div>
+          </div>
+
           <!-- CARD: Desktop -->
           <div class="hextech p-5 set-card">
             <div class="set-card-title">Desktop</div>
             <div class="set-row">
               <span class="sw"><input id="desktop_notifications" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="desktop_notifications" class="set-row-label">Windows desktop notifications</label>
-              <span class="help" data-tip="Show a Windows notification when the queue pops and on key champ-select events.">?</span>
+              <span class="help" data-tip="Show a Windows notification for the events you ticked above.">?</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="desktop-test"
+                class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
+              <span id="desktop-test-status" class="text-xs text-subText"></span>
+              <span id="desktop-last" class="alert-last"></span>
             </div>
           </div>
 
@@ -687,6 +702,7 @@
               <button id="discord-test"
                 class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
               <span id="discord-test-status" class="text-xs text-subText"></span>
+              <span id="discord-last" class="alert-last"></span>
             </div>
             <details class="text-sm">
               <summary class="cursor-pointer text-gold2 hover:text-gold1 select-none">How to set this up</summary>
@@ -750,6 +766,26 @@
                 <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
               </div>
             </div>
+          </div>
+
+          <!-- CARD: Service Record — lifetime counters (stats.json) and an
+               app-diagnostics row. Rendered by js/features/update.js on each
+               visit to this page. -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Service Record</div>
+            <div id="about-stats" class="stat-grid">
+              <p class="set-row-hint">Loading…</p>
+            </div>
+            <div class="set-divider"></div>
+            <div id="about-diag" class="diag-line"></div>
+            <div class="set-row" style="gap: 9px;">
+              <button id="diag-open" class="upd-btn ghost">Open config folder</button>
+              <button id="diag-copy" class="upd-btn ghost">Copy diagnostics</button>
+              <span id="diag-status" class="text-xs text-subText"></span>
+            </div>
+            <p class="legal-note">queuePop is a free fan-made tool. It isn't endorsed by
+              Riot Games and doesn't reflect the views or opinions of Riot Games or anyone
+              officially involved in producing or managing League of Legends.</p>
           </div>
 
           <!-- CARD: Release Notes — the last few GitHub releases, fetched once

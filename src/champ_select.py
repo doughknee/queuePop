@@ -6,6 +6,7 @@ import time
 
 import config
 import events
+import stats
 
 # When instant-lock is off, the default number of seconds left in the pick
 # window at which we force a lock-in if the user hasn't done it manually.
@@ -593,6 +594,8 @@ class ChampSelect:
             config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
             events.push(f"Locked {kind}: {display}", "success", kind="champ")
             self._log(f"LOCK {kind}: {display} (action {action_id}) -> ok={ok}")
+            if ok:
+                stats.inc("picks_locked" if kind == "pick" else "bans_locked")
 
     async def _patch(self, connection, action_id, champion_id, complete):
         """PATCH a champ-select action. Returns True on success, False otherwise."""
@@ -1083,6 +1086,7 @@ class ChampSelect:
                     if ok:
                         config.console.print(f"[success]🔁 Accepted trade for {their_name}[/]")
                         events.push(f"Accepted trade for {their_name}", "success", kind="trade")
+                        stats.inc("trades")
                     else:
                         events.push(f"Trade accept failed for {their_name}", "warning", kind="trade")
                     self._log(f"trade {tid} accept -> {their_name} ok={ok}")
@@ -1525,6 +1529,7 @@ class ChampSelect:
             config.console.print(f"[success]🔀 Grabbed {name} off the bench[/]")
             events.push(f"Grabbed {name} off the bench", "success", kind="bench_swap")
             self._log(f"bench swap -> {name} ({best})")
+            stats.inc("bench_grabs")
             return True
         self._log(f"bench swap {best} -> HTTP {resp.status}")
         return False

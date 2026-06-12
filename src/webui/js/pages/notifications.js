@@ -13,6 +13,10 @@ let companionUrl = "";     // last-known companion URL (status line, copy, QR)
 // --- Hydrate: store.config → alerts DOM ------------------------------------
 function hydrateAlerts() {
   const c = QP.store.config;
+  const ev = c.alert_events || {};
+  document.querySelectorAll("#tab-alerts [data-ev]").forEach((cb) => {
+    cb.checked = !!ev[cb.dataset.ev];
+  });
   $("webhook_url").value = c.webhook_url || "";
   $("user_id").value = c.user_id || "";
   $("discord_enabled").checked = !!c.discord_enabled;
@@ -34,6 +38,11 @@ function hydrateAlerts() {
 // --- Sync: alerts DOM → store.config ----------------------------------------
 function syncAlertsToStore() {
   const c = QP.store.config;
+  const ev = {};
+  document.querySelectorAll("#tab-alerts [data-ev]").forEach((cb) => {
+    ev[cb.dataset.ev] = cb.checked;
+  });
+  c.alert_events = ev;
   c.webhook_url = $("webhook_url").value;
   c.user_id = $("user_id").value;
   c.discord_enabled = $("discord_enabled").checked;
@@ -102,6 +111,22 @@ function renderCompanionStatus() {
 QP.bus.on("status", (s) => {
   companionStatusSnap = s;
   renderCompanionStatus();
+  // "Last sent" lines: proof each channel is actually delivering.
+  const last = s.alert_last || {};
+  const fmt = (i) => (i ? `Last sent: ${i.what} · ${fmtAgoShort(i.ts)}` : "");
+  $("desktop-last").textContent = fmt(last.desktop);
+  $("discord-last").textContent = fmt(last.discord);
+});
+
+// Desktop test (phone + Discord already have one — parity).
+$("desktop-test").addEventListener("click", async () => {
+  const st = $("desktop-test-status");
+  flashStatus(st, "Sending…", true);
+  st.className = "text-xs text-subText";
+  const res = await api().test_desktop();
+  if (res && res.ok) flashStatus(st, "✓ Sent, check your notifications", true);
+  else flashStatus(st, "✗ " + ((res && res.error) || "Failed"), false);
+  setTimeout(() => (st.textContent = ""), 4000);
 });
 
 function toggleCustomSoundRow() {

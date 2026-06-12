@@ -77,64 +77,57 @@ function rankedRowHtml(label, r) {
   );
 }
 
-// Dashboard profile: portrait + name, highest rank, a ranked breakdown with
-// win-rate bars, and top-5 champion mastery. Hidden unless the client is
-// connected and there's at least one thing to show.
+// Dashboard profile strip: one line — portrait, name, highest rank, its
+// record, and top-3 mastery portraits. The full ranked/mastery breakdown
+// lives on the Account page; the whole strip clicks through to it. Hidden
+// unless the client is connected.
 function renderProfile(info) {
-  const panel = $("profile-panel");
-  if (!panel) return;
-  const ranked = (info && info.ranked) || {};
-  const mastery = (info && info.mastery) || [];
-  const hasRanked = ranked.solo || ranked.flex || ranked.tft || ranked.double_up;
-  if (!info || !info.connected || (!hasRanked && !mastery.length)) {
-    panel.classList.add("hidden");
+  const strip = $("profile-strip");
+  if (!strip) return;
+  if (!info || !info.connected || !info.name) {
+    strip.classList.add("hidden");
     return;
   }
-  panel.classList.remove("hidden");
+  strip.classList.remove("hidden");
 
-  // Header: portrait, name (#tag), highest current rank.
+  const ranked = info.ranked || {};
+  const mastery = info.mastery || [];
   const icon = $("profile-icon");
   if (info.icon) { icon.src = info.icon; icon.style.visibility = ""; }
   else icon.style.visibility = "hidden";
   $("profile-name").textContent = info.name || "Summoner";
+
   const hi = highestRank(ranked);
   const tier = $("profile-tier");
+  let record = "";
   if (hi) {
     tier.textContent = rankLabel(hi, true);
     tier.style.color = tierColor(hi.tier);
+    const wins = hi.wins || 0, losses = hi.losses || 0, games = wins + losses;
+    if (games) record = `${wins}W ${losses}L · ${Math.round((wins / games) * 100)}%`;
   } else {
     tier.textContent = "Unranked";
     tier.style.color = "";
   }
-
-  // Solo + Flex always render (everyone has an SR ladder); TFT / Doubles only
-  // when ranked, so non-TFT players don't get stray "Unranked" rows.
-  $("profile-ranked").innerHTML =
-    rankedRowHtml("Solo", ranked.solo) +
-    rankedRowHtml("Flex", ranked.flex) +
-    (ranked.tft ? rankedRowHtml("TFT", ranked.tft) : "") +
-    (ranked.double_up ? rankedRowHtml("Doubles", ranked.double_up) : "");
+  $("profile-record").textContent = record;
 
   $("profile-mastery").innerHTML = mastery
-    .slice(0, 5)
+    .slice(0, 3)
     .map((m) => {
       const name = idToName(m.championId) || "";
       const pts = (m.points || 0).toLocaleString();
-      const lvl = m.level ?? "";
-      const high = (m.level || 0) >= 10 ? " high" : "";
       return (
-        `<span class="pm-champ" title="${name}, Mastery ${m.level ?? "?"} · ${pts} pts">` +
-          `<span class="pm-portrait">` +
-            `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
-            `<span class="pm-lvl${high}">${lvl}</span>` +
-          `</span>` +
-          `<span class="pm-pts">${fmtPoints(m.points)}</span>` +
+        `<span class="ps-champ" title="${name}, Mastery ${m.level ?? "?"} · ${pts} pts">` +
+          `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
         `</span>`
       );
     })
     .join("");
 }
 $("summoner-btn").addEventListener("click", () => {
+  activateTab("account");
+});
+$("profile-strip").addEventListener("click", () => {
   activateTab("account");
 });
 

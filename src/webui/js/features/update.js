@@ -173,8 +173,8 @@ function relNoteHtml(r) {
 }
 
 let releaseNotesLoaded = false;
-QP.bus.on("route", async ({ tab }) => {
-  if (tab !== "about" || releaseNotesLoaded) return;
+async function loadReleaseNotes() {
+  if (releaseNotesLoaded) return;
   releaseNotesLoaded = true; // claim it so a double-click doesn't double-fetch
   const wrap = $("release-notes");
   let releases = [];
@@ -188,6 +188,70 @@ QP.bus.on("route", async ({ tab }) => {
     return;
   }
   wrap.innerHTML = releases.map(relNoteHtml).join("");
+}
+
+// --- About page: service record + diagnostics --------------------------------
+let lastStatus = null; // freshest status snapshot, for the diagnostics blob
+QP.bus.on("status", (s) => { lastStatus = s; });
+
+const STAT_TILES = [
+  ["ready_checks", "Ready checks accepted"],
+  ["champ_selects", "Champ selects"],
+  ["picks_locked", "Picks locked"],
+  ["bench_grabs", "Bench grabs"],
+  ["trades", "Trades made"],
+  ["games", "Games started"],
+];
+
+function fmtUptime(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+let aboutDiag = null; // last get_stats payload, for the copy button
+async function renderServiceRecord() {
+  let d = null;
+  try { d = await api().get_stats(); } catch (_) {}
+  if (!d) return;
+  aboutDiag = d;
+  const st = d.stats || {};
+  $("about-stats").innerHTML = STAT_TILES
+    .map(([key, label]) =>
+      `<div class="stat-tile">` +
+        `<span class="stat-num">${(st[key] || 0).toLocaleString()}</span>` +
+        `<span class="stat-label">${label}</span>` +
+      `</div>`,
+    ).join("");
+  const s = lastStatus || {};
+  $("about-diag").innerHTML =
+    `<span>Uptime ${fmtUptime(d.uptime_seconds || 0)}</span>` +
+    `<span>${s.connected ? "Client connected" : "Client offline"}</span>` +
+    `<span>${d.frozen ? "Packaged build" : "Running from source"}</span>`;
+}
+
+$("diag-open").addEventListener("click", () => api().open_config_folder());
+$("diag-copy").addEventListener("click", async () => {
+  const s = lastStatus || {};
+  const blob = {
+    version: (updateState && updateState.current) || s.version || "",
+    frozen: !!(aboutDiag && aboutDiag.frozen),
+    uptime_seconds: (aboutDiag && aboutDiag.uptime_seconds) || 0,
+    config_dir: (aboutDiag && aboutDiag.config_dir) || "",
+    connected: !!s.connected,
+    gameflow_phase: s.gameflow_phase || null,
+    companion_running: !!s.companion_running,
+    stats: (aboutDiag && aboutDiag.stats) || {},
+  };
+  const ok = await copyText(JSON.stringify(blob, null, 2));
+  const st = $("diag-status");
+  flashStatus(st, ok ? "Copied" : "Copy failed", ok);
+  setTimeout(() => (st.textContent = ""), 2500);
+});
+
+QP.bus.on("route", ({ tab }) => {
+  if (tab !== "about") return;
+  loadReleaseNotes();
+  renderServiceRecord(); // refreshed every visit (counters move during play)
 });
 
 QP._loaded.push("features/update");

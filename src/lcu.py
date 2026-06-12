@@ -7,7 +7,9 @@ from rich.panel import Panel
 import config
 import events
 from champ_select import ChampSelect
-from notifications import send_discord_ping, send_desktop_notification
+from notifications import (send_discord_ping, send_desktop_notification,
+                           send_discord_event, send_desktop_event)
+import stats
 
 # --- Cheap client discovery (perf fix) -------------------------------------
 # lcu_driver's stock _return_ux_process scans EVERY process's command line
@@ -88,12 +90,36 @@ class LCU:
             title="Status", border_style="green"
         ))
 
+    def _alert_on(self, key):
+        """Is this alert event enabled? Queue pop defaults on (it's the whole
+        product); the rest default off. Missing block = pre-matrix config."""
+        ev = self.config.get("alert_events") or {}
+        return bool(ev.get(key, key == "queue_pop"))
+
+    async def _alert(self, key, title, body, what):
+        """Fan an event out to the desktop + Discord channels that are both
+        enabled and subscribed to it. (The phone companion alarms off the
+        events feed on queue pops only — by design; an alarm per gameflow
+        transition would be obnoxious.)"""
+        if not self._alert_on(key):
+            return
+        if self.config.get("desktop_notifications"):
+            send_desktop_event(title, body, what=what)
+        if self.config.get("discord_enabled", True):
+            await send_discord_event(
+                self.config.get("webhook_url"), self.config.get("user_id"),
+                title=title, description=body, what=what,
+            )
+
     async def disconnect(self, connection):
         config.console.print("[warning]⚠️  League Client Disconnected. Waiting...[/]")
         events.push("League client disconnected", "warning")
         self.connected = False
         self._connection = None
         self.gameflow_phase = None
+        await self._alert("disconnect", "🔌 Client disconnected",
+                          "The League client closed or lost its connection.",
+                          what="Client disconnected")
 
     def call(self, coro_factory, timeout=5.0):
         """Run a one-off async LCU request from another thread (e.g. the web UI
@@ -183,23 +209,25 @@ class LCU:
             events.push(f"Queue popped: {game_mode}, accepting…", "danger", kind="queue_pop")
             
             # --- Actions ---
-            # 1. Send Desktop Notification
-            if self.config.get("desktop_notifications"):
-                send_desktop_notification(game_mode)
+            # 1+2. Desktop notification + Discord ping (both behind their
+            # channel toggles AND the queue-pop alert event, which defaults on;
+            # missing discord_enabled means a pre-toggle config — webhook set
+            # used to mean "on", and an empty one no-ops anyway).
+            if self._alert_on("queue_pop"):
+                if self.config.get("desktop_notifications"):
+                    send_desktop_notification(game_mode)
+                if self.config.get("discord_enabled", True):
+                    await send_discord_ping(
+                        webhook_url=self.config.get("webhook_url"),
+                        user_id=self.config.get("user_id"),
+                        game_mode=game_mode
+                    )
 
-            # 2. Send Discord Ping. Missing key (pre-toggle config) defaults to
-            # enabled — a set webhook used to mean "on"; an empty one no-ops.
-            if self.config.get("discord_enabled", True):
-                await send_discord_ping(
-                    webhook_url=self.config.get("webhook_url"),
-                    user_id=self.config.get("user_id"),
-                    game_mode=game_mode
-                )
-            
             # 3. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')
             config.console.print("[success]✅ Match Accepted![/]")
             events.push(f"Match accepted ({game_mode})", "success", kind="match")
+            stats.inc("ready_checks")
 
     async def champ_select_changed(self, connection, event):
         """Delegates champ select updates to the auto pick/ban handler."""
@@ -220,6 +248,16 @@ class LCU:
             message, level, kind = info
             config.console.log(f"[dim]Gameflow → {phase}[/]")
             events.push(message, level, kind=kind)
+        if phase == 'ChampSelect':
+            stats.inc("champ_selects")
+            await self._alert("champ_select", "⚔️ Champ select started",
+                              "Your match is forming — champ select has begun.",
+                              what="Champ select")
+        elif phase == 'InProgress':
+            stats.inc("games")
+            await self._alert("game_start", "🎮 Game starting",
+                              "The loading screen is up — your game is starting.",
+                              what="Game start")
 
     def start(self):
         """Starts the LCU connector. This is a blocking call."""
