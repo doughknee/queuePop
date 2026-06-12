@@ -130,18 +130,36 @@ def main():
 
     # --- Single Instance Check ---
     # Create a named mutex. If it already exists, another instance is running.
+    # Retry for a few seconds before giving up: after a self-update the
+    # installer/relauncher starts the new build while the old process is still
+    # tearing down — without the grace window the new copy would bounce off the
+    # dying instance's mutex and exit, leaving the stale old app (or nothing)
+    # on screen until a manual restart.
+    import time as _time
     mutex_name = "Global\\queuePop_Instance_Mutex"
     kernel32 = ctypes.WinDLL('kernel32')
-    mutex = kernel32.CreateMutexW(None, False, mutex_name)
-    last_error = kernel32.GetLastError()
-    
-    if last_error == 183:  # ERROR_ALREADY_EXISTS
-        # If the console is visible (e.g. dev mode), print a message. 
+    mutex = None
+    for attempt in range(24):  # ~6s total
+        mutex = kernel32.CreateMutexW(None, False, mutex_name)
+        last_error = kernel32.GetLastError()
+        if last_error != 183:  # not ERROR_ALREADY_EXISTS -> we own it
+            break
+        kernel32.CloseHandle(mutex)
+        mutex = None
+        _time.sleep(0.25)
+
+    if mutex is None:
+        # If the console is visible (e.g. dev mode), print a message.
         # Otherwise, just exit silently to avoid popping up a confusing window.
         if cfg.console:
             cfg.console.print("[warning]queuePop is already running![/]")
         else:
             print("queuePop is already running!")
+        try:
+            import updater
+            updater._ulog("startup aborted: another instance held the mutex for 6s")
+        except Exception:
+            pass
         sys.exit(0)
 
     # --- Load Settings ---
@@ -179,8 +197,8 @@ def main():
         "queuePop",
         url=index_path,
         js_api=api,
-        width=740,
-        height=840,
+        width=760,
+        height=800,
         min_size=(620, 700),
         background_color="#020617",
         # Drop the native OS chrome so the web UI can draw its own League-themed
@@ -223,6 +241,7 @@ def main():
     if getattr(sys, "frozen", False):
         try:
             import updater
+            updater._ulog("started: creating window")  # closes the update story
             updater.start_background()
         except Exception as e:
             cfg.console.print(f"[warning]Update check unavailable: {e}[/]")

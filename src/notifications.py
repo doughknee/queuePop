@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import asyncio
 import aiohttp
 from plyer import notification
@@ -7,6 +8,14 @@ import config
 
 # Hextech gold, as a decimal int for Discord embed `color`.
 _EMBED_GOLD = 0xC8AA6E
+
+# channel -> {"ts": epoch seconds, "what": short label}; the Alerts page shows
+# a "last sent" line per channel from this (via get_status).
+last_sent = {}
+
+
+def _mark(channel, what):
+    last_sent[channel] = {"ts": time.time(), "what": what}
 
 
 def resource_path(relative_path):
@@ -20,22 +29,29 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-def send_desktop_notification(game_mode):
-    """
-    Sends a native desktop notification.
-    """
+def send_desktop_event(title, message, what="alert"):
+    """Send a native desktop notification. Returns True when it went out."""
     try:
         icon_path = resource_path("assets/queuepop.ico")
         notification.notify(
-            title="Queue Popped!",
-            message=f"Accepting match for {game_mode}.",
+            title=title,
+            message=message,
             app_name="queuePop",
             app_icon=icon_path,
             timeout=10  # Notification will disappear after 10 seconds
         )
+        _mark("desktop", what)
         config.console.log("[cyan]Desktop notification sent.[/]")
+        return True
     except Exception as e:
         config.console.log(f"[yellow]Failed to send desktop notification: {e}[/]")
+        return False
+
+
+def send_desktop_notification(game_mode):
+    """The queue-pop desktop notification."""
+    send_desktop_event("Queue Popped!", f"Accepting match for {game_mode}.",
+                       what="Queue pop")
 
 
 def _discord_payload(user_id, title, description, fields=None):
@@ -55,26 +71,31 @@ def _discord_payload(user_id, title, description, fields=None):
     }
 
 
-async def send_discord_ping(webhook_url, user_id, game_mode):
-    """
-    Sends a queue-pop notification to the configured Discord webhook.
-    """
+async def send_discord_event(webhook_url, user_id, title, description,
+                             fields=None, what="alert"):
+    """Post an event embed to the webhook (no-op without a URL)."""
     if not webhook_url:
         return
-
-    payload = _discord_payload(
-        user_id,
-        title="⚡ Queue Popped",
-        description="Accepting your match automatically, get back to your PC!",
-        fields=[{"name": "Mode", "value": game_mode or "Unknown", "inline": True}],
-    )
-
+    payload = _discord_payload(user_id, title=title, description=description,
+                               fields=fields)
     async with aiohttp.ClientSession() as session:
         try:
             await session.post(webhook_url, json=payload)
+            _mark("discord", what)
             config.console.log("[cyan]Discord notification sent.[/]")
         except Exception as e:
             config.console.log(f"[yellow]Failed to send Discord ping: {e}[/]")
+
+
+async def send_discord_ping(webhook_url, user_id, game_mode):
+    """The queue-pop Discord notification."""
+    await send_discord_event(
+        webhook_url, user_id,
+        title="⚡ Queue Popped",
+        description="Accepting your match automatically, get back to your PC!",
+        fields=[{"name": "Mode", "value": game_mode or "Unknown", "inline": True}],
+        what="Queue pop",
+    )
 
 
 async def _post_discord_test(webhook_url, user_id):
@@ -101,6 +122,7 @@ def send_discord_test(webhook_url, user_id):
         return False, "No webhook URL configured."
     try:
         asyncio.run(_post_discord_test(webhook_url, user_id))
+        _mark("discord", "Test message")
         config.console.log("[cyan]Discord test message sent.[/]")
         return True, None
     except Exception as e:

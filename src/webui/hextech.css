@@ -1,0 +1,1412 @@
+/* queuePop hextech design system - extracted verbatim from index.html's
+   inline <style> (Phase 0 of the UI refactor). Loaded after styles.css +
+   fonts.css to keep the original cascade order. */
+    html {
+      background: linear-gradient(220deg, #030912 0%, #0A1428 55%, #1a3243 100%) fixed;
+    }
+    body { -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: #785A28; }
+    ::-webkit-scrollbar-track { background: #010A13; }
+    /* Hextech panel: inset hairline outline that ignites to a solid gold/icon
+       border (with a faint teal glow) on hover. Sharp corners, true to client. */
+    .hextech {
+      background-color: rgb(1 10 19 / 0.30);
+      outline: 1px solid rgb(201 191 150 / 0.30);
+      outline-offset: -2px;
+      border: 2px solid transparent;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .hextech:hover {
+      border-color: #c9bf96;
+      box-shadow: 0 0 18px -6px rgba(10, 200, 185, 0.35);
+    }
+    .hextech-input {
+      background-color: rgb(1 10 19 / 0.55);
+      outline: 1px solid rgb(120 90 40 / 0.55);
+      outline-offset: -2px;
+      border: 1px solid transparent;
+      transition: outline-color .15s ease;
+    }
+    .hextech-input:focus { outline-color: #C8AA6E; }
+    /* Section header with trailing gold rule. */
+    .sec-head { display: flex; align-items: center; gap: 0.75rem; }
+    .sec-head h3 {
+      font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #C8AA6E; white-space: nowrap;
+    }
+    .sec-head .rule {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(120,90,40,0.6), transparent);
+    }
+
+    /* --- Visual richness --- */
+
+    /* Pulsing live-status dot */
+    @keyframes pulse-dot {
+      0%   { box-shadow: 0 0 0 0 rgba(10, 200, 185, 0.55); }
+      70%  { box-shadow: 0 0 0 7px rgba(10, 200, 185, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(10, 200, 185, 0); }
+    }
+    .dot-pulse { animation: pulse-dot 2s infinite; }
+
+    /* Content fade-in (tab switches, activity entries) */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .fade-up { animation: fadeUp 0.25s ease both; }
+
+    /* Champion catalog cells. `aspect-ratio` squares each cell off its own
+       column width (icons are 128x128, drawn with object-fit). We use a <div>
+       with aspect-ratio rather than the old <button> + ::before padding spacer:
+       generated pseudo-elements don't reliably lay out inside <button> in
+       WebView2, which collapsed every cell to a thin strip (you saw only a
+       horizontal slice of each champion). */
+    .grid-cell {
+      position: relative; aspect-ratio: 1 / 1; cursor: pointer;
+      outline: 1px solid rgb(120 90 40 / 0.25); outline-offset: -1px;
+      transition: transform 0.12s ease, outline-color 0.15s ease;
+    }
+    .grid-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .grid-cell:hover { transform: scale(1.07); z-index: 1; outline-color: #C8AA6E; }
+    /* A selected champion is shown in-grid: pulled to the front in priority
+       order, ringed gold, with a priority-number badge in the corner. */
+    .grid-cell.sel { outline: 2px solid #C8AA6E; outline-offset: -2px; cursor: grab; }
+    .grid-cell.sel:active { cursor: grabbing; }
+    .grid-cell.drag-src { opacity: 0.4; }
+    .cell-num {
+      position: absolute; top: 0; left: 0; z-index: 2;
+      min-width: 1.15rem; height: 1.15rem; padding: 0 0.2rem;
+      display: grid; place-items: center;
+      font-size: 0.72rem; font-weight: 700; line-height: 1;
+      background: #C8AA6E; color: #0A0E13; pointer-events: none;
+    }
+    /* Hover overlay on a selected pick: dark scrim + centered gear cueing
+       "click to edit this loadout". Click-through so the click opens it. */
+    .cell-edit {
+      position: absolute; inset: 0; z-index: 1; display: grid; place-items: center;
+      background: rgb(1 10 19 / 0.6); color: #F0E6D2; opacity: 0;
+      pointer-events: none; transition: opacity .12s ease;
+    }
+    .grid-cell.sel:hover .cell-edit { opacity: 1; }
+    .cell-edit svg { width: 42%; height: 42%; filter: drop-shadow(0 1px 3px #000); }
+    /* Ban mode tints the ring + badge red so bans read apart from picks. */
+    .grid-cell.sel.ban { outline-color: #c0584f; }
+    .cell-num.ban { background: #c0584f; color: #fff; }
+
+    /* Mastery overlay on a cell's lower edge: a contextual stat on the left
+       (mastery points when sorting by mastery, last-played when by recent) and
+       a gold mastery-level chip on the right. Only drawn for champs you've
+       played, over a subtle bottom scrim so it never fights the art. */
+    .cell-meta {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 2px;
+      padding: 9px 3px 2px; pointer-events: none;
+      background: linear-gradient(to top, rgba(1,10,19,0.9), transparent);
+    }
+    .cm-stat { font-size: 9px; line-height: 1; font-weight: 700; color: #C8AA6E; text-shadow: 0 1px 2px #000; }
+    .cm-lvl {
+      margin-left: auto; min-width: 13px; height: 13px; padding: 0 3px;
+      display: inline-grid; place-items: center;
+      font-size: 9px; font-weight: 700; line-height: 1;
+      color: #0A0E13; background: #C8AA6E;
+    }
+    /* Mastery 10+ gets a teal chip, a small flex among one-tricks. */
+    .cm-lvl.cm-high { background: #0AC8B9; box-shadow: 0 0 6px -1px rgba(10,200,185,0.7); }
+
+    /* Champ-select role bar, icon-over-label tabs with a gold active state, a
+       lit ignite-from-bottom underline, and a small "configured" dot. */
+    .role-tab {
+      position: relative; flex: 1 1 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; padding: 10px 4px 8px;
+      background: transparent; border: 0; cursor: pointer; color: #8b8674;
+      border-bottom: 2px solid transparent;
+      transition: color .18s ease, background-color .18s ease, border-color .18s ease;
+    }
+    .role-tab:hover { color: #C8AA6E; background: rgb(200 170 110 / 0.06); }
+    .role-tab.active { color: #F0E6D2; border-bottom-color: #C8AA6E;
+      background: linear-gradient(to top, rgb(200 170 110 / 0.16), transparent 80%); }
+    .role-ico { width: 24px; height: 24px; display: grid; place-items: center; }
+    .role-ico img, .role-ico svg { width: 100%; height: 100%; object-fit: contain; }
+    /* Position SVGs are dark; tint them to the tab's currentColor via filter so
+       they brighten on hover/active like the inline ARAM glyph does. */
+    .role-ico img { filter: brightness(0) saturate(100%) invert(58%) sepia(18%) saturate(900%) hue-rotate(2deg) brightness(92%); transition: filter .18s ease; }
+    .role-tab:hover .role-ico img, .role-tab.active .role-ico img { filter: brightness(0) saturate(100%) invert(92%) sepia(18%) saturate(420%) hue-rotate(2deg) brightness(98%); }
+    .role-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .role-dot { position: absolute; top: 7px; right: 50%; transform: translateX(20px); width: 6px; height: 6px; border-radius: 9999px; background: transparent; transition: background-color .18s ease, box-shadow .18s ease; }
+    .role-dot.on { background: #C8AA6E; box-shadow: 0 0 5px rgba(200,170,110,0.8); }
+    /* ARAM tab when "auto highest mastery" is on: dimmed + an "auto" marker; it
+       stays clickable so the panel can point the user back to the setting. */
+    .role-tab.auto { color: #6f6a5a; }
+    .role-tab.auto::after { content: "auto"; position: absolute; top: 6px; right: 50%;
+      transform: translateX(26px); font-family: Cinzel, Georgia, serif; font-size: 8px;
+      letter-spacing: 0.06em; text-transform: uppercase; color: #C8AA6E; opacity: 0.85; }
+    .role-tab.auto .role-dot { display: none; }
+
+    /* Sort segmented control on the champ-select toolbar. Hextech hairline box;
+       the active option fills gold for a strong, clear current-state read. */
+    .sort-seg { display: inline-flex; align-items: stretch; flex-shrink: 0; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; }
+    .sort-opt {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px;
+      background: transparent; border: 0; cursor: pointer; white-space: nowrap;
+      color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.02em;
+      border-left: 1px solid rgb(120 90 40 / 0.3);
+      transition: color .15s ease, background-color .15s ease;
+    }
+    .sort-opt:first-child { border-left: 0; }
+    .sort-opt svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .sort-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+    .sort-opt.active { color: #0A0E13; background: #C8AA6E; }
+
+    /* Priority lines (Prefer role / Pick order): the switch turns the feature
+       on; while on, EVERY option shows as one draggable row. Position is
+       priority — the solid-gold #1 chip is what gets asked first, "›" marks
+       carry the eye down the line. No adding, removing, or rank numerals. */
+    .prio-line { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; min-width: 0; }
+    .prio-line.hidden { display: none; }
+    .prio-chip { position: relative; display: inline-flex; align-items: center;
+      padding: 3px 9px; border: 0; cursor: grab;
+      background: rgb(200 170 110 / 0.08); color: #C8AA6E;
+      outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px;
+      font-family: Marcellus, Georgia, serif; font-size: 12px; line-height: 1.3;
+      transition: background-color .15s ease, color .15s ease, outline-color .15s ease; }
+    .prio-chip:hover { color: #F0E6D2; outline-color: #C8AA6E; }
+    .prio-chip:active { cursor: grabbing; }
+    .prio-chip.first { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .prio-chip.first:hover { background: #E2C887; color: #0A0E13; }
+    .prio-chip.drag-src { opacity: 0.4; }
+    .prio-chip:not(:first-child)::before { content: "›"; position: absolute;
+      left: -10px; top: 50%; transform: translate(-1px, -54%);
+      color: #785A28; font-size: 12px; line-height: 1; pointer-events: none; }
+
+    /* Hextech gold corner accents on focal panels */
+    .framed { position: relative; }
+    .framed::before, .framed::after {
+      content: ""; position: absolute; width: 13px; height: 13px; pointer-events: none;
+    }
+    .framed::before { top: -1px; left: -1px; border-top: 2px solid #C8AA6E; border-left: 2px solid #C8AA6E; }
+    .framed::after { bottom: -1px; right: -1px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
+
+    /* Queue-popped celebratory flash */
+    @keyframes flash-pop {
+      0%   { opacity: 0; }
+      12%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    #flash {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 60;
+      background: radial-gradient(circle at 50% 38%, rgba(200,170,110,0.28), transparent 62%);
+      box-shadow: inset 0 0 140px rgba(200,170,110,0.55);
+    }
+    #flash.go { animation: flash-pop 1.3s ease-out; }
+
+    /* --- Custom window chrome (frameless) ------------------------------
+       OS title bar disabled (main.py frameless=True). One header bar: PLAY
+       (launch / quick-queue) on the left, the route icons centered and running
+       the FULL height of the bar (top to bottom), and the live summoner badge
+       on the right, PLAY, the icons, and the summoner all share one vertical
+       centre line. The min/maximize/close buttons float in the top-right
+       corner, above a full-bar drag layer that lets empty space drag the window
+       while every button stays clickable.
+       Logic: window-chrome.js + app.js. (Pause + client status used to live up
+       here; Pause now sits on the dashboard hero strip beside the status it
+       toggles, and connection state is shown there too.) */
+    .appbar {
+      position: relative; display: flex; align-items: center;
+      height: 76px; padding: 0 0 0 12px; flex-shrink: 0;
+    }
+    /* Full-bar drag handle, behind the controls. It is a sibling (never an
+       ancestor) of the buttons, so a click on a button never bubbles up into a
+       window drag. The clusters sit above it at z-index 1; the routes' empty
+       flanks are pointer-events:none so they fall through to this layer. */
+    .appbar-drag { position: absolute; inset: 0; z-index: 0; }
+
+    /* queuePop "Queue Sigil" brand mark — gold hex ring, teal core, play
+       pennant. Geometry ported from the site's Mark (brand/svg). Shown
+       lit (gold + teal) since it's the app's own always-on identity. */
+    .qmark { display: inline-block; line-height: 0; }
+    .qmark svg { display: block; overflow: visible; }
+    /* Full lockup (mark + wordmark) for the About card. */
+    .brand-lockup { display: flex; align-items: center; gap: 13px; margin-bottom: 16px; }
+    .brand-lockup .qmark { width: 44px; height: 44px; flex-shrink: 0; }
+    .brand-word { font-family: Cinzel, Georgia, serif; text-transform: uppercase;
+      letter-spacing: 0.16em; font-size: 21px; line-height: 1; color: #F0E6D2; }
+    .brand-word b { color: #C8AA6E; font-weight: inherit; }
+    .brand-tag { font-family: Marcellus, Georgia, serif; font-size: 12px; color: #9f9b8d;
+      margin-top: 5px; letter-spacing: 0.015em; }
+
+    /* Window min / maximize / close, pinned to the top-right corner. */
+    .win-controls { position: absolute; top: 0; right: 0; z-index: 3; display: flex; align-items: stretch; height: 24px; }
+    .win-btn {
+      width: 40px; display: grid; place-items: center;
+      border: 0; background: transparent; color: #c9bf96; cursor: pointer;
+      transition: background-color .12s ease, color .12s ease;
+    }
+    .win-btn svg { width: 12px; height: 12px; }
+    .win-btn:hover { background: rgb(200 170 110 / 0.14); color: #F0E6D2; }
+    .win-btn:active { background: rgb(200 170 110 / 0.24); }
+    .win-btn.close:hover { background: rgb(192 88 79 / 0.85); color: #F0E6D2; }
+
+    /* PLAY cluster, vertically centred in the bar, above the drag layer. The
+       wrapper is click-through so the space around PLAY drags the window; the
+       button itself re-enables pointer events. */
+    .nav-left { display: flex; align-items: center; height: 100%; position: relative; z-index: 1; pointer-events: none; }
+
+    /* PLAY: emblem + banner are one inline SVG (.play-svg). Resting colors are
+       presentation attributes on the shapes; hover is driven by CSS targeting
+       the tagged sub-shapes (pb-ring/pb-ico/pb-frame + the gradient end stop). */
+    .play-btn { display: inline-flex; align-items: center; background: transparent; border: 0; cursor: pointer; padding: 0; pointer-events: auto; }
+    .play-svg { height: 44px; width: auto; display: block; overflow: visible; }
+    /* Hover: no size change — just illuminate. The hex ring lights to gold and
+       the teal elements (banner frame, emblem core, inner bloom) come up and
+       gently pulse so the teal energy looks alive. No drop-shadow. */
+    .pb-frame, #play-label { transition: fill .18s ease; }
+    .pb-sig-ring { transition: stroke .18s ease; }
+    .pb-sig-core { transition: fill .18s ease; }
+    .pb-coreglow { transition: opacity .22s ease; }
+    /* Same illumination on hover AND while the queue dropdown is open (.menu-open). */
+    .play-btn:hover:not(:disabled) .pb-sig-ring,
+    .play-btn.menu-open:not(:disabled) .pb-sig-ring { stroke: #C8AA6E; }
+    .play-btn:hover:not(:disabled) #play-label,
+    .play-btn.menu-open:not(:disabled) #play-label  { fill: #ffffff; }
+    .play-btn:hover:not(:disabled) .pb-frame,
+    .play-btn.menu-open:not(:disabled) .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-sig-core,
+    .play-btn.menu-open:not(:disabled) .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
+    .play-btn:hover:not(:disabled) .pb-coreglow,
+    .play-btn.menu-open:not(:disabled) .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
+    .play-btn:disabled { cursor: default; opacity: 0.5; }
+    /* "Alive" teal: the teal lines shimmer between teal and bright cyan and the
+       inner bloom breathes. Shared by hover and the live-active state. */
+    @keyframes pbTealAlive    { 0%, 100% { fill: #0AC8B9; } 50% { fill: #4FE3D4; } }
+    @keyframes pbCoreAlive    { 0%, 100% { fill: #0AC8B9; } 50% { fill: #8CF2E6; } }
+    @keyframes pbBloomBreathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+
+    /* Quick-queue dropdown. position:fixed at the body level (placed by JS) so
+       it isn't trapped under the navbar's backdrop-blur stacking context, that
+       was hiding it behind the page content and eating the clicks. Markup +
+       behavior live in app.js (buildQueueMenu / renderQueueMenu). */
+    .queue-menu { position: fixed; z-index: 70; }
+    .queue-menu.hidden { display: none; }
+
+    /* The panel itself. Sharp hextech corners, gold hairline, teal-tinted glow.
+       max-height + scroll so the TFT section never runs off a short window. */
+    .qm-panel {
+      box-sizing: border-box; width: 300px; overflow: hidden;
+      transition: height .28s cubic-bezier(.2,.8,.2,1);
+      background: linear-gradient(180deg, #04101d 0%, #010a13 60%);
+      outline: 1px solid rgb(200 170 110 / 0.45); outline-offset: -1px;
+      box-shadow: 0 18px 40px -12px rgba(0,0,0,0.8), 0 0 22px -10px rgba(10,200,185,0.4);
+      padding: 6px 0 8px;
+    }
+    /* Re-runs every time the menu un-hides (display:none → block). */
+    .queue-menu:not(.hidden) .qm-panel { animation: qmIn .2s cubic-bezier(.2,.8,.2,1) both; transform-origin: top left; }
+    @keyframes qmIn { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: none; } }
+
+    /* Crossfaded views inside the panel (Play ↔ Edit). The outgoing view floats
+       out of flow and fades; the incoming one fades up into place. */
+    .qm-view { transition: opacity .2s ease, transform .26s cubic-bezier(.2,.8,.2,1); }
+    .qm-view-out { position: absolute; top: 0; left: 0; right: 0; opacity: 0; transform: translateY(-8px); pointer-events: none; }
+    .qm-view-in { opacity: 0; transform: translateY(10px); }
+    /* Scroll lives on the inner lists now, so the panel height can animate. */
+    .qm-list, .qm-elist { max-height: calc(100vh - 188px); overflow-y: auto; overflow-x: hidden; }
+
+    /* Gold corner accents, matching .framed elsewhere. */
+    .qm-panel { position: relative; }
+    .qm-panel::before, .qm-panel::after {
+      content: ""; position: absolute; width: 11px; height: 11px; pointer-events: none; z-index: 2;
+    }
+    .qm-panel::before { top: 2px; left: 2px; border-top: 2px solid #C8AA6E; border-left: 2px solid #C8AA6E; }
+    .qm-panel::after  { bottom: 2px; right: 2px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
+
+    .qm-title {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px 9px 16px; font-family: Cinzel, Georgia, serif; font-size: 12px;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #8a6a32;
+    }
+    .qm-title > span { flex: 1 1 auto; }
+    .qm-edit {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 11px; background: transparent; border: 1px solid rgb(120 90 40 / 0.4);
+      border-radius: 3px; cursor: pointer; color: #C8AA6E; font-family: Cinzel, Georgia, serif;
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+    }
+    .qm-edit svg { width: 14px; height: 14px; }
+    .qm-edit:hover { color: #F0E6D2; border-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
+
+    /* Last-played "replay" row: faint gold wash + a gold left accent always on. */
+    .qm-row.qm-replay { background: linear-gradient(90deg, rgb(200 170 110 / 0.14), transparent 75%); }
+    .qm-row.qm-replay::after { height: 70%; }
+    .qm-pill.qm-last { color: #E2C887; border-color: rgb(226 200 135 / 0.6); }
+
+    /* Edit mode: grouped catalog with per-mode include toggles. */
+    .qm-egroup { border-top: 1px solid rgb(120 90 40 / 0.16); }
+    .qm-egroup:first-child { border-top: 0; }
+    .qm-ehead {
+      padding: 9px 16px 4px; font-family: Cinzel, Georgia, serif; font-size: 11px;
+      letter-spacing: 0.13em; text-transform: uppercase; color: #8a6a32;
+    }
+    .qm-erow {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 9px 14px 9px 16px; background: transparent; border: 0; cursor: pointer;
+      text-align: left; color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 14.5px;
+      transition: color .15s ease, background-color .12s ease;
+    }
+    .qm-erow:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.07); }
+    .qm-echeck {
+      flex-shrink: 0; width: 17px; height: 17px; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease;
+    }
+    .qm-echeck svg { width: 13px; height: 13px; }
+    .qm-erow.on .qm-echeck { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qm-erow.on { color: #F0E6D2; }
+    .qm-ename { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Edit-mode preference toggle (e.g. "always show last played"). */
+    .qm-opt {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 11px 14px 11px 16px; background: rgb(1 10 19 / 0.3); border: 0;
+      border-bottom: 1px solid rgb(120 90 40 / 0.16); cursor: pointer; text-align: left;
+      color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 14px;
+      transition: color .15s ease, background-color .12s ease;
+    }
+    .qm-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.07); }
+    .qm-optcheck {
+      flex-shrink: 0; width: 17px; height: 17px; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease;
+    }
+    .qm-optcheck svg { width: 13px; height: 13px; }
+    .qm-optcheck.on { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qm-optlabel { flex: 1 1 auto; }
+
+    /* --- Section --- */
+    .qm-section { border-top: 1px solid rgb(120 90 40 / 0.16); }
+    .qm-section:first-of-type { border-top: 0; }
+    /* Favorites is the reserved hero section: faint gold wash + a gold top rule. */
+    .qm-fav {
+      background: linear-gradient(180deg, rgb(200 170 110 / 0.08), transparent 70%);
+      box-shadow: inset 0 2px 0 -1px rgb(200 170 110 / 0.5);
+    }
+
+    .qm-sec-head {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 9px 14px; background: transparent; border: 0; cursor: pointer;
+      color: #C8AA6E; font-family: Cinzel, Georgia, serif; font-size: 11px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: background-color .15s ease, color .15s ease;
+    }
+    .qm-sec-head:hover { background: rgb(200 170 110 / 0.08); color: #F0E6D2; }
+    .qm-fav .qm-sec-head { color: #E2C887; }
+    .qm-sec-ico { display: inline-flex; width: 16px; height: 16px; color: #C8AA6E; flex-shrink: 0; }
+    .qm-fav .qm-sec-ico { color: #E2C887; filter: drop-shadow(0 0 4px rgb(200 170 110 / 0.5)); }
+    .qm-sec-ico svg { width: 100%; height: 100%; }
+    .qm-sec-label { flex: 1 1 auto; text-align: left; }
+    .qm-sec-count {
+      min-width: 17px; height: 17px; padding: 0 5px; display: inline-grid; place-items: center;
+      font-family: Marcellus, Georgia, serif; font-size: 10px; letter-spacing: 0;
+      color: #0A0E13; background: #785A28; border-radius: 9px;
+    }
+    .qm-fav .qm-sec-count { background: #C8AA6E; }
+    .qm-section.collapsed .qm-sec-count:empty { display: none; }
+    .qm-chev { display: inline-flex; width: 12px; height: 12px; color: #785A28; transition: transform .25s ease; }
+    .qm-chev svg { width: 100%; height: 100%; }
+    .qm-section.collapsed .qm-chev { transform: rotate(-90deg); }
+
+    /* Collapse via grid-template-rows 1fr↔0fr, smooth, no JS height measuring
+       (reliable in WebView2's Chromium). Inner wrapper hides the overflow. */
+    .qm-sec-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .26s ease, opacity .2s ease; }
+    .qm-section.collapsed .qm-sec-body { grid-template-rows: 0fr; opacity: 0; }
+    .qm-sec-inner { overflow: hidden; min-height: 0; }
+
+    /* --- Queue row --- */
+    .qm-row {
+      position: relative; display: flex; align-items: center; gap: 12px;
+      width: 100%; padding: 10px 12px 10px 16px; background: transparent; border: 0;
+      cursor: pointer; text-align: left; overflow: hidden;
+      color: #B5AE9E; font-family: Marcellus, Georgia, serif; font-size: 15px;
+      animation: qmRowIn .26s ease both; animation-delay: calc(var(--i, 0) * 26ms);
+    }
+    @keyframes qmRowIn { from { opacity: 0; transform: translateX(-9px); } to { opacity: 1; transform: none; } }
+    /* Left-to-right gold sweep behind the row on hover. */
+    .qm-row::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(90deg, rgb(200 170 110 / 0.18), transparent 75%);
+      transform: scaleX(0); transform-origin: left; transition: transform .18s ease;
+    }
+    /* Growing gold accent bar on the left edge. */
+    .qm-row::after {
+      content: ""; position: absolute; left: 0; top: 50%; width: 2px; height: 0;
+      background: #C8AA6E; transform: translateY(-50%); transition: height .18s ease;
+    }
+    .qm-row:hover { color: #F0E6D2; }
+    .qm-row:hover::before { transform: scaleX(1); }
+    .qm-row:hover::after { height: 70%; }
+    .qm-row > * { position: relative; z-index: 1; } /* ride above the sweep */
+    .qm-row-content { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; transition: transform .18s ease; }
+    .qm-row:hover .qm-row-content { transform: translateX(3px); }
+
+    .qm-ico { display: inline-flex; width: 20px; height: 20px; color: #0AC8B9; flex-shrink: 0; transition: color .15s ease, filter .15s ease; }
+    .qm-ico svg { width: 100%; height: 100%; }
+    .qm-row:hover .qm-ico { color: #2dd4c4; filter: drop-shadow(0 0 5px rgb(10 200 185 / 0.55)); }
+    .qm-name { flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qm-pill {
+      flex-shrink: 0; font-family: Cinzel, Georgia, serif; font-size: 9.5px; letter-spacing: 0.1em;
+      padding: 2px 6px; color: #C8983C; border: 1px solid rgb(200 152 60 / 0.5); border-radius: 2px;
+    }
+
+    /* Favorite star, outline by default, gold-filled when pinned. Pops on toggle. */
+    .qm-star {
+      flex-shrink: 0; display: inline-flex; width: 20px; height: 20px; padding: 1px;
+      align-items: center; justify-content: center; cursor: pointer; color: #5B5A56;
+      transition: color .15s ease, transform .12s ease;
+    }
+    .qm-star svg { width: 15px; height: 15px; fill: transparent; stroke: currentColor; stroke-width: 1.6; transition: fill .15s ease, stroke .15s ease; }
+    .qm-star:hover { color: #C8AA6E; transform: scale(1.18); }
+    .qm-star.on { color: #C8AA6E; }
+    .qm-star.on svg { fill: #C8AA6E; stroke: #E2C887; filter: drop-shadow(0 0 4px rgb(200 170 110 / 0.6)); }
+    .qm-star.pop { animation: qmStarPop .34s ease; }
+    @keyframes qmStarPop { 0% { transform: scale(1); } 35% { transform: scale(1.45) rotate(-12deg); } 70% { transform: scale(.9); } 100% { transform: scale(1); } }
+
+    /* Row being unpinned from the Favorites list: fade + slide out before the
+       section re-renders (height can't animate from auto, so we don't try). */
+    .qm-row.qm-removing { animation: qmRowOut .18s ease forwards; pointer-events: none; }
+    @keyframes qmRowOut { to { opacity: 0; transform: translateX(16px); } }
+
+    .qm-empty {
+      padding: 11px 16px 13px; font-family: Marcellus, Georgia, serif; font-size: 13px;
+      font-style: italic; color: #8a8475; line-height: 1.45;
+    }
+    .qm-empty .qm-empty-star { color: #C8AA6E; font-style: normal; }
+
+    /* Centered route icons. Full-height buttons (top to bottom of the bar) with
+       the glyph centred; gold-wash active/hover + faded vertical dividers. The
+       container is click-through so its transparent flanks fall to the drag
+       layer behind; each button re-enables pointer events. */
+    .nav-routes { flex: 1 1 auto; height: 100%; display: flex; align-items: stretch; justify-content: center; pointer-events: none; position: relative; z-index: 1; }
+    .nav-route { pointer-events: auto; width: 58px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: #c9bf96; transition: color .2s ease, background .25s ease; }
+    .nav-route svg { width: 22px; height: 22px; }
+    .nav-route:hover { color: #F0E6D2; background: linear-gradient(to bottom, transparent 52%, rgb(200 170 110 / 0.10) 74%, rgb(200 170 110 / 0.38) 100%); }
+    .nav-route.active { color: #F0E6D2; background: linear-gradient(to bottom, transparent 52%, rgb(200 170 110 / 0.08) 74%, rgb(200 170 110 / 0.24) 100%); }
+    .nav-div { width: 2px; height: 40%; align-self: center; background: linear-gradient(to bottom, transparent, #c9bf96, transparent); pointer-events: none; }
+
+    /* Live summoner badge. Right-aligned; its name/rank sit just under the
+       window controls, portrait on the left of the name + rank stack. Sized up
+       from the old navbar badge to read as the primary account block. */
+    .nav-right { display: flex; align-items: center; height: 100%; padding-right: 10px; position: relative; z-index: 1; pointer-events: none; }
+    /* Avatar on the left (just left of the window controls, vertically centred
+       to line up with PLAY / the icons); name + rank to its right, sitting in
+       the column directly under the window buttons. The `right` offset only
+       shifts the rendered position, it doesn't change the flex flow, so the
+       centred route icons stay put. */
+    .summoner { display: inline-flex; align-items: center; gap: 11px; background: transparent; border: 0; cursor: pointer; padding: 6px 4px 6px 10px; pointer-events: auto; position: relative; right: 20px; }
+    .summoner-portrait { width: 42px; height: 42px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; overflow: hidden; transition: background-color .15s ease; }
+    .summoner:hover:not(.offline) .summoner-portrait { background: #C8AA6E; }
+    .summoner-portrait img, .summoner-portrait .ph { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .summoner-portrait .ph { display: grid; place-items: center; color: #785A28; }
+    /* These beat the rules above (which set display) so the .hidden toggle works. */
+    .summoner-portrait img.hidden, .summoner-portrait .ph.hidden { display: none; }
+    .summoner-portrait .ph svg { width: 19px; height: 19px; }
+    /* Left-aligned beside the avatar; nudged down a few px so the text clears
+       the window controls it sits beneath. */
+    .summoner-meta { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; position: relative; top: 5px; }
+    .summoner-name { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #F0E6D2; max-width: 115px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .summoner-sub { display: flex; align-items: center; gap: 8px; line-height: 1.2; margin-top: 1px; }
+    .summoner-level { font-size: 11px; color: #9f9b8d; letter-spacing: 0.04em; }
+    .summoner-level:empty { display: none; }
+    /* Rank, colored by tier (set inline from JS), with a leading tier dot. */
+    .summoner-rank { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+    .summoner-rank:empty { display: none; }
+    .summoner-rank::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 9999px; background: currentColor; margin-right: 5px; vertical-align: middle; }
+    .summoner.offline { cursor: default; }
+
+    /* Pause / resume control, moved off the title bar onto the dashboard hero
+       strip, beside the Monitoring/Paused status it toggles. Hextech button;
+       renderPause() in app.js sets its color to gold4 while paused. */
+    .hero-pause {
+      display: inline-flex; align-items: center; gap: 8px; margin-left: 4px;
+      padding: 7px 16px; cursor: pointer; color: #C8AA6E;
+      font-family: Marcellus, Georgia, serif; font-size: 13px; letter-spacing: 0.04em;
+      transition: color .15s ease;
+    }
+    .hero-pause:hover { color: #F0E6D2; }
+    .hero-pause svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* Invisible resize grips along the window edges. Frameless windows have no
+       native resize border, so these drive window-chrome.js's resize loop. */
+    .resize-grip { position: fixed; z-index: 50; }
+    .rg-n  { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+    .rg-s  { bottom: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+    .rg-e  { top: 8px; bottom: 8px; right: 0; width: 4px; cursor: ew-resize; }
+    .rg-w  { top: 8px; bottom: 8px; left: 0; width: 4px; cursor: ew-resize; }
+    .rg-ne { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    .rg-nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    .rg-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    .rg-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+    body.maximized .resize-grip { display: none; }   /* nothing to resize */
+
+    /* --- Live champ-select route --------------------------------------
+       Its own tab (#tab-live), reached via the PLAY→LIVE button. The button
+       glows (gold ring/ico, teal frame, the hover look) while the live route
+       is active, so it reads as the current view in place of a nav icon. */
+    /* Live (queue popped): same "alive teal" illumination, persistent. No shadow. */
+    .play-btn.live-active .pb-sig-ring { stroke: #C8AA6E; }
+    .play-btn.live-active #play-label  { fill: #ffffff; }
+    .play-btn.live-active .pb-frame    { animation: pbTealAlive 1.8s ease-in-out infinite; }
+    .play-btn.live-active .pb-sig-core { animation: pbCoreAlive 1.8s ease-in-out infinite; }
+    .play-btn.live-active .pb-coreglow { opacity: 1; animation: pbBloomBreathe 1.8s ease-in-out infinite; }
+
+    .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .cs-phase { font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #C8AA6E; }
+    .cs-dash-btn { font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.04em; color: #A09B8C; background: transparent; border: 0; cursor: pointer; padding: 4px 8px; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; transition: color .15s ease, outline-color .15s ease; }
+    .cs-dash-btn:hover { color: #F0E6D2; outline-color: #C8AA6E; }
+
+    .cs-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .cs-team-title { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .cs-team-title.mine { color: #0AC8B9; }
+    .cs-team-title.theirs { color: #C0584F; }
+
+    .cs-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; margin-bottom: 6px; background: rgb(1 10 19 / 0.35); transition: outline-color .15s ease, background-color .15s ease; }
+    .cs-row.local { outline: 1px solid #C8AA6E; background: rgb(200 170 110 / 0.08); }
+    .cs-row.empty { opacity: 0.4; }
+    /* Champion portrait. Dimmed + dashed when it's only a hovered intent (not locked). */
+    .cs-portrait { position: relative; width: 44px; height: 44px; flex-shrink: 0; background: #0A323C; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; overflow: hidden; }
+    .cs-portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cs-portrait.intent { outline-style: dashed; outline-color: #785A28; }
+    .cs-portrait.intent img { opacity: 0.55; }
+    .cs-role { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.85; }
+    .cs-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+    .cs-name { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #F0E6D2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cs-name.pending { color: #6f6a5d; font-style: italic; }
+    .cs-spells { display: flex; gap: 4px; margin-top: 2px; }
+    .cs-spell { font-size: 9px; line-height: 1; padding: 2px 4px; color: #A09B8C; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; white-space: nowrap; }
+    .cs-spell-ico { width: 16px; height: 16px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .cs-skin { margin-left: auto; font-size: 9px; color: #785A28; white-space: nowrap; flex-shrink: 0; }
+
+    /* Bans, trades, bench strips */
+    .cs-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cs-strip-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #785A28; flex-shrink: 0; }
+    .cs-mini { width: 30px; height: 30px; position: relative; background: #0A323C; outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; overflow: hidden; flex-shrink: 0; }
+    .cs-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cs-mini.ban img { filter: grayscale(0.7) brightness(0.7); }
+    .cs-mini.ban::after { content: ""; position: absolute; inset: 0; background: linear-gradient(45deg, transparent 46%, #C0584F 46%, #C0584F 54%, transparent 54%); }
+    .cs-bench .cs-mini { width: 40px; height: 40px; }
+    .cs-trade { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #A09B8C; padding: 3px 8px; outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; }
+    .cs-trade .st { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #C8AA6E; }
+
+    /* Automation ticker: the latest thing queuePop did this champ select,
+       one line above the teams. */
+    .cs-ticker { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-width: 0;
+      background: rgb(10 200 185 / 0.05); outline: 1px solid rgb(10 200 185 / 0.22); outline-offset: -1px; }
+    .cs-ticker.hidden { display: none; }
+    .cs-ticker-ico { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center; color: #0AC8B9; }
+    .cs-ticker-ico svg { width: 14px; height: 14px; }
+    .cs-ticker-msg { font-size: 12.5px; color: #C8AA6E; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* --- Skin-favorites picker modal ----------------------------------- */
+    .skin-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; }
+    .skin-modal.hidden { display: none; }
+    .skin-backdrop { position: absolute; inset: 0; background: rgb(1 6 12 / 0.72); backdrop-filter: blur(2px); }
+    .skin-panel { position: relative; width: min(680px, 92vw); height: min(560px, 86vh); display: flex; flex-direction: column; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); padding: 0; }
+    .skin-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid rgb(120 90 40 / 0.3); }
+    .skin-head h3 { font-family: Cinzel, Georgia, serif; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+    .skin-close { width: 30px; height: 30px; display: grid; place-items: center; border: 0; background: transparent; color: #c9bf96; cursor: pointer; }
+    .skin-close svg { width: 13px; height: 13px; }
+    .skin-close:hover { color: #F0E6D2; background: rgb(192 88 79 / 0.6); }
+    .skin-body { flex: 1; display: grid; grid-template-columns: 230px 1fr; min-height: 0; }
+    .skin-champs { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid rgb(120 90 40 / 0.25); padding: 12px; gap: 10px; }
+    .skin-champ-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+    .skin-champ { display: flex; align-items: center; gap: 9px; padding: 5px 7px; background: transparent; border: 0; cursor: pointer; text-align: left; color: #A09B8C; outline: 1px solid transparent; outline-offset: -1px; }
+    .skin-champ:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+    .skin-champ.active { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.12); }
+    .skin-champ img { width: 28px; height: 28px; object-fit: cover; flex-shrink: 0; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+    .skin-champ-name { flex: 1; font-family: Marcellus, Georgia, serif; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skin-champ-badge { min-width: 16px; height: 16px; padding: 0 4px; display: inline-grid; place-items: center; font-size: 9px; font-weight: 700; color: #0A0E13; background: #C8AA6E; border-radius: 8px; flex-shrink: 0; }
+    .skin-list-wrap { display: flex; flex-direction: column; min-height: 0; padding: 12px 14px; }
+    .skin-list-title { font-family: Cinzel, Georgia, serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #785A28; margin-bottom: 8px; }
+    .skin-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+    .skin-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: rgb(1 10 19 / 0.4); border: 0; outline: 1px solid rgb(120 90 40 / 0.2); outline-offset: -1px; cursor: pointer; color: #A09B8C; }
+    .skin-item:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.5); }
+    .skin-item.on { outline-color: #C8AA6E; background: rgb(200 170 110 / 0.1); color: #F0E6D2; }
+    .skin-item-name { flex: 1; font-family: Marcellus, Georgia, serif; font-size: 13px; text-align: left; }
+    .skin-base { font-size: 9px; color: #785A28; letter-spacing: 0.06em; text-transform: uppercase; }
+    .skin-rarity { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #0AC8B9; flex-shrink: 0; }
+    .skin-star { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; color: #5B5A56; }
+    .skin-star svg { width: 16px; height: 16px; fill: transparent; stroke: currentColor; stroke-width: 1.6; }
+    .skin-item.on .skin-star { color: #C8AA6E; }
+    .skin-item.on .skin-star svg { fill: #C8AA6E; stroke: #E2C887; }
+    .skin-empty { font-family: Marcellus, Georgia, serif; font-size: 12.5px; font-style: italic; color: #6f6a5d; line-height: 1.5; }
+    .skin-empty code { font-style: normal; color: #C8AA6E; }
+
+    /* --- Per-champ loadout editor modal -------------------------------- */
+    .loadout-panel { position: relative; width: min(440px, 92vw); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); animation: loIn .22s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes loIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+    /* Splash header, champion's base-skin tile bled behind the name. */
+    .lo-hero { position: relative; height: 104px; flex-shrink: 0; overflow: hidden; background: #0A1420; }
+    .lo-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 22%; opacity: 0.55; transform: scale(1.05); }
+    .lo-hero-grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(1,10,19,0.15) 0%, rgba(1,10,19,0.55) 55%, #010a13 100%); }
+    .lo-hero-content { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+    .lo-icon { width: 46px; height: 46px; object-fit: cover; outline: 2px solid #C8AA6E; outline-offset: -1px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+    .lo-name { font-family: Cinzel, Georgia, serif; font-size: 18px; color: #F0E6D2; text-shadow: 0 1px 4px #000; display: block; line-height: 1.1; }
+    .lo-role { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #C8AA6E; display: block; margin-top: 2px; }
+    .lo-hero-close { position: absolute; top: 8px; right: 8px; z-index: 2; }
+
+    .loadout-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+    .lo-section { display: flex; flex-direction: column; gap: 9px; }
+    .lo-section-head { display: flex; align-items: center; justify-content: space-between; }
+    .lo-label { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; }
+    .lo-row { display: flex; align-items: center; gap: 8px; }
+    .lo-hint { font-size: 11px; font-style: italic; color: #8a8475; }
+    /* Collapsible body under a section toggle (runes / skin). */
+    .lo-fold { display: flex; flex-direction: column; gap: 9px; }
+    .lo-fold.hidden { display: none; }
+
+    /* Summoner-spell slots: two icon buttons + an inline picker grid. */
+    .lo-spell-slots { display: flex; align-items: center; gap: 12px; }
+    .lo-spell-slot { position: relative; width: 50px; height: 50px; flex-shrink: 0; cursor: pointer; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: grid; place-items: center; padding: 0; border: 0; transition: outline-color .15s ease, box-shadow .15s ease; }
+    .lo-spell-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-spell-slot .lo-slot-empty { color: #5B5A56; font-size: 22px; line-height: 1; }
+    .lo-spell-slot:hover { outline-color: #C8AA6E; }
+    .lo-spell-slot.active { outline: 2px solid #C8AA6E; outline-offset: -2px; box-shadow: 0 0 12px -3px rgba(200,170,110,0.6); }
+    .lo-spell-plus { color: #785A28; font-size: 16px; }
+    .lo-spell-pop { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; padding: 10px; background: rgb(1 10 19 / 0.5); outline: 1px solid rgb(120 90 40 / 0.35); outline-offset: -1px; animation: fadeUp .18s ease both; }
+    .lo-spell-pop.hidden { display: none; }
+    .lo-spell-opt { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A1420; }
+    .lo-spell-opt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-spell-opt:hover { outline-color: #C8AA6E; transform: scale(1.06); }
+    .lo-spell-opt.sel { outline: 2px solid #0AC8B9; outline-offset: -2px; }
+    .lo-spell-opt.disabled { opacity: 0.25; pointer-events: none; filter: grayscale(0.8); }
+    .lo-spell-clear { grid-column: 1 / -1; text-align: center; padding: 5px; cursor: pointer; color: #9f9b8d; font-size: 11px; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; transition: color .15s ease, background-color .15s ease; }
+    .lo-spell-clear:hover { color: #F0E6D2; background: rgb(192 88 79 / 0.18); }
+
+    /* Skin mode chips (Random / Best / Pick). */
+    .lo-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+    .lo-mode { padding: 6px 12px; cursor: pointer; background: rgb(1 10 19 / 0.5); border: 0; outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; color: #A09B8C; font-family: Marcellus, Georgia, serif; font-size: 12px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .lo-mode:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.6); }
+    .lo-mode.active { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+
+    .lo-skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px 2px 2px; }
+    .lo-skin-cell { position: relative; aspect-ratio: 1/1; cursor: pointer; outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; background: #0A323C; transition: transform .12s ease, outline-color .15s ease; }
+    .lo-skin-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .lo-skin-cell:hover { outline-color: #C8AA6E; transform: scale(1.05); z-index: 1; }
+    /* In "Pick a skin" mode, the unchosen tiles dim once a pick is made. */
+    .lo-skin-cell.dim { opacity: 0.32; filter: grayscale(0.65); }
+    .lo-skin-cell.dim:hover { opacity: 0.75; filter: none; }
+    .lo-skin-cell.on { outline: 2px solid #C8AA6E; outline-offset: -2px; }
+    .lo-skin-cell.on::after { content: "✓"; position: absolute; top: 0; right: 0; width: 16px; height: 16px; display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
+    .lo-skin-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 3px 2px; font-size: 8px; line-height: 1.1; color: #F0E6D2; text-shadow: 0 1px 2px #000; background: linear-gradient(to top, rgba(1,10,19,0.92), transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+    .loadout-foot { padding: 12px 18px; border-top: 1px solid rgb(120 90 40 / 0.3); display: flex; justify-content: flex-end; flex-shrink: 0; }
+
+    /* Remove-X on a selected cell, centered on the top-right corner, shown on
+       hover. Clicking a selected pick's body opens its loadout instead. */
+    .cell-x { position: absolute; top: 0; right: 0; transform: translate(40%, -40%); width: 17px; height: 17px; display: grid; place-items: center; border-radius: 9999px; background: #C0584F; color: #F0E6D2; cursor: pointer; opacity: 0; transition: opacity .12s ease, background-color .12s ease, transform .12s ease; z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+    .grid-cell.sel:hover .cell-x { opacity: 1; }
+    .cell-x:hover { background: #d56a60; transform: translate(40%, -40%) scale(1.15); }
+    .cell-x svg { width: 11px; height: 11px; }
+    /* A teal dot marks picks that have a loadout configured (bottom-right, clear
+       of the priority number and the remove-X). */
+    .cell-loadout { position: absolute; bottom: 2px; right: 2px; width: 7px; height: 7px; border-radius: 9999px; background: #0AC8B9; box-shadow: 0 0 5px rgba(10,200,185,0.85); pointer-events: none; z-index: 2; }
+
+    /* --- Auto-save toast ------------------------------------------------
+       Replaces the old Save button: settings + champ-select edits persist on
+       change, and this slides up from the bottom-right to confirm. */
+    .toast {
+      position: fixed; right: 18px; bottom: 18px; z-index: 90;
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 9px 16px; pointer-events: none;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 100%);
+      outline: 1px solid rgb(200 170 110 / 0.5); outline-offset: -1px;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8), 0 0 20px -8px rgba(10,200,185,0.45);
+      color: #F0E6D2; font-family: Marcellus, Georgia, serif; font-size: 13px; letter-spacing: 0.03em;
+      opacity: 0; transform: translateY(12px); transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.err { outline-color: rgb(192 88 79 / 0.7); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.8), 0 0 20px -8px rgba(192,88,79,0.5); }
+    .toast-ico { width: 15px; height: 15px; color: #0AC8B9; flex-shrink: 0; }
+    .toast.err .toast-ico { color: #d56a60; }
+
+    /* Update banner, slides up bottom-left when a newer version is published.
+       Persists (unlike the auto-save toast) until the user updates or dismisses. */
+    .upd-banner {
+      position: fixed; left: 18px; bottom: 18px; z-index: 95;
+      display: none; align-items: center; gap: 13px; max-width: 380px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 100%);
+      outline: 1px solid rgb(200 170 110 / 0.55); outline-offset: -1px;
+      box-shadow: 0 12px 34px -12px rgba(0,0,0,0.85), 0 0 22px -8px rgba(10,200,185,0.4);
+      color: #F0E6D2; opacity: 0; transform: translateY(12px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .upd-banner.show { display: flex; }
+    .upd-banner.in { opacity: 1; transform: none; }
+    .upd-ico { width: 26px; height: 26px; color: #0AC8B9; flex-shrink: 0; }
+    .upd-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .upd-title { font-family: Cinzel, Georgia, serif; font-size: 12.5px; letter-spacing: 0.04em; color: #F0E6D2; }
+    .upd-sub { font-family: Marcellus, Georgia, serif; font-size: 11.5px; color: #A09B8C; }
+    .upd-actions { display: flex; align-items: center; gap: 7px; margin-left: 4px; }
+    .upd-btn {
+      font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; padding: 6px 12px; white-space: nowrap;
+      background: linear-gradient(180deg, #0a323c, #04212a); color: #F0E6D2;
+      border: 1px solid rgb(10 200 185 / 0.55);
+    }
+    .upd-btn:hover { background: linear-gradient(180deg, #0d4250, #062b36); border-color: #0AC8B9; }
+    .upd-btn:disabled { opacity: 0.6; cursor: default; }
+    .upd-btn.ghost { background: transparent; border-color: rgb(120 90 40 / 0.5); color: #A09B8C; }
+    .upd-btn.ghost:hover { color: #F0E6D2; border-color: rgb(200 170 110 / 0.7); background: rgb(200 170 110 / 0.06); }
+
+    /* --- Toggle switch --------------------------------------------------
+       Replaces the raw checkboxes in Settings. The real <input type=checkbox>
+       keeps its id (so app.js wiring is unchanged) but is visually hidden; the
+       track/knob render from its :checked state. */
+    .sw { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; cursor: pointer; }
+    .sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .sw .sw-track {
+      width: 38px; height: 21px; border-radius: 9999px; background: rgb(1 10 19 / 0.7);
+      outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px;
+      transition: background-color .18s ease, outline-color .18s ease, box-shadow .18s ease;
+    }
+    .sw .sw-knob {
+      position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 9999px;
+      background: #785A28; transition: transform .18s cubic-bezier(.2,.8,.2,1), background-color .18s ease;
+    }
+    .sw input:checked ~ .sw-track { background: rgb(200 170 110 / 0.22); outline-color: #C8AA6E; box-shadow: 0 0 10px -3px rgba(200,170,110,0.55); }
+    .sw input:checked ~ .sw-track .sw-knob { transform: translateX(17px); background: #C8AA6E; }
+    .sw input:focus-visible ~ .sw-track { outline-color: #0AC8B9; }
+    /* A settings row: toggle, label (clickable), and a help "?" with a tooltip.
+       Single-line, the explanatory copy lives in the tooltip, not under it. */
+    .set-row { display: flex; align-items: center; gap: 11px; }
+    /* Consistency rule: every settings row anchors its "?" to the right edge,
+       wherever the row lives (cards, the match-settings popover, the event
+       matrix), so the eye always finds help in the same place. */
+    .set-row > .help:last-child,
+    .behavior-row > .help:last-child,
+    .alert-ev-row > .help:last-child { margin-left: auto; }
+    .set-row-label { flex: 1; min-width: 0; font-size: 13.5px; color: #F0E6D2; line-height: 1.35; cursor: pointer; }
+    .set-row-hint { font-size: 12.5px; color: #A8A192; line-height: 1.5; }
+    /* Help "?", hover shows a floating tooltip (#tip, positioned by app.js). */
+    .help {
+      display: inline-grid; place-items: center; width: 16px; height: 16px; flex-shrink: 0;
+      border-radius: 9999px; outline: 1px solid rgb(160 130 70 / 0.75); outline-offset: -1px;
+      font-size: 11px; font-family: Marcellus, Georgia, serif; color: #C8AA6E; cursor: help;
+      transition: color .15s ease, outline-color .15s ease, background-color .15s ease;
+    }
+    .help:hover { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+    .tip {
+      position: fixed; z-index: 95; max-width: 270px; padding: 10px 13px; pointer-events: none;
+      background: linear-gradient(180deg, #061726 0%, #02101c 100%);
+      outline: 1px solid rgb(200 170 110 / 0.6); outline-offset: -1px;
+      box-shadow: 0 12px 30px -10px rgba(0,0,0,0.9);
+      color: #ECE6D8; font-size: 12.5px; line-height: 1.5; font-family: Marcellus, Georgia, serif;
+      opacity: 0; transform: translateY(4px); transition: opacity .14s ease, transform .14s ease;
+    }
+    .tip.show { opacity: 1; transform: none; }
+
+    /* --- Setting-card primitives (Alerts / About / the Home queue card) -- */
+    .set-card { display: flex; flex-direction: column; gap: 16px; }
+    .set-card-title { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #E2C887; padding-bottom: 8px;
+      border-bottom: 1px solid rgb(120 90 40 / 0.4); }
+    .set-sub { display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 14px; }
+    .set-sub-head { font-family: Cinzel, Georgia, serif; font-size: 11.5px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #C8AA6E; }
+    .set-divider { height: 1px; background: linear-gradient(to right, rgb(120 90 40 / 0.45), transparent); }
+
+    /* Quiet text-link button (the About "Release notes" link; the class name
+       survives from the old Settings jump-nav it was borrowed from). */
+    .snav-link { display: block; padding: 6px 11px; cursor: pointer; border-left: 2px solid transparent;
+      color: #C4BDAD; font-family: Marcellus, Georgia, serif; font-size: 13.5px;
+      transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+    .snav-link.hidden { display: none; }
+    .snav-link:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
+
+    .companion-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .companion-info.hidden { display: none; }
+
+    /* --- Alerts + About pages: one centered column of cards -------------- */
+    .page-col { width: 100%; max-width: 720px; margin: 0 auto; display: flex;
+      flex-direction: column; gap: 16px; }
+    .page-col.hidden { display: none; }
+
+    /* Phone-companion workflow card: the live status line + collapsed options */
+    .comp-status { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
+    .comp-status.hidden { display: none; }
+    .comp-dot { width: 9px; height: 9px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .comp-dot.ok { background: #0AC8B9; box-shadow: 0 0 7px rgba(10, 200, 185, 0.7); }
+    .comp-dot.warn { background: #C8983C; box-shadow: 0 0 7px rgba(200, 152, 60, 0.55); }
+    .comp-status-text { font-size: 13px; color: #A09B8C; min-width: 0; overflow-wrap: anywhere; }
+    .comp-status-text.ok { color: #C8AA6E; }
+    .comp-status-text.warn { color: #C8983C; }
+    .comp-opts > summary { cursor: pointer; user-select: none; font-size: 13px;
+      color: #C8AA6E; transition: color .15s ease; }
+    .comp-opts > summary:hover { color: #F0E6D2; }
+    .comp-opts-body { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+    .comp-opts-body.hidden { display: none; }
+
+    /* Alerts page: the event matrix (reuses the queue-pill checkboxes) and
+       the per-channel "last sent" proof lines. */
+    .alert-ev-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .alert-ev-row.hidden { display: none; }
+    .alert-last { margin-left: auto; font-size: 11px; color: #8a8472; white-space: nowrap; }
+
+    /* About page: the lockup leads the page, so let it breathe a little */
+    .about-hero .qmark { width: 56px; height: 56px; }
+    .about-hero .brand-word { font-size: 26px; }
+
+    /* Service Record: centered counter columns — big Cinzel numerals over a
+       short gold rule, no boxes (the card frame is enough chrome). */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      gap: 14px 8px; padding: 4px 0 2px; }
+    .stat-grid.hidden { display: none; }
+    .stat-tile { display: flex; flex-direction: column; align-items: center; gap: 7px;
+      text-align: center; min-width: 0; }
+    .stat-num { font-family: Cinzel, Georgia, serif; font-size: 26px; line-height: 1;
+      color: #E2C887; padding: 0 8px 8px;
+      border-bottom: 1px solid rgb(200 170 110 / 0.35); }
+    .stat-label { font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase;
+      color: #8a8472; line-height: 1.5; max-width: 110px; }
+    .diag-line { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: #A09B8C; }
+    .diag-line.hidden { display: none; }
+    .legal-note { font-size: 10.5px; color: #6f6a5d; line-height: 1.55; }
+
+    /* Release Notes card: one <details> per release — the newest open, the
+       rest collapsed to a scannable version list. Scrolls in place. */
+    .rel-notes { max-height: 46vh; overflow-y: auto; min-height: 0; padding-right: 8px; }
+    .rel-notes.hidden { display: none; }
+    .rn-entry { border-top: 1px solid rgb(120 90 40 / 0.18); }
+    .rn-entry:first-child { border-top: 0; }
+    .rn-head { display: flex; align-items: center; gap: 9px; padding: 10px 2px;
+      cursor: pointer; user-select: none; list-style: none; }
+    .rn-head::-webkit-details-marker { display: none; }
+    .rn-head:hover .rn-ver { color: #F0E6D2; }
+    .rn-chev { width: 13px; height: 13px; color: #785A28; flex-shrink: 0;
+      transition: transform .18s ease; }
+    .rn-entry[open] .rn-chev { transform: rotate(90deg); color: #C8AA6E; }
+    .rn-ver { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #E2C887;
+      transition: color .15s ease; }
+    .rn-pill { font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 2px 6px; color: #0A0E13; background: #C8AA6E;
+      border-radius: 2px; }
+    .rn-pill.new { background: #0AC8B9; }
+    .rn-date { margin-left: auto; font-size: 11px; color: #8a8472; flex-shrink: 0; }
+    .rn-body { font-size: 13px; color: #A09B8C; line-height: 1.55; padding: 0 2px 13px 22px; }
+    .rn-body .rn-h { font-family: Marcellus, Georgia, serif; color: #C8AA6E;
+      margin: 10px 0 3px; font-size: 13.5px; letter-spacing: 0.03em; }
+    .rn-body .rn-h:first-child { margin-top: 0; }
+    .rn-body .rn-p { margin: 4px 0; }
+    .rn-body .rn-list { list-style: none; margin: 3px 0; padding: 0; }
+    .rn-body .rn-list li { position: relative; padding-left: 14px; margin: 3px 0; }
+    .rn-body .rn-list li::before { content: "◆"; position: absolute; left: 0; top: 0;
+      font-size: 7px; line-height: 1.9rem; color: #785A28; }
+    .rn-body b { color: #D6D0C0; font-weight: 600; }
+    .rn-body code { font-size: 11.5px; color: #0AC8B9; background: rgb(10 200 185 / 0.07);
+      padding: 0 4px; }
+
+    /* About header: version sits at the lockup's right; one balanced row of
+       update status + actions beneath the divider. */
+    .about-hero .about-ver { margin-left: auto; align-self: flex-start;
+      font-family: Cinzel, Georgia, serif; font-size: 15px; color: #C8AA6E;
+      padding-top: 3px; flex-shrink: 0; }
+    .upd-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .upd-row.hidden { display: none; }
+    .upd-msg { flex: 1 1 220px; min-width: 0; font-size: 13px; color: #A09B8C; }
+    .upd-msg.good { color: #E2C887; }
+    .upd-row-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+
+    /* QR modal (phone companion). Reuses .skin-modal/.skin-backdrop/.skin-head. */
+    .qr-panel { position: relative; width: min(360px, 92vw); display: flex; flex-direction: column;
+      background: linear-gradient(180deg, #04101d 0%, #010a13 75%); }
+    .qr-body { padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .qr-big { width: 232px; height: 232px; background: #fff; padding: 10px; }
+
+    /* --- Dashboard hero: monitoring + pause / live state + connection --- */
+    .hero { display: flex; flex-direction: column; padding: 0; }
+    .hero-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; }
+    .hero-bot { border-top: 1px solid rgb(120 90 40 / 0.22); gap: 14px; flex-wrap: wrap; }
+    .hero-main { flex: 1; min-width: 0; }
+    .hero-kicker { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8a8472; }
+    .hero-status { font-family: Cinzel, Georgia, serif; font-size: 20px; line-height: 1.05; color: #C8AA6E; margin-top: 3px; white-space: nowrap; }
+    .hero-status.paused { color: #C8983C; }
+    .hero-dot { width: 12px; height: 12px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .hero-dot.live { background: #0AC8B9; animation: pulse-dot 2s infinite; }
+    .hero-dot.paused { background: #C8983C; }
+    .hero-chip { display: flex; align-items: center; gap: 11px; flex: 1 1 200px; min-width: 0; }
+    .hero-chip-text { display: flex; flex-direction: column; min-width: 0; }
+    .hero-live { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #F0E6D2; margin-top: 2px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hero-live-ico { width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center; color: #C8AA6E; }
+    .hero-live-ico svg { width: 20px; height: 20px; }
+    .hero-conn-dot { width: 9px; height: 9px; border-radius: 9999px; background: #3C3C41; flex-shrink: 0; }
+    .hero-conn-dot.on { background: #0AC8B9; box-shadow: 0 0 7px rgba(10,200,185,0.7); }
+    .hero-conn-text { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #A09B8C; margin-top: 2px; white-space: nowrap; }
+
+    /* (Dashboard profile panel/strip removed — the navbar summoner badge is
+       the account surface; the full breakdown lives on the Account page.) */
+    /* .pm-* mastery badges + .pr-* ranked rows are shared with Account. */
+    .pm-champ { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .pm-portrait { position: relative; }
+    .pm-portrait img { width: 42px; height: 42px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .pm-lvl { position: absolute; bottom: -3px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center; font-size: 8.5px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
+    .pm-lvl.high { background: #0AC8B9; }
+    .pm-pts { font-size: 10px; color: #8a8472; }
+    .pr-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 14px; padding: 8px 0; }
+    .pr-row + .pr-row { border-top: 1px solid rgb(120 90 40 / 0.12); }
+    .pr-q { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9a8c6a; }
+    .pr-mid { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .pr-rankline { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .pr-rank { font-family: Marcellus, Georgia, serif; font-size: 14px; white-space: nowrap; }
+    .pr-record { font-size: 11px; color: #8a8472; white-space: nowrap; }
+    .pr-unranked { font-size: 13px; font-style: italic; color: #6f6a5d; }
+    .pr-bar { height: 4px; background: rgb(1 10 19 / 0.6); outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; overflow: hidden; }
+    .pr-bar > span { display: block; height: 100%; }
+
+    /* --- Dashboard champ-select plan rows ------------------------------ */
+    .plan-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+    .plan-row + .plan-row { border-top: 1px solid rgb(120 90 40 / 0.12); }
+    .plan-role { display: flex; align-items: center; gap: 7px; width: 7.5rem; flex-shrink: 0; }
+    .plan-role img { width: 18px; height: 18px; }
+    .plan-role span { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #C8AA6E; }
+    .plan-pb { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; flex-wrap: wrap; }
+    .plan-slot { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .plan-slot-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #785A28; }
+    .plan-champ { display: inline-flex; align-items: center; gap: 6px; }
+    .plan-champ img { width: 26px; height: 26px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; }
+    .plan-champ.ban img { filter: grayscale(0.5) brightness(0.85); outline-color: rgb(192 88 79 / 0.6); }
+    .plan-champ-name { font-size: 12.5px; color: #D6D0C0; white-space: nowrap; }
+    .plan-extra { font-size: 11px; color: #785A28; }
+    .plan-none { font-size: 12px; color: #6f6a5d; }
+    .plan-lo { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; flex-shrink: 0; }
+    .plan-lo img { width: 16px; height: 16px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+    .plan-lo-badge { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 5px; color: #0AC8B9; outline: 1px solid rgb(10 200 185 / 0.4); outline-offset: -1px; }
+    /* Feature-state chips: one glanceable line under the plan rows; every
+       chip clicks through to the Champ Select page. Dim = feature off. */
+    .plan-chips { padding-top: 10px; margin-top: 4px; border-top: 1px solid rgb(120 90 40 / 0.2);
+      display: flex; flex-wrap: wrap; gap: 7px; }
+    .plan-chips.hidden { display: none; }
+    .plan-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 0;
+      cursor: pointer; background: rgb(200 170 110 / 0.07); color: #C8AA6E;
+      font-family: Marcellus, Georgia, serif; font-size: 12px;
+      outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .plan-chip:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.14); outline-color: rgb(200 170 110 / 0.55); }
+    .plan-chip.off { color: #7c776a; background: transparent; outline-color: rgb(120 90 40 / 0.22); }
+    .plan-chip.off:hover { color: #A09B8C; outline-color: rgb(120 90 40 / 0.4); }
+
+    /* --- Account route ------------------------------------------------- */
+    .acct-head { display: flex; align-items: center; gap: 18px; }
+    .acct-portrait { width: 72px; height: 72px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
+    .acct-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
+    .acct-id { flex: 1; min-width: 0; }
+    .acct-name-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .acct-name { font-family: Cinzel, Georgia, serif; font-size: 23px; color: #F0E6D2; line-height: 1.05; }
+    .acct-tag { font-family: Marcellus, Georgia, serif; font-size: 15px; color: #8a8472; }
+    .acct-copy { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 11px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .acct-copy:hover { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.08); }
+    .acct-copy svg { width: 12px; height: 12px; }
+    .acct-meta { display: flex; align-items: center; gap: 9px; margin-top: 7px; font-family: Marcellus, Georgia, serif; font-size: 13px; color: #A09B8C; flex-wrap: wrap; }
+    .acct-tier { font-weight: 600; }
+    .acct-sep { color: #4a463c; }
+
+    .acct-mastery { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 12px; }
+    .acct-champ { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 11px 6px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; background: rgb(1 10 19 / 0.3); }
+    .acct-champ-portrait { position: relative; }
+    .acct-champ-portrait img { width: 52px; height: 52px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
+    .acct-champ-name { font-size: 11.5px; color: #D6D0C0; max-width: 84px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acct-champ-pts { font-size: 10px; color: #8a8472; }
+
+    .acct-matches { display: flex; flex-direction: column; gap: 6px; }
+    .acct-match { display: flex; align-items: center; gap: 12px; padding: 8px 10px; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; background: rgb(1 10 19 / 0.3); border-left: 3px solid #3C3C41; }
+    .acct-match.win { border-left-color: #0AC8B9; }
+    .acct-match.loss { border-left-color: #C0584F; }
+    .acct-match-champ { width: 38px; height: 38px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; flex-shrink: 0; }
+    .acct-match-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+    .acct-match-q { font-family: Marcellus, Georgia, serif; font-size: 13px; color: #D6D0C0; }
+    .acct-match-kda { font-size: 12px; color: #8a8472; font-variant-numeric: tabular-nums; }
+    .acct-match-res { font-family: Cinzel, Georgia, serif; font-size: 12px; letter-spacing: 0.08em; }
+    .acct-match.win .acct-match-res { color: #0AC8B9; }
+    .acct-match.loss .acct-match-res { color: #d56a60; }
+    .acct-match-time { font-size: 11px; color: #6f6a5d; white-space: nowrap; }
+
+    .acct-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 8px; }
+    .acct-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 13px; cursor: pointer; background: rgb(1 10 19 / 0.4); border: 0; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; color: #C9C2B0; font-family: Marcellus, Georgia, serif; font-size: 13px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .acct-link:hover { color: #F0E6D2; outline-color: #C8AA6E; background: rgb(200 170 110 / 0.1); }
+    .acct-link-go { color: #785A28; transition: color .15s ease; }
+    .acct-link:hover .acct-link-go { color: #C8AA6E; }
+
+    /* Summoner badge lights up while the account route is active. */
+    .summoner.route-active .summoner-portrait { background: #C8AA6E; box-shadow: 0 0 10px -2px rgba(200,170,110,0.7); }
+    .summoner.route-active .summoner-name { color: #C8AA6E; }
+
+    /* --- Activity feed: framed, scrollable, filterable, timestamped ----- */
+    .act-panel { display: flex; flex-direction: column; max-height: 440px; min-height: 240px; padding: 0; overflow: hidden; }
+    .act-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 14px 16px 12px; border-bottom: 1px solid rgb(120 90 40 / 0.25); flex-shrink: 0; }
+    .act-title { display: flex; align-items: center; gap: 9px; font-family: Cinzel, Georgia, serif; font-size: 13px;
+      letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+    .act-live { width: 7px; height: 7px; border-radius: 9999px; background: #0AC8B9; flex-shrink: 0; }
+    .act-filters { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+    .act-filter { padding: 4px 11px; cursor: pointer; background: transparent; border: 0; outline: 1px solid rgb(120 90 40 / 0.4);
+      outline-offset: -1px; color: #9f9b8d; font-family: Marcellus, Georgia, serif; font-size: 11.5px;
+      transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .act-filter:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.6); }
+    .act-filter.active { color: #0A0E13; background: #C8AA6E; outline-color: #C8AA6E; }
+    .act-body { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .act-empty { padding: 18px 16px; font-style: italic; color: #6f6a5d; font-size: 13px; }
+
+    .act-divider { display: flex; align-items: center; gap: 10px; padding: 11px 16px 6px; }
+    .act-divider .ad-line { flex: 1; height: 1px; background: linear-gradient(to right, transparent, rgb(120 90 40 / 0.5), transparent); }
+    .act-divider .ad-label { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #8a6f33; white-space: nowrap; }
+
+    .act-row { display: flex; align-items: flex-start; gap: 11px; padding: 7px 16px; }
+    .act-row:hover { background: rgb(200 170 110 / 0.05); }
+    .act-ico { width: 22px; height: 22px; flex-shrink: 0; display: grid; place-items: center; border-radius: 9999px;
+      outline: 1px solid currentColor; outline-offset: -1px; margin-top: 1px; }
+    .act-ico svg { width: 12px; height: 12px; }
+    .act-ico.info { color: #0AC8B9; }
+    .act-ico.success { color: #C8AA6E; }
+    .act-ico.warning { color: #C8983C; }
+    .act-ico.danger { color: #d56a60; }
+    .act-msg { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; color: #C9C2B0; word-break: break-word; }
+    .act-time { flex-shrink: 0; font-size: 11px; color: #6f6a5d; font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: 2px; }
+
+    /* Allowed-queue pills, a scalable wrap grid of toggle chips replacing the
+       old 2-col checkbox list. The checkbox is hidden; the chip lights gold when
+       checked. */
+    .queue-pills { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .qp { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 11px; cursor: pointer;
+      outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; background: rgb(1 10 19 / 0.35);
+      color: #A09B8C; font-size: 12.5px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
+    .qp input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .qp:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.5); }
+    .qp .qp-check { width: 15px; height: 15px; flex-shrink: 0; display: grid; place-items: center;
+      outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; color: transparent; transition: color .15s ease, background-color .15s ease; }
+    .qp .qp-check svg { width: 11px; height: 11px; }
+    /* Checked state via sibling combinators (robust); the chip-wide wash uses
+       :has() as a progressive enhancement on top. */
+    .qp input:checked ~ .qp-check { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .qp input:checked ~ .qp-name { color: #F0E6D2; }
+    .qp:has(input:checked) { background: rgb(200 170 110 / 0.12); outline-color: #C8AA6E; }
+    .qp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qp-rank { margin-left: auto; flex-shrink: 0; font-size: 8.5px; letter-spacing: .06em; font-weight: 700;
+      color: #C8AA6E; background: rgb(200 170 110 / 0.14); padding: 1px 4px; border-radius: 2px; }
+
+    /* Grouped, collapsible Allowed-Queues picker. */
+    .qsel-group { border-top: 1px solid rgb(120 90 40 / 0.18); }
+    .qsel-group:first-child { border-top: 0; }
+    .qsel-head { display: flex; align-items: center; gap: 6px; }
+    .qsel-toggle { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; padding: 9px 2px;
+      background: none; border: 0; cursor: pointer; color: #C8AA6E; font-size: 11px; font-weight: 600;
+      letter-spacing: .07em; text-transform: uppercase; }
+    .qsel-toggle:hover { color: #F0E6D2; }
+    .qsel-chev { display: inline-flex; width: 13px; height: 13px; transition: transform .2s ease; }
+    .qsel-chev svg { width: 100%; height: 100%; }
+    .qsel-group.collapsed .qsel-chev { transform: rotate(-90deg); }
+    .qsel-label { flex: 0 0 auto; }
+    .qsel-count { font-size: 10px; color: #7a6a44; background: rgb(120 90 40 / 0.18);
+      padding: 0 6px; border-radius: 8px; line-height: 16px; white-space: nowrap; }
+    /* Some of this group is selected — the collapsed row carries the state. */
+    .qsel-count.on { color: #0A0E13; background: #C8AA6E; font-weight: 700; }
+    .qsel-all { flex-shrink: 0; background: none; border: 0; cursor: pointer; color: #6c6556;
+      font-size: 10.5px; letter-spacing: .05em; padding: 4px 6px; transition: color .15s ease; }
+    .qsel-all:hover { color: #C8AA6E; }
+    .qsel-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .24s ease, opacity .18s ease;
+      opacity: 1; }
+    .qsel-group.collapsed .qsel-body { grid-template-rows: 0fr; opacity: 0; }
+    .qsel-body > .queue-pills { overflow: hidden; min-height: 0; padding-bottom: 10px; }
+
+/* === Phase 1: Champ Select page (tray + gate + ARAM mode cards) ========= */
+
+/* Live banner: a slim gold-washed strip while champ select is running. */
+.cs-banner { display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  background: linear-gradient(to right, rgb(200 170 110 / 0.12), transparent);
+  border-bottom: 1px solid rgb(120 90 40 / 0.35); }
+.cs-banner-text { font-family: Cinzel, Georgia, serif; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: #E2C887; }
+.cs-banner-btn { margin-left: auto; font-size: 12.5px; color: #0AC8B9;
+  cursor: pointer; letter-spacing: 0.02em; }
+.cs-banner-btn:hover { color: #5eead4; text-decoration: underline; }
+
+/* Per-tab gate enable control. */
+.gate-enable { display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 10px 22px; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+.gate-enable:hover { outline-color: #C8AA6E; }
+
+/* Plan tray. */
+.tray-rows { display: flex; align-items: flex-start; gap: 18px; }
+.tray-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.tray-grow { flex: 1 1 auto; }
+.tray-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px;
+  letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+.tray-label.ban { color: #c0584f; }
+.tray { display: flex; flex-wrap: wrap; gap: 9px; }
+.tray-slot { position: relative; width: 52px; height: 52px; flex: 0 0 auto;
+  outline: 2px solid #C8AA6E; outline-offset: -1px; cursor: pointer;
+  background: rgb(1 10 19 / 0.55); transition: transform .12s ease; }
+.tray-slot:hover { transform: scale(1.06); z-index: 2; }
+.tray-slot[draggable="true"] { cursor: grab; }
+.tray-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tray-slot.ban { outline-color: #c0584f; }
+.tray-slot.ban img { filter: saturate(0.55) brightness(0.8); }
+.tray-slot:hover .cell-x { opacity: 1; }
+.tray-slot.drag-src { opacity: 0.45; }
+.tray-slot .tray-initials { display: grid; place-items: center; width: 100%;
+  height: 100%; font-family: Cinzel, Georgia, serif; color: #C8AA6E; font-size: 14px; }
+.tray-slot.ghost { outline: 1.5px dashed rgb(120 90 40 / 0.7); display: grid;
+  place-items: center; color: #8b8674; font-size: 20px; background: transparent; }
+.tray-slot.ghost:hover { outline-color: #C8AA6E; color: #C8AA6E; }
+.tray-slot.ghost.ban { outline-color: rgb(192 88 79 / 0.55); }
+.tray-slot.ghost.ban:hover, .tray-slot.ghost.armed { outline-color: #c0584f;
+  outline-style: solid; color: #c0584f; background: rgb(192 88 79 / 0.12); }
+@keyframes tray-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.18); }
+  100% { transform: scale(1); } }
+.tray-slot.pulse { animation: tray-pulse 0.45s ease; z-index: 3; }
+.tray-caption { font-size: 12.5px; color: #9f9b8d; margin-top: 8px; line-height: 1.4; }
+
+/* Ban-armed catalog: the next click bans, so hovers ring red. */
+#champ-grid.ban-armed .grid-cell:hover { outline-color: #c0584f; }
+
+/* ARAM priority mode cards. */
+#aram-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 12px 16px 10px; border-bottom: 1px solid rgb(201 191 150 / 0.2); }
+.aram-mode-card { display: flex; flex-direction: column; gap: 3px; text-align: left;
+  padding: 8px 10px; cursor: pointer; background: rgb(1 10 19 / 0.35);
+  outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+  transition: outline-color .15s ease, background-color .15s ease; }
+.aram-mode-card:hover { outline-color: #C8AA6E; }
+.aram-mode-card.on { outline: 2px solid #C8AA6E; background: rgb(200 170 110 / 0.10); }
+.amc-name { font-family: Cinzel, Georgia, serif; font-size: 12px;
+  letter-spacing: 0.06em; color: #F0E6D2; }
+.aram-mode-card.on .amc-name { color: #E2C887; }
+.amc-cap { font-size: 11px; color: #9f9b8d; line-height: 1.35; }
+
+/* Match-behavior strip. */
+.behavior-row { display: flex; align-items: center; gap: 10px; }
+/* Same voice as .set-row-label on the cards — plain, light, readable. The
+   gold stays on section headers and active states, not on every label. */
+.behavior-label { font-size: 13px; color: #F0E6D2; line-height: 1.35; }
+.lock-delay { display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; color: #A09B8C; }
+
+/* Recommended-runes panel (collapsible). */
+.rune-panel { border-top: 1px solid rgb(201 191 150 / 0.15); padding-top: 6px; }
+.rune-summary { cursor: pointer; user-select: none; font-family: Cinzel, Georgia, serif;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8b8674; }
+.rune-summary:hover { color: #C8AA6E; }
+
+/* The ARAM priority list can hold 50+ champs - cap the tray so the catalog keeps room. */
+#pick-tray { max-height: 188px; overflow-y: auto; }
+
+
+/* Keep the remove X inside tray slots so the tray's scroll overflow can't clip it. */
+.tray-slot .cell-x { top: 1px; right: 1px; transform: none; }
+.tray-slot .cell-x:hover { transform: scale(1.15); }
+
+
+/* Ghost slots: calm hover (no scale - the lift felt broken on empty trays). */
+.tray-slot.ghost { transition: none; }
+.tray-slot.ghost:hover { transform: none; }
+/* Drop-target feedback while dragging over a tray. */
+.tray.drop-hover { outline: 1px dashed #C8AA6E; outline-offset: 3px; background: rgb(200 170 110 / 0.05); }
+.tray.bans.drop-hover { outline-color: #c0584f; background: rgb(192 88 79 / 0.06); }
+/* Catalog cells are drag sources too. */
+.grid-cell.drag-src { opacity: 0.45; }
+
+
+/* === Phase 1 fixes ======================================================== */
+
+/* .hidden must always win against the display rules above (hextech.css loads
+   after styles.css, so without these the banner/mode-cards never hid — the
+   "thin empty bar" under the role tabs was the empty #aram-modes padding). */
+.cs-banner.hidden,
+#aram-modes.hidden,
+.tray-rows.hidden,
+.lock-delay.hidden { display: none; }
+
+/* Fixed tray proportions: picks 2/3, bans 1/3 — no layout shift as lists grow. */
+.tray-col.tray-grow { flex: 2 1 0; min-width: 0; }
+#ban-tray-col { flex: 1 1 0; min-width: 0; }
+
+/* Calm tray hovers: scaling tiles inside a scrollable tray clipped at the
+   edges and read as jank. Hover = ignite the ring + brighten, no movement. */
+.tray-slot { transition: outline-color .12s ease; }
+.tray-slot:hover { transform: none; }
+.tray-slot:not(.ghost):not(.ban):hover { outline-color: #F0E6D2; }
+.tray-slot.ban:hover { outline-color: #e07a70; }
+.tray-slot:hover img { filter: brightness(1.15); }
+.tray-slot.ban:hover img { filter: saturate(0.55) brightness(1.0); }
+
+/* Fallback ranking chip row (under the tray). */
+.fallback-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.fallback-row .sort-seg { flex-wrap: wrap; }
+
+
+/* Compact tray header line: label + inline fallback dropdown. */
+.tray-head-row { display: flex; align-items: baseline; gap: 7px; min-height: 18px; }
+.fallback-mini { display: inline-flex; align-items: baseline; gap: 5px; font-size: 11.5px; color: #8b8674; }
+.fallback-select { font-size: 11.5px; padding: 1px 4px; color: #C8AA6E; }
+
+
+/* === Phase 1 polish: dropdown, cog panel, catalog fade =================== */
+
+/* Fallback dropdown: a real hextech control instead of the native select. */
+.fallback-select {
+  appearance: none; -webkit-appearance: none;
+  background: rgb(1 10 19 / 0.7)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C8AA6E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>")
+    no-repeat right 6px center / 9px;
+  padding: 2px 22px 2px 9px;
+  font-family: Marcellus, Georgia, serif; font-size: 12px; letter-spacing: 0.03em;
+  color: #C8AA6E; cursor: pointer;
+  outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px;
+  transition: color .15s ease, outline-color .15s ease;
+}
+.fallback-select:hover, .fallback-select:focus { color: #F0E6D2; outline-color: #C8AA6E; }
+.fallback-select option { background: #0A1428; color: #F0E6D2; }
+
+/* Match settings: cog summary + fold in/out animation. */
+.cs-set-summary { display: flex; align-items: center; gap: 8px; cursor: pointer;
+  user-select: none; list-style: none; font-family: Cinzel, Georgia, serif;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: #8b8674; transition: color .15s ease; }
+.cs-set-summary::-webkit-details-marker { display: none; }
+.cs-set-summary:hover { color: #C8AA6E; }
+.cs-cog { width: 15px; height: 15px; transition: transform .3s ease, color .15s ease; }
+#champ-settings[open] .cs-cog { transform: rotate(90deg); color: #C8AA6E; }
+#champ-settings[open] .cs-set-summary { color: #C8AA6E; }
+.cs-set-body { display: flex; flex-direction: column; gap: 13px;
+  padding: 14px 4px 8px; overflow: hidden; }
+#champ-settings[open] .cs-set-body { animation: cs-set-in .22s ease; }
+.cs-set-body.closing { animation: cs-set-out .16s ease forwards; }
+@keyframes cs-set-in { from { opacity: 0; transform: translateY(-7px); }
+  to { opacity: 1; transform: none; } }
+@keyframes cs-set-out { to { opacity: 0; transform: translateY(-7px); } }
+.rune-block { padding-top: 11px; }
+
+/* Catalog fades out at its bottom edge, above Match settings. */
+#champ-grid {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 2 ============================================== */
+
+/* Match settings: right-aligned cog control; JS height-tween owns the fold
+   (neutralize the old keyframe approach). */
+.cs-set-summary { justify-content: flex-end; padding: 2px 0; }
+#champ-settings[open] .cs-set-body { animation: none; }
+.cs-set-body.closing { animation: none; }
+
+/* Tray headers: equal fixed height so the picks and bans rows align even
+   though only the picks side carries the fallback dropdown. */
+.tray-head-row { height: 24px; align-items: center; }
+
+/* Planned champs keep (and brighten) their ring on hover — the base hover
+   rule let the scaled portrait swallow the 2px sel outline. */
+.grid-cell.sel:hover { outline: 2px solid #F0E6D2; outline-offset: -2px; }
+.grid-cell.sel.ban:hover { outline: 2px solid #e07a70; outline-offset: -2px; }
+
+/* Top fade joins the bottom fade only while scrolled. */
+#champ-grid.scrolled-top {
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent, black 30px, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom,
+    transparent, black 30px, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 3 ============================================== */
+
+/* Match settings becomes a popover anchored above the cog button: animating
+   an overlay never reflows the grid, so the fold is smooth. */
+#champ-settings { position: relative; overflow: visible; }
+.cs-set-summary { width: max-content; margin-left: auto; padding: 4px 12px;
+  outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
+  background: rgb(1 10 19 / 0.4); }
+.cs-set-summary:hover { outline-color: #C8AA6E; }
+/* One menu recipe app-wide: this is the PLAY dropdown's panel treatment
+   (same gradient, gold hairline, teal glow, corner accents) so the two
+   menus read as the same piece of furniture. */
+.cs-set-body {
+  position: absolute; right: 14px; bottom: calc(100% + 10px);
+  width: min(500px, calc(100vw - 56px));
+  padding: 18px 20px 16px; gap: 15px; z-index: 40;
+  background: linear-gradient(180deg, #04101d 0%, #010a13 60%);
+  outline: 1px solid rgb(200 170 110 / 0.45); outline-offset: -1px;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.8), 0 0 22px -10px rgba(10, 200, 185, 0.4);
+  overflow: visible;
+}
+.cs-set-body::before, .cs-set-body::after {
+  content: ""; position: absolute; width: 11px; height: 11px; pointer-events: none; z-index: 2;
+}
+.cs-set-body::before { top: 2px; left: 2px; border-top: 2px solid #C8AA6E; border-left: 2px solid #C8AA6E; }
+.cs-set-body::after  { bottom: 2px; right: 2px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
+#champ-settings[open] .cs-set-body { animation: none; }
+.rune-block { padding-top: 12px; }
+
+/* Selection ring as an overlay border: children can't paint over it, so the
+   ring survives hover/scale on every side. */
+.grid-cell.sel { outline: none; }
+.grid-cell.sel:hover { outline: none; }
+.grid-cell.sel.ban:hover { outline: none; }
+.grid-cell.sel::after { content: ""; position: absolute; inset: 0;
+  border: 2px solid #C8AA6E; pointer-events: none; z-index: 2; }
+.grid-cell.sel.ban::after { border-color: #c0584f; }
+.grid-cell.sel:hover::after { border-color: #F0E6D2; }
+.grid-cell.sel.ban:hover::after { border-color: #e07a70; }
+
+/* Top fade mirrors the bottom fade exactly. */
+#champ-grid.scrolled-top {
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent, black 34px, black calc(100% - 34px), transparent);
+  mask-image: linear-gradient(to bottom,
+    transparent, black 34px, black calc(100% - 34px), transparent);
+}
+
+/* === Phase 1 polish round 4 ============================================== */
+
+/* Keep the cog button (and its popover) clear of the window scrollbar. */
+.cs-set-summary { margin-right: 12px; }
+.cs-set-body { right: 26px; }
+
+/* Tray slots get the same overlay-border ring fix as the catalog: children
+   can't paint over ::after, so the ring survives hover on every side. The
+   ghost "+" keeps its dashed outline styling. */
+.tray-slot:not(.ghost) { outline: none; }
+.tray-slot:not(.ghost)::after { content: ""; position: absolute; inset: 0;
+  border: 2px solid #C8AA6E; pointer-events: none; z-index: 2; }
+.tray-slot.ban:not(.ghost)::after { border-color: #c0584f; }
+.tray-slot:not(.ghost):hover::after { border-color: #F0E6D2; }
+.tray-slot.ban:not(.ghost):hover::after { border-color: #e07a70; }
+
+/* Match-settings rows: label + control, with a one-line caption beneath. */
+.behavior-group { display: flex; flex-direction: column; gap: 5px; }
+.behavior-label { min-width: 122px; }
+.behavior-cap { font-size: 11.5px; color: #9f9b8d; line-height: 1.4; margin: 0; }
+
+/* Queue badges + compact rune status (Match settings). */
+.q-pill { display: inline-block; margin-left: 8px; padding: 1px 6px; font-family: Cinzel, Georgia, serif; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; outline: 1px solid rgb(120 90 40 / 0.55); outline-offset: -1px; vertical-align: 1px; }
+.q-pill.teal { color: #0AC8B9; outline-color: rgb(10 200 185 / 0.4); }
+.rune-status { font-size: 13px; }
+.rune-block { border-top: 1px solid rgb(201 191 150 / 0.12); padding-top: 13px; }
+
+
+/* Match-settings section headers (Draft & Ranked / ARAM / Any queue). */
+.cs-sec { font-family: Cinzel, Georgia, serif; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8b8674; border-bottom: 1px solid rgb(120 90 40 / 0.3); padding-bottom: 4px; margin-top: 2px; }
+.cs-sec:first-child { margin-top: 0; }
+.rune-block { border-top: 0; padding-top: 0; }
+
+
+/* Per-role default summoner spells (tray header). */
+.def-spells { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 11.5px; color: #8b8674; }
+.def-spell-slot { width: 22px; height: 22px; display: grid; place-items: center; cursor: pointer; color: #8b8674; font-size: 14px; outline: 1px dashed rgb(120 90 40 / 0.6); outline-offset: -1px; background: rgb(1 10 19 / 0.5); }
+.def-spell-slot:hover, .def-spell-slot.active { outline-color: #C8AA6E; color: #C8AA6E; }
+.def-spell-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.def-spell-slot:has(img) { outline-style: solid; }
+#tray-wrap { position: relative; }
+.def-spell-pop { position: absolute; right: 16px; top: 30px; z-index: 35; display: grid; grid-template-columns: repeat(6, 30px); gap: 5px; padding: 9px; background: rgb(2 13 23 / 0.98); outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px; box-shadow: 0 8px 22px rgb(0 0 0 / 0.6); }
+.def-spell-pop .lo-spell-opt { width: 30px; height: 30px; }
+.def-spell-pop .lo-spell-clear { grid-column: 1 / -1; }
+.def-spell-pop.hidden { display: none; }
+

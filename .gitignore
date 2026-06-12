@@ -30,3 +30,4 @@ node_modules/
 
 # Local Claude Code tooling (settings, worktrees) — not for the repo
 .claude/
+scripts/config_before.json

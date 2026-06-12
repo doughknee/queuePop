@@ -6,6 +6,7 @@ import time
 
 import config
 import events
+import stats
 
 # When instant-lock is off, the default number of seconds left in the pick
 # window at which we force a lock-in if the user hasn't done it manually.
@@ -55,9 +56,16 @@ ARAM_ROLE = "aram"
 # for config normalization and the get_roles() UI list. ROLES stays position-only.
 EDITOR_ROLES = ROLES + [ARAM_ROLE]
 
-# ARAM champ-priority modes (champ_select.aram.mode): what the subset pick,
-# bench grabs, and trades all chase.
-#   "list"      the hand-built Champ Select → ARAM list
+# Legacy ARAM champ-priority modes (champ_select.aram.mode), kept for configs
+# written before per-role fallback modes existed. "list" meant "use the
+# hand-built list"; the others overrode the list entirely.
+ARAM_MODES = ("list", "highest", "lowest", "random", "rusty", "milestone")
+
+# Per-role fallback modes (champ_select.roles.<role>.mode): every role's
+# priority order is its hand-built picks list FIRST, then — unless "off" —
+# every remaining champ ranked by the fallback mode. Drives the Rift pick
+# (when the whole list is banned/taken), trades, and the ARAM subset/bench.
+#   "off"       list only; nothing happens beyond the picks you listed
 #   "highest"   highest mastery first (the classic auto_mastery behavior)
 #   "lowest"    lowest mastery first, never-played champs at the very front,
 #               for players grinding new champs
@@ -66,7 +74,7 @@ EDITOR_ROLES = ROLES + [ARAM_ROLE]
 #               (you can't be rusty on a champ you never played)
 #   "milestone" closest to the next mastery level first, for progression
 #               grinders; banked level-ups (0 points needed) come first
-ARAM_MODES = ("list", "highest", "lowest", "random", "rusty", "milestone")
+ROLE_MODES = ("off", "highest", "lowest", "random", "rusty", "milestone")
 
 # Per-champ skin preference (loadout.skin):
 #   "off"            don't change the skin
@@ -127,10 +135,18 @@ class ChampSelect:
         self._trade_state = {}     # (kind, tradeId) -> 'accepted'|'notified'|'declined'
         self._trade_out = None     # our live outgoing request: {'id', 'cell'} or None
         self._trade_last = {}      # tradeId -> monotonic time of our last action (cooldown)
+        self._swap_state = {}      # (kind, swapId) -> 'accepted'|'notified'|'declined'
+        self._swap_out = None      # our live outgoing pick-order request: {'id', 'cell'}
+        self._swap_last = {}       # swapId -> monotonic time of our last action (cooldown)
+        self._pos_state = {}       # role swaps: same shape as _swap_state
+        self._pos_out = None
+        self._pos_last = {}
+        self._bench_seen = {}      # championId -> when it first became the bench target
         self._bench_target = None  # championId we last tried to grab off the bench
         self._mastery_rows = None  # championId -> mastery facts, cached per session
         self._mastery_ids = None  # championIds sorted by mastery (desc), cached per session
-        self._random_ids = None   # per-session shuffle for the "random" ARAM mode
+        self._random_ids = None   # per-session shuffle for the "random" fallback mode
+        self._pickable = None     # championIds we can actually pick, cached per session
         # monotonic time our pick turn was first detected (isInProgress). The
         # client's phase timer runs ahead of the per-pick sub-timer, so we anchor
         # our lock countdown to detection and assume a ~30s pick window instead.
@@ -250,10 +266,18 @@ class ChampSelect:
         self._trade_state = {}
         self._trade_out = None
         self._trade_last = {}
+        self._swap_state = {}
+        self._swap_out = None
+        self._swap_last = {}
+        self._pos_state = {}
+        self._pos_out = None
+        self._pos_last = {}
+        self._bench_seen = {}
         self._bench_target = None
         self._mastery_rows = None
         self._mastery_ids = None
         self._random_ids = None
+        self._pickable = None
         self._pick_open = None
         # action_id -> ('hover'|'locked', championId) so we don't spam the API
         action_state = {}
@@ -359,18 +383,23 @@ class ChampSelect:
             self._log(f"phase={phase} pos={position} ban={_brief(my_ban)} "
                       f"pick={_brief(my_pick)} unavailable={sorted(unavailable)}")
 
-        # The champ-priority order driving the ARAM subset pick, trades, and
-        # the bench, as resolved championIds. In ARAM the priority mode picks
-        # the ranking (hand list, highest/lowest mastery, or random); on the
-        # Rift it's always the assigned role's picks list. Computed before the
-        # pick logic because ARAM's subset pick needs it (on the Rift this is
-        # list-only, no LCU call, so it can't delay picks).
+        # The champ-priority order driving picks, trades, and the ARAM
+        # subset/bench, as resolved championIds: the role's hand-built list
+        # first, then (unless the role's fallback mode is "off") every
+        # remaining champ ranked by that mode. Computed before the pick logic
+        # because the picks need it (with fallback off this is list-only — no
+        # LCU call — so it can't delay a Rift lock).
         aram_toggle = cs.get('aram') or {}
         aram_on = is_aram and bool(aram_toggle.get('enabled')
                                    or aram_toggle.get('auto_mastery'))
-        aram_mode = self._aram_mode(aram_toggle)
-        if aram_on and aram_mode != 'list':
-            pri = await self._aram_priority(connection, aram_mode, active_picks)
+        # In ARAM the role's "bans" double as the avoid list: champs queuePop
+        # must never pick, bench-grab, or trade toward.
+        aram_avoid = set(self._priority_ids(aram_cfg.get('bans'))) if is_aram else set()
+        if is_aram:
+            pri = await self._combined_priority(connection, aram_cfg, aram_toggle,
+                                                avoid=aram_avoid)
+        elif role_cfg:
+            pri = await self._combined_priority(connection, role_cfg)
         else:
             pri = self._priority_ids(active_picks)
 
@@ -389,9 +418,12 @@ class ChampSelect:
 
             # --- Pick: declare intent early; on our turn lock instantly (default)
             # or hold the hover and lock `lock_in_at_seconds` before the buzzer on
-            # our client-synced local countdown. ---
+            # our client-synced local countdown. `pri` is the listed picks plus
+            # the fallback-mode ranking, so when the whole list is banned/taken
+            # the fallback (if on) still finds a champ — filtered to champs we
+            # can actually pick, so it never hovers something unowned. ---
             if my_pick is not None:
-                chosen = self._select(role_cfg.get('picks', []), unavailable)
+                chosen = await self._pick_candidate(connection, pri, unavailable)
                 if chosen:
                     if my_pick.get('isInProgress'):
                         if self._pick_open is None:
@@ -403,7 +435,7 @@ class ChampSelect:
                                       f"(+{time.monotonic() - self._pick_open:.2f}s)")
                         await self._commit(connection, my_pick, chosen, 'pick',
                                            action_state, lock=lock)
-                    else:
+                    elif cs.get('show_intent', True):
                         await self._commit(connection, my_pick, chosen, 'pick',
                                            action_state, lock=False, intent=True)
         elif (aram_on and my_pick is not None and phase == 'BAN_PICK'
@@ -415,6 +447,9 @@ class ChampSelect:
             # returns 204 but is silently ignored, which is why this looked
             # impossible before. Hover-then-lock the best offered champ.
             subset = await self._subset_champions(connection)
+            # Never pick from the avoid list; if everything offered is avoided,
+            # let the client random-assign and the bench logic dig us out.
+            subset = [c for c in subset if c not in aram_avoid]
             if subset:
                 chosen = await self._best_subset_pick(connection, subset, pri)
                 if chosen:
@@ -441,6 +476,22 @@ class ChampSelect:
         if aram_on:
             swapped = await self._handle_bench(connection, session, local_cell, pri)
 
+        # --- Pick position: trade pick order toward the best-ranked spot on
+        # the priority line we can still get, while the draft is in its
+        # planning/ban window (Rift only). ---
+        spot_prio = self._prio_list(cs, 'spot_priority', 'pick_spot',
+                                    ('1', '2', '3', '4', '5'))
+        if not is_aram and spot_prio and phase in ('PLANNING', 'BAN_PICK'):
+            await self._handle_pick_order(connection, session, local_cell,
+                                          [int(s) for s in spot_prio])
+
+        # --- Preferred roles: trade assigned positions up the priority line
+        # (Rift only, matters when autofilled away from it). ---
+        role_prio = self._prio_list(cs, 'role_priority', 'preferred_role', ROLES)
+        if not is_aram and role_prio and phase in ('PLANNING', 'BAN_PICK'):
+            await self._handle_position_swap(connection, session, local_cell,
+                                             role_prio)
+
         # --- Trades: request/accept/cancel toward upgrades (Rift or ARAM).
         # Skipped on a swap tick: the session snapshot still shows our old
         # champ, so any trade decision would be made against stale data. ---
@@ -450,8 +501,11 @@ class ChampSelect:
         # --- Cosmetics, driven by the per-(role, champ) loadout. ---
         loadout = self._loadout(cs, role_key, my_champ)
 
-        # --- Summoner spells: set once per champ from its loadout. ---
+        # --- Summoner spells: the champ's loadout pair, else the role's
+        # default pair (set once per champ either way). ---
         spells = (loadout.get('spells') or [])[:2]
+        if len(spells) < 2 and role_key:
+            spells = ((roles_cfg.get(role_key) or {}).get('default_spells') or [])[:2]
         if my_champ and self._spells_for != my_champ and len(spells) >= 2:
             self._spells_for = my_champ
             await self._apply_spells(connection, spells)
@@ -461,8 +515,11 @@ class ChampSelect:
         # --- Runes: a specific saved page selects on hover; the client's
         # recommended page is fetched once LOCKED, with a bounded retry because
         # /recommended-pages 404s for a beat right after lock before the client
-        # computes it. ---
+        # computes it. With the global auto_runes default on, champs without a
+        # rune in their loadout get the recommended page too. ---
         rune = loadout.get('rune', 'off')
+        if rune == 'off' and cs.get('auto_runes'):
+            rune = 'recommended'
         if rune == 'recommended':
             if locked_champ and self._runes_for != locked_champ:
                 if self._rune_try_for != locked_champ:
@@ -537,6 +594,8 @@ class ChampSelect:
             config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
             events.push(f"Locked {kind}: {display}", "success", kind="champ")
             self._log(f"LOCK {kind}: {display} (action {action_id}) -> ok={ok}")
+            if ok:
+                stats.inc("picks_locked" if kind == "pick" else "bans_locked")
 
     async def _patch(self, connection, action_id, champion_id, complete):
         """PATCH a champ-select action. Returns True on success, False otherwise."""
@@ -841,19 +900,39 @@ class ChampSelect:
             self._mastery_ids = sorted(pts, key=pts.get, reverse=True)
         return self._mastery_ids
 
-    def _aram_mode(self, aram_toggle):
-        """The active ARAM priority mode, honoring the legacy auto_mastery
-        flag from configs written before `mode` existed."""
-        mode = aram_toggle.get('mode')
-        if mode not in ARAM_MODES:
-            mode = 'highest' if aram_toggle.get('auto_mastery') else 'list'
-        return mode
+    def _role_mode(self, role_cfg, legacy_aram=None):
+        """A role's fallback mode, honoring the legacy aram.mode/auto_mastery
+        keys from configs written before per-role modes existed."""
+        mode = (role_cfg or {}).get('mode')
+        if mode in ROLE_MODES:
+            return mode
+        if legacy_aram is not None:
+            legacy = legacy_aram.get('mode')
+            if legacy in ARAM_MODES and legacy != 'list':
+                return legacy
+            if legacy_aram.get('auto_mastery'):
+                return 'highest'
+        return 'off'
 
-    async def _aram_priority(self, connection, mode, active_picks):
-        """The resolved championId priority order for an ARAM mode (see
-        ARAM_MODES). 'lowest' covers every known champ with never-played ones
-        first; 'random' shuffles once per session so the subset pick, bench,
-        and trades all chase the same surprise target."""
+    async def _combined_priority(self, connection, role_cfg, legacy_aram=None,
+                                 avoid=None):
+        """A role's full championId priority order: the hand-built picks list
+        first, then — unless the fallback mode is off — every remaining champ
+        ranked by that mode. `avoid` champs (the ARAM never-play list) are
+        excluded entirely, so no consumer ever reaches for them."""
+        ids = self._priority_ids((role_cfg or {}).get('picks'))
+        mode = self._role_mode(role_cfg, legacy_aram)
+        if mode != 'off':
+            ranked = await self._mode_ranked(connection, mode)
+            ids = ids + [c for c in ranked if c not in ids]
+        if avoid:
+            ids = [c for c in ids if c not in avoid]
+        return ids
+
+    async def _mode_ranked(self, connection, mode):
+        """All champs ranked by a fallback mode (see ROLE_MODES). 'lowest'
+        covers every known champ with never-played ones first; 'random'
+        shuffles once per session so every consumer chases the same order."""
         if mode == 'highest':
             return await self._mastery_ranked(connection)
         if mode == 'lowest':
@@ -885,7 +964,44 @@ class ChampSelect:
             # first, so deep mains edge out fresh picks at equal distance.
             return sorted(rows, key=lambda c: (max(0, rows[c]['until_next']),
                                                -rows[c]['points']))
-        return self._priority_ids(active_picks)
+        return []
+
+    async def _pickable_ids(self, connection):
+        """championIds we're allowed to pick this champ select (owned + free
+        rotation), cached per session. Empty set while unknown — callers treat
+        that as 'no filter' so a failed fetch never blocks the listed picks."""
+        if self._pickable is not None:
+            return self._pickable
+        try:
+            resp = await connection.request(
+                'get', '/lol-champ-select/v1/pickable-champion-ids'
+            )
+        except Exception as e:
+            self._log(f"pickable fetch raised: {e!r}")
+            return set()
+        if resp.status != 200:
+            return set()  # leave cache unset so we retry next poll
+        try:
+            data = await resp.json()
+        except Exception:
+            return set()
+        self._pickable = set(data) if isinstance(data, list) else set()
+        return self._pickable
+
+    async def _pick_candidate(self, connection, pri, unavailable):
+        """The first champ in priority order that's still available and
+        actually pickable (the fallback ranking includes champs the player
+        may not own; hovering one would silently no-op)."""
+        if not pri:
+            return None
+        pickable = await self._pickable_ids(connection)
+        for cid in pri:
+            if cid in unavailable:
+                continue
+            if pickable and cid not in pickable:
+                continue
+            return cid
+        return None
 
     # --- ARAM subset pick ----------------------------------------------
 
@@ -970,6 +1086,7 @@ class ChampSelect:
                     if ok:
                         config.console.print(f"[success]🔁 Accepted trade for {their_name}[/]")
                         events.push(f"Accepted trade for {their_name}", "success", kind="trade")
+                        stats.inc("trades")
                     else:
                         events.push(f"Trade accept failed for {their_name}", "warning", kind="trade")
                     self._log(f"trade {tid} accept -> {their_name} ok={ok}")
@@ -1058,6 +1175,294 @@ class ChampSelect:
                 return False
         return False
 
+    # --- Pick-order swaps -------------------------------------------------
+
+    _ORDINAL = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th"}
+
+    @staticmethod
+    def _prio_list(cs, key, legacy_key, valid):
+        """Ranked preference list for a swap feature (best first). Reads the
+        priority-line key when present, else migrates the pre-priority
+        single-choice key to a one-item list. [] = feature off."""
+        out = []
+        for v in cs.get(key) or []:
+            v = str(v)
+            if v in valid and v not in out:
+                out.append(v)
+        if out:
+            return out
+        legacy = str(cs.get(legacy_key, 'off'))
+        return [legacy] if legacy in valid else []
+
+    def _pick_positions(self, session, my_team):
+        """cellId -> pick position (1..5) for our team, derived from the order
+        of pick actions in the session."""
+        team_cells = {p.get('cellId') for p in my_team}
+        order = []
+        for round_actions in session.get('actions', []) or []:
+            for a in round_actions:
+                if a.get('type') == 'pick' and a.get('actorCellId') in team_cells:
+                    c = a.get('actorCellId')
+                    if c not in order:
+                        order.append(c)
+        return {c: i + 1 for i, c in enumerate(order)}
+
+    async def _handle_pick_order(self, session_conn, session, local_cell, wants):
+        """Trade pick order toward the best spot on the priority line (`wants`,
+        1..5 best-first) we can still get. Reconciled like champ trades: ONE
+        live outgoing request, aimed at the highest-ranked improvement whose
+        holder hasn't declined — a decline drops to the next spot on the list.
+        Incoming swaps are accepted only when they move us UP the list."""
+        connection = session_conn
+        my_team = session.get('myTeam', []) or []
+        positions = self._pick_positions(session, my_team)
+        my_pos = positions.get(local_cell)
+        if not my_pos:
+            return
+        swaps = session.get('pickOrderSwaps') or []
+
+        def rank(pos):  # index on the priority line; unlisted ranks last
+            try:
+                return wants.index(pos)
+            except ValueError:
+                return len(wants)
+
+        my_rank = rank(my_pos)
+
+        # Incoming offers: accept only if the other player's spot ranks higher
+        # on our line than ours does; otherwise just surface it once.
+        for s in swaps:
+            if s.get('state') != 'RECEIVED':
+                continue
+            sid = s.get('id')
+            their_pos = positions.get(s.get('cellId'))
+            if their_pos and rank(their_pos) < my_rank:
+                if self._swap_state.get(('recv', sid)) != 'accepted':
+                    self._swap_state[('recv', sid)] = 'accepted'
+                    ok = await self._post_pick_swap(connection, sid, 'accept')
+                    label = self._ORDINAL.get(their_pos, their_pos)
+                    if ok:
+                        config.console.print(f"[success]🔃 Accepted pick swap → {label} pick[/]")
+                        events.push(f"Accepted pick-order swap — now picking {label}",
+                                    "success", kind="pick_swap")
+                    else:
+                        events.push("Pick-order swap accept failed", "warning", kind="pick_swap")
+                    self._log(f"pick swap {sid} accept (pos {their_pos}) ok={ok}")
+            elif self._swap_state.get(('recv', sid)) != 'notified':
+                self._swap_state[('recv', sid)] = 'notified'
+                events.push("Pick-order swap requested by a teammate", "info", kind="pick_swap")
+                self._log(f"pick swap {sid} received (pos {their_pos}, not higher-ranked)")
+
+        now = time.monotonic()
+
+        # Resolve our outstanding request first so a fresh DECLINED is known
+        # before this tick's target is chosen (a decline falls down the line).
+        out = self._swap_out
+        if out:
+            s = next((x for x in swaps if x.get('id') == out['id']), None)
+            state = (s or {}).get('state')
+            if state == 'DECLINED':
+                self._swap_state[('req', out['id'])] = 'declined'
+            if state not in ('SENT', 'BUSY'):
+                self._swap_out = None
+
+        # Best improvement still worth asking for: walk the line above our
+        # current rank; skip spots whose holder declined or is cooling down.
+        target = None  # (cell, swap id)
+        for want in wants[:my_rank]:
+            cell = next((c for c, p in positions.items()
+                         if p == want and c != local_cell), None)
+            if cell is None:
+                continue
+            s = next((x for x in swaps if x.get('cellId') == cell), None)
+            if not s:
+                continue
+            sid = s.get('id')
+            if self._swap_state.get(('req', sid)) == 'declined':
+                continue
+            if self._swap_out and self._swap_out['id'] == sid:
+                target = (cell, sid)  # the pending request is still our best ask
+                break
+            if s.get('state') != 'AVAILABLE':
+                continue
+            if now - self._swap_last.get(sid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
+                continue
+            target = (cell, sid)
+            break
+
+        out = self._swap_out
+        if out:
+            # Cancel a live request that's no longer the best ask (we moved up,
+            # its holder changed, or a higher-ranked spot freed up).
+            if target is None or out['id'] != target[1]:
+                ok = await self._post_pick_swap(connection, out['id'], 'cancel')
+                events.push("Cancelled pick-order swap request", "info", kind="pick_swap")
+                self._log(f"pick swap {out['id']} cancel ok={ok}")
+                self._swap_last[out['id']] = now
+                self._swap_out = None
+            return  # one swap action per tick keeps the reconcile simple
+
+        if target is None:
+            return
+        best_cell, sid = target
+        want = positions.get(best_cell)
+        self._swap_last[sid] = now
+        ok = await self._post_pick_swap(connection, sid, 'request')
+        label = self._ORDINAL.get(want, want)
+        if ok:
+            self._swap_out = {'id': sid, 'cell': best_cell}
+            config.console.print(f"[info]🔃 Requesting the {label} pick[/]")
+            events.push(f"Requesting a pick-order swap for the {label} pick",
+                        "info", kind="pick_swap")
+        else:
+            events.push("Pick-order swap request failed", "warning", kind="pick_swap")
+        self._log(f"pick swap {sid} request (want {want}, holder cell {best_cell}) ok={ok}")
+
+    async def _post_pick_swap(self, connection, swap_id, action):
+        """POST a pick-order-swap action (request/accept/decline/cancel)."""
+        try:
+            resp = await connection.request(
+                'post',
+                f'/lol-champ-select/v1/session/pick-order-swaps/{swap_id}/{action}'
+            )
+        except Exception as e:
+            self._log(f"pick swap {swap_id} {action} raised: {e!r}")
+            return False
+        if resp.status >= 400:
+            self._log(f"pick swap {swap_id} {action} -> HTTP {resp.status}")
+            return False
+        return True
+
+    # --- Position (role) swaps ------------------------------------------
+
+    async def _handle_position_swap(self, connection, session, local_cell, wants):
+        """Trade assigned roles toward the best role on the priority line
+        (`wants`, best first). Reconciled exactly like pick-order swaps: one
+        live request at the highest-ranked improvement's holder, a decline
+        drops to the next role on the list, incoming offers accepted only when
+        they move us up it, declines never re-asked."""
+        my_team = session.get('myTeam', []) or []
+        pos_of = {}
+        my_pos = ''
+        for p in my_team:
+            pos = (p.get('assignedPosition') or '').lower()
+            pos_of[p.get('cellId')] = pos
+            if p.get('cellId') == local_cell:
+                my_pos = pos
+        if not my_pos:
+            return  # no assigned roles in this queue
+        swaps = session.get('positionSwaps') or []
+
+        def rank(pos):  # index on the priority line; unlisted ranks last
+            try:
+                return wants.index(pos)
+            except ValueError:
+                return len(wants)
+
+        my_rank = rank(my_pos)
+
+        # Incoming offers: accept only one that moves us up the line.
+        for s in swaps:
+            if s.get('state') != 'RECEIVED':
+                continue
+            sid = s.get('id')
+            their_pos = pos_of.get(s.get('cellId'))
+            if their_pos and rank(their_pos) < my_rank:
+                if self._pos_state.get(('recv', sid)) != 'accepted':
+                    self._pos_state[('recv', sid)] = 'accepted'
+                    ok = await self._post_position_swap(connection, sid, 'accept')
+                    label = ROLE_LABELS.get(their_pos, their_pos)
+                    if ok:
+                        config.console.print(f"[success]🔄 Accepted role swap → {label}[/]")
+                        events.push(f"Accepted role swap — now playing {label}",
+                                    "success", kind="role_swap")
+                    else:
+                        events.push("Role swap accept failed", "warning", kind="role_swap")
+                    self._log(f"position swap {sid} accept ({their_pos}) ok={ok}")
+            elif self._pos_state.get(('recv', sid)) != 'notified':
+                self._pos_state[('recv', sid)] = 'notified'
+                events.push("Role swap requested by a teammate", "info", kind="role_swap")
+                self._log(f"position swap {sid} received ({their_pos}, not higher-ranked)")
+
+        now = time.monotonic()
+
+        # Resolve our outstanding request first so a fresh DECLINED is known
+        # before this tick's target is chosen (a decline falls down the line).
+        out = self._pos_out
+        if out:
+            s = next((x for x in swaps if x.get('id') == out['id']), None)
+            state = (s or {}).get('state')
+            if state == 'DECLINED':
+                self._pos_state[('req', out['id'])] = 'declined'
+            if state not in ('SENT', 'BUSY'):
+                self._pos_out = None
+
+        # Best improvement still worth asking for: walk the line above our
+        # current rank; skip roles whose holder declined or is cooling down.
+        target = None  # (cell, swap id)
+        for want in wants[:my_rank]:
+            cell = next((c for c, p in pos_of.items()
+                         if p == want and c != local_cell), None)
+            if cell is None:
+                continue
+            s = next((x for x in swaps if x.get('cellId') == cell), None)
+            if not s:
+                continue
+            sid = s.get('id')
+            if self._pos_state.get(('req', sid)) == 'declined':
+                continue
+            if self._pos_out and self._pos_out['id'] == sid:
+                target = (cell, sid)  # the pending request is still our best ask
+                break
+            if s.get('state') != 'AVAILABLE':
+                continue
+            if now - self._pos_last.get(sid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
+                continue
+            target = (cell, sid)
+            break
+
+        out = self._pos_out
+        if out:
+            # Cancel a live request that's no longer the best ask (we moved up,
+            # its holder changed, or a higher-ranked role freed up).
+            if target is None or out['id'] != target[1]:
+                ok = await self._post_position_swap(connection, out['id'], 'cancel')
+                events.push("Cancelled role swap request", "info", kind="role_swap")
+                self._log(f"position swap {out['id']} cancel ok={ok}")
+                self._pos_last[out['id']] = now
+                self._pos_out = None
+            return  # one swap action per tick keeps the reconcile simple
+
+        if target is None:
+            return
+        best_cell, sid = target
+        want = pos_of.get(best_cell)
+        self._pos_last[sid] = now
+        ok = await self._post_position_swap(connection, sid, 'request')
+        label = ROLE_LABELS.get(want, want)
+        if ok:
+            self._pos_out = {'id': sid, 'cell': best_cell}
+            config.console.print(f"[info]🔄 Requesting a role swap → {label}[/]")
+            events.push(f"Requesting a role swap for {label}", "info", kind="role_swap")
+        else:
+            events.push("Role swap request failed", "warning", kind="role_swap")
+        self._log(f"position swap {sid} request (want {want}, holder {best_cell}) ok={ok}")
+
+    async def _post_position_swap(self, connection, swap_id, action):
+        """POST a position-swap action (request/accept/decline/cancel)."""
+        try:
+            resp = await connection.request(
+                'post',
+                f'/lol-champ-select/v1/session/position-swaps/{swap_id}/{action}'
+            )
+        except Exception as e:
+            self._log(f"position swap {swap_id} {action} raised: {e!r}")
+            return False
+        if resp.status >= 400:
+            self._log(f"position swap {swap_id} {action} -> HTTP {resp.status}")
+            return False
+        return True
+
     # --- ARAM bench ----------------------------------------------------
 
     async def _handle_bench(self, connection, session, local_cell, pri):
@@ -1096,6 +1501,19 @@ class ChampSelect:
         if best is None or self._bench_target == best:
             return False
 
+        # Courtesy window: let an upgrade sit on the bench `bench_delay`
+        # seconds before grabbing it, so teammates get a look-in.
+        try:
+            delay = float(((self._settings().get('aram') or {})
+                           .get('bench_delay')) or 0)
+        except (TypeError, ValueError):
+            delay = 0.0
+        if delay > 0:
+            now = time.monotonic()
+            first = self._bench_seen.setdefault(best, now)
+            if now - first < delay:
+                return False
+
         # Set the guard before the request so a rejected swap (cooldown) doesn't
         # re-fire every poll; it clears naturally when a better target appears.
         self._bench_target = best
@@ -1111,6 +1529,7 @@ class ChampSelect:
             config.console.print(f"[success]🔀 Grabbed {name} off the bench[/]")
             events.push(f"Grabbed {name} off the bench", "success", kind="bench_swap")
             self._log(f"bench swap -> {name} ({best})")
+            stats.inc("bench_grabs")
             return True
         self._log(f"bench swap {best} -> HTTP {resp.status}")
         return False

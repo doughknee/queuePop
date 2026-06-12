@@ -94,7 +94,9 @@ jobs:
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: queuePop v${{ steps.ver.outputs.version }}
-          generate_release_notes: true
+          # Curated, player-facing notes — RELEASE_NOTES.md is rewritten each
+          # release and doubles as the in-app Release Notes content.
+          body_path: RELEASE_NOTES.md
           files: |
             releases/queuePop-v${{ steps.ver.outputs.version }}-setup.exe
             releases/queuePop-v${{ steps.ver.outputs.version }}-portable.zip

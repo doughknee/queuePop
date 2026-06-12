@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 from urllib.parse import quote
 
 import config
@@ -20,8 +21,12 @@ import champ_select
 import companion
 import events
 import updater
-from notifications import send_discord_test
+import notifications
+from notifications import send_discord_test, send_desktop_event
+import stats
 from _version import __version__
+
+_START_TS = time.time()  # app start, for the About diagnostics uptime
 
 
 # Sections in the PLAY dropdown, in display order. The "favorites" section is
@@ -312,41 +317,93 @@ def _clean_loadouts(val):
 def _normalize_champ_select(cs):
     cs = cs or {}
     roles_in = cs.get("roles", {}) or {}
+    aram_in = cs.get("aram", {}) or {}
     roles = {}
     for role in champ_select.EDITOR_ROLES:
         rc = roles_in.get(role, {}) or {}
+        mode = rc.get("mode")
+        if mode not in champ_select.ROLE_MODES:
+            mode = None
+        if role == champ_select.ARAM_ROLE and mode is None:
+            # Import the pre-fallback ARAM mode keys (aram.mode/auto_mastery).
+            legacy = aram_in.get("mode")
+            if legacy in champ_select.ARAM_MODES and legacy != "list":
+                mode = legacy
+            elif aram_in.get("auto_mastery"):
+                mode = "highest"
+        spells = []
+        for s in (rc.get("default_spells") or [])[:2]:
+            try:
+                s = int(s)
+            except (TypeError, ValueError):
+                continue
+            if s in champ_select.SPELL_IDS and s not in spells:
+                spells.append(s)
         roles[role] = {
             "bans": _text_to_list(rc.get("bans")),
             "picks": _text_to_list(rc.get("picks")),
             "loadouts": _clean_loadouts(rc.get("loadouts")),
+            "mode": mode or "off",
+            "default_spells": spells if len(spells) == 2 else [],
         }
     try:
         lock = int(cs.get("lock_in_at_seconds", champ_select.DEFAULT_LOCK_SECONDS))
     except (TypeError, ValueError):
         lock = champ_select.DEFAULT_LOCK_SECONDS
+    pick_spot = str(cs.get("pick_spot", "off"))
+    if pick_spot not in ("off", "1", "2", "3", "4", "5"):
+        pick_spot = "off"
+    preferred = str(cs.get("preferred_role", "off"))
+    if preferred not in ("off",) + tuple(champ_select.ROLES):
+        preferred = "off"
+
+    # Priority lines (additive keys, 2026-06): ranked preference lists for the
+    # role/pick-order swaps. A config from before the lists existed migrates
+    # its single choice to a one-item list; the legacy keys mirror the #1 pick
+    # so older builds keep reading this config sensibly.
+    def _prio(key, valid, legacy):
+        out = []
+        for v in cs.get(key) or []:
+            v = str(v)
+            if v in valid and v not in out:
+                out.append(v)
+        if not out and legacy != "off" and key not in cs:
+            out = [legacy]
+        return out
+
+    spot_priority = _prio("spot_priority", {"1", "2", "3", "4", "5"}, pick_spot)
+    role_priority = _prio("role_priority", set(champ_select.ROLES), preferred)
     return {
         "enabled": bool(cs.get("enabled", False)),
         "instant_lock": bool(cs.get("instant_lock", True)),
         "lock_in_at_seconds": max(0, lock),
+        "pick_spot": spot_priority[0] if spot_priority else "off",
+        "preferred_role": role_priority[0] if role_priority else "off",
+        "spot_priority": spot_priority,
+        "role_priority": role_priority,
+        "show_intent": bool(cs.get("show_intent", True)),
+        "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
         "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
-        "aram": _normalize_aram(cs.get("aram")),
+        "aram": _normalize_aram(aram_in, roles[champ_select.ARAM_ROLE]["mode"]),
     }
 
 
-def _normalize_aram(aram):
-    """ARAM settings with the priority `mode`, honoring the legacy
-    auto_mastery flag from configs written before modes existed (and writing
-    it back in sync so an older build still reads something sane)."""
+def _normalize_aram(aram, aram_role_mode):
+    """The ARAM block: `enabled` gates the automation; mode/auto_mastery are
+    legacy mirrors of roles.aram.mode, kept in sync so a pre-fallback build
+    still reads this config sensibly."""
     aram = aram or {}
-    mode = aram.get("mode")
-    if mode not in champ_select.ARAM_MODES:
-        mode = "highest" if aram.get("auto_mastery") else "list"
     enabled = bool(aram.get("enabled", False) or aram.get("auto_mastery", False))
+    try:
+        delay = min(5.0, max(0.0, float(aram.get("bench_delay", 0) or 0)))
+    except (TypeError, ValueError):
+        delay = 0.0
     return {
         "enabled": enabled,
-        "mode": mode,
-        "auto_mastery": enabled and mode == "highest",
+        "mode": "list" if aram_role_mode == "off" else aram_role_mode,
+        "auto_mastery": enabled and aram_role_mode == "highest",
+        "bench_delay": delay,
     }
 
 
@@ -403,13 +460,36 @@ def _coerce_queue_id(value):
         return None
 
 
+def _accept_delay(v):
+    """Clamp the accept grace window to a whole 0..10 seconds."""
+    try:
+        return int(min(10, max(0, float(v or 0))))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _normalize_config(data):
     data = data or {}
     return {
         "webhook_url": (data.get("webhook_url") or "").strip(),
         "user_id": (data.get("user_id") or "").strip(),
+        # Additive key (2026-06): configs that predate the toggle treated a set
+        # webhook as "enabled", so that's the default for them.
+        "discord_enabled": bool(
+            data.get("discord_enabled", bool((data.get("webhook_url") or "").strip()))
+        ),
         "desktop_notifications": bool(data.get("desktop_notifications", True)),
+        # Additive key (2026-06): which events fan out to desktop + Discord.
+        # Queue pop defaults on (it's the product); the rest default off. The
+        # phone companion alarms on queue pops only, by design.
+        "alert_events": {
+            k: bool((data.get("alert_events") or {}).get(k, k == "queue_pop"))
+            for k in ("queue_pop", "champ_select", "game_start", "disconnect")
+        },
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
+        # Additive key (2026-06): 0 = accept instantly, else wait this many
+        # seconds first (clamped; the ready check itself only lasts ~12s).
+        "accept_delay_seconds": _accept_delay(data.get("accept_delay_seconds")),
         # Order matters here, it's the display order of pinned queues.
         "favorite_queue_ids": _clean_queue_ids(
             data.get("favorite_queue_ids"), keep_order=True
@@ -465,6 +545,8 @@ class Api:
             "companion_enabled": bool((cfg.get("companion", {}) or {}).get("enabled")),
             "companion_running": companion.is_running(),
             "companion_clients": companion.client_count(),
+            # channel -> {ts, what}: the Alerts page's "last sent" lines.
+            "alert_last": dict(notifications.last_sent),
             "version": __version__,
         }
 
@@ -886,9 +968,15 @@ class Api:
         return updater.status()
 
     def check_for_update(self):
-        """Force a fresh GitHub check (the Settings 'Check for updates' button).
+        """Force a fresh GitHub check (the About 'Check for updates' button).
         Bounded by the request timeout, so it's safe to await from JS."""
         return updater.check(force=True)
+
+    def get_release_notes(self):
+        """The last few GitHub releases for the About page's Release Notes
+        card. Cached in updater; [] when offline. Bounded by the request
+        timeout, so it's safe to await from JS."""
+        return {"releases": updater.release_notes()}
 
     # --- Mutations ------------------------------------------------------
 
@@ -940,6 +1028,32 @@ class Api:
             "warning" if self._lcu.paused else "success",
         )
         return self._lcu.paused
+
+    def test_desktop(self):
+        """Send a test Windows notification (the Alerts page's Desktop card)."""
+        ok = send_desktop_event("queuePop test",
+                                "Desktop notifications are working.",
+                                what="Test message")
+        if ok:
+            events.push("Desktop test notification sent", "success")
+        return {"ok": ok, "error": None if ok else "Couldn't show a notification"}
+
+    def get_stats(self):
+        """Lifetime service-record counters + app diagnostics for About."""
+        return {
+            "stats": stats.snapshot(),
+            "uptime_seconds": int(time.time() - _START_TS),
+            "config_dir": os.path.dirname(config.CONFIG_FILE),
+            "frozen": bool(getattr(sys, "frozen", False)),
+        }
+
+    def open_config_folder(self):
+        """Open the config/log folder in Explorer (About's diagnostics row)."""
+        try:
+            os.startfile(os.path.dirname(config.CONFIG_FILE))
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
 
     def test_discord(self, webhook_url=None, user_id=None):
         """Send a test message to the given webhook (so users can test what
