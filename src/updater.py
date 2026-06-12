@@ -32,7 +32,7 @@ import events
 from _version import __version__
 
 # --- Where we look -----------------------------------------------------------
-GITHUB_REPO = "brandon-relentnet/queuePop"
+GITHUB_REPO = "doughknee/queuePop"
 _LATEST_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 # GitHub requires a User-Agent on API requests; identify ourselves + version.
 _UA = f"queuePop/{__version__} (+https://github.com/{GITHUB_REPO})"

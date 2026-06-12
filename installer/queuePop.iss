@@ -15,7 +15,7 @@
 #define MyAppName "queuePop"
 #define MyAppExe "queuePop.exe"
 #define MyAppPublisher "Brandon Harris"
-#define MyAppUrl "https://github.com/brandon-relentnet/queuePop"
+#define MyAppUrl "https://github.com/doughknee/queuePop"
 
 [Setup]
 ; AppId "queuePop" makes Inno write its uninstall data under

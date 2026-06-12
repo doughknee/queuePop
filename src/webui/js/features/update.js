@@ -140,6 +140,7 @@ document.querySelectorAll("[data-ext]").forEach((el) => {
 function mdLite(md) {
   const inline = (s) =>
     s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+     .replace(/\*([^*]+)\*/g, "<i>$1</i>") // safe: bold already consumed its **
      .replace(/`([^`]+)`/g, "<code>$1</code>")
      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
   let html = "";

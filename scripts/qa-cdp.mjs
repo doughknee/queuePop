@@ -45,7 +45,12 @@ await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
 await send("Runtime.enable");
 await send("Page.enable");
 
-for (const expr of process.argv.slice(2)) {
+for (let expr of process.argv.slice(2)) {
+  if (expr.startsWith("FILE:")) {
+    // Long/quote-heavy expressions survive PowerShell better as files.
+    const { readFileSync } = await import("node:fs");
+    expr = readFileSync(expr.slice(5), "utf-8");
+  }
   if (expr.startsWith("SHOT:")) {
     const { data } = await send("Page.captureScreenshot", { format: "png" });
     const { writeFileSync } = await import("node:fs");
