@@ -78,10 +78,12 @@ def default_config():
             # and lock `lock_in_at_seconds` before the ~30s pick window ends.
             "instant_lock": True,
             "lock_in_at_seconds": 1,
-            # Preferred pick position in Draft/Ranked: "off" or "1".."5". When
-            # set, queuePop trades pick order with teammates toward that spot
-            # (requests the holder's swap, accepts incoming swaps that move us
-            # closer) during the planning/ban phase.
+            # Pick-order priority line for Draft/Ranked: a ranked list of draft
+            # spots ("1".."5", best first). queuePop trades toward the top spot,
+            # drops to the next when a holder declines, and accepts incoming
+            # swaps that move it up the list. [] = off. `pick_spot` mirrors the
+            # #1 entry for builds that predate the list.
+            "spot_priority": [],
             "pick_spot": "off",
             # Apply the client's recommended rune page to EVERY locked champ by
             # default (no per-champ setup). A loadout that names a specific
@@ -90,9 +92,11 @@ def default_config():
             # Hover our intended pick during planning so the team sees it.
             # Off = stay hidden until we actually pick (no ban-sniping).
             "show_intent": True,
-            # Preferred assigned role in Draft/Ranked: "off" or a position key.
-            # When autofilled elsewhere, queuePop requests a position swap with
-            # whoever holds it (and accepts incoming swaps that grant it).
+            # Role priority line for Draft/Ranked: a ranked list of position
+            # keys (best first), used when autofilled away from them — same
+            # decline-falls-down-the-line semantics as spot_priority. [] = off.
+            # `preferred_role` mirrors the #1 entry for older builds.
+            "role_priority": [],
             "preferred_role": "off",
             # Picks/bans are the per-role lists. Everything else (summoner spells,
             # rune page, skin) lives in a per-(role, champion) loadout so the same

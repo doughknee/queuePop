@@ -149,16 +149,45 @@ function buildChampTab() {
   $("show_intent").addEventListener("change", () => {
     QP.store.set("champ_select.show_intent", $("show_intent").checked);
   });
+  // Master switches: the same flags as the role-tab gate cards, surfaced here
+  // so the takeover can be turned OFF after it's on (the gate card vanishes
+  // once enabled — this is the way back).
+  $("champ_master").addEventListener("change", (e) => {
+    champCfg().enabled = e.target.checked;
+    QP.bus.emit("config:changed", { path: "champ_select" });
+    QP.store.scheduleSave();
+    selectRole(activeRole); // re-evaluate the gate behind the popover
+  });
+  $("aram_master").addEventListener("change", (e) => {
+    aramCfg().enabled = e.target.checked;
+    syncAramLegacy();
+    QP.bus.emit("config:changed", { path: "champ_select.aram" });
+    QP.store.scheduleSave();
+    selectRole(activeRole);
+  });
+
+  // Priority lines: click chips in order of preference to build a ranked
+  // list (click a ranked chip to drop it). Empty list = feature off. The
+  // legacy single-choice keys mirror the #1 pick so older builds still read
+  // this config.
   $("spot-seg").addEventListener("click", (e) => {
     const chip = e.target.closest(".sort-opt");
     if (!chip) return;
-    QP.store.set("champ_select.pick_spot", chip.dataset.spot);
+    const cs = champCfg();
+    cs.spot_priority = togglePrio(cs.spot_priority, chip.dataset.spot);
+    cs.pick_spot = cs.spot_priority[0] || "off";
+    QP.bus.emit("config:changed", { path: "champ_select" });
+    QP.store.scheduleSave();
     hydrateBehavior();
   });
   $("role-seg").addEventListener("click", (e) => {
     const chip = e.target.closest(".sort-opt");
     if (!chip) return;
-    QP.store.set("champ_select.preferred_role", chip.dataset.role);
+    const cs = champCfg();
+    cs.role_priority = togglePrio(cs.role_priority, chip.dataset.role);
+    cs.preferred_role = cs.role_priority[0] || "off";
+    QP.bus.emit("config:changed", { path: "champ_select" });
+    QP.store.scheduleSave();
     hydrateBehavior();
   });
   $("delay-seg").addEventListener("click", (e) => {
@@ -291,8 +320,37 @@ function hydratePlan() {
   updateAllBadges();
 }
 
+// Add `key` to a priority list, or remove it if already ranked. Returns the
+// new list (input may be missing/garbage from an older config).
+function togglePrio(list, key) {
+  const cur = Array.isArray(list) ? list.map(String) : [];
+  return cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+}
+
+// A priority list from the config, falling back to the legacy single-choice
+// key so configs from older builds hydrate sensibly.
+function prioList(cs, listKey, legacyKey) {
+  const lst = Array.isArray(cs[listKey]) ? cs[listKey].map(String) : [];
+  if (lst.length) return lst;
+  const legacy = String(cs[legacyKey] ?? "off");
+  return legacy !== "off" ? [legacy] : [];
+}
+
+// Mark a prio segment's chips: ranked chips get .active + their 1-based rank
+// in data-prio (rendered as the little number on the chip).
+function markPrio(segId, attr, list) {
+  document.querySelectorAll(`#${segId} .sort-opt`).forEach((b) => {
+    const rank = list.indexOf(b.dataset[attr]);
+    b.classList.toggle("active", rank >= 0);
+    if (rank >= 0) b.dataset.prio = String(rank + 1);
+    else delete b.dataset.prio;
+  });
+}
+
 function hydrateBehavior() {
   const cs = champCfg();
+  $("champ_master").checked = !!cs.enabled;
+  $("aram_master").checked = !!aramCfg().enabled;
   const instant = cs.instant_lock ?? true;
   document.querySelectorAll("#lock-seg .sort-opt").forEach((b) =>
     b.classList.toggle("active", (b.dataset.lock === "instant") === instant),
@@ -302,16 +360,8 @@ function hydrateBehavior() {
   $("trades_enabled").checked = !!(cs.trades || {}).enabled;
   $("auto_runes").checked = !!cs.auto_runes;
   $("show_intent").checked = cs.show_intent ?? true;
-  const spot = ["off", "1", "2", "3", "4", "5"].includes(String(cs.pick_spot))
-    ? String(cs.pick_spot) : "off";
-  document.querySelectorAll("#spot-seg .sort-opt").forEach((b) =>
-    b.classList.toggle("active", b.dataset.spot === spot),
-  );
-  const prefer = ["off", "top", "jungle", "middle", "bottom", "utility"]
-    .includes(String(cs.preferred_role)) ? String(cs.preferred_role) : "off";
-  document.querySelectorAll("#role-seg .sort-opt").forEach((b) =>
-    b.classList.toggle("active", b.dataset.role === prefer),
-  );
+  markPrio("spot-seg", "spot", prioList(cs, "spot_priority", "pick_spot"));
+  markPrio("role-seg", "role", prioList(cs, "role_priority", "preferred_role"));
   const delay = String(Math.round(Number(aramCfg().bench_delay) || 0));
   document.querySelectorAll("#delay-seg .sort-opt").forEach((b) =>
     b.classList.toggle("active", b.dataset.delay === (["0","1","2","3"].includes(delay) ? delay : "0")),

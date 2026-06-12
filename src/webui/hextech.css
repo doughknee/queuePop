@@ -157,6 +157,13 @@
     .sort-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
     .sort-opt.active { color: #0A0E13; background: #C8AA6E; }
 
+    /* Priority-line segments (Prefer role / Pick order): ranked chips carry
+       their 1-based rank as a small dark numeral set into the gold chip. */
+    .sort-seg.prio .sort-opt.active::before { content: attr(data-prio);
+      display: inline-grid; place-items: center; width: 13px; height: 13px;
+      margin-right: 5px; border-radius: 9999px; background: #0A0E13;
+      color: #C8AA6E; font-size: 9px; font-weight: 700; line-height: 1; }
+
     /* Hextech gold corner accents on focal panels */
     .framed { position: relative; }
     .framed::before, .framed::after {

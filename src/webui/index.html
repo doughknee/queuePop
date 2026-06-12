@@ -511,28 +511,31 @@
             <div class="cs-set-body">
               <div class="cs-sec">Draft &amp; Ranked</div>
               <div class="behavior-row">
+                <span class="behavior-label">Auto pick/ban</span>
+                <span class="sw"><input id="champ_master" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span class="help" data-tip="The whole Draft & Ranked takeover — hover, ban, pick, lock. Turn it off and the role tabs show their enable card again.">?</span>
+              </div>
+              <div class="behavior-row">
                 <span class="behavior-label">Prefer role</span>
-                <div class="sort-seg" id="role-seg" role="group" aria-label="Preferred role">
-                  <button type="button" class="sort-opt" data-role="off">Off</button>
+                <div class="sort-seg prio" id="role-seg" role="group" aria-label="Role priority">
                   <button type="button" class="sort-opt" data-role="top">Top</button>
                   <button type="button" class="sort-opt" data-role="jungle">Jg</button>
                   <button type="button" class="sort-opt" data-role="middle">Mid</button>
                   <button type="button" class="sort-opt" data-role="bottom">Bot</button>
                   <button type="button" class="sort-opt" data-role="utility">Sup</button>
                 </div>
-                <span class="help" data-tip="When autofilled away from this role, asks whoever holds it to swap, and accepts incoming role swaps that grant it. Declined requests aren't repeated.">?</span>
+                <span class="help" data-tip="Click roles in order of preference (click again to remove; none = off). When autofilled, queuePop asks for your #1 role — if its holder declines, it tries the next on the list, and accepts any incoming swap that moves you up it.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Pick order</span>
-                <div class="sort-seg" id="spot-seg" role="group" aria-label="Preferred pick position">
-                  <button type="button" class="sort-opt" data-spot="off">Off</button>
+                <div class="sort-seg prio" id="spot-seg" role="group" aria-label="Pick-order priority">
                   <button type="button" class="sort-opt" data-spot="1">1st</button>
                   <button type="button" class="sort-opt" data-spot="2">2nd</button>
                   <button type="button" class="sort-opt" data-spot="3">3rd</button>
                   <button type="button" class="sort-opt" data-spot="4">4th</button>
                   <button type="button" class="sort-opt" data-spot="5">5th</button>
                 </div>
-                <span class="help" data-tip="Trades turn order with teammates toward this draft spot — 1st picks earliest, 5th sees the most picks before committing. Accepts incoming spot swaps that move you closer; declined requests aren't repeated.">?</span>
+                <span class="help" data-tip="Click draft spots in order of preference (click again to remove; none = off) — 1st picks earliest, 5th sees the most picks first. queuePop trades toward your #1 spot, falls down the list on declines, and accepts incoming swaps that move you up it.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Lock my pick</span>
@@ -553,6 +556,11 @@
                 <span class="help" data-tip="Hover your planned pick during planning so teammates see it. Off keeps it hidden until you lock — no ban-sniping.">?</span>
               </div>
               <div class="cs-sec">ARAM</div>
+              <div class="behavior-row">
+                <span class="behavior-label">ARAM takeover</span>
+                <span class="sw"><input id="aram_master" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span class="help" data-tip="The whole ARAM automation — subset pick, bench grabs, trades. Turn it off and the ARAM tab shows its enable card again.">?</span>
+              </div>
               <div class="behavior-row">
                 <span class="behavior-label">Champion trades</span>
                 <span class="sw"><input id="trades_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>

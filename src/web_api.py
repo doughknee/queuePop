@@ -351,12 +351,31 @@ def _normalize_champ_select(cs):
     preferred = str(cs.get("preferred_role", "off"))
     if preferred not in ("off",) + tuple(champ_select.ROLES):
         preferred = "off"
+
+    # Priority lines (additive keys, 2026-06): ranked preference lists for the
+    # role/pick-order swaps. A config from before the lists existed migrates
+    # its single choice to a one-item list; the legacy keys mirror the #1 pick
+    # so older builds keep reading this config sensibly.
+    def _prio(key, valid, legacy):
+        out = []
+        for v in cs.get(key) or []:
+            v = str(v)
+            if v in valid and v not in out:
+                out.append(v)
+        if not out and legacy != "off" and key not in cs:
+            out = [legacy]
+        return out
+
+    spot_priority = _prio("spot_priority", {"1", "2", "3", "4", "5"}, pick_spot)
+    role_priority = _prio("role_priority", set(champ_select.ROLES), preferred)
     return {
         "enabled": bool(cs.get("enabled", False)),
         "instant_lock": bool(cs.get("instant_lock", True)),
         "lock_in_at_seconds": max(0, lock),
-        "pick_spot": pick_spot,
-        "preferred_role": preferred,
+        "pick_spot": spot_priority[0] if spot_priority else "off",
+        "preferred_role": role_priority[0] if role_priority else "off",
+        "spot_priority": spot_priority,
+        "role_priority": role_priority,
         "show_intent": bool(cs.get("show_intent", True)),
         "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
