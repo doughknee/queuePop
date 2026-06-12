@@ -59,6 +59,26 @@ _cache = {
 _last_check_ts = 0.0
 _applying = False  # guard so a double-click doesn't kick off two updates
 
+# Release-notes cache (the /releases listing for the About page), separate from
+# the latest-release cache above so neither fetch blocks the other.
+_notes_lock = threading.Lock()
+_notes_cache = {"ts": 0.0, "items": None}
+
+
+def _ulog(msg):
+    """Append a timestamped line to update.log next to config.json. The update
+    flow spans two processes (the dying old build and the relaunched new one),
+    so a shared on-disk log is the only way to see the whole story when a
+    relaunch goes wrong. Best-effort: never let logging break an update."""
+    try:
+        import config as _cfg
+        path = os.path.join(os.path.dirname(_cfg.CONFIG_FILE), "update.log")
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"{stamp} [pid {os.getpid()} v{__version__}] {msg}\n")
+    except Exception:
+        pass
+
 
 # --- Version parsing ---------------------------------------------------------
 
@@ -177,6 +197,42 @@ def status():
     """Thread-safe snapshot of the current update state for the UI."""
     with _lock:
         return dict(_cache)
+
+
+def release_notes(limit=10):
+    """The last few releases (version, date, notes markdown, url) for the About
+    page, cached like the update check. Returns [] when offline/rate-limited —
+    the page shows a quiet 'couldn't load' instead of an error."""
+    with _notes_lock:
+        fresh = _notes_cache["items"] is not None and (
+            time.time() - _notes_cache["ts"] < _CHECK_INTERVAL
+        )
+        if fresh:
+            return list(_notes_cache["items"])
+    items = []
+    try:
+        raw = _http_get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/releases?per_page={int(limit)}"
+        )
+        for rel in json.loads(raw.decode("utf-8")):
+            if rel.get("draft"):
+                continue
+            tag = str(rel.get("tag_name") or rel.get("name") or "").lstrip("vV")
+            items.append({
+                "version": tag,
+                "name": rel.get("name") or f"v{tag}",
+                "date": (rel.get("published_at") or "")[:10],
+                "notes": rel.get("body") or "",
+                "url": rel.get("html_url") or "",
+            })
+        with _notes_lock:
+            _notes_cache.update({"ts": time.time(), "items": list(items)})
+    except Exception:
+        pass  # leave whatever (possibly stale) cache we had
+    if not items:
+        with _notes_lock:
+            items = list(_notes_cache["items"] or [])
+    return items
 
 
 def check(force=False):
@@ -304,6 +360,8 @@ def apply(on_exit=None):
             return {"ok": False, "error": "No matching download in the release"}
 
         events.push(f"Downloading v{snap['latest']}…", "info", kind="update")
+        _ulog(f"update start: v{snap['latest']} asset={asset['name']} "
+              f"installed={installed}")
         tmp = tempfile.mkdtemp(prefix="queuePop-upd-")
         local = os.path.join(tmp, asset["name"])
 
@@ -334,6 +392,7 @@ def apply(on_exit=None):
         return _apply_portable(local, tmp, on_exit)
     except Exception as e:
         events.push(f"Update failed: {e}", "danger", kind="update")
+        _ulog(f"update failed: {e}")
         return {"ok": False, "error": str(e)}
     finally:
         with _lock:
@@ -358,6 +417,7 @@ def _apply_installed(setup_path, on_exit):
         close_fds=True,
     )
     events.push("Installing update…", "info", kind="update")
+    _ulog("installer launched; quitting so it can replace the exe")
     _quit_soon(on_exit)
     return {"ok": True}
 
@@ -394,6 +454,7 @@ def _apply_portable(downloaded, tmp_dir, on_exit):
         close_fds=True,
     )
     events.push("Update staged, restarting…", "info", kind="update")
+    _ulog("portable relauncher spawned; quitting so it can swap the exe")
     _quit_soon(on_exit)
     return {"ok": True}
 
@@ -404,14 +465,28 @@ def _quit_soon(on_exit):
     def _stop():
         time.sleep(1.0)
         if callable(on_exit):
-            try:
-                on_exit()  # stop the LCU loop + destroy the window
-            except Exception:
-                pass
+            # Run the graceful teardown on ITS OWN thread with a hard timeout.
+            # window.destroy() from a worker thread can deadlock in pywebview;
+            # if it does, falling through to os._exit below is what keeps the
+            # old process (and its old UI) from outliving the update.
+            t = threading.Thread(target=lambda: _safe_call(on_exit),
+                                 daemon=True, name="updater-teardown")
+            t.start()
+            t.join(timeout=3.0)
+            if t.is_alive():
+                _ulog("teardown timed out (window.destroy hung?); forcing exit")
         # on_exit only closes the window; this is a tray app, so the process can
         # keep running (and the .exe stays locked) after it. The installer/swap
         # can't replace a locked file, so force the process to actually exit.
         time.sleep(0.5)
+        _ulog("old process exiting (os._exit)")
         os._exit(0)
 
     threading.Thread(target=_stop, daemon=True, name="updater-quit").start()
+
+
+def _safe_call(fn):
+    try:
+        fn()
+    except Exception as e:
+        _ulog(f"teardown raised: {e}")

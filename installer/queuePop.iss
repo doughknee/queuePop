@@ -43,13 +43,16 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=auto
 
-; Lets the silent updater close + relaunch the running app via the Windows
-; Restart Manager. AppMutex must match the *exact* mutex name (namespace and
-; all) created in src/main.py — it's "Global\queuePop_Instance_Mutex".
+; Lets the silent updater close the running app via the Windows Restart
+; Manager. AppMutex must match the *exact* mutex name (namespace and all)
+; created in src/main.py — it's "Global\queuePop_Instance_Mutex".
 ; Restart Manager is only a backup here: the app is a tray app that cancels
 ; graceful close requests, so InitializeSetup below also hard-kills it.
+; RestartApplications=no on purpose: the [Run] postinstall entry is the one
+; and only relauncher. With both enabled, RM could race a second copy against
+; it; the relaunch must be deterministic so a failed one is diagnosable.
 CloseApplications=yes
-RestartApplications=yes
+RestartApplications=no
 AppMutex=Global\queuePop_Instance_Mutex
 
 OutputDir=releases
@@ -85,10 +88,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
 
 [Run]
 ; Launch after install — interactively as the usual "Launch queuePop" checkbox,
-; and (without skipifsilent) automatically after a silent auto-update too. We do
-; NOT rely on the Restart Manager to relaunch: the app refuses graceful close so
-; it's hard-killed below, and a killed app isn't restarted by RM. A double
-; launch is harmless — the single-instance mutex makes the second copy exit.
+; and (without skipifsilent) automatically after a silent auto-update too. This
+; is the ONLY relauncher (RestartApplications=no above): the app refuses
+; graceful close so it's hard-killed below, and a killed app isn't restarted by
+; RM anyway. If the old process is still tearing down at this point, the new
+; build's single-instance check retries for ~6s instead of bouncing off it.
 Filename: "{app}\{#MyAppExe}"; Description: "Launch {#MyAppName}"; \
     Flags: nowait postinstall
 
