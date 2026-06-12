@@ -197,8 +197,8 @@ def main():
         "queuePop",
         url=index_path,
         js_api=api,
-        width=740,
-        height=840,
+        width=760,
+        height=800,
         min_size=(620, 700),
         background_color="#020617",
         # Drop the native OS chrome so the web UI can draw its own League-themed

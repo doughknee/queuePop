@@ -942,32 +942,15 @@
     .hero-conn-dot.on { background: #0AC8B9; box-shadow: 0 0 7px rgba(10,200,185,0.7); }
     .hero-conn-text { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #A09B8C; margin-top: 2px; white-space: nowrap; }
 
-    /* --- Dashboard profile strip (full breakdown lives on Account) ------ */
-    .profile-strip { display: flex; align-items: center; gap: 13px; width: 100%;
-      padding: 9px 16px; border: 0; cursor: pointer; text-align: left;
-      color: inherit; min-width: 0; }
-    .profile-strip.hidden { display: none; }
-    .profile-strip:hover .ps-arrow { color: #F0E6D2; transform: translateX(2px); }
-    .ps-portrait { width: 38px; height: 38px; border-radius: 9999px; padding: 2px; background: #785A28; flex-shrink: 0; }
-    .ps-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid #010A13; object-fit: cover; display: block; background: #0A323C; }
-    .ps-id { display: flex; flex-direction: column; min-width: 0; }
-    .ps-name { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #F0E6D2; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ps-tier { font-family: Marcellus, Georgia, serif; font-size: 11.5px; color: #A09B8C; white-space: nowrap; }
-    .ps-record { margin-left: auto; font-size: 12px; color: #8a8472; white-space: nowrap; flex-shrink: 0; }
-    .ps-champs { display: flex; gap: 5px; flex-shrink: 0; }
-    .ps-champ { width: 26px; height: 26px; display: block; }
-    .ps-champ img { width: 100%; height: 100%; object-fit: cover; display: block;
-      outline: 1px solid rgb(120 90 40 / 0.45); outline-offset: -1px; }
-    .ps-arrow { width: 16px; height: 16px; color: #785A28; flex-shrink: 0;
-      transition: color .15s ease, transform .15s ease; }
-    .profile-mastery { display: flex; gap: 11px; justify-content: flex-end; }
+    /* (Dashboard profile panel/strip removed — the navbar summoner badge is
+       the account surface; the full breakdown lives on the Account page.) */
+    /* .pm-* mastery badges + .pr-* ranked rows are shared with Account. */
     .pm-champ { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .pm-portrait { position: relative; }
     .pm-portrait img { width: 42px; height: 42px; object-fit: cover; outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px; display: block; }
     .pm-lvl { position: absolute; bottom: -3px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center; font-size: 8.5px; font-weight: 700; color: #0A0E13; background: #C8AA6E; }
     .pm-lvl.high { background: #0AC8B9; }
     .pm-pts { font-size: 10px; color: #8a8472; }
-    .profile-ranked { margin-top: 15px; padding-top: 13px; border-top: 1px solid rgb(120 90 40 / 0.25); }
     .pr-row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 14px; padding: 8px 0; }
     .pr-row + .pr-row { border-top: 1px solid rgb(120 90 40 / 0.12); }
     .pr-q { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9a8c6a; }
@@ -1201,8 +1184,9 @@
 
 /* Match-behavior strip. */
 .behavior-row { display: flex; align-items: center; gap: 10px; }
-.behavior-label { font-family: Cinzel, Georgia, serif; font-size: 11px;
-  letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; }
+/* Same voice as .set-row-label on the cards — plain, light, readable. The
+   gold stays on section headers and active states, not on every label. */
+.behavior-label { font-size: 13px; color: #F0E6D2; line-height: 1.35; }
 .lock-delay { display: inline-flex; align-items: center; gap: 5px;
   font-size: 13px; color: #A09B8C; }
 
