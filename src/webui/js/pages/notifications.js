@@ -22,6 +22,7 @@ function hydrateAlerts() {
   $("discord_enabled").checked = !!c.discord_enabled;
   toggleDiscordBody();
   $("desktop_notifications").checked = !!c.desktop_notifications;
+  toggleDesktopRow();
 
   const comp = c.companion || {};
   $("companion_enabled").checked = !!comp.enabled;
@@ -117,6 +118,12 @@ QP.bus.on("status", (s) => {
   $("desktop-last").textContent = fmt(last.desktop);
   $("discord-last").textContent = fmt(last.discord);
 });
+
+// The test row only makes sense while the channel is on.
+function toggleDesktopRow() {
+  $("desktop-test-row").classList.toggle("hidden", !$("desktop_notifications").checked);
+}
+$("desktop_notifications").addEventListener("change", toggleDesktopRow);
 
 // Desktop test (phone + Discord already have one — parity).
 $("desktop-test").addEventListener("click", async () => {

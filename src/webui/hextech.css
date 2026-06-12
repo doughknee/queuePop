@@ -157,12 +157,33 @@
     .sort-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
     .sort-opt.active { color: #0A0E13; background: #C8AA6E; }
 
-    /* Priority-line segments (Prefer role / Pick order): ranked chips carry
-       their 1-based rank as a small dark numeral set into the gold chip. */
-    .sort-seg.prio .sort-opt.active::before { content: attr(data-prio);
-      display: inline-grid; place-items: center; width: 13px; height: 13px;
-      margin-right: 5px; border-radius: 9999px; background: #0A0E13;
-      color: #C8AA6E; font-size: 9px; font-weight: 700; line-height: 1; }
+    /* Priority lines (Prefer role / Pick order): ranked chips read as a
+       left-to-right sequence — numbered, gold, with an × to drop — followed
+       by dashed "+" chips for the unranked options. Empty = an "Off" mark. */
+    .prio-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    .prio-line.hidden { display: none; }
+    .prio-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 7px 3px 4px;
+      border: 0; cursor: pointer; background: #C8AA6E; color: #0A0E13;
+      font-family: Marcellus, Georgia, serif; font-size: 12px; line-height: 1.3;
+      transition: background-color .15s ease; }
+    .prio-chip:hover { background: #E2C887; }
+    .prio-chip .pc-n { display: inline-grid; place-items: center; width: 14px; height: 14px;
+      border-radius: 9999px; background: #0A0E13; color: #C8AA6E;
+      font-size: 9px; font-weight: 700; line-height: 1; }
+    .prio-chip .pc-x { font-size: 14px; line-height: 1; color: rgb(10 14 19 / 0.45);
+      transition: color .15s ease; }
+    .prio-chip:hover .pc-x { color: #5e1f1f; }
+    .prio-add { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+      border: 0; cursor: pointer; background: transparent; color: #8a8472;
+      outline: 1px dashed rgb(120 90 40 / 0.5); outline-offset: -1px;
+      font-family: Marcellus, Georgia, serif; font-size: 12px; line-height: 1.3;
+      transition: color .15s ease, outline-color .15s ease; }
+    .prio-add:hover { color: #F0E6D2; outline-style: solid; outline-color: #C8AA6E; }
+    .prio-add .pc-plus { font-size: 13px; line-height: 1; color: #785A28; transition: color .15s ease; }
+    .prio-add:hover .pc-plus { color: #C8AA6E; }
+    .prio-off { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #6c6556; padding: 4px 2px; }
+    .prio-sep { width: 1px; height: 16px; background: rgb(120 90 40 / 0.4); margin: 0 3px; flex-shrink: 0; }
 
     /* Hextech gold corner accents on focal panels */
     .framed { position: relative; }
@@ -836,38 +857,65 @@
     .about-hero .qmark { width: 56px; height: 56px; }
     .about-hero .brand-word { font-size: 26px; }
 
-    /* Service Record: lifetime counters + the diagnostics row */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
+    /* Service Record: centered counter columns — big Cinzel numerals over a
+       short gold rule, no boxes (the card frame is enough chrome). */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+      gap: 14px 8px; padding: 4px 0 2px; }
     .stat-grid.hidden { display: none; }
-    .stat-tile { display: flex; flex-direction: column; gap: 4px; padding: 11px 13px;
-      background: rgb(200 170 110 / 0.04);
-      outline: 1px solid rgb(120 90 40 / 0.3); outline-offset: -1px; }
-    .stat-num { font-family: Cinzel, Georgia, serif; font-size: 21px; line-height: 1; color: #E2C887; }
-    .stat-label { font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: #8a8472; }
+    .stat-tile { display: flex; flex-direction: column; align-items: center; gap: 7px;
+      text-align: center; min-width: 0; }
+    .stat-num { font-family: Cinzel, Georgia, serif; font-size: 26px; line-height: 1;
+      color: #E2C887; padding: 0 8px 8px;
+      border-bottom: 1px solid rgb(200 170 110 / 0.35); }
+    .stat-label { font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase;
+      color: #8a8472; line-height: 1.5; max-width: 110px; }
     .diag-line { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: #A09B8C; }
     .diag-line.hidden { display: none; }
     .legal-note { font-size: 10.5px; color: #6f6a5d; line-height: 1.55; }
 
-    /* Release Notes card: the history scrolls in place so the page stays put */
-    .rel-notes { max-height: 46vh; overflow-y: auto; min-height: 0;
-      display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
+    /* Release Notes card: one <details> per release — the newest open, the
+       rest collapsed to a scannable version list. Scrolls in place. */
+    .rel-notes { max-height: 46vh; overflow-y: auto; min-height: 0; padding-right: 8px; }
     .rel-notes.hidden { display: none; }
-    .rn-entry { padding: 12px 0; border-top: 1px solid rgb(120 90 40 / 0.18); }
-    .rn-entry:first-child { border-top: 0; padding-top: 2px; }
-    .rn-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
-    .rn-ver { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #E2C887; }
-    .rn-date { font-size: 11px; color: #8a8472; }
-    .rn-body { font-size: 13px; color: #A09B8C; line-height: 1.5; }
+    .rn-entry { border-top: 1px solid rgb(120 90 40 / 0.18); }
+    .rn-entry:first-child { border-top: 0; }
+    .rn-head { display: flex; align-items: center; gap: 9px; padding: 10px 2px;
+      cursor: pointer; user-select: none; list-style: none; }
+    .rn-head::-webkit-details-marker { display: none; }
+    .rn-head:hover .rn-ver { color: #F0E6D2; }
+    .rn-chev { width: 13px; height: 13px; color: #785A28; flex-shrink: 0;
+      transition: transform .18s ease; }
+    .rn-entry[open] .rn-chev { transform: rotate(90deg); color: #C8AA6E; }
+    .rn-ver { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #E2C887;
+      transition: color .15s ease; }
+    .rn-pill { font-size: 8.5px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 2px 6px; color: #0A0E13; background: #C8AA6E;
+      border-radius: 2px; }
+    .rn-pill.new { background: #0AC8B9; }
+    .rn-date { margin-left: auto; font-size: 11px; color: #8a8472; flex-shrink: 0; }
+    .rn-body { font-size: 13px; color: #A09B8C; line-height: 1.55; padding: 0 2px 13px 22px; }
     .rn-body .rn-h { font-family: Marcellus, Georgia, serif; color: #C8AA6E;
-      margin: 8px 0 3px; font-size: 13px; letter-spacing: 0.03em; }
+      margin: 10px 0 3px; font-size: 13.5px; letter-spacing: 0.03em; }
+    .rn-body .rn-h:first-child { margin-top: 0; }
     .rn-body .rn-p { margin: 4px 0; }
     .rn-body .rn-list { list-style: none; margin: 3px 0; padding: 0; }
-    .rn-body .rn-list li { position: relative; padding-left: 14px; margin: 2px 0; }
+    .rn-body .rn-list li { position: relative; padding-left: 14px; margin: 3px 0; }
     .rn-body .rn-list li::before { content: "◆"; position: absolute; left: 0; top: 0;
       font-size: 7px; line-height: 1.9rem; color: #785A28; }
     .rn-body b { color: #D6D0C0; font-weight: 600; }
     .rn-body code { font-size: 11.5px; color: #0AC8B9; background: rgb(10 200 185 / 0.07);
       padding: 0 4px; }
+
+    /* About header: version sits at the lockup's right; one balanced row of
+       update status + actions beneath the divider. */
+    .about-hero .about-ver { margin-left: auto; align-self: flex-start;
+      font-family: Cinzel, Georgia, serif; font-size: 15px; color: #C8AA6E;
+      padding-top: 3px; flex-shrink: 0; }
+    .upd-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .upd-row.hidden { display: none; }
+    .upd-msg { flex: 1 1 220px; min-width: 0; font-size: 13px; color: #A09B8C; }
+    .upd-msg.good { color: #E2C887; }
+    .upd-row-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
 
     /* QR modal (phone companion). Reuses .skin-modal/.skin-backdrop/.skin-head. */
     .qr-panel { position: relative; width: min(360px, 92vw); display: flex; flex-direction: column;

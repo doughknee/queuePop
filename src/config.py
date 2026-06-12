@@ -68,6 +68,9 @@ def default_config():
             "disconnect": False,
         },
         "allowed_queue_ids": [],
+        # Grace window (seconds, 0 = instant) between the pop and the accept —
+        # alerts fire immediately, so the wait is reaction time.
+        "accept_delay_seconds": 0,
         # Queue ids shown in the PLAY dropdown (order = display order).
         "favorite_queue_ids": [],
         # Most recently started queue, for the PLAY dropdown's "play again".

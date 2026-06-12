@@ -120,6 +120,7 @@ function hydrateQueues() {
     cb.checked = allowed.has(Number(cb.dataset.queue));
   });
   updateQselCounts();
+  hydrateAcceptTiming();
 }
 
 // Sync: queue DOM → store.config. "Auto-accept any queue" on ⇒ empty list
@@ -144,6 +145,30 @@ $("queues-card").addEventListener("input", syncQueuesToStore);
 // "Auto-accept any queue" hides/reveals the specific-queue picker.
 $("queue_all").addEventListener("change", () => {
   $("queue-select").classList.toggle("hidden", $("queue_all").checked);
+});
+
+// --- Accept timing: instant, or a short grace window before the accept -----
+function hydrateAcceptTiming() {
+  const d = Number(QP.store.config.accept_delay_seconds) || 0;
+  document.querySelectorAll("#accept-seg .sort-opt").forEach((b) =>
+    b.classList.toggle("active", (b.dataset.acc === "delay") === d > 0),
+  );
+  $("accept-delay-row").classList.toggle("hidden", !(d > 0));
+  if (d > 0) $("accept_seconds").value = d;
+}
+
+document.querySelectorAll("#accept-seg .sort-opt").forEach((b) =>
+  b.addEventListener("click", () => {
+    QP.store.set(
+      "accept_delay_seconds",
+      b.dataset.acc === "delay" ? Number($("accept_seconds").value) || 3 : 0,
+    );
+    hydrateAcceptTiming();
+  }),
+);
+$("accept_seconds").addEventListener("input", () => {
+  const v = Math.min(10, Math.max(1, Number($("accept_seconds").value) || 3));
+  QP.store.set("accept_delay_seconds", v);
 });
 
 // --- Champ Select Plan board ------------------------------------------------

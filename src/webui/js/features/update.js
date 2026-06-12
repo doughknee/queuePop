@@ -31,12 +31,12 @@ function renderUpdate(s) {
   const aUpd = $("about-update");
   const aNotes = $("about-notes");
   if (has) {
-    if (msg) { msg.textContent = `Version v${s.latest} is available.`; msg.className = "set-row-hint mb-2 text-gold2"; }
+    if (msg) { msg.textContent = `Version v${s.latest} is available.`; msg.className = "upd-msg good"; }
     aUpd && aUpd.classList.remove("hidden");
     if (aNotes && s.url) { aNotes.href = s.url; aNotes.classList.remove("hidden"); }
   } else {
     if (msg) {
-      msg.className = "set-row-hint mb-2";
+      msg.className = "upd-msg";
       // Don't claim "up to date" before the first check has actually run — the
       // background check completes a few seconds after launch. Saying it's
       // current while a check is still pending is the bug that made Settings
@@ -160,15 +160,23 @@ function mdLite(md) {
   return html;
 }
 
-function relNoteHtml(r) {
+function relNoteHtml(r, idx) {
+  // The newest release ships expanded; the rest collapse to a version list.
+  const cur = updateState && updateState.current === r.version;
+  const isNew = !cur && updateState && updateState.available
+    && updateState.latest === r.version;
+  const pill = cur ? '<span class="rn-pill">Installed</span>'
+    : isNew ? '<span class="rn-pill new">New</span>' : "";
   return (
-    `<div class="rn-entry">` +
-      `<div class="rn-head">` +
+    `<details class="rn-entry"${idx === 0 ? " open" : ""}>` +
+      `<summary class="rn-head">` +
+        `<svg class="rn-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>` +
         `<span class="rn-ver">v${escapeHtml(r.version || "")}</span>` +
+        pill +
         (r.date ? `<span class="rn-date">${escapeHtml(r.date)}</span>` : "") +
-      `</div>` +
+      `</summary>` +
       `<div class="rn-body">${mdLite(r.notes || "") || '<p class="rn-p">No notes for this release.</p>'}</div>` +
-    `</div>`
+    `</details>`
   );
 }
 
@@ -252,6 +260,10 @@ QP.bus.on("route", ({ tab }) => {
   if (tab !== "about") return;
   loadReleaseNotes();
   renderServiceRecord(); // refreshed every visit (counters move during play)
+  // If no check has completed yet (dev builds never background-check; packaged
+  // ones take a few seconds after launch), run one now instead of leaving the
+  // page saying "Checking for updates…" until the button is pressed.
+  if (!updateState || !updateState.checked) refreshUpdate(true);
 });
 
 QP._loaded.push("features/update");

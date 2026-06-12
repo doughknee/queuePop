@@ -460,6 +460,14 @@ def _coerce_queue_id(value):
         return None
 
 
+def _accept_delay(v):
+    """Clamp the accept grace window to a whole 0..10 seconds."""
+    try:
+        return int(min(10, max(0, float(v or 0))))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _normalize_config(data):
     data = data or {}
     return {
@@ -479,6 +487,9 @@ def _normalize_config(data):
             for k in ("queue_pop", "champ_select", "game_start", "disconnect")
         },
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
+        # Additive key (2026-06): 0 = accept instantly, else wait this many
+        # seconds first (clamped; the ready check itself only lasts ~12s).
+        "accept_delay_seconds": _accept_delay(data.get("accept_delay_seconds")),
         # Order matters here, it's the display order of pinned queues.
         "favorite_queue_ids": _clean_queue_ids(
             data.get("favorite_queue_ids"), keep_order=True

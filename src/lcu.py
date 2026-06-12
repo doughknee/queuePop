@@ -223,7 +223,34 @@ class LCU:
                         game_mode=game_mode
                     )
 
-            # 3. Accept Match
+            # 3. Optional grace window before accepting (alerts already fired,
+            # so the wait is reaction time). Re-check the ready check after the
+            # sleep — a teammate may have declined, or the user answered by
+            # hand — and accept nothing if it's no longer live.
+            try:
+                delay = min(10.0, max(0.0, float(
+                    self.config.get("accept_delay_seconds") or 0)))
+            except (TypeError, ValueError):
+                delay = 0.0
+            if delay:
+                events.push(f"Accepting in {delay:.0f}s…", "info", kind="match")
+                await asyncio.sleep(delay)
+                try:
+                    rc = await connection.request(
+                        'get', '/lol-matchmaking/v1/ready-check')
+                    rc_data = await rc.json() if rc.status == 200 else {}
+                except Exception:
+                    rc_data = {}
+                if (rc_data.get('state') != 'InProgress'
+                        or rc_data.get('playerResponse') != 'None'):
+                    config.console.log("[yellow]Ready check ended during the "
+                                       "accept delay; standing down.[/]")
+                    events.push("Ready check ended during the wait — not accepted",
+                                "warning", kind="match")
+                    self.accepting_match = False
+                    return
+
+            # 4. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')
             config.console.print("[success]✅ Match Accepted![/]")
             events.push(f"Match accepted ({game_mode})", "success", kind="match")

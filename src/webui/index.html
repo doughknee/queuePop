@@ -394,6 +394,19 @@
             <label for="queue_all" class="set-row-label">Auto-accept any queue</label>
             <span class="help" data-tip="On: accept whatever queue pops. Turn off to auto-accept only the specific queues you pick below.">?</span>
           </div>
+          <div class="set-row">
+            <span class="set-row-label" style="flex: 0 0 auto;">Accept the pop</span>
+            <div class="sort-seg" id="accept-seg" role="group" aria-label="Accept timing">
+              <button type="button" class="sort-opt" data-acc="instant">Instantly</button>
+              <button type="button" class="sort-opt" data-acc="delay">After a wait</button>
+            </div>
+            <span id="accept-delay-row" class="lock-delay hidden">
+              <input id="accept_seconds" type="number" min="1" max="10" value="3"
+                class="hextech-input w-12 px-1 py-0.5 text-center text-gold1 outline-none" />
+              <span>s</span>
+            </span>
+            <span class="help" data-tip="A grace window between the pop and the accept. Your alerts fire the moment it pops, so the wait is reaction time — reach the desk, or decline by hand to back out. If the check ends during the wait, nothing is accepted.">?</span>
+          </div>
           <div id="queue-select" class="hidden">
             <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
             <!-- Plain block container: each .qsel-group stacks as its own row
@@ -499,7 +512,7 @@
           <!-- Match settings: set-once configuration (lock timing, trades, the
                managed rune page), collapsed to one summary line so the tray +
                catalog keep the room. -->
-          <details id="champ-settings" class="shrink-0 border-t border-b-icon/20 px-5 py-3">
+          <details id="champ-settings" class="shrink-0 border-t border-t-icon/20 px-5 py-3">
             <summary class="cs-set-summary" id="champ-settings-summary">
               <svg class="cs-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               <span>Match settings</span>
@@ -513,25 +526,15 @@
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Prefer role</span>
-                <div class="sort-seg prio" id="role-seg" role="group" aria-label="Role priority">
-                  <button type="button" class="sort-opt" data-role="top">Top</button>
-                  <button type="button" class="sort-opt" data-role="jungle">Jg</button>
-                  <button type="button" class="sort-opt" data-role="middle">Mid</button>
-                  <button type="button" class="sort-opt" data-role="bottom">Bot</button>
-                  <button type="button" class="sort-opt" data-role="utility">Sup</button>
-                </div>
-                <span class="help" data-tip="Click roles in order of preference (click again to remove; none = off). When autofilled, queuePop asks for your #1 role — if its holder declines, it tries the next on the list, and accepts any incoming swap that moves you up it.">?</span>
+                <!-- Priority line, rendered by champ.js: ranked chips first
+                     (numbered, in order, × to drop), then dashed +chips. -->
+                <div class="prio-line" id="role-seg" role="group" aria-label="Role priority"></div>
+                <span class="help" data-tip="Build a ranked list: + adds the next preference, × drops one. When autofilled, queuePop asks for your #1 role — if its holder declines, it tries the next on the list, and accepts any incoming swap that moves you up it.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Pick order</span>
-                <div class="sort-seg prio" id="spot-seg" role="group" aria-label="Pick-order priority">
-                  <button type="button" class="sort-opt" data-spot="1">1st</button>
-                  <button type="button" class="sort-opt" data-spot="2">2nd</button>
-                  <button type="button" class="sort-opt" data-spot="3">3rd</button>
-                  <button type="button" class="sort-opt" data-spot="4">4th</button>
-                  <button type="button" class="sort-opt" data-spot="5">5th</button>
-                </div>
-                <span class="help" data-tip="Click draft spots in order of preference (click again to remove; none = off) — 1st picks earliest, 5th sees the most picks first. queuePop trades toward your #1 spot, falls down the list on declines, and accepts incoming swaps that move you up it.">?</span>
+                <div class="prio-line" id="spot-seg" role="group" aria-label="Pick-order priority"></div>
+                <span class="help" data-tip="Build a ranked list: + adds the next preference, × drops one. 1st picks earliest, 5th sees the most picks first. queuePop trades toward your #1 spot, falls down the list on declines, and accepts incoming swaps that move you up it.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Lock my pick</span>
@@ -616,7 +619,7 @@
               <label for="desktop_notifications" class="set-row-label">Windows desktop notifications</label>
               <span class="help" data-tip="Show a Windows notification for the events you ticked above.">?</span>
             </div>
-            <div class="flex items-center gap-3">
+            <div id="desktop-test-row" class="hidden flex items-center gap-3">
               <button id="desktop-test"
                 class="hextech px-4 py-1.5 text-sm text-gold2 hover:text-gold1 cursor-pointer">Send test</button>
               <span id="desktop-test-status" class="text-xs text-subText"></span>
@@ -749,22 +752,20 @@
                 <div class="brand-word">queue<b>Pop</b></div>
                 <div class="brand-tag">Accepts the Ready Check the instant it pops.</div>
               </div>
+              <span id="about-version" class="about-ver">, </span>
             </div>
-            <div class="set-sub">
-              <div class="set-row" style="justify-content: space-between;">
-                <span class="set-row-label">Installed version</span>
-                <span id="about-version" class="text-gold2" style="font-family: Cinzel, Georgia, serif;">, </span>
-              </div>
-              <p id="about-update-msg" class="set-row-hint mb-2">You're up to date.</p>
-              <div class="set-row" style="gap: 9px;">
+            <div class="set-divider"></div>
+            <div class="upd-row">
+              <p id="about-update-msg" class="upd-msg">Checking for updates…</p>
+              <div class="upd-row-actions">
+                <a id="about-notes" class="snav-link hidden" target="_blank" rel="noopener" style="border:0;padding:0;">Release notes ↗</a>
                 <button id="about-check" class="upd-btn ghost">Check for updates</button>
                 <button id="about-update" class="upd-btn hidden">Update now</button>
-                <a id="about-notes" class="snav-link hidden" target="_blank" rel="noopener" style="border:0;padding:0;">Release notes ↗</a>
               </div>
-              <div class="brand-links" style="display:flex; gap:8px; margin-top:14px;">
-                <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
-                <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
-              </div>
+            </div>
+            <div class="brand-links" style="display:flex; gap:8px;">
+              <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
+              <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
             </div>
           </div>
 

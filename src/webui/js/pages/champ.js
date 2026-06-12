@@ -110,6 +110,7 @@ function buildChampTab() {
     QP.bus.emit("config:changed", { path: "champ_select" });
     QP.store.scheduleSave();
     selectRole(activeRole); // re-evaluates the gate + renders the editor
+    hydrateBehavior();      // mirror onto the Match-settings master switches
   });
 
   // Live banner → the live route.
@@ -171,7 +172,7 @@ function buildChampTab() {
   // legacy single-choice keys mirror the #1 pick so older builds still read
   // this config.
   $("spot-seg").addEventListener("click", (e) => {
-    const chip = e.target.closest(".sort-opt");
+    const chip = e.target.closest("[data-spot]");
     if (!chip) return;
     const cs = champCfg();
     cs.spot_priority = togglePrio(cs.spot_priority, chip.dataset.spot);
@@ -181,7 +182,7 @@ function buildChampTab() {
     hydrateBehavior();
   });
   $("role-seg").addEventListener("click", (e) => {
-    const chip = e.target.closest(".sort-opt");
+    const chip = e.target.closest("[data-role]");
     if (!chip) return;
     const cs = champCfg();
     cs.role_priority = togglePrio(cs.role_priority, chip.dataset.role);
@@ -336,15 +337,36 @@ function prioList(cs, listKey, legacyKey) {
   return legacy !== "off" ? [legacy] : [];
 }
 
-// Mark a prio segment's chips: ranked chips get .active + their 1-based rank
-// in data-prio (rendered as the little number on the chip).
-function markPrio(segId, attr, list) {
-  document.querySelectorAll(`#${segId} .sort-opt`).forEach((b) => {
-    const rank = list.indexOf(b.dataset[attr]);
-    b.classList.toggle("active", rank >= 0);
-    if (rank >= 0) b.dataset.prio = String(rank + 1);
-    else delete b.dataset.prio;
-  });
+// Render a priority line: the ranked chips first — numbered, in list order,
+// with an × to drop — then the remaining options as dashed "+" add-chips.
+// Order is carried by chip POSITION (left → right), so the list reads as a
+// sequence; an explicit "Off" marker shows when nothing is ranked.
+const ROLE_OPTS = [
+  ["top", "Top"], ["jungle", "Jg"], ["middle", "Mid"],
+  ["bottom", "Bot"], ["utility", "Sup"],
+];
+const SPOT_OPTS = [["1", "1st"], ["2", "2nd"], ["3", "3rd"], ["4", "4th"], ["5", "5th"]];
+
+function renderPrioLine(segId, attr, opts, list) {
+  const label = Object.fromEntries(opts);
+  const ranked = list
+    .filter((k) => label[k])
+    .map((k, i) =>
+      `<button type="button" class="prio-chip" data-${attr}="${k}" title="Drop ${label[k]} from the list">` +
+        `<span class="pc-n">${i + 1}</span>${label[k]}<span class="pc-x">×</span>` +
+      `</button>`,
+    ).join("");
+  const rest = opts
+    .filter(([k]) => !list.includes(k))
+    .map(([k, name]) =>
+      `<button type="button" class="prio-add" data-${attr}="${k}" title="Add ${name} as priority #${list.length + 1}">` +
+        `<span class="pc-plus">+</span>${name}` +
+      `</button>`,
+    ).join("");
+  $(segId).innerHTML =
+    (ranked || `<span class="prio-off">Off</span>`) +
+    (ranked && rest ? `<span class="prio-sep"></span>` : "") +
+    rest;
 }
 
 function hydrateBehavior() {
@@ -360,8 +382,8 @@ function hydrateBehavior() {
   $("trades_enabled").checked = !!(cs.trades || {}).enabled;
   $("auto_runes").checked = !!cs.auto_runes;
   $("show_intent").checked = cs.show_intent ?? true;
-  markPrio("spot-seg", "spot", prioList(cs, "spot_priority", "pick_spot"));
-  markPrio("role-seg", "role", prioList(cs, "role_priority", "preferred_role"));
+  renderPrioLine("spot-seg", "spot", SPOT_OPTS, prioList(cs, "spot_priority", "pick_spot"));
+  renderPrioLine("role-seg", "role", ROLE_OPTS, prioList(cs, "role_priority", "preferred_role"));
   const delay = String(Math.round(Number(aramCfg().bench_delay) || 0));
   document.querySelectorAll("#delay-seg .sort-opt").forEach((b) =>
     b.classList.toggle("active", b.dataset.delay === (["0","1","2","3"].includes(delay) ? delay : "0")),
