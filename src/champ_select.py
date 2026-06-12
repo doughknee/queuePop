@@ -56,6 +56,14 @@ ARAM_ROLE = "aram"
 # for config normalization and the get_roles() UI list. ROLES stays position-only.
 EDITOR_ROLES = ROLES + [ARAM_ROLE]
 
+# Hard caps on the Rift lists — past these, entries can never be reached. As
+# last pick, 10 bans + 9 prior picks = 19 champs gone worst case, so pick #20
+# always survives; only your 4 teammates' declared picks can block a ban, so
+# ban #5 always lands. ARAM is exempt (its lists aren't draft picks/bans).
+# Mirrored in webui/js/pages/champ.js — keep in sync.
+MAX_PICKS = 20
+MAX_BANS = 5
+
 # Legacy ARAM champ-priority modes (champ_select.aram.mode), kept for configs
 # written before per-role fallback modes existed. "list" meant "use the
 # hand-built list"; the others overrode the list entirely.

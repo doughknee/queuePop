@@ -1137,12 +1137,31 @@
 /* Plan tray. */
 .tray-rows { display: flex; align-items: flex-start; gap: 18px; }
 .tray-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.tray-grow { flex: 1 1 auto; }
+/* .tray-grow / #ban-tray-col flex lives in the Phase-1 block further down. */
 .tray-label { font-family: Cinzel, Georgia, serif; font-size: 10.5px;
   letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
 .tray-label.ban { color: #c0584f; }
+/* List counters: grey while building, gold once coverage is practically
+   guaranteed (.ok), bright gold at the hard cap (.full — complete, not an
+   error). Hover for the draft math. */
+.tray-count { font-size: 10.5px; letter-spacing: 0.08em; color: #8b8674;
+  cursor: help; }
+.tray-count.ok { color: #C8AA6E; }
+.tray-count.full { color: #F0E6D2; }
 .tray { display: flex; flex-wrap: wrap; gap: 9px; }
-.tray-slot { position: relative; width: 52px; height: 52px; flex: 0 0 auto;
+/* Registered so it can transition: balanceTrays snaps slots to integer sizes
+   (crisp art), and the glide between snaps is what makes a window drag read
+   as smooth instead of stepped. */
+@property --tray-slot {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 52px;
+}
+#tray-wrap { transition: --tray-slot 100ms ease-out; }
+#pick-tray, #ban-tray { transition: width 100ms ease-out; }
+
+.tray-slot { position: relative; flex: 0 0 auto;
+  width: var(--tray-slot, 52px); height: var(--tray-slot, 52px);
   outline: 2px solid #C8AA6E; outline-offset: -1px; cursor: pointer;
   background: rgb(1 10 19 / 0.55); transition: transform .12s ease; }
 .tray-slot:hover { transform: scale(1.06); z-index: 2; }
@@ -1160,6 +1179,10 @@
 .tray-slot.ghost.ban { outline-color: rgb(192 88 79 / 0.55); }
 .tray-slot.ghost.ban:hover, .tray-slot.ghost.armed { outline-color: #c0584f;
   outline-style: solid; color: #c0584f; background: rgb(192 88 79 / 0.12); }
+/* A full list's ghost stays clickable (the click explains why), but mutes. */
+.tray-slot.ghost.maxed, .tray-slot.ghost.maxed:hover {
+  outline-color: rgb(120 90 40 / 0.35); color: rgb(139 134 116 / 0.45);
+  background: transparent; outline-style: dashed; cursor: not-allowed; }
 @keyframes tray-pulse { 0% { transform: scale(1); } 35% { transform: scale(1.18); }
   100% { transform: scale(1); } }
 .tray-slot.pulse { animation: tray-pulse 0.45s ease; z-index: 3; }
@@ -1196,8 +1219,13 @@
   font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8b8674; }
 .rune-summary:hover { color: #C8AA6E; }
 
-/* The ARAM priority list can hold 50+ champs - cap the tray so the catalog keeps room. */
-#pick-tray { max-height: 188px; overflow-y: auto; }
+/* The ARAM priority list can hold 50+ champs - cap the tray at three rows so
+   the catalog keeps room (slot-size aware, since balanceTrays scales slots to
+   fill the window). The gutter is always reserved (and balanceTrays adds it to
+   the snapped width): at an exact-fit width, a popping scrollbar re-wraps the
+   rows and then needs itself — a stable wrong layout. */
+#pick-tray { max-height: calc(var(--tray-slot, 52px) * 3 + 32px);
+  overflow-y: auto; scrollbar-gutter: stable; }
 
 
 /* Keep the remove X inside tray slots so the tray's scroll overflow can't clip it. */
@@ -1225,9 +1253,12 @@
 .tray-rows.hidden,
 .lock-delay.hidden { display: none; }
 
-/* Fixed tray proportions: picks 2/3, bans 1/3 — no layout shift as lists grow. */
-.tray-col.tray-grow { flex: 2 1 0; min-width: 0; }
-#ban-tray-col { flex: 1 1 0; min-width: 0; }
+/* Content-driven tray columns: balanceTrays() (pages/champ.js) snaps both
+   grids to clean rectangles sized for the window, so the columns just hug
+   them. Fixed 2:1 proportions looked right only at one window width — wider
+   left a dead zone between the trays, narrower overlapped them. */
+.tray-col.tray-grow { flex: 0 0 auto; min-width: 0; }
+#ban-tray-col { flex: 0 0 auto; min-width: 0; }
 
 /* Calm tray hovers: scaling tiles inside a scrollable tray clipped at the
    edges and read as jank. Hover = ignite the ring + brighten, no movement. */

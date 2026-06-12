@@ -314,6 +314,19 @@ def _clean_loadouts(val):
     return out
 
 
+def _clean_window(val):
+    """Coerce the remembered window size to sane ints, floor-clamped to the
+    frameless minimum. Returns None when unset/junk so the first launch (and
+    a hand-broken config) falls back to main.py's default size."""
+    val = val or {}
+    try:
+        w, h = int(val.get("width")), int(val.get("height"))
+    except (TypeError, ValueError):
+        return None
+    return {"width": max(MIN_WINDOW_SIZE[0], w),
+            "height": max(MIN_WINDOW_SIZE[1], h)}
+
+
 def _normalize_champ_select(cs):
     cs = cs or {}
     roles_in = cs.get("roles", {}) or {}
@@ -339,9 +352,15 @@ def _normalize_champ_select(cs):
                 continue
             if s in champ_select.SPELL_IDS and s not in spells:
                 spells.append(s)
+        bans = _text_to_list(rc.get("bans"))
+        picks = _text_to_list(rc.get("picks"))
+        if role != champ_select.ARAM_ROLE:
+            # Trim dead weight: entries past the caps can never be reached.
+            bans = bans[: champ_select.MAX_BANS]
+            picks = picks[: champ_select.MAX_PICKS]
         roles[role] = {
-            "bans": _text_to_list(rc.get("bans")),
-            "picks": _text_to_list(rc.get("picks")),
+            "bans": bans,
+            "picks": picks,
             "loadouts": _clean_loadouts(rc.get("loadouts")),
             "mode": mode or "off",
             "default_spells": spells if len(spells) == 2 else [],
@@ -411,7 +430,7 @@ ALARM_SOUNDS = {"chime", "ping", "arcade", "siren", "custom"}
 
 # Floor for the custom frameless resize grips; mirrors main.py's min_size so the
 # JS chrome and the Python safety-net clamp agree.
-MIN_WINDOW_SIZE = (620, 700)
+MIN_WINDOW_SIZE = (762, 800)
 
 
 def _normalize_companion(comp):
@@ -498,6 +517,8 @@ def _normalize_config(data):
         "show_last_queue": bool(data.get("show_last_queue", True)),
         "companion": _normalize_companion(data.get("companion")),
         "champ_select": _normalize_champ_select(data.get("champ_select")),
+        # Remembered window size (written by main.py's resized handler).
+        "window": _clean_window(data.get("window")),
     }
 
 
@@ -1008,6 +1029,8 @@ class Api:
             cfg["last_queue_id"] = _coerce_queue_id(prev.get("last_queue_id"))
         if "show_last_queue" not in (new_config or {}):
             cfg["show_last_queue"] = bool(prev.get("show_last_queue", True))
+        if "window" not in (new_config or {}):
+            cfg["window"] = _clean_window(prev.get("window"))
         try:
             with open(config.CONFIG_FILE, "w") as f:
                 json.dump(cfg, f, indent=4)

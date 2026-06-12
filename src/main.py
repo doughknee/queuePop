@@ -193,13 +193,23 @@ def main():
     api = Api(lcu_connector)
     index_path = webui_index()
 
+    # Open at the size the window was last left at (saved by on_resized below);
+    # 762x800 is the first-run default AND the floor (mirrored in web_api's
+    # MIN_WINDOW_SIZE) — the champ-select trays need the width to lay out.
+    win_cfg = settings.get("window") or {}
+    try:
+        win_w = max(762, int(win_cfg.get("width", 762)))
+        win_h = max(800, int(win_cfg.get("height", 800)))
+    except (TypeError, ValueError):
+        win_w, win_h = 762, 800
+
     window = webview.create_window(
         "queuePop",
         url=index_path,
         js_api=api,
-        width=760,
-        height=800,
-        min_size=(620, 700),
+        width=win_w,
+        height=win_h,
+        min_size=(762, 800),
         background_color="#020617",
         # Drop the native OS chrome so the web UI can draw its own League-themed
         # title bar (min/maximize/close live in src/webui/window-chrome.js).
@@ -223,6 +233,35 @@ def main():
         return False     # cancel the close, keep running in the tray
 
     window.events.closing += on_closing
+
+    # Remember the window size across launches: debounce the resize stream and
+    # write through the connector's config (the canonical in-memory copy).
+    # Maximizing also fires resized — skip it so a maximized session doesn't
+    # become the "normal" size on the next launch.
+    resize_timer = [None]
+
+    def on_resized(width, height):
+        if api._maximized:
+            return
+
+        def save():
+            import json
+            cfg_now = lcu_connector.config or {}
+            cfg_now["window"] = {"width": int(width), "height": int(height)}
+            lcu_connector.config = cfg_now
+            try:
+                with open(cfg.CONFIG_FILE, "w") as f:
+                    json.dump(cfg_now, f, indent=4)
+            except Exception:
+                pass
+
+        if resize_timer[0]:
+            resize_timer[0].cancel()
+        resize_timer[0] = threading.Timer(1.0, save)
+        resize_timer[0].daemon = True
+        resize_timer[0].start()
+
+    window.events.resized += on_resized
 
     def shutdown():
         app_state["quitting"] = True

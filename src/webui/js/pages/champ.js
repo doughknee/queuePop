@@ -19,6 +19,28 @@ let activeRole = null; // currently edited role
 let activeSort = "az"; // "az" | "mastery" | "recent", catalog ordering
 let banArmed = false;  // the catalog's next click adds a ban (one-shot)
 
+// Hard caps on the Rift lists (mirrors champ_select.py — keep in sync). As
+// last pick, 10 bans + 9 prior picks = 19 champs gone worst case, so pick #20
+// always survives; only your 4 teammates' declared picks can block a ban, so
+// ban #5 always lands. ARAM is exempt (its lists aren't draft picks/bans).
+// REC_PICKS is the practical nudge — 3-4 covers same-role contention.
+const MAX_PICKS = 20;
+const MAX_BANS = 5;
+const REC_PICKS = 4;
+
+function capFor(kind) {
+  if (activeRole === "aram") return Infinity;
+  return kind === "bans" ? MAX_BANS : MAX_PICKS;
+}
+function capToast(kind) {
+  showToast(
+    kind === "bans"
+      ? "Ban list full — 5 always guarantees a clean ban"
+      : "Pick list full — 20 already guarantees one survives the draft",
+    false,
+  );
+}
+
 // Inline ARAM glyph (no position SVG exists for it), a 4-way poke/mirror mark.
 const ARAM_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>';
@@ -128,7 +150,8 @@ function buildChampTab() {
     QP.bus.emit("config:changed", { path: "champ_select.roles" });
     QP.store.scheduleSave();
     renderFallback();
-    applyAramView();
+    renderTrayMeta(); // the counter/caption "covered" state tracks the mode
+    balanceTrays();   // the dropdown's width (part of the header line) moved
   });
 
   // Match behavior: lock timing + trades, written straight to the store.
@@ -277,6 +300,16 @@ function buildChampTab() {
   wireTrayEvents($("pick-tray"), "picks");
   wireTrayEvents($("ban-tray"), "bans");
   wireGridEvents();
+
+  // Re-balance the trays when their container's size changes — window
+  // resizes, and the route becoming visible (everything measures 0 while
+  // hidden). The container, not a tray: the trays' widths are snapped, so
+  // only the container actually tracks the window. Per-frame is fine: the
+  // integer slot quantization plus balanceTrays' no-op skip mean a drag only
+  // touches the DOM (and re-rasterizes the art) at integer boundaries.
+  new ResizeObserver(() => balanceTrays()).observe(
+    document.querySelector("#tray-wrap .tray-rows"),
+  );
 }
 
 // Point `plan` at the canonical config's roles object, normalizing each role
@@ -287,6 +320,12 @@ function hydratePlan() {
     const rc = rolesCfg[r.key] ||= {};
     rc.bans ||= [];
     rc.picks ||= [];
+    if (r.key !== "aram") {
+      // The backend clamps on save; clamp here too so an oversized legacy
+      // config displays exactly what will persist.
+      if (rc.bans.length > MAX_BANS) rc.bans.length = MAX_BANS;
+      if (rc.picks.length > MAX_PICKS) rc.picks.length = MAX_PICKS;
+    }
     rc.loadouts ||= {};
     rc.default_spells ||= [];
     if (!ROLE_MODES.includes(rc.mode)) {
@@ -542,15 +581,11 @@ function applyGate() {
 }
 
 // Per-tab chrome: ARAM relabels both trays (its "bans" are the never-play
-// avoid list) and gets its own caption. One short line; the fallback details
-// live in the dropdown's tooltip.
+// avoid list). The caption lives in renderTrayMeta() — it tracks list counts.
 function applyAramView() {
   const isAram = activeRole === "aram";
   $("pick-tray-label").textContent = isAram ? "Priority list" : "Picks";
   $("ban-tray-label").textContent = isAram ? "Never play" : "Bans";
-  $("tray-caption").textContent = isAram
-    ? "Chased in order — best offered champ first, then bench upgrades. Never-play champs are never picked or swapped to."
-    : "Picked in order — if #1 is gone, queuePop takes #2.";
 }
 
 function renderFallback() {
@@ -589,17 +624,115 @@ function traySlotHtml(name, idx, kind) {
 function renderTray() {
   if (!activeRole || !plan[activeRole]) return;
   const rc = plan[activeRole];
+  const pickFull = rc.picks.length >= capFor("picks");
+  const banFull = rc.bans.length >= capFor("bans");
+  const pickTitle = pickFull
+    ? "Full — extra entries can never be used"
+    : "Add a pick — click or drag a champion from the list below";
   $("pick-tray").innerHTML =
     rc.picks.map((n, i) => traySlotHtml(n, i, "picks")).join("") +
-    `<div class="tray-slot ghost" role="button" tabindex="0" data-ghost="picks" ` +
-      `title="Add a pick — click or drag a champion from the list below">+</div>`;
-  const banTitle = activeRole === "aram"
-    ? "Add a never-play champ — click to arm the catalog, or drag a champion here"
-    : "Add a ban — click to arm the catalog, or drag a champion here";
+    `<div class="tray-slot ghost${pickFull ? " maxed" : ""}" role="button" tabindex="0" data-ghost="picks" ` +
+      `title="${pickTitle}">+</div>`;
+  const banTitle = banFull
+    ? "Full — extra entries can never be used"
+    : activeRole === "aram"
+      ? "Add a never-play champ — click to arm the catalog, or drag a champion here"
+      : "Add a ban — click to arm the catalog, or drag a champion here";
   $("ban-tray").innerHTML =
     rc.bans.map((n, i) => traySlotHtml(n, i, "bans")).join("") +
-    `<div class="tray-slot ghost ban${banArmed ? " armed" : ""}" role="button" tabindex="0" data-ghost="bans" ` +
-      `title="${banTitle}">+</div>`;
+    `<div class="tray-slot ghost ban${banArmed ? " armed" : ""}${banFull ? " maxed" : ""}" ` +
+      `role="button" tabindex="0" data-ghost="bans" title="${banTitle}">+</div>`;
+  renderTrayMeta();
+  balanceTrays();
+}
+
+// Lay the trays out as two packed rectangles sharing a row count, then scale
+// the slot size (the --tray-slot CSS var) so together they fill the container
+// width: the fewest rows whose fill scale stays reasonable, with the slack
+// absorbed by the slots instead of piling up as a void on the right. The pick
+// header line is the pick column's floor width; when it out-spans the grid
+// (sparse lists) the scale shrinks so the bans still fit beside it.
+// Deterministic from the header and container widths — no reflow iteration.
+const SLOT_MIN = 46; // never shrink slots below this to squeeze out a row
+const SLOT_MAX = 84; // never blow slots up past this to fill a wide window
+let trayApplied = ""; // last applied "scale|pickCols|banCols" — skips no-op writes
+
+function balanceTrays() {
+  const pt = $("pick-tray");
+  const bt = $("ban-tray");
+  const slot = pt.firstElementChild;
+  // Hidden route (everything measures 0): reset and let the observer retry.
+  if (!slot || !slot.offsetWidth) {
+    pt.style.width = bt.style.width = "";
+    trayApplied = "";
+    return;
+  }
+  const gap = parseFloat(getComputedStyle(pt).gap) || 9;
+  const rowsEl = pt.closest(".tray-rows");
+  const head = pt.closest(".tray-col").querySelector(".tray-head-row");
+  const colGap = parseFloat(getComputedStyle(rowsEl).gap) || 18;
+  const avail = rowsEl.clientWidth;
+
+  const GUTTER = 10; // #pick-tray's reserved scrollbar gutter (::-webkit-scrollbar)
+
+  const pCells = pt.children.length;
+  const bCells = bt.children.length;
+  let pickCols = 1;
+  let banCols = 1;
+  let scale = SLOT_MIN;
+  for (let rows = 1; rows <= pCells + bCells; rows++) {
+    pickCols = Math.ceil(pCells / rows);
+    banCols = Math.ceil(bCells / rows);
+    const cols = pickCols + banCols;
+    // The slot size at which this row count exactly fills the container.
+    const fill = (avail - colGap - GUTTER - gap * (cols - 2)) / cols;
+    scale = Math.min(SLOT_MAX, fill);
+    if (scale < SLOT_MIN) continue; // too cramped — wrap one row more
+    // When the header line out-spans the pick grid (sparse lists), the bans
+    // only get what's left of it; shrink the scale until they fit there too.
+    if (head.scrollWidth + colGap + banCols * scale + (banCols - 1) * gap > avail) {
+      const sb = (avail - colGap - head.scrollWidth - (banCols - 1) * gap) / banCols;
+      if (sb < SLOT_MIN) continue;
+      scale = Math.min(scale, sb);
+    }
+    break;
+  }
+  // Whole pixels only: fractional slot sizes leave the art permanently soft,
+  // and integer steps mean a slow window drag only re-rasterizes the images
+  // once per ~total-column-count pixels instead of every frame.
+  scale = Math.floor(Math.max(SLOT_MIN, Math.min(SLOT_MAX, scale)));
+  const sig = `${scale}|${pickCols}|${banCols}`;
+  if (sig === trayApplied) return; // same layout — don't touch the DOM
+  trayApplied = sig;
+  $("tray-wrap").style.setProperty("--tray-slot", `${scale}px`);
+  pt.style.width = `${Math.ceil(pickCols * scale + (pickCols - 1) * gap) + GUTTER}px`;
+  bt.style.width = `${Math.ceil(banCols * scale + (banCols - 1) * gap)}px`;
+}
+
+// Counters + caption. ARAM hides the counters (the draft math doesn't apply to
+// its lists); Rift shows N/cap — gold once coverage is practically guaranteed
+// (REC_PICKS hand-picked champs or any fallback mode; all 5 bans) — and the
+// caption nudges toward the recommendation while the pick list is thin.
+function renderTrayMeta() {
+  const isAram = activeRole === "aram";
+  const rc = plan[activeRole];
+  const covered = rc.picks.length >= REC_PICKS || roleMode(activeRole) !== "off";
+  const pc = $("pick-count");
+  const bc = $("ban-count");
+  if (isAram) {
+    pc.className = bc.className = "tray-count hidden";
+  } else {
+    pc.textContent = `${rc.picks.length}/${MAX_PICKS}`;
+    pc.className =
+      "tray-count" +
+      (rc.picks.length >= MAX_PICKS ? " full" : covered ? " ok" : "");
+    bc.textContent = `${rc.bans.length}/${MAX_BANS}`;
+    bc.className = "tray-count" + (rc.bans.length >= MAX_BANS ? " full" : "");
+  }
+  $("tray-caption").textContent = isAram
+    ? "Chased in order — best offered champ first, then bench upgrades. Never-play champs are never picked or swapped to."
+    : "Picked in order — if #1 is gone, queuePop takes #2." +
+      (covered ? "" : " Tip: 3–4 picks covers contested games — or turn on a fallback.");
 }
 
 function setBanArmed(on) {
@@ -619,6 +752,11 @@ function wireTrayEvents(tray, kind) {
   tray.addEventListener("click", (e) => {
     const ghost = e.target.closest(".tray-slot.ghost");
     if (ghost) {
+      // A full list can't take another champ — explain instead of arming.
+      if (!banArmed && plan[activeRole][kind].length >= capFor(kind)) {
+        capToast(kind);
+        return;
+      }
       if (kind === "bans") setBanArmed(!banArmed);
       else { setBanArmed(false); $("champ-search").focus(); }
       return;
@@ -676,6 +814,12 @@ function dropIntoTray(src, kind, slot) {
     else if (rc.bans.some((n) => n.toLowerCase() === lc)) srcKind = "bans";
   }
   const toList = rc[kind];
+  // Anything that GROWS the destination (catalog add, cross-tray move) honors
+  // its cap; same-list reorders don't change counts.
+  if (srcKind !== kind && toList.length >= capFor(kind)) {
+    capToast(kind);
+    return;
+  }
   let to = slot
     ? toList.findIndex((n) => n.toLowerCase() === slot.dataset.name.toLowerCase())
     : -1;
@@ -699,6 +843,7 @@ function dropIntoTray(src, kind, slot) {
 function addToPlan(kind, name) {
   const list = plan[activeRole][kind];
   if (list.some((n) => n.toLowerCase() === name.toLowerCase())) return;
+  if (list.length >= capFor(kind)) { capToast(kind); return; }
   list.push(name);
   afterPlanChange();
 }

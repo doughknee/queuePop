@@ -445,6 +445,8 @@
                 <div class="tray-col tray-grow">
                   <span class="tray-head-row">
                     <span class="tray-label" id="pick-tray-label">Picks</span>
+                    <span id="pick-count" class="tray-count hidden"
+                      data-tip="As last pick, 19 champs (10 bans + 9 picks) can be gone before your turn — 20 distinct picks guarantees one survives. 3–4 covers most games; a fallback mode covers the rest."></span>
                     <span class="fallback-mini">
                       <span>— if it runs out:</span>
                       <select id="fallback-mode" class="hextech-input fallback-select"></select>
@@ -460,7 +462,9 @@
                   <div id="pick-tray" class="tray"></div>
                 </div>
                 <div class="tray-col" id="ban-tray-col">
-                  <span class="tray-head-row"><span class="tray-label ban" id="ban-tray-label">Bans</span></span>
+                  <span class="tray-head-row"><span class="tray-label ban" id="ban-tray-label">Bans</span>
+                    <span id="ban-count" class="tray-count hidden"
+                      data-tip="Up to 4 ban targets can be blocked by teammates' declared picks — a 5th always lands. More than 5 can never be used."></span></span>
                   <div id="ban-tray" class="tray bans"></div>
                 </div>
               </div>

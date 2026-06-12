@@ -10,6 +10,7 @@ venv/
 
 # Runtime artifacts (may contain secrets like Discord webhooks)
 config.json
+stats.json
 *.log
 
 # ARAM pick-window diagnostic output (scripts/capture_aram_pick.py)
