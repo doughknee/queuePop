@@ -823,6 +823,27 @@
     .about-hero .qmark { width: 56px; height: 56px; }
     .about-hero .brand-word { font-size: 26px; }
 
+    /* Release Notes card: the history scrolls in place so the page stays put */
+    .rel-notes { max-height: 46vh; overflow-y: auto; min-height: 0;
+      display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
+    .rel-notes.hidden { display: none; }
+    .rn-entry { padding: 12px 0; border-top: 1px solid rgb(120 90 40 / 0.18); }
+    .rn-entry:first-child { border-top: 0; padding-top: 2px; }
+    .rn-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+    .rn-ver { font-family: Cinzel, Georgia, serif; font-size: 15px; color: #E2C887; }
+    .rn-date { font-size: 11px; color: #8a8472; }
+    .rn-body { font-size: 13px; color: #A09B8C; line-height: 1.5; }
+    .rn-body .rn-h { font-family: Marcellus, Georgia, serif; color: #C8AA6E;
+      margin: 8px 0 3px; font-size: 13px; letter-spacing: 0.03em; }
+    .rn-body .rn-p { margin: 4px 0; }
+    .rn-body .rn-list { list-style: none; margin: 3px 0; padding: 0; }
+    .rn-body .rn-list li { position: relative; padding-left: 14px; margin: 2px 0; }
+    .rn-body .rn-list li::before { content: "◆"; position: absolute; left: 0; top: 0;
+      font-size: 7px; line-height: 1.9rem; color: #785A28; }
+    .rn-body b { color: #D6D0C0; font-weight: 600; }
+    .rn-body code { font-size: 11.5px; color: #0AC8B9; background: rgb(10 200 185 / 0.07);
+      padding: 0 4px; }
+
     /* QR modal (phone companion). Reuses .skin-modal/.skin-backdrop/.skin-head. */
     .qr-panel { position: relative; width: min(360px, 92vw); display: flex; flex-direction: column;
       background: linear-gradient(180deg, #04101d 0%, #010a13 75%); }
@@ -1021,7 +1042,9 @@
     .qsel-group.collapsed .qsel-chev { transform: rotate(-90deg); }
     .qsel-label { flex: 0 0 auto; }
     .qsel-count { font-size: 10px; color: #7a6a44; background: rgb(120 90 40 / 0.18);
-      padding: 0 6px; border-radius: 8px; line-height: 16px; }
+      padding: 0 6px; border-radius: 8px; line-height: 16px; white-space: nowrap; }
+    /* Some of this group is selected — the collapsed row carries the state. */
+    .qsel-count.on { color: #0A0E13; background: #C8AA6E; font-weight: 700; }
     .qsel-all { flex-shrink: 0; background: none; border: 0; cursor: pointer; color: #6c6556;
       font-size: 10.5px; letter-spacing: .05em; padding: 4px 6px; transition: color .15s ease; }
     .qsel-all:hover { color: #C8AA6E; }

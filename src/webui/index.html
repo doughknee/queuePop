@@ -364,7 +364,9 @@
           </div>
           <div id="queue-select" class="hidden">
             <p class="set-row-hint mb-2">Auto-accept only these queues:</p>
-            <div id="queues" class="queue-pills"></div>
+            <!-- Plain block container: each .qsel-group stacks as its own row
+                 (the flex-wrapping .queue-pills live INSIDE each group body). -->
+            <div id="queues"></div>
           </div>
         </div>
 
@@ -652,9 +654,16 @@
             </div>
           </div>
 
-          <!-- CARD: Discord -->
+          <!-- CARD: Discord — a toggle like the others; the webhook setup only
+               appears once it's on (the fields keep their values while off). -->
           <div class="hextech p-5 set-card">
             <div class="set-card-title">Discord</div>
+            <div class="set-row">
+              <span class="sw"><input id="discord_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+              <label for="discord_enabled" class="set-row-label">Message me on Discord</label>
+              <span class="help" data-tip="Posts to a webhook in your server when the queue pops — Discord's mobile push does the rest. Works from anywhere, not just your home Wi-Fi.">?</span>
+            </div>
+            <div id="discord-body" class="hidden companion-info">
             <label class="block">
               <span class="text-sm text-subText">Webhook URL</span>
               <input id="webhook_url" type="text" placeholder="https://discord.com/api/webhooks/…"
@@ -682,6 +691,7 @@
               </ol>
               <button id="discord-docs" class="mt-2 text-gold5 underline cursor-pointer">Open Discord's webhook guide ↗</button>
             </details>
+            </div>
           </div>
 
         </div>
@@ -731,6 +741,15 @@
                 <button class="upd-btn ghost" data-ext="https://github.com/brandon-relentnet/queuePop">GitHub ↗</button>
                 <button class="upd-btn" data-ext="https://buymeacoffee.com/doughknee">♥ Tip Jar</button>
               </div>
+            </div>
+          </div>
+
+          <!-- CARD: Release Notes — the last few GitHub releases, fetched once
+               per visit (cached Python-side) and scrolled in place. -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Release Notes</div>
+            <div id="release-notes" class="rel-notes">
+              <p class="set-row-hint">Loading…</p>
             </div>
           </div>
         </div>

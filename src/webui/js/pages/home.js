@@ -8,13 +8,16 @@
 // --- Auto-Accept: the allowed-queues picker --------------------------------
 const QP_CHECK =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-const QSEL_COLLAPSE_KEY = "qb_qsel_collapsed";
-function qselLoadCollapsed() {
-  try { return new Set(JSON.parse(localStorage.getItem(QSEL_COLLAPSE_KEY) || "[]")); }
+// Groups the user has expanded; everything starts collapsed so the card stays
+// a few compact rows on Home (the per-group "n / total" counts carry the
+// state at a glance — expanding is only needed to change it).
+const QSEL_OPEN_KEY = "qb_qsel_open";
+function qselLoadOpen() {
+  try { return new Set(JSON.parse(localStorage.getItem(QSEL_OPEN_KEY) || "[]")); }
   catch (_) { return new Set(); }
 }
-function qselSaveCollapsed(set) {
-  try { localStorage.setItem(QSEL_COLLAPSE_KEY, JSON.stringify([...set])); } catch (_) {}
+function qselSaveOpen(set) {
+  try { localStorage.setItem(QSEL_OPEN_KEY, JSON.stringify([...set])); } catch (_) {}
 }
 
 // Render the queue picker as collapsible, grouped sections. Each section has
@@ -23,13 +26,13 @@ function qselSaveCollapsed(set) {
 function renderQueuePicker(queues, groups) {
   const wrap = $("queues");
   if (!wrap) return;
-  const collapsed = qselLoadCollapsed();
+  const open = qselLoadOpen();
   const order = groups && groups.length ? groups : [{ key: "other", label: "Other" }];
   let html = "";
   for (const g of order) {
     const qs = queues.filter((q) => q.group === g.key);
     if (!qs.length) continue;
-    const isCol = collapsed.has(g.key);
+    const isCol = !open.has(g.key);
     html +=
       `<div class="qsel-group${isCol ? " collapsed" : ""}" data-group="${g.key}">` +
         `<div class="qsel-head">` +
@@ -62,10 +65,10 @@ function onQueuePickerClick(e) {
     const key = toggle.dataset.toggle;
     const sec = $("queues")?.querySelector(`.qsel-group[data-group="${key}"]`);
     if (!sec) return;
-    const collapsed = qselLoadCollapsed();
-    if (sec.classList.toggle("collapsed")) collapsed.add(key);
-    else collapsed.delete(key);
-    qselSaveCollapsed(collapsed);
+    const open = qselLoadOpen();
+    if (sec.classList.toggle("collapsed")) open.delete(key);
+    else open.add(key);
+    qselSaveOpen(open);
     return;
   }
   const all = e.target.closest(".qsel-all");
@@ -93,6 +96,19 @@ async function buildQueues() {
   }
 }
 
+// Per-group "n / total" count chips: the collapsed rows still tell you what's
+// selected without expanding anything.
+function updateQselCounts() {
+  document.querySelectorAll("#queues .qsel-group").forEach((sec) => {
+    const boxes = sec.querySelectorAll("input[data-queue]");
+    const sel = [...boxes].filter((b) => b.checked).length;
+    const count = sec.querySelector(".qsel-count");
+    if (!count) return;
+    count.textContent = sel ? `${sel} / ${boxes.length}` : String(boxes.length);
+    count.classList.toggle("on", sel > 0);
+  });
+}
+
 // Hydrate: store.config → queue DOM.
 function hydrateQueues() {
   const allowedIds = (QP.store.config.allowed_queue_ids || []).map(Number);
@@ -103,6 +119,7 @@ function hydrateQueues() {
   document.querySelectorAll("[data-queue]").forEach((cb) => {
     cb.checked = allowed.has(Number(cb.dataset.queue));
   });
+  updateQselCounts();
 }
 
 // Sync: queue DOM → store.config. "Auto-accept any queue" on ⇒ empty list
@@ -115,6 +132,7 @@ function syncQueuesToStore() {
     });
   }
   QP.store.config.allowed_queue_ids = allowed;
+  updateQselCounts();
   QP.bus.emit("config:changed", { path: "allowed_queue_ids" });
   QP.store.scheduleSave();
 }

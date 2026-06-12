@@ -187,12 +187,14 @@ class LCU:
             if self.config.get("desktop_notifications"):
                 send_desktop_notification(game_mode)
 
-            # 2. Send Discord Ping
-            await send_discord_ping(
-                webhook_url=self.config.get("webhook_url"),
-                user_id=self.config.get("user_id"),
-                game_mode=game_mode
-            )
+            # 2. Send Discord Ping. Missing key (pre-toggle config) defaults to
+            # enabled — a set webhook used to mean "on"; an empty one no-ops.
+            if self.config.get("discord_enabled", True):
+                await send_discord_ping(
+                    webhook_url=self.config.get("webhook_url"),
+                    user_id=self.config.get("user_id"),
+                    game_mode=game_mode
+                )
             
             # 3. Accept Match
             await connection.request('post', '/lol-matchmaking/v1/ready-check/accept')

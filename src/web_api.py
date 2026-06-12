@@ -441,6 +441,11 @@ def _normalize_config(data):
     return {
         "webhook_url": (data.get("webhook_url") or "").strip(),
         "user_id": (data.get("user_id") or "").strip(),
+        # Additive key (2026-06): configs that predate the toggle treated a set
+        # webhook as "enabled", so that's the default for them.
+        "discord_enabled": bool(
+            data.get("discord_enabled", bool((data.get("webhook_url") or "").strip()))
+        ),
         "desktop_notifications": bool(data.get("desktop_notifications", True)),
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
         # Order matters here, it's the display order of pinned queues.
@@ -919,9 +924,15 @@ class Api:
         return updater.status()
 
     def check_for_update(self):
-        """Force a fresh GitHub check (the Settings 'Check for updates' button).
+        """Force a fresh GitHub check (the About 'Check for updates' button).
         Bounded by the request timeout, so it's safe to await from JS."""
         return updater.check(force=True)
+
+    def get_release_notes(self):
+        """The last few GitHub releases for the About page's Release Notes
+        card. Cached in updater; [] when offline. Bounded by the request
+        timeout, so it's safe to await from JS."""
+        return {"releases": updater.release_notes()}
 
     # --- Mutations ------------------------------------------------------
 

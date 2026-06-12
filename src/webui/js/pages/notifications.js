@@ -15,6 +15,8 @@ function hydrateAlerts() {
   const c = QP.store.config;
   $("webhook_url").value = c.webhook_url || "";
   $("user_id").value = c.user_id || "";
+  $("discord_enabled").checked = !!c.discord_enabled;
+  toggleDiscordBody();
   $("desktop_notifications").checked = !!c.desktop_notifications;
 
   const comp = c.companion || {};
@@ -34,6 +36,7 @@ function syncAlertsToStore() {
   const c = QP.store.config;
   c.webhook_url = $("webhook_url").value;
   c.user_id = $("user_id").value;
+  c.discord_enabled = $("discord_enabled").checked;
   c.desktop_notifications = $("desktop_notifications").checked;
   c.companion = {
     enabled: $("companion_enabled").checked,
@@ -166,6 +169,14 @@ $("companion-test").addEventListener("click", async () => {
 });
 
 // --- Discord -----------------------------------------------------------------
+// The setup (webhook, user ID, test, how-to) only shows while the toggle is
+// on; the stored values survive an off-spell so it's a true toggle, not a
+// reset. The backend skips the ping when discord_enabled is false.
+function toggleDiscordBody() {
+  $("discord-body").classList.toggle("hidden", !$("discord_enabled").checked);
+}
+$("discord_enabled").addEventListener("change", toggleDiscordBody);
+
 function validateWebhook() {
   const v = $("webhook_url").value.trim();
   const hint = $("webhook_hint");

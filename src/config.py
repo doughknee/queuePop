@@ -55,6 +55,9 @@ def default_config():
     return {
         "webhook_url": "",
         "user_id": "",
+        # Discord pings are opt-in; the webhook fields keep their value while
+        # the toggle is off so flipping it back doesn't lose the setup.
+        "discord_enabled": False,
         "desktop_notifications": True,
         "allowed_queue_ids": [],
         # Queue ids shown in the PLAY dropdown (order = display order).

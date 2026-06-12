@@ -131,4 +131,63 @@ document.querySelectorAll("[data-ext]").forEach((el) => {
   });
 });
 
+// --- About page: release notes ----------------------------------------------
+// Fetched on the first visit to the About route (cached Python-side for 6h);
+// a failed fetch shows a quiet hint and retries on the next visit.
+
+// Markdown-lite for GitHub release bodies: headings, bullets, bold, code —
+// enough for a changelog. Links flatten to their text (no nav in the WebView).
+function mdLite(md) {
+  const inline = (s) =>
+    s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+     .replace(/`([^`]+)`/g, "<code>$1</code>")
+     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+  let html = "";
+  let inList = false;
+  for (const line of escapeHtml(md).split(/\r?\n/)) {
+    const li = line.match(/^\s*[-*]\s+(.*)/);
+    if (li) {
+      if (!inList) { html += '<ul class="rn-list">'; inList = true; }
+      html += `<li>${inline(li[1])}</li>`;
+      continue;
+    }
+    if (inList) { html += "</ul>"; inList = false; }
+    const h = line.match(/^#{1,4}\s+(.*)/);
+    if (h) html += `<p class="rn-h">${inline(h[1])}</p>`;
+    else if (line.trim()) html += `<p class="rn-p">${inline(line)}</p>`;
+  }
+  if (inList) html += "</ul>";
+  return html;
+}
+
+function relNoteHtml(r) {
+  return (
+    `<div class="rn-entry">` +
+      `<div class="rn-head">` +
+        `<span class="rn-ver">v${escapeHtml(r.version || "")}</span>` +
+        (r.date ? `<span class="rn-date">${escapeHtml(r.date)}</span>` : "") +
+      `</div>` +
+      `<div class="rn-body">${mdLite(r.notes || "") || '<p class="rn-p">No notes for this release.</p>'}</div>` +
+    `</div>`
+  );
+}
+
+let releaseNotesLoaded = false;
+QP.bus.on("route", async ({ tab }) => {
+  if (tab !== "about" || releaseNotesLoaded) return;
+  releaseNotesLoaded = true; // claim it so a double-click doesn't double-fetch
+  const wrap = $("release-notes");
+  let releases = [];
+  try {
+    releases = ((await api().get_release_notes()) || {}).releases || [];
+  } catch (_) {}
+  if (!releases.length) {
+    wrap.innerHTML =
+      '<p class="set-row-hint">Couldn’t load release notes — check back when you’re online.</p>';
+    releaseNotesLoaded = false; // retry on the next visit
+    return;
+  }
+  wrap.innerHTML = releases.map(relNoteHtml).join("");
+});
+
 QP._loaded.push("features/update");
