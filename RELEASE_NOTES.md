@@ -1,47 +1,17 @@
-The biggest update queuePop has ever shipped: a champ select that fights for your role, a plan for every position, and a ground-up redesign of the whole app. Here's the tour.
+A focused follow-up to the 1.4.0 redesign: your champ select plan gets the draft math built in, the pick/ban trays learned to fit any window beautifully, and the app finally remembers how big you like it.
 
-## 🥇 It fights for your role now
+## 🧮 Your plan, with the math done for you
 
-Autofilled again? Tell queuePop your role order — Mid first, then Top, then Jungle — and the moment champ select starts, it quietly asks the right teammate to swap. If they decline, it moves down your list and asks the next one. **Pick order works the same way**: prefer picking last so you can counter? It trades draft spots toward the back for you. Set both once in Match settings, drag the chips into your order, and never beg in chat again.
+How many picks is *enough*? We did the worst-case arithmetic: as last pick, 10 bans and 9 picks can be gone before your turn — so **20 distinct picks guarantees one survives**, and a 21st could never matter. Bans: only your four teammates' declared picks can block a target, so **a 5th ban always lands clean**. The planner now puts a counter on each list (hover it for the math), turns gold once you're practically covered — about 4 picks, or any fallback mode — and caps the lists at 20 and 5, because anything past that is dead weight. Try to add more and queuePop politely tells you why it won't. ARAM is exempt; its priority list isn't a draft.
 
-## 🗺️ A real game plan, for every role
+## 🖼️ Trays that fit like they were drawn there
 
-The Champ Select page is a full planner now. Build an ordered pick list per role — if your #1 is banned or taken, queuePop takes your #2, then your #3. Add bans, drag everything into order, and give any champ its own loadout. When your list runs out, a fallback of your choosing takes over: most-played, least-played, rustiest, closest to a mastery level, or pure chaos.
+The picks and bans now lay themselves out as two tidy blocks that share the same row count and **fill the page edge to edge at any window size**. Slots scale gently to use the space, stay pixel-crisp at rest, and glide while you resize instead of jumping. No more stray gaps, overlapping sections, or lonely half-rows.
 
-## 🔮 Locks in more than the champ
+## 🪟 A window that remembers
 
-- **Auto runes** — every champ you lock gets the client's recommended rune page, written to one managed page. Zero per-champ setup, your own pages untouched.
-- **Default summoner spells per role** — jungle always gets Smite, support always gets your comfort picks, unless a champ's loadout says otherwise.
-- **Hide your pick intent** until you lock, so nobody ban-snipes your hover.
-- **ARAM upgrades**: a courtesy delay before bench grabs (let teammates look first) and a never-play list for the champs you refuse to touch.
-
-## 🎨 A whole new queuePop
-
-The app has been rebuilt around four simple pages — **Home**, **Champ Select**, **Alerts**, and **About**. Your activity feed and queue picks live on Home with a plan summary you can click straight into; every setting sits where you'd expect and explains itself with a little **?**. Same Hextech soul, none of the old settings maze.
-
-## 🔔 Alerts that answer to you
-
-The new Alerts page puts every way queuePop reaches you in one place. Choose exactly which moments ping you — queue pops, champ select starting, the game going live, or your client disconnecting. Every channel has a test button and a "last sent" receipt so you *know* it works. The phone companion shows its live status and how many phones are connected, and Discord tucks neatly behind a toggle.
-
-## ⏱️ Accept on your terms
-
-New on Home: **Wait before accepting**. Your alerts still fire the instant the queue pops, but queuePop holds the accept for a few seconds of breathing room — time to get back to the desk, or to decline by hand if you need out. If anyone else declines during the wait, it stands down.
-
-## 🏆 Your Service Record
-
-The About page now keeps score: ready checks accepted, champ selects played, picks locked, bench grabs, trades made. Watch the numbers climb, game after game.
-
-## 👀 Watch it work
-
-During champ select, the live view narrates every move as it happens — locks, bench grabs, swaps, runes — and trade chips finally speak plainly: *requesting…*, *accepted*, *declined — cooldown*.
-
-## ✨ Also in this update
-
-- Release notes live right here in the app now (hi!).
-- Updates show their download progress and relaunch reliably when they finish.
-- The Home queue picker collapsed into tidy rows with live "selected" counts.
-- The window opens at a comfier size, every menu shares one style, and a hundred small things line up.
+Resize queuePop once and it opens at exactly that size, every launch. (Maximizing doesn't count — it remembers the real size underneath.) The minimum window is now 762×800, the smallest size where every page lays out properly.
 
 ## 🔧 For the curious
 
-Under the hood: the UI was rebuilt as plain-script modules, every new setting is an additive config key (old configs upgrade in place, and downgrade safely), the self-update flow was hardened against relaunch races with a diagnostic `update.log`, and the whole release was smoke-tested over a live debugging harness. The full story is in the commit history.
+The list caps are enforced in the UI and again in config normalization, so oversized hand-edited configs trim themselves on load. The tray layout is solved deterministically from the container and header widths — fewest rows that fit, slot size scaled to fill, integer-quantized for crisp art — and the resize glide is a registered CSS `@property` transition, no per-frame JavaScript. The remembered window size is an additive `window` config key: old configs upgrade in place and downgrade safely.
