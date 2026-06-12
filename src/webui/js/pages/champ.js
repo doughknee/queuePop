@@ -171,26 +171,8 @@ function buildChampTab() {
   // list (click a ranked chip to drop it). Empty list = feature off. The
   // legacy single-choice keys mirror the #1 pick so older builds still read
   // this config.
-  $("spot-seg").addEventListener("click", (e) => {
-    const chip = e.target.closest("[data-spot]");
-    if (!chip) return;
-    const cs = champCfg();
-    cs.spot_priority = togglePrio(cs.spot_priority, chip.dataset.spot);
-    cs.pick_spot = cs.spot_priority[0] || "off";
-    QP.bus.emit("config:changed", { path: "champ_select" });
-    QP.store.scheduleSave();
-    hydrateBehavior();
-  });
-  $("role-seg").addEventListener("click", (e) => {
-    const chip = e.target.closest("[data-role]");
-    if (!chip) return;
-    const cs = champCfg();
-    cs.role_priority = togglePrio(cs.role_priority, chip.dataset.role);
-    cs.preferred_role = cs.role_priority[0] || "off";
-    QP.bus.emit("config:changed", { path: "champ_select" });
-    QP.store.scheduleSave();
-    hydrateBehavior();
-  });
+  wirePrioLine("role-seg");
+  wirePrioLine("spot-seg");
   $("delay-seg").addEventListener("click", (e) => {
     const chip = e.target.closest(".sort-opt");
     if (!chip) return;
@@ -231,12 +213,14 @@ function buildChampTab() {
     if (settingsAnim) settingsAnim.cancel();
     settings.open = true;
     refreshRuneInfo();
+    // Same curve and scale as the PLAY dropdown (qmIn), mirrored to open
+    // upward — the two menus should move like the same piece of furniture.
     settingsAnim = settingsBody.animate(
       [
-        { opacity: 0, transform: "translateY(10px) scale(0.985)" },
+        { opacity: 0, transform: "translateY(10px) scale(0.96)" },
         { opacity: 1, transform: "none" },
       ],
-      { duration: 200, easing: "cubic-bezier(0.2, 0.7, 0.3, 1)" },
+      { duration: 200, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
     );
     settingsAnim.onfinish = () => { settingsAnim = null; };
   }
@@ -261,7 +245,10 @@ function buildChampTab() {
     else openSettings();
   });
   document.addEventListener("click", (e) => {
-    if (settings.open && !settings.contains(e.target)) closeSettings();
+    // A control click can re-render its row before this bubbles here, leaving
+    // a detached target that fails .contains() — don't read that as outside.
+    if (settings.open && e.target.isConnected && !settings.contains(e.target))
+      closeSettings();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeSettings();
@@ -321,13 +308,6 @@ function hydratePlan() {
   updateAllBadges();
 }
 
-// Add `key` to a priority list, or remove it if already ranked. Returns the
-// new list (input may be missing/garbage from an older config).
-function togglePrio(list, key) {
-  const cur = Array.isArray(list) ? list.map(String) : [];
-  return cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-}
-
 // A priority list from the config, falling back to the legacy single-choice
 // key so configs from older builds hydrate sensibly.
 function prioList(cs, listKey, legacyKey) {
@@ -337,36 +317,114 @@ function prioList(cs, listKey, legacyKey) {
   return legacy !== "off" ? [legacy] : [];
 }
 
-// Render a priority line: the ranked chips first — numbered, in list order,
-// with an × to drop — then the remaining options as dashed "+" add-chips.
-// Order is carried by chip POSITION (left → right), so the list reads as a
-// sequence; an explicit "Off" marker shows when nothing is ranked.
+// --- Priority lines (Prefer role / Pick order) -------------------------------
+// One mental model: a switch turns the feature on, and while it's on ALL the
+// options are visible as one draggable row — position IS priority, the #1
+// chip is solid gold, drag to rearrange. No adding, removing, or numbering.
+// Off stores [] in the config; the last order is kept in localStorage so
+// flipping it back on restores it. The legacy single-choice keys mirror #1.
 const ROLE_OPTS = [
   ["top", "Top"], ["jungle", "Jg"], ["middle", "Mid"],
   ["bottom", "Bot"], ["utility", "Sup"],
 ];
 const SPOT_OPTS = [["1", "1st"], ["2", "2nd"], ["3", "3rd"], ["4", "4th"], ["5", "5th"]];
+const PRIO_DEFS = {
+  "role-seg": { opts: ROLE_OPTS, key: "role_priority", legacy: "preferred_role",
+                toggle: "role_prio_on", saved: "qb_role_order" },
+  "spot-seg": { opts: SPOT_OPTS, key: "spot_priority", legacy: "pick_spot",
+                toggle: "spot_prio_on", saved: "qb_spot_order" },
+};
 
-function renderPrioLine(segId, attr, opts, list) {
-  const label = Object.fromEntries(opts);
-  const ranked = list
-    .filter((k) => label[k])
+// Complete a (possibly partial) list into a full ordering of every option.
+function prioFullOrder(def, list) {
+  const all = def.opts.map(([k]) => k);
+  const cur = (list || []).map(String).filter((k) => all.includes(k));
+  return cur.concat(all.filter((k) => !cur.includes(k)));
+}
+
+function setPrio(def, order) {
+  const cs = champCfg();
+  cs[def.key] = order;
+  cs[def.legacy] = order[0] || "off";
+  QP.bus.emit("config:changed", { path: "champ_select" });
+  QP.store.scheduleSave();
+  hydrateBehavior();
+}
+
+function renderPrioLine(segId) {
+  const def = PRIO_DEFS[segId];
+  const cs = champCfg();
+  const list = prioList(cs, def.key, def.legacy);
+  const on = list.length > 0;
+  $(def.toggle).checked = on;
+  $(segId).classList.toggle("hidden", !on);
+  if (!on) {
+    $(segId).innerHTML = ""; // no stale chips while the feature is off
+    return;
+  }
+  // A partial list (legacy migration) displays — and persists — completed,
+  // so what the backend walks always matches what's on screen.
+  const order = prioFullOrder(def, list);
+  if (order.length !== list.length) {
+    cs[def.key] = order;
+    QP.store.scheduleSave();
+  }
+  const label = Object.fromEntries(def.opts);
+  $(segId).innerHTML = order
     .map((k, i) =>
-      `<button type="button" class="prio-chip" data-${attr}="${k}" title="Drop ${label[k]} from the list">` +
-        `<span class="pc-n">${i + 1}</span>${label[k]}<span class="pc-x">×</span>` +
-      `</button>`,
+      `<button type="button" class="prio-chip${i === 0 ? " first" : ""}" ` +
+        `draggable="true" data-key="${k}" title="Drag to reorder — left is asked first">` +
+        `${label[k]}</button>`,
     ).join("");
-  const rest = opts
-    .filter(([k]) => !list.includes(k))
-    .map(([k, name]) =>
-      `<button type="button" class="prio-add" data-${attr}="${k}" title="Add ${name} as priority #${list.length + 1}">` +
-        `<span class="pc-plus">+</span>${name}` +
-      `</button>`,
-    ).join("");
-  $(segId).innerHTML =
-    (ranked || `<span class="prio-off">Off</span>`) +
-    (ranked && rest ? `<span class="prio-sep"></span>` : "") +
-    rest;
+}
+
+function wirePrioLine(segId) {
+  const def = PRIO_DEFS[segId];
+  const seg = $(segId);
+
+  // The switch: on restores the last order (or the default); off remembers it.
+  $(def.toggle).addEventListener("change", (e) => {
+    if (e.target.checked) {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem(def.saved) || "null"); } catch (_) {}
+      setPrio(def, prioFullOrder(def, saved || []));
+    } else {
+      try {
+        localStorage.setItem(def.saved, JSON.stringify(champCfg()[def.key] || []));
+      } catch (_) {}
+      setPrio(def, []);
+    }
+  });
+
+  // Drag to reorder: the dragged chip follows the cursor through the row
+  // (live DOM preview), and the final order commits on dragend.
+  let dragKey = null;
+  seg.addEventListener("dragstart", (e) => {
+    const chip = e.target.closest(".prio-chip");
+    if (!chip) return;
+    dragKey = chip.dataset.key;
+    e.dataTransfer.effectAllowed = "move";
+    chip.classList.add("drag-src");
+  });
+  seg.addEventListener("dragover", (e) => {
+    if (!dragKey) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const over = e.target.closest(".prio-chip");
+    const src = seg.querySelector(`.prio-chip[data-key="${dragKey}"]`);
+    if (!over || !src || over === src) return;
+    const chips = [...seg.querySelectorAll(".prio-chip")];
+    if (chips.indexOf(src) < chips.indexOf(over)) over.after(src);
+    else over.before(src);
+  });
+  seg.addEventListener("drop", (e) => {
+    if (dragKey) e.preventDefault();
+  });
+  seg.addEventListener("dragend", () => {
+    if (!dragKey) return;
+    dragKey = null;
+    setPrio(def, [...seg.querySelectorAll(".prio-chip")].map((c) => c.dataset.key));
+  });
 }
 
 function hydrateBehavior() {
@@ -382,8 +440,8 @@ function hydrateBehavior() {
   $("trades_enabled").checked = !!(cs.trades || {}).enabled;
   $("auto_runes").checked = !!cs.auto_runes;
   $("show_intent").checked = cs.show_intent ?? true;
-  renderPrioLine("spot-seg", "spot", SPOT_OPTS, prioList(cs, "spot_priority", "pick_spot"));
-  renderPrioLine("role-seg", "role", ROLE_OPTS, prioList(cs, "role_priority", "preferred_role"));
+  renderPrioLine("spot-seg");
+  renderPrioLine("role-seg");
   const delay = String(Math.round(Number(aramCfg().bench_delay) || 0));
   document.querySelectorAll("#delay-seg .sort-opt").forEach((b) =>
     b.classList.toggle("active", b.dataset.delay === (["0","1","2","3"].includes(delay) ? delay : "0")),

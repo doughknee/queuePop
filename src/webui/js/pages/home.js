@@ -150,22 +150,18 @@ $("queue_all").addEventListener("change", () => {
 // --- Accept timing: instant, or a short grace window before the accept -----
 function hydrateAcceptTiming() {
   const d = Number(QP.store.config.accept_delay_seconds) || 0;
-  document.querySelectorAll("#accept-seg .sort-opt").forEach((b) =>
-    b.classList.toggle("active", (b.dataset.acc === "delay") === d > 0),
-  );
+  $("accept_wait").checked = d > 0;
   $("accept-delay-row").classList.toggle("hidden", !(d > 0));
   if (d > 0) $("accept_seconds").value = d;
 }
 
-document.querySelectorAll("#accept-seg .sort-opt").forEach((b) =>
-  b.addEventListener("click", () => {
-    QP.store.set(
-      "accept_delay_seconds",
-      b.dataset.acc === "delay" ? Number($("accept_seconds").value) || 3 : 0,
-    );
-    hydrateAcceptTiming();
-  }),
-);
+$("accept_wait").addEventListener("change", () => {
+  QP.store.set(
+    "accept_delay_seconds",
+    $("accept_wait").checked ? Number($("accept_seconds").value) || 3 : 0,
+  );
+  hydrateAcceptTiming();
+});
 $("accept_seconds").addEventListener("input", () => {
   const v = Math.min(10, Math.max(1, Number($("accept_seconds").value) || 3));
   QP.store.set("accept_delay_seconds", v);

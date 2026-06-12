@@ -157,33 +157,26 @@
     .sort-opt:hover { color: #F0E6D2; background: rgb(200 170 110 / 0.08); }
     .sort-opt.active { color: #0A0E13; background: #C8AA6E; }
 
-    /* Priority lines (Prefer role / Pick order): ranked chips read as a
-       left-to-right sequence — numbered, gold, with an × to drop — followed
-       by dashed "+" chips for the unranked options. Empty = an "Off" mark. */
-    .prio-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    /* Priority lines (Prefer role / Pick order): the switch turns the feature
+       on; while on, EVERY option shows as one draggable row. Position is
+       priority — the solid-gold #1 chip is what gets asked first, "›" marks
+       carry the eye down the line. No adding, removing, or rank numerals. */
+    .prio-line { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; min-width: 0; }
     .prio-line.hidden { display: none; }
-    .prio-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 7px 3px 4px;
-      border: 0; cursor: pointer; background: #C8AA6E; color: #0A0E13;
+    .prio-chip { position: relative; display: inline-flex; align-items: center;
+      padding: 3px 9px; border: 0; cursor: grab;
+      background: rgb(200 170 110 / 0.08); color: #C8AA6E;
+      outline: 1px solid rgb(120 90 40 / 0.5); outline-offset: -1px;
       font-family: Marcellus, Georgia, serif; font-size: 12px; line-height: 1.3;
-      transition: background-color .15s ease; }
-    .prio-chip:hover { background: #E2C887; }
-    .prio-chip .pc-n { display: inline-grid; place-items: center; width: 14px; height: 14px;
-      border-radius: 9999px; background: #0A0E13; color: #C8AA6E;
-      font-size: 9px; font-weight: 700; line-height: 1; }
-    .prio-chip .pc-x { font-size: 14px; line-height: 1; color: rgb(10 14 19 / 0.45);
-      transition: color .15s ease; }
-    .prio-chip:hover .pc-x { color: #5e1f1f; }
-    .prio-add { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
-      border: 0; cursor: pointer; background: transparent; color: #8a8472;
-      outline: 1px dashed rgb(120 90 40 / 0.5); outline-offset: -1px;
-      font-family: Marcellus, Georgia, serif; font-size: 12px; line-height: 1.3;
-      transition: color .15s ease, outline-color .15s ease; }
-    .prio-add:hover { color: #F0E6D2; outline-style: solid; outline-color: #C8AA6E; }
-    .prio-add .pc-plus { font-size: 13px; line-height: 1; color: #785A28; transition: color .15s ease; }
-    .prio-add:hover .pc-plus { color: #C8AA6E; }
-    .prio-off { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-      color: #6c6556; padding: 4px 2px; }
-    .prio-sep { width: 1px; height: 16px; background: rgb(120 90 40 / 0.4); margin: 0 3px; flex-shrink: 0; }
+      transition: background-color .15s ease, color .15s ease, outline-color .15s ease; }
+    .prio-chip:hover { color: #F0E6D2; outline-color: #C8AA6E; }
+    .prio-chip:active { cursor: grabbing; }
+    .prio-chip.first { background: #C8AA6E; color: #0A0E13; outline-color: #C8AA6E; }
+    .prio-chip.first:hover { background: #E2C887; color: #0A0E13; }
+    .prio-chip.drag-src { opacity: 0.4; }
+    .prio-chip:not(:first-child)::before { content: "›"; position: absolute;
+      left: -10px; top: 50%; transform: translate(-1px, -54%);
+      color: #785A28; font-size: 12px; line-height: 1; pointer-events: none; }
 
     /* Hextech gold corner accents on focal panels */
     .framed { position: relative; }
@@ -786,6 +779,12 @@
     /* A settings row: toggle, label (clickable), and a help "?" with a tooltip.
        Single-line, the explanatory copy lives in the tooltip, not under it. */
     .set-row { display: flex; align-items: center; gap: 11px; }
+    /* Consistency rule: every settings row anchors its "?" to the right edge,
+       wherever the row lives (cards, the match-settings popover, the event
+       matrix), so the eye always finds help in the same place. */
+    .set-row > .help:last-child,
+    .behavior-row > .help:last-child,
+    .alert-ev-row > .help:last-child { margin-left: auto; }
     .set-row-label { flex: 1; min-width: 0; font-size: 13.5px; color: #F0E6D2; line-height: 1.35; cursor: pointer; }
     .set-row-hint { font-size: 12.5px; color: #A8A192; line-height: 1.5; }
     /* Help "?", hover shows a floating tooltip (#tip, positioned by app.js). */
@@ -1342,15 +1341,23 @@
   outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px;
   background: rgb(1 10 19 / 0.4); }
 .cs-set-summary:hover { outline-color: #C8AA6E; }
+/* One menu recipe app-wide: this is the PLAY dropdown's panel treatment
+   (same gradient, gold hairline, teal glow, corner accents) so the two
+   menus read as the same piece of furniture. */
 .cs-set-body {
   position: absolute; right: 14px; bottom: calc(100% + 10px);
   width: min(500px, calc(100vw - 56px));
   padding: 18px 20px 16px; gap: 15px; z-index: 40;
-  background: linear-gradient(180deg, rgb(10 20 40 / 0.98), rgb(2 13 23 / 0.99));
-  outline: 1px solid rgb(120 90 40 / 0.6); outline-offset: -1px;
-  box-shadow: 0 12px 34px rgb(0 0 0 / 0.65), 0 0 24px -8px rgb(10 200 185 / 0.3);
+  background: linear-gradient(180deg, #04101d 0%, #010a13 60%);
+  outline: 1px solid rgb(200 170 110 / 0.45); outline-offset: -1px;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.8), 0 0 22px -10px rgba(10, 200, 185, 0.4);
   overflow: visible;
 }
+.cs-set-body::before, .cs-set-body::after {
+  content: ""; position: absolute; width: 11px; height: 11px; pointer-events: none; z-index: 2;
+}
+.cs-set-body::before { top: 2px; left: 2px; border-top: 2px solid #C8AA6E; border-left: 2px solid #C8AA6E; }
+.cs-set-body::after  { bottom: 2px; right: 2px; border-bottom: 2px solid #C8AA6E; border-right: 2px solid #C8AA6E; }
 #champ-settings[open] .cs-set-body { animation: none; }
 .rune-block { padding-top: 12px; }
 

@@ -395,11 +395,8 @@
             <span class="help" data-tip="On: accept whatever queue pops. Turn off to auto-accept only the specific queues you pick below.">?</span>
           </div>
           <div class="set-row">
-            <span class="set-row-label" style="flex: 0 0 auto;">Accept the pop</span>
-            <div class="sort-seg" id="accept-seg" role="group" aria-label="Accept timing">
-              <button type="button" class="sort-opt" data-acc="instant">Instantly</button>
-              <button type="button" class="sort-opt" data-acc="delay">After a wait</button>
-            </div>
+            <span class="sw"><input id="accept_wait" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="accept_wait" class="set-row-label">Wait before accepting</label>
             <span id="accept-delay-row" class="lock-delay hidden">
               <input id="accept_seconds" type="number" min="1" max="10" value="3"
                 class="hextech-input w-12 px-1 py-0.5 text-center text-gold1 outline-none" />
@@ -526,15 +523,17 @@
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Prefer role</span>
-                <!-- Priority line, rendered by champ.js: ranked chips first
-                     (numbered, in order, × to drop), then dashed +chips. -->
-                <div class="prio-line" id="role-seg" role="group" aria-label="Role priority"></div>
-                <span class="help" data-tip="Build a ranked list: + adds the next preference, × drops one. When autofilled, queuePop asks for your #1 role — if its holder declines, it tries the next on the list, and accepts any incoming swap that moves you up it.">?</span>
+                <span class="sw"><input id="role_prio_on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <!-- The whole order as one draggable row (champ.js): position
+                     is priority, the gold #1 chip is what gets asked first. -->
+                <div class="prio-line hidden" id="role-seg" role="group" aria-label="Role order"></div>
+                <span class="help" data-tip="Drag the roles into your order — left is asked first. When autofilled, queuePop asks whoever holds your #1 to swap; a decline moves on to the next role, and incoming swaps that move you left are accepted.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Pick order</span>
-                <div class="prio-line" id="spot-seg" role="group" aria-label="Pick-order priority"></div>
-                <span class="help" data-tip="Build a ranked list: + adds the next preference, × drops one. 1st picks earliest, 5th sees the most picks first. queuePop trades toward your #1 spot, falls down the list on declines, and accepts incoming swaps that move you up it.">?</span>
+                <span class="sw"><input id="spot_prio_on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <div class="prio-line hidden" id="spot-seg" role="group" aria-label="Pick-order preference"></div>
+                <span class="help" data-tip="Drag the draft spots into your order — left is asked first (1st picks earliest, 5th sees the most picks before committing). queuePop trades toward the front; a decline moves on to the next spot.">?</span>
               </div>
               <div class="behavior-row">
                 <span class="behavior-label">Lock my pick</span>
