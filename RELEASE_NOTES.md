@@ -1,17 +1,13 @@
-A focused follow-up to the 1.4.0 redesign: your champ select plan gets the draft math built in, the pick/ban trays learned to fit any window beautifully, and the app finally remembers how big you like it.
+A new champion used to mean waiting for a queuePop update before you could plan around them. Not anymore — the moment your League client knows about a champion, so does queuePop, and a new button pulls their portrait and name straight from Riot whenever you want them.
 
-## 🧮 Your plan, with the math done for you
+## 🆕 New champions show up on day one
 
-How many picks is *enough*? We did the worst-case arithmetic: as last pick, 10 bans and 9 picks can be gone before your turn — so **20 distinct picks guarantees one survives**, and a 21st could never matter. Bans: only your four teammates' declared picks can block a target, so **a 5th ban always lands clean**. The planner now puts a counter on each list (hover it for the math), turns gold once you're practically covered — about 4 picks, or any fallback mode — and caps the lists at 20 and 5, because anything past that is dead weight. Try to add more and queuePop politely tells you why it won't. ARAM is exempt; its priority list isn't a draft.
+When a champion launches, they now appear in your champ select plan and the picker the instant your League client has them — pick them, ban them, and build your priority list around them right away, no queuePop update required. Until their portrait finishes downloading they show up as their initials, but they're fully usable from the very first game.
 
-## 🖼️ Trays that fit like they were drawn there
+## 🔄 Refresh champion data, on demand
 
-The picks and bans now lay themselves out as two tidy blocks that share the same row count and **fill the page edge to edge at any window size**. Slots scale gently to use the space, stay pixel-crisp at rest, and glide while you resize instead of jumping. No more stray gaps, overlapping sections, or lonely half-rows.
-
-## 🪟 A window that remembers
-
-Resize queuePop once and it opens at exactly that size, every launch. (Maximizing doesn't count — it remembers the real size underneath.) The minimum window is now 762×800, the smallest size where every page lays out properly.
+The About page has a new **Refresh champion data** button. One click pulls the latest champion list and portraits from Riot's Data Dragon, so a brand-new champion's real art and proper name fill in without waiting for the next release. It shows which patch your champion data is on, and only downloads what you're missing.
 
 ## 🔧 For the curious
 
-The list caps are enforced in the UI and again in config normalization, so oversized hand-edited configs trim themselves on load. The tray layout is solved deterministically from the container and header widths — fewest rows that fit, slot size scaled to fill, integer-quantized for crisp art — and the resize glide is a registered CSS `@property` transition, no per-frame JavaScript. The remembered window size is an additive `window` config key: old configs upgrade in place and downgrade safely.
+The champion catalog is now merged live from your connected client, so newly released champions surface before our bundled list catches up. The refresh downloads into a persistent folder beside your config — the packaged app's bundled assets are read-only — and the UI loads those portraits directly once they land, preferring the refreshed set only when its patch is newer than what shipped. Riot's Data Dragon can lag a launch by a day or two, so the live-client match is what covers launch day; the button backfills the official art once Riot publishes it.
