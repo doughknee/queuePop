@@ -757,6 +757,21 @@
             </div>
           </div>
 
+          <!-- CARD: Champion Data — refresh the champion catalog + portraits
+               from Riot's Data Dragon so a newly released champion shows up
+               without waiting for an app release. Wired in features/update.js. -->
+          <div class="hextech p-5 set-card">
+            <div class="set-card-title">Champion Data</div>
+            <p id="assets-line" class="set-row-hint">Checking champion data…</p>
+            <div class="set-row" style="gap: 9px;">
+              <button id="assets-refresh" class="upd-btn ghost">Refresh champion data</button>
+              <span id="assets-status" class="text-xs text-subText"></span>
+            </div>
+            <p class="legal-note" style="margin-top:6px">New champions appear automatically once your
+              League client updates. Refresh here to pull a new champion's portrait and name early from
+              Riot's Data Dragon, which can lag a launch by a day or two.</p>
+          </div>
+
           <!-- CARD: Service Record — lifetime counters (stats.json) and an
                app-diagnostics row. Rendered by js/features/update.js on each
                visit to this page. -->

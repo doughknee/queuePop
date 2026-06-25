@@ -608,7 +608,7 @@ function traySlotHtml(name, idx, kind) {
   const isBan = kind === "bans";
   const hasLo = !isBan && id && !!(plan[activeRole].loadouts || {})[String(id)];
   const media = id
-    ? `<img src="assets/champions/${id}.png" draggable="false" onerror="this.style.visibility='hidden'" />`
+    ? `<img src="${champBase}/${id}.png" draggable="false" onerror="this.style.visibility='hidden'" />`
     : `<span class="tray-initials">${initials(name)}</span>`;
   return (
     `<div class="tray-slot${isBan ? " ban" : ""}" draggable="true" ` +
@@ -973,7 +973,7 @@ function renderGrid(filter) {
         : c.name;
     cell.draggable = true; // drag straight into the picks/bans trays
     cell.innerHTML =
-      `<img src="assets/champions/${c.id}.png" width="128" height="128" draggable="false" />` +
+      `<img src="${champBase}/${c.id}.png" width="128" height="128" draggable="false" onerror="this.style.visibility='hidden'" />` +
       cellMeta(c.id);
     frag.appendChild(cell);
   });

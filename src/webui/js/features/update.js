@@ -257,10 +257,62 @@ $("diag-copy").addEventListener("click", async () => {
   setTimeout(() => (st.textContent = ""), 2500);
 });
 
+// --- About page: champion data refresh ---------------------------------------
+// Re-pulls the champion catalog + portraits from Data Dragon (asset_refresh.py)
+// into a writable override dir so a newly released champion appears without
+// waiting for an app release. The live-client merge already surfaces new champs
+// during champ select; this backfills the canonical name + portrait.
+async function renderAssetsInfo() {
+  const line = $("assets-line");
+  if (!line) return;
+  try {
+    const d = await api().get_champ_data_info();
+    const patch = d && d.version ? `Patch ${d.version}` : "Unknown patch";
+    const n = (d && d.count) || 0;
+    const src = d && d.source === "refreshed" ? "refreshed" : "bundled";
+    line.textContent = `${patch} · ${n} champions · ${src}`;
+  } catch (_) {
+    line.textContent = "Champion data unavailable.";
+  }
+}
+
+$("assets-refresh") && $("assets-refresh").addEventListener("click", async () => {
+  const btn = $("assets-refresh");
+  const st = $("assets-status");
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Refreshing…";
+  if (st) st.textContent = "Downloading from Data Dragon…";
+  try {
+    const res = await api().refresh_assets();
+    if (res && res.ok) {
+      // loadCatalog re-reads the (now refreshed) manifest and resets champBase
+      // to the override dir, so the new champ + portraits are picked up.
+      await loadCatalog();
+      if (typeof activeRole !== "undefined" && activeRole &&
+          typeof renderGrid === "function") {
+        renderGrid($("champ-search") ? $("champ-search").value : "");
+      }
+      await renderAssetsInfo();
+      flashStatus(st, res.added ? `Added ${res.added} new` : "Up to date", true);
+      showToast(`Champion data updated to patch ${res.version}`);
+    } else {
+      flashStatus(st, (res && res.error) || "Refresh failed", false);
+      showToast("Couldn't refresh champion data", false);
+    }
+  } catch (e) {
+    flashStatus(st, "Refresh failed", false);
+    showToast("Couldn't refresh champion data", false);
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+    if (st) setTimeout(() => (st.textContent = ""), 4000);
+  }
+});
+
 QP.bus.on("route", ({ tab }) => {
   if (tab !== "about") return;
   loadReleaseNotes();
   renderServiceRecord(); // refreshed every visit (counters move during play)
+  renderAssetsInfo();
   // If no check has completed yet (dev builds never background-check; packaged
   // ones take a few seconds after launch), run one now instead of leaving the
   // page saying "Checking for updates…" until the button is pressed.

@@ -8,11 +8,17 @@ let catalog = []; // [{id, name, alias}]
 let nameToId = {}; // lowercased name/alias -> id
 let spellList = []; // [{id, name}] summoner spells for the per-role pickers
 let masteryById = {}; // championId -> { level, points, lastPlayTime }
+// Champion-portrait URL base. Defaults to the bundled assets; swapped to an
+// absolute file:// override dir (set in loadCatalog) once the user refreshes
+// champion data on the About page, so a new champ's real portrait can appear
+// without shipping a build. One base for every <img>, so a refresh repaints
+// all icons consistently.
+let champBase = "assets/champions";
 
 // --- Champion asset helpers --------------------------------------------
 function champIcon(name) {
   const id = nameToId[(name || "").toLowerCase()];
-  return id ? `assets/champions/${id}.png` : null;
+  return id ? `${champBase}/${id}.png` : null;
 }
 function initials(name) {
   return (
@@ -120,6 +126,13 @@ async function loadCatalog() {
     catalog = (await api().get_champion_catalog()) || [];
   } catch (e) {
     catalog = [];
+  }
+  // Portraits load from the bundled assets by default, or an absolute file://
+  // override dir once champion data has been refreshed (About page).
+  try {
+    champBase = (await api().get_champ_asset_base()) || "assets/champions";
+  } catch (_) {
+    champBase = "assets/champions";
   }
   nameToId = {};
   for (const c of catalog) {

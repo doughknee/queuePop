@@ -25,6 +25,8 @@ src/webui/assets/champions/
 src/webui/assets/positions/
 src/webui/assets/skins/
 src/webui/assets/spells/
+# Runtime asset refresh (About → Refresh champion data, src/asset_refresh.py)
+src/assets_override/
 
 # Node tooling for the Tailwind build (CSS itself is committed)
 node_modules/

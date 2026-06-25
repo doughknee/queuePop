@@ -17,6 +17,7 @@ import time
 from urllib.parse import quote
 
 import config
+import asset_refresh
 import champ_select
 import companion
 import events
@@ -823,20 +824,80 @@ class Api:
         return self._lcu.call(_fetch, timeout=6.0) or {"active": False}
 
     def get_champion_catalog(self):
-        """Bundled champion catalog [{id, name, alias}] read from the manifest.
+        """Champion catalog [{id, name, alias}] for the UI, read via Python (not
+        a JS fetch — WebView2 blocks fetch() of local files under file://).
 
-        Read via Python (not a JS fetch) because WebView2 blocks fetch() of
-        local files under file://. Falls back to the live client if the bundled
-        assets are missing.
+        Sources, merged so newly released champions always surface:
+          * the active manifest — the user-refreshed override if present and at
+            least as new as the bundled copy (see asset_refresh.resolve), else
+            the bundled manifest;
+          * unioned with whatever the live client knows (its id_to_name), so a
+            champion released today shows up the moment the player's client is
+            patched — before Data Dragon (and our bundled manifest) catch up.
+
+        Manifest entries win on shared ids: they carry the alias used for icon
+        filenames. Client-only ids are appended with a null alias (no bundled
+        portrait yet — the UI falls back to the champion's initials).
         """
+        champs = []
         try:
-            with open(_manifest_path(), "r", encoding="utf-8") as f:
-                champs = json.load(f).get("champions", [])
-                if champs:
-                    return champs
+            path, _ = asset_refresh.resolve(_manifest_path())
+            with open(path, "r", encoding="utf-8") as f:
+                champs = json.load(f).get("champions", []) or []
         except Exception:
-            pass
-        return self.get_champions()
+            champs = []
+
+        by_id = {}
+        for c in champs:
+            cid = c.get("id")
+            if cid is not None:
+                by_id[cid] = dict(c)
+
+        id_to_name = getattr(self._lcu.champ_select, "id_to_name", {}) or {}
+        for cid, name in id_to_name.items():
+            if not cid or cid < 0 or not name or cid in by_id:
+                continue
+            by_id[cid] = {"id": cid, "name": name, "alias": None}
+
+        merged = list(by_id.values())
+        merged.sort(key=lambda c: (c.get("name") or "").lower())
+        return merged or self.get_champions()
+
+    def get_champ_asset_base(self):
+        """Base URL the web UI should use for champion portraits: the bundled
+        relative path ("assets/champions") normally, or an absolute file:// URL
+        to the refreshed override dir once champion data has been refreshed (and
+        that refresh is at least as new as the bundled set)."""
+        try:
+            _, base = asset_refresh.resolve(_manifest_path())
+            return base or "assets/champions"
+        except Exception:
+            return "assets/champions"
+
+    def get_champ_data_info(self):
+        """Summary of the champion catalog the UI is using, for the About page:
+        {version, count, source} where source is 'refreshed' or 'bundled'."""
+        try:
+            path, base = asset_refresh.resolve(_manifest_path())
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {
+                "version": data.get("version") or "",
+                "count": len(data.get("champions", []) or []),
+                "source": "refreshed" if base else "bundled",
+            }
+        except Exception:
+            return {"version": "", "count": 0, "source": "bundled"}
+
+    def refresh_assets(self):
+        """Re-download the champion catalog + portraits from Riot's Data Dragon
+        into a writable override dir, so newly released champions appear without
+        shipping a new build. Runs synchronously (the UI shows a spinner) and
+        pushes progress to the activity feed. Returns
+        {ok, version, total, added, base, error}."""
+        res = asset_refresh.refresh()
+        res["base"] = self.get_champ_asset_base()
+        return res
 
     def get_champion_skins(self, champion_id):
         """Skins for a champion [{id, name, rarity, isBase}] from the bundled

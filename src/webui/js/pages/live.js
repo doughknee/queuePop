@@ -9,7 +9,7 @@ const SPELL_SHORT = {
   3: "Exhaust", 21: "Barrier", 6: "Ghost", 1: "Cleanse", 13: "Clarity", 32: "Snowball",
 };
 function spellShort(id) { return SPELL_SHORT[Number(id)] || spellName(id) || ""; }
-function champIconById(id) { return id ? `assets/champions/${id}.png` : null; }
+function champIconById(id) { return id ? `${champBase}/${id}.png` : null; }
 
 // The live view is its own route. Champ select starting auto-navigates to it and
 // begins polling; the PLAY→LIVE button returns to it; the panel's "Dashboard"
