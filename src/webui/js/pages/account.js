@@ -81,7 +81,7 @@ async function renderAccountMastery() {
       return (
         `<span class="acct-champ" title="${name}, Mastery ${m.level ?? "?"} · ${(m.points || 0).toLocaleString()} pts">` +
           `<span class="acct-champ-portrait">` +
-            `<img src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
+            `<img src="${champBase}/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
             `<span class="pm-lvl${high}">${m.level ?? ""}</span>` +
           `</span>` +
           `<span class="acct-champ-name">${name}</span>` +
@@ -104,7 +104,7 @@ async function renderAccountMatches() {
       const kda = `${m.kills}/${m.deaths}/${m.assists}`;
       return (
         `<div class="acct-match ${m.win ? "win" : "loss"}">` +
-          `<img class="acct-match-champ" src="assets/champions/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
+          `<img class="acct-match-champ" src="${champBase}/${m.championId}.png" onerror="this.style.visibility='hidden'" />` +
           `<div class="acct-match-main">` +
             `<span class="acct-match-q">${name || queueLabel(m.queueId)}</span>` +
             `<span class="acct-match-kda">${queueLabel(m.queueId)} · ${kda}</span>` +
