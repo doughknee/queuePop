@@ -548,6 +548,16 @@ class Api:
         self._icon_cache = {}
         # Lazily-loaded bundled skins catalog: {championId(str): [{id,name,…}]}.
         self._skins_catalog = None
+        # Mirror any previously-refreshed champion portraits into this session's
+        # bundled asset dir so the web UI loads them via its relative path —
+        # WebView2 won't render cross-directory file:// images. Fast no-op when
+        # there's no active override. (See asset_refresh.sync_into_bundle.)
+        try:
+            asset_refresh.sync_into_bundle(
+                _manifest_path(), os.path.join(_assets_base(), "champions")
+            )
+        except Exception:
+            pass
 
     # --- Read-only state ------------------------------------------------
 
@@ -864,15 +874,12 @@ class Api:
         return merged or self.get_champions()
 
     def get_champ_asset_base(self):
-        """Base URL the web UI should use for champion portraits: the bundled
-        relative path ("assets/champions") normally, or an absolute file:// URL
-        to the refreshed override dir once champion data has been refreshed (and
-        that refresh is at least as new as the bundled set)."""
-        try:
-            _, base = asset_refresh.resolve(_manifest_path())
-            return base or "assets/champions"
-        except Exception:
-            return "assets/champions"
+        """Base path the web UI uses for champion portraits — always the bundled
+        relative "assets/champions". Refreshed portraits are mirrored into that
+        dir at startup / after a refresh (sync_into_bundle) rather than served
+        from the override dir directly: WebView2 won't render an <img> from an
+        absolute file:// URL outside the page's own directory."""
+        return "assets/champions"
 
     def get_champ_data_info(self):
         """Summary of the champion catalog the UI is using, for the About page:
@@ -891,12 +898,18 @@ class Api:
 
     def refresh_assets(self):
         """Re-download the champion catalog + portraits from Riot's Data Dragon
-        into a writable override dir, so newly released champions appear without
-        shipping a new build. Runs synchronously (the UI shows a spinner) and
-        pushes progress to the activity feed. Returns
-        {ok, version, total, added, base, error}."""
+        into a writable override dir, then mirrors the portraits into this
+        session's bundled asset dir so they show without a restart. Runs
+        synchronously (the UI shows a spinner) and pushes progress to the
+        activity feed. Returns {ok, version, total, added, error}."""
         res = asset_refresh.refresh()
-        res["base"] = self.get_champ_asset_base()
+        if res.get("ok"):
+            try:
+                asset_refresh.sync_into_bundle(
+                    _manifest_path(), os.path.join(_assets_base(), "champions")
+                )
+            except Exception:
+                pass
         return res
 
     def get_champion_skins(self, champion_id):

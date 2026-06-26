@@ -20,6 +20,7 @@ brand-new champion the moment the player's client is patched.
 
 import json
 import os
+import shutil
 import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -94,6 +95,42 @@ def resolve(bundled_manifest_path):
     if use_override:
         return ov, _champ_base_url()
     return bundled_manifest_path, None
+
+
+def sync_into_bundle(bundle_manifest_path, bundle_champions_dir):
+    """Mirror the refreshed override portraits into the session's bundled asset
+    dir so the web UI loads them via its normal *relative* path.
+
+    WebView2 won't render an <img> from an absolute file:// URL outside the
+    page's own directory, so we can't point the UI straight at the override.
+    Instead we copy the portraits into the bundled champions dir — PyInstaller's
+    _MEIPASS temp extraction, which is writable per-session and wiped on exit,
+    so this re-runs every launch. Only mirrors when the override is the active
+    source (its patch >= the bundled one, per resolve). Returns the count copied.
+    """
+    _, active = resolve(bundle_manifest_path)
+    if not active:
+        return 0  # bundled wins, or no override → nothing to mirror
+    src = champions_dir()
+    if not os.path.isdir(src):
+        return 0
+    try:
+        os.makedirs(bundle_champions_dir, exist_ok=True)
+    except Exception:
+        return 0
+    copied = 0
+    for fn in os.listdir(src):
+        if not fn.endswith(".png"):
+            continue
+        try:
+            dest = os.path.join(bundle_champions_dir, fn)
+            tmp = dest + ".tmp"
+            shutil.copyfile(os.path.join(src, fn), tmp)
+            os.replace(tmp, dest)  # atomic: never leave a half-copied icon
+            copied += 1
+        except Exception:
+            pass
+    return copied
 
 
 # --- Refresh -----------------------------------------------------------------
