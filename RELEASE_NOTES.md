@@ -1,13 +1,9 @@
-A new champion used to mean waiting for a queuePop update before you could plan around them. Not anymore — the moment your League client knows about a champion, so does queuePop, and a new button pulls their portrait and name straight from Riot whenever you want them.
+A fast fix for a 1.4.2 hiccup: clicking **Refresh champion data** could make all of your champion icons disappear. That's resolved — refresh works cleanly now, and if it happened to you, updating brings your icons right back.
 
-## 🆕 New champions show up on day one
+## 🐛 Fixed
 
-When a champion launches, they now appear in your champ select plan and the picker the instant your League client has them — pick them, ban them, and build your priority list around them right away, no queuePop update required. Until their portrait finishes downloading they show up as their initials, but they're fully usable from the very first game.
+Champion icons no longer vanish after you use **Refresh champion data**. Refreshed portraits now display correctly everywhere — the picker, your plan, live champ select, and your profile. If your icons went blank in 1.4.2, this release restores them automatically.
 
-## 🔄 Refresh champion data, on demand
+## 🔧 Under the hood
 
-The About page has a new **Refresh champion data** button. One click pulls the latest champion list and portraits from Riot's Data Dragon, so a brand-new champion's real art and proper name fill in without waiting for the next release. It shows which patch your champion data is on, and only downloads what you're missing.
-
-## 🔧 For the curious
-
-The champion catalog is now merged live from your connected client, so newly released champions surface before our bundled list catches up. The refresh downloads into a persistent folder beside your config — the packaged app's bundled assets are read-only — and the UI loads those portraits directly once they land, preferring the refreshed set only when its patch is newer than what shipped. Riot's Data Dragon can lag a launch by a day or two, so the live-client match is what covers launch day; the button backfills the official art once Riot publishes it.
+Refreshed portraits are now copied into the app's own asset folder instead of being loaded from an external path the embedded browser refuses to render, so the relative image paths that already worked keep working.
