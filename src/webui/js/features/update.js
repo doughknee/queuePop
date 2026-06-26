@@ -285,8 +285,9 @@ $("assets-refresh") && $("assets-refresh").addEventListener("click", async () =>
   try {
     const res = await api().refresh_assets();
     if (res && res.ok) {
-      // loadCatalog re-reads the (now refreshed) manifest and resets champBase
-      // to the override dir, so the new champ + portraits are picked up.
+      // The refreshed portraits were just mirrored into the bundled asset dir
+      // server-side; re-read the (now refreshed) manifest so the new champ +
+      // art repaint via the same relative paths.
       await loadCatalog();
       if (typeof activeRole !== "undefined" && activeRole &&
           typeof renderGrid === "function") {
