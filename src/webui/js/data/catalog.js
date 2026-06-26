@@ -8,11 +8,11 @@ let catalog = []; // [{id, name, alias}]
 let nameToId = {}; // lowercased name/alias -> id
 let spellList = []; // [{id, name}] summoner spells for the per-role pickers
 let masteryById = {}; // championId -> { level, points, lastPlayTime }
-// Champion-portrait URL base. Defaults to the bundled assets; swapped to an
-// absolute file:// override dir (set in loadCatalog) once the user refreshes
-// champion data on the About page, so a new champ's real portrait can appear
-// without shipping a build. One base for every <img>, so a refresh repaints
-// all icons consistently.
+// Champion-portrait URL base — the bundled relative "assets/champions". One
+// base for every <img>; refreshed portraits are mirrored into that dir
+// server-side (web_api sync_into_bundle), so a refresh just repaints with the
+// same base. (We can't point at the override dir directly: WebView2 won't load
+// cross-directory file:// images.)
 let champBase = "assets/champions";
 
 // --- Champion asset helpers --------------------------------------------
@@ -127,8 +127,8 @@ async function loadCatalog() {
   } catch (e) {
     catalog = [];
   }
-  // Portraits load from the bundled assets by default, or an absolute file://
-  // override dir once champion data has been refreshed (About page).
+  // Champion-portrait base (always the bundled relative dir; refreshed
+  // portraits are mirrored there server-side, so the path never changes).
   try {
     champBase = (await api().get_champ_asset_base()) || "assets/champions";
   } catch (_) {
