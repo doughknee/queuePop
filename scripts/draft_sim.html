@@ -341,7 +341,9 @@ function renderResults(){
       .sort((a,b)=>(SCOPE_RANK[a.scope]??3)-(SCOPE_RANK[b.scope]??3)||b.weight-a.weight)[0];
     const con=top.fired.find(f=>f.weight<0), gap=(top.gaps||[])[0];
     const second=all[1], margin=second?Math.round(top.score-second.score):null;
-    let v=`<b>${top.champ}</b> · ${top.fit}/100 fit — `+(lead?strip(lead.reason):"a balanced pick for this draft");
+    const topGroup=all.filter(r=>top.score-r.score<=1.5);
+    const topFit=Math.max(...topGroup.map(r=>r.fit));
+    let v=`<b>${top.champ}</b> · ${topGroup.length>1?"≈":""}${topFit}/100 fit — `+(lead?strip(lead.reason):"a balanced pick for this draft");
     if(LAST.analysis&&LAST.analysis.game_plan) v+=". "+LAST.analysis.game_plan;
     const cav=con?con.reason:(gap?gap.reason:null);
     if(cav) v+=` <span class="cav">Watch out — ${strip(cav)}.</span>`;
@@ -351,8 +353,21 @@ function renderResults(){
       v+=` <span class="cav">${LAST.confidence} confidence: ${tier} (+${margin} over ${second.champ}).</span>`;}
     const box=document.createElement("div"); box.className="verdict"; box.innerHTML="▶ "+v; res.append(box);
   }
+  // Competition-style tie display: champs within the engine's tie band (1.5 pts,
+  // leader-anchored — mirrors counter_engine.TIE_EPS) share ONE rank (=N) and ONE
+  // displayed rating, so rotated tie order never looks like "66 ranked below 64".
+  const tieMeta={};
+  {let gi=0;
+   while(gi<list.length){
+     const lead=list[gi].score; let gj=gi;
+     while(gj<list.length && lead-list[gj].score<=1.5) gj++;
+     const gfit=Math.max(...list.slice(gi,gj).map(r=>r.fit));
+     for(let k=gi;k<gj;k++) tieMeta[k]={fit:gfit, tied:gj-gi>1, rank:(gj-gi>1?"="+(gi+1):"#"+(k+1))};
+     gi=gj;
+   }}
   list.forEach((r,idx)=>{
     const o=NAME2OBJ[r.champ]||{};
+    const tm=tieMeta[idx]||{fit:r.fit,tied:false,rank:"#"+(idx+1)};
     const pros=(r.fired||[]).filter(f=>f.weight>=0);
     const cons=(r.fired||[]).filter(f=>f.weight<0);
     const card=document.createElement("div"); card.className="card"+(idx===0?" top":"");
@@ -372,10 +387,9 @@ function renderResults(){
      if(b.extras>=1) p.push(`<span class="pos1">+${Math.round(b.extras)}</span> other reasons (diminished)`);
      if(b.comfort>0) p.push(`<span class="comfort">+${Math.round(b.comfort)}</span> comfort`);
      if(b.risk<0) p.push(`<span class="neg1">−${Math.abs(Math.round(b.risk))}</span> risk`);
-     body+=`<div class="scoremath">${p.join(" ")} = <b>${Math.round(r.score)} pts</b> → <b>${r.fit}</b>/100 fit</div>`;}
-    const tiedPrev=idx>0&&Math.abs(list[idx-1].score-r.score)<1.5;
-    card.innerHTML=`<div class="left"><span class="rank">${tiedPrev?"=":"#"+(idx+1)}</span><img src="${o.id?iconUrl(o.id):''}"><span class="cname">${r.champ}</span></div>`+
-      `<div class="fit"><span class="num">${r.fit}</span><span class="den">/100 FIT</span>${idx===0?`<span class="pill ${LAST.confidence}">${LAST.confidence}</span>`:``}</div>`+
+     body+=`<div class="scoremath">${p.join(" ")} = <b>${Math.round(r.score)} pts</b> → <b>${r.fit}</b>/100 fit${tm.tied?` <span title="Within 1.5 pts of the group leader — differences this small are below the engine's precision, so these picks share a rank">(≈${tm.fit} — tied band)</span>`:""}</div>`;}
+    card.innerHTML=`<div class="left"><span class="rank" ${tm.tied?'title="Tied within the engine\'s margin — order rotates per draft; comfort should decide"':''}>${tm.rank}</span><img src="${o.id?iconUrl(o.id):''}"><span class="cname">${r.champ}</span></div>`+
+      `<div class="fit"><span class="num">${tm.tied?"≈":""}${tm.fit}</span><span class="den">/100 FIT</span>${idx===0?`<span class="pill ${LAST.confidence}">${LAST.confidence}</span>`:``}</div>`+
       `<div class="body">${body||'<div class="hint">No factors triggered.</div>'}</div>`;
     res.append(card);
   });
