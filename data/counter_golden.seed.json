@@ -1,0 +1,6923 @@
+{
+  "_comment": "Golden tests for the counter engine. Each asserts something that should stay true regardless of weight tuning. Assertion types: top (#1 must be champ), ranks_above (higher scores > lower), fires/not_fires (champ's fired rules include/exclude a rule id), confidence (scenario top-pick confidence), has_flag/lacks_flag (data-level guard, no scenario). 'scenario' is either a name from counter_scenarios.seed.json or an inline object. Only assert UNCONTROVERSIAL things — this file is the home for every lesson learned (see the 'GUARD' tests that lock in this session's corrections).",
+  "tests": [
+    {
+      "name": "rule: anti-tank shreds a frontline",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "fires",
+        "champ": "Vayne",
+        "rule": "anti_tank_vs_frontline"
+      }
+    },
+    {
+      "name": "rule: non-anti-tank does NOT claim to shred frontline",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "not_fires",
+        "champ": "Ezreal",
+        "rule": "anti_tank_vs_frontline"
+      }
+    },
+    {
+      "name": "rule: armor user itemizes into an AD carry",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "fires",
+        "champ": "Malphite",
+        "rule": "armor_vs_ad_carry"
+      }
+    },
+    {
+      "name": "rule: cc-immunity ults through enemy engage",
+      "scenario": {
+        "my_role": "jungle",
+        "my_team": [
+          "Caitlyn",
+          "Vayne"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Leona",
+            "role": "support"
+          },
+          {
+            "champ": "Amumu",
+            "role": "jungle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Olaf",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Olaf",
+        "rule": "cc_immunity_vs_engage"
+      }
+    },
+    {
+      "name": "rule: hard CC pins an immobile carry",
+      "scenario": {
+        "my_role": "support",
+        "my_team": [
+          "Caitlyn"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Jhin",
+            "role": "bottom"
+          },
+          {
+            "champ": "Zed",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Leona",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Leona",
+        "rule": "lockdown_vs_hypercarry"
+      }
+    },
+    {
+      "name": "rule: point-and-click CC shuts down an assassin",
+      "scenario": "Mid lane into a fed-threat assassin",
+      "assert": {
+        "type": "fires",
+        "champ": "Malzahar",
+        "rule": "point_click_vs_assassin"
+      }
+    },
+    {
+      "name": "rule: high mobility dodges a skillshot-heavy enemy",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "fires",
+        "champ": "Amumu",
+        "rule": "mobility_dodges_skillshots"
+      }
+    },
+    {
+      "name": "rule: burst deletes an immobile carry",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Caitlyn"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Jhin",
+            "role": "bottom"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Fizz",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Fizz",
+        "rule": "burst_vs_immobile_carry"
+      }
+    },
+    {
+      "name": "rule: projectile block negates poke",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Lux",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Yasuo",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Yasuo",
+        "rule": "projectile_block_vs_poke"
+      }
+    },
+    {
+      "name": "rule: ranged outranges a melee no-dash laner",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Olaf",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Vayne",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Vayne",
+        "rule": "range_vs_melee_lane"
+      }
+    },
+    {
+      "name": "rule: engage pick fills a team with no engage",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "fires",
+        "champ": "Amumu",
+        "rule": "team_needs_engage"
+      }
+    },
+    {
+      "name": "rule: frontline pick fills a team with no frontline",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "fires",
+        "champ": "Amumu",
+        "rule": "team_needs_frontline"
+      }
+    },
+    {
+      "name": "rule: magic pick balances an all-physical team",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Vayne",
+          "Caitlyn",
+          "Zed"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Leona",
+            "role": "support"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Lux",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Lux",
+        "rule": "damage_balance_magic"
+      }
+    },
+    {
+      "name": "rule: physical pick balances an all-magic team",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "fires",
+        "champ": "Vayne",
+        "rule": "damage_balance_physical"
+      }
+    },
+    {
+      "name": "rule: late scaler outscales an early-game comp",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Janna"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Lee Sin",
+            "role": "jungle"
+          },
+          {
+            "champ": "Olaf",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Kassadin",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Kassadin",
+        "rule": "outscales_early_comp"
+      }
+    },
+    {
+      "name": "rule (warning): immobile no-peel pick is flagged vs an assassin",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "fires",
+        "champ": "Jhin",
+        "rule": "squishy_into_assassin_no_peel"
+      }
+    },
+    {
+      "name": "rule (warning): melee no-dash pick is flagged into ranged poke",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Lux",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Cho'Gath",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Cho'Gath",
+        "rule": "melee_into_ranged_poke"
+      }
+    },
+    {
+      "name": "outcome: anti-tank comfort pick wins vs a tank comp",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "top",
+        "champ": "Vayne"
+      }
+    },
+    {
+      "name": "outcome: high confidence when the winner is clear",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "confidence",
+        "expect": "HIGH"
+      }
+    },
+    {
+      "name": "outcome: team-need pick beats a higher-mastery comfort pick",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Amumu",
+        "lower": "Lee Sin"
+      }
+    },
+    {
+      "name": "outcome: near-tie reports low confidence (honest uncertainty)",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "confidence",
+        "expect": "LOW"
+      }
+    },
+    {
+      "name": "outcome: the real anti-assassin pick wins vs Zed",
+      "scenario": "Mid lane into a fed-threat assassin",
+      "assert": {
+        "type": "top",
+        "champ": "Malzahar"
+      }
+    },
+    {
+      "name": "guard: a team that already has engage does NOT get the engage bonus",
+      "scenario": "Last pick ADC into a tanky comp",
+      "assert": {
+        "type": "not_fires",
+        "champ": "Vayne",
+        "rule": "team_needs_engage"
+      }
+    },
+    {
+      "name": "GUARD (Kassadin lesson): Kassadin is NOT credited as a Zed counter",
+      "scenario": "Mid lane into a fed-threat assassin",
+      "assert": {
+        "type": "not_fires",
+        "champ": "Kassadin",
+        "rule": "point_click_vs_assassin"
+      }
+    },
+    {
+      "name": "GUARD (Kassadin lesson): Kassadin is anti-magic, not anti-AD",
+      "scenario": "Mid lane into a fed-threat assassin",
+      "assert": {
+        "type": "not_fires",
+        "champ": "Kassadin",
+        "rule": "armor_vs_ad_carry"
+      }
+    },
+    {
+      "name": "GUARD (Kassadin lesson): real Zed counter outranks the fake one",
+      "scenario": "Mid lane into a fed-threat assassin",
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Malzahar",
+        "lower": "Kassadin"
+      }
+    },
+    {
+      "name": "GUARD (dash semantics): Malphite's engage-R does NOT count as skillshot-dodging mobility",
+      "scenario": "Team has no engage or frontline",
+      "assert": {
+        "type": "not_fires",
+        "champ": "Malphite",
+        "rule": "mobility_dodges_skillshots"
+      }
+    },
+    {
+      "name": "GUARD (data): Tryndamere is undying, not invulnerable",
+      "assert": {
+        "type": "lacks_flag",
+        "champ": "Tryndamere",
+        "flag": "invulnerability"
+      }
+    },
+    {
+      "name": "GUARD (data): Tryndamere carries the undying flag",
+      "assert": {
+        "type": "has_flag",
+        "champ": "Tryndamere",
+        "flag": "undying"
+      }
+    },
+    {
+      "name": "GUARD (data): Malphite is not tagged with an escape dash",
+      "assert": {
+        "type": "lacks_flag",
+        "champ": "Malphite",
+        "flag": "dash"
+      }
+    },
+    {
+      "name": "GUARD (data): Zed's incidental ult-frame is not tagged untargetability",
+      "assert": {
+        "type": "lacks_flag",
+        "champ": "Zed",
+        "flag": "untargetability"
+      }
+    },
+    {
+      "name": "GUARD (data): Kassadin is not tagged anti_ad",
+      "assert": {
+        "type": "lacks_flag",
+        "champ": "Kassadin",
+        "flag": "anti_ad"
+      }
+    },
+    {
+      "name": "GUARD (data): Lee Sin's omnivamp is not tagged self_heal",
+      "assert": {
+        "type": "lacks_flag",
+        "champ": "Lee Sin",
+        "flag": "self_heal"
+      }
+    },
+    {
+      "name": "GUARD (data): Amumu recall fix — displacement tagged",
+      "assert": {
+        "type": "has_flag",
+        "champ": "Amumu",
+        "flag": "displacement"
+      }
+    },
+    {
+      "name": "GUARD (data): Amumu recall fix — true damage tagged",
+      "assert": {
+        "type": "has_flag",
+        "champ": "Amumu",
+        "flag": "true_damage"
+      }
+    },
+    {
+      "name": "rule: peel pick protects fragile carries vs a dive comp",
+      "scenario": {
+        "my_role": "support",
+        "my_team": [
+          "Jinx",
+          "Yone",
+          "Lillia",
+          "Akshan"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          },
+          {
+            "champ": "Kha'Zix",
+            "role": "jungle"
+          },
+          {
+            "champ": "Talon",
+            "role": "top"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Pyke",
+            "role": "support"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Janna",
+            "mastery": 50000
+          },
+          {
+            "champ": "Lulu",
+            "mastery": 50000
+          },
+          {
+            "champ": "Brand",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Janna",
+        "rule": "protect_carry_vs_dive"
+      }
+    },
+    {
+      "name": "outcome: a peel support beats a poke support vs a dive comp (the Phase-1.5 fix)",
+      "scenario": {
+        "my_role": "support",
+        "my_team": [
+          "Jinx",
+          "Yone",
+          "Lillia",
+          "Akshan"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          },
+          {
+            "champ": "Kha'Zix",
+            "role": "jungle"
+          },
+          {
+            "champ": "Talon",
+            "role": "top"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Pyke",
+            "role": "support"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Janna",
+            "mastery": 50000
+          },
+          {
+            "champ": "Brand",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Janna",
+        "lower": "Brand"
+      }
+    },
+    {
+      "name": "rule: pick champ catches an immobile carry",
+      "scenario": {
+        "my_role": "support",
+        "my_team": [
+          "Caitlyn"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Jhin",
+            "role": "bottom"
+          },
+          {
+            "champ": "Viktor",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Blitzcrank",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Blitzcrank",
+        "rule": "pick_comp_vs_immobile_carry"
+      }
+    },
+    {
+      "name": "rule: disengage answers hard engage",
+      "scenario": {
+        "my_role": "support",
+        "my_team": [
+          "Caitlyn"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Leona",
+            "role": "support"
+          },
+          {
+            "champ": "Jhin",
+            "role": "bottom"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Janna",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Janna",
+        "rule": "disengage_vs_engage"
+      }
+    },
+    {
+      "name": "rule: waveclear blunts a poke comp",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Ezreal",
+            "role": "middle"
+          },
+          {
+            "champ": "Jhin",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Sivir",
+            "mastery": 50000
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Sivir",
+        "rule": "waveclear_vs_poke_comp"
+      }
+    },
+    {
+      "name": "GUARD (empty-team): team-need rules do not fire on an unknown ally team",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "not_fires",
+        "champ": "Sion",
+        "rule": "team_needs_engage"
+      }
+    },
+    {
+      "name": "GUARD (empty-team): lone-enemy lane query gives a lane answer (ranged beats immobile-melee)",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Vayne",
+        "rule": "range_vs_melee_lane"
+      }
+    },
+    {
+      "name": "outcome: a ranged kiter outranks a generic melee vs a lone Darius",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Vayne",
+        "lower": "Garen"
+      }
+    },
+    {
+      "name": "outcome: point-click lockdown mages top a lone-Zed query",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Ahri",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Akshan",
+            "mastery": 0
+          },
+          {
+            "champ": "Anivia",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurelion Sol",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Azir",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Cassiopeia",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Fizz",
+            "mastery": 0
+          },
+          {
+            "champ": "Galio",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Kassadin",
+            "mastery": 0
+          },
+          {
+            "champ": "Katarina",
+            "mastery": 0
+          },
+          {
+            "champ": "LeBlanc",
+            "mastery": 0
+          },
+          {
+            "champ": "Lissandra",
+            "mastery": 0
+          },
+          {
+            "champ": "Locke",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Malzahar",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Orianna",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ryze",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Twisted Fate",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Vex",
+            "mastery": 0
+          },
+          {
+            "champ": "Viktor",
+            "mastery": 0
+          },
+          {
+            "champ": "Vladimir",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Zed",
+            "mastery": 0
+          },
+          {
+            "champ": "Zoe",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Malzahar",
+        "rule": "point_click_vs_assassin"
+      }
+    },
+    {
+      "name": "outcome: Malzahar outranks a generic melee mid vs lone Zed",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Ahri",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Akshan",
+            "mastery": 0
+          },
+          {
+            "champ": "Anivia",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurelion Sol",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Azir",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Cassiopeia",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Fizz",
+            "mastery": 0
+          },
+          {
+            "champ": "Galio",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Kassadin",
+            "mastery": 0
+          },
+          {
+            "champ": "Katarina",
+            "mastery": 0
+          },
+          {
+            "champ": "LeBlanc",
+            "mastery": 0
+          },
+          {
+            "champ": "Lissandra",
+            "mastery": 0
+          },
+          {
+            "champ": "Locke",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Malzahar",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Orianna",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ryze",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Twisted Fate",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Vex",
+            "mastery": 0
+          },
+          {
+            "champ": "Viktor",
+            "mastery": 0
+          },
+          {
+            "champ": "Vladimir",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Zed",
+            "mastery": 0
+          },
+          {
+            "champ": "Zoe",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Malzahar",
+        "lower": "Yone"
+      }
+    },
+    {
+      "name": "rule: armor stacking fires vs a near-full-AD comp",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Lee Sin",
+          "Ahri",
+          "Jinx",
+          "Thresh"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Riven",
+            "role": "top"
+          },
+          {
+            "champ": "Kha'Zix",
+            "role": "jungle"
+          },
+          {
+            "champ": "Zed",
+            "role": "middle"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Pyke",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Malphite",
+        "rule": "armor_vs_full_ad"
+      }
+    },
+    {
+      "name": "rule: immobile ranged carry is warned vs a 3+ dive-threat stack",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Malphite",
+          "Sejuani",
+          "Orianna",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Camille",
+            "role": "top"
+          },
+          {
+            "champ": "Rengar",
+            "role": "jungle"
+          },
+          {
+            "champ": "Fizz",
+            "role": "middle"
+          },
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          },
+          {
+            "champ": "Rakan",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Jinx",
+        "rule": "immobile_carry_vs_threat_stack"
+      }
+    },
+    {
+      "name": "rule: self-sufficient carry rewarded vs stacked dive threats",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Malphite",
+          "Sejuani",
+          "Orianna",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Camille",
+            "role": "top"
+          },
+          {
+            "champ": "Rengar",
+            "role": "jungle"
+          },
+          {
+            "champ": "Fizz",
+            "role": "middle"
+          },
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          },
+          {
+            "champ": "Rakan",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Ezreal",
+        "rule": "self_sufficient_carry_vs_threats"
+      }
+    },
+    {
+      "name": "outcome: the self-peel carry outranks the immobile hypercarry vs a dive comp",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Malphite",
+          "Sejuani",
+          "Orianna",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Camille",
+            "role": "top"
+          },
+          {
+            "champ": "Rengar",
+            "role": "jungle"
+          },
+          {
+            "champ": "Fizz",
+            "role": "middle"
+          },
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          },
+          {
+            "champ": "Rakan",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "ranks_above",
+        "higher": "Ezreal",
+        "lower": "Jinx"
+      }
+    },
+    {
+      "name": "GUARD (juggernaut!=carry): assassins are not told to dive a lone Darius",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "not_fires",
+        "champ": "Akali",
+        "rule": "assassin_dives_unpeeled_carry"
+      }
+    },
+    {
+      "name": "rule: knockup payoff fires with a displacement-stacked team",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [
+          "Malphite",
+          "Alistar",
+          "Jinx",
+          "Nautilus"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Garen",
+            "role": "top"
+          },
+          {
+            "champ": "Hecarim",
+            "role": "jungle"
+          },
+          {
+            "champ": "Veigar",
+            "role": "middle"
+          },
+          {
+            "champ": "Jhin",
+            "role": "bottom"
+          },
+          {
+            "champ": "Soraka",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Ahri",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Akshan",
+            "mastery": 0
+          },
+          {
+            "champ": "Anivia",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurelion Sol",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Azir",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Cassiopeia",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Fizz",
+            "mastery": 0
+          },
+          {
+            "champ": "Galio",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Kassadin",
+            "mastery": 0
+          },
+          {
+            "champ": "Katarina",
+            "mastery": 0
+          },
+          {
+            "champ": "LeBlanc",
+            "mastery": 0
+          },
+          {
+            "champ": "Lissandra",
+            "mastery": 0
+          },
+          {
+            "champ": "Locke",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Malzahar",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Orianna",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ryze",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Twisted Fate",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Vex",
+            "mastery": 0
+          },
+          {
+            "champ": "Viktor",
+            "mastery": 0
+          },
+          {
+            "champ": "Vladimir",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Zed",
+            "mastery": 0
+          },
+          {
+            "champ": "Zoe",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Yasuo",
+        "rule": "knockup_payoff_with_displacers"
+      }
+    },
+    {
+      "name": "GUARD (poke!=dive): enchanter vs a poke comp is credited for out-sustaining the poke",
+      "scenario": {
+        "my_role": "utility",
+        "my_team": [
+          "Ornn",
+          "Vi",
+          "Syndra",
+          "Jinx"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Teemo",
+            "role": "top"
+          },
+          {
+            "champ": "Nidalee",
+            "role": "jungle"
+          },
+          {
+            "champ": "Zoe",
+            "role": "middle"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Lux",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Alistar",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Bard",
+            "mastery": 0
+          },
+          {
+            "champ": "Blitzcrank",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Braum",
+            "mastery": 0
+          },
+          {
+            "champ": "Elise",
+            "mastery": 0
+          },
+          {
+            "champ": "Janna",
+            "mastery": 0
+          },
+          {
+            "champ": "Karma",
+            "mastery": 0
+          },
+          {
+            "champ": "Leona",
+            "mastery": 0
+          },
+          {
+            "champ": "Lulu",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Maokai",
+            "mastery": 0
+          },
+          {
+            "champ": "Milio",
+            "mastery": 0
+          },
+          {
+            "champ": "Morgana",
+            "mastery": 0
+          },
+          {
+            "champ": "Nami",
+            "mastery": 0
+          },
+          {
+            "champ": "Nautilus",
+            "mastery": 0
+          },
+          {
+            "champ": "Neeko",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Pyke",
+            "mastery": 0
+          },
+          {
+            "champ": "Rakan",
+            "mastery": 0
+          },
+          {
+            "champ": "Rell",
+            "mastery": 0
+          },
+          {
+            "champ": "Renata Glasc",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sona",
+            "mastery": 0
+          },
+          {
+            "champ": "Soraka",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Taric",
+            "mastery": 0
+          },
+          {
+            "champ": "Thresh",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yuumi",
+            "mastery": 0
+          },
+          {
+            "champ": "Zilean",
+            "mastery": 0
+          },
+          {
+            "champ": "Zyra",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Milio",
+        "rule": "enchanter_outheals_poke"
+      }
+    },
+    {
+      "name": "GUARD (poke!=dive): an immobile-mage poke comp does not trigger the dive-threat-stack warning",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Ornn",
+          "Vi",
+          "Syndra",
+          "Thresh"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Teemo",
+            "role": "top"
+          },
+          {
+            "champ": "Nidalee",
+            "role": "jungle"
+          },
+          {
+            "champ": "Zoe",
+            "role": "middle"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Lux",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "not_fires",
+        "champ": "Jinx",
+        "rule": "immobile_carry_vs_threat_stack"
+      }
+    },
+    {
+      "name": "exam: ranged kite answers a lone Darius",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Vayne",
+        "k": 5
+      }
+    },
+    {
+      "name": "exam: lane bully answers a lone Nasus",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Nasus",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Quinn",
+        "k": 5
+      }
+    },
+    {
+      "name": "exam: parry duelist answers a lone Renekton",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Renekton",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Jax",
+        "k": 3
+      }
+    },
+    {
+      "name": "exam: Malzahar answers a lone Zed",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Ahri",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Akshan",
+            "mastery": 0
+          },
+          {
+            "champ": "Anivia",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurelion Sol",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Azir",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Cassiopeia",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Fizz",
+            "mastery": 0
+          },
+          {
+            "champ": "Galio",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Kassadin",
+            "mastery": 0
+          },
+          {
+            "champ": "Katarina",
+            "mastery": 0
+          },
+          {
+            "champ": "LeBlanc",
+            "mastery": 0
+          },
+          {
+            "champ": "Lissandra",
+            "mastery": 0
+          },
+          {
+            "champ": "Locke",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Malzahar",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Orianna",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ryze",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Twisted Fate",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Vex",
+            "mastery": 0
+          },
+          {
+            "champ": "Viktor",
+            "mastery": 0
+          },
+          {
+            "champ": "Vladimir",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Zed",
+            "mastery": 0
+          },
+          {
+            "champ": "Zoe",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Malzahar",
+        "k": 3
+      }
+    },
+    {
+      "name": "exam: Lissandra answers a lone Zed",
+      "scenario": {
+        "my_role": "middle",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Zed",
+            "role": "middle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Ahri",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Akshan",
+            "mastery": 0
+          },
+          {
+            "champ": "Anivia",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurelion Sol",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Azir",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Cassiopeia",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Fizz",
+            "mastery": 0
+          },
+          {
+            "champ": "Galio",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Kassadin",
+            "mastery": 0
+          },
+          {
+            "champ": "Katarina",
+            "mastery": 0
+          },
+          {
+            "champ": "LeBlanc",
+            "mastery": 0
+          },
+          {
+            "champ": "Lissandra",
+            "mastery": 0
+          },
+          {
+            "champ": "Locke",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Malzahar",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Orianna",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Ryze",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Twisted Fate",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Vex",
+            "mastery": 0
+          },
+          {
+            "champ": "Viktor",
+            "mastery": 0
+          },
+          {
+            "champ": "Vladimir",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Zed",
+            "mastery": 0
+          },
+          {
+            "champ": "Zoe",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Lissandra",
+        "k": 3
+      }
+    },
+    {
+      "name": "exam: Morgana answers a lone Blitzcrank",
+      "scenario": {
+        "my_role": "utility",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Blitzcrank",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Alistar",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Bard",
+            "mastery": 0
+          },
+          {
+            "champ": "Blitzcrank",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Braum",
+            "mastery": 0
+          },
+          {
+            "champ": "Elise",
+            "mastery": 0
+          },
+          {
+            "champ": "Janna",
+            "mastery": 0
+          },
+          {
+            "champ": "Karma",
+            "mastery": 0
+          },
+          {
+            "champ": "Leona",
+            "mastery": 0
+          },
+          {
+            "champ": "Lulu",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Maokai",
+            "mastery": 0
+          },
+          {
+            "champ": "Milio",
+            "mastery": 0
+          },
+          {
+            "champ": "Morgana",
+            "mastery": 0
+          },
+          {
+            "champ": "Nami",
+            "mastery": 0
+          },
+          {
+            "champ": "Nautilus",
+            "mastery": 0
+          },
+          {
+            "champ": "Neeko",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Pyke",
+            "mastery": 0
+          },
+          {
+            "champ": "Rakan",
+            "mastery": 0
+          },
+          {
+            "champ": "Rell",
+            "mastery": 0
+          },
+          {
+            "champ": "Renata Glasc",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sona",
+            "mastery": 0
+          },
+          {
+            "champ": "Soraka",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Taric",
+            "mastery": 0
+          },
+          {
+            "champ": "Thresh",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yuumi",
+            "mastery": 0
+          },
+          {
+            "champ": "Zilean",
+            "mastery": 0
+          },
+          {
+            "champ": "Zyra",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Morgana",
+        "k": 3
+      }
+    },
+    {
+      "name": "exam: Malphite answers a full-AD comp",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Lee Sin",
+          "Ahri",
+          "Jinx",
+          "Thresh"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Riven",
+            "role": "top"
+          },
+          {
+            "champ": "Kha'Zix",
+            "role": "jungle"
+          },
+          {
+            "champ": "Zed",
+            "role": "middle"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Pyke",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Malphite",
+        "k": 5
+      }
+    },
+    {
+      "name": "exam: Ezreal is a real option vs a 4-dive comp",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Malphite",
+          "Sejuani",
+          "Orianna",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Camille",
+            "role": "top"
+          },
+          {
+            "champ": "Rengar",
+            "role": "jungle"
+          },
+          {
+            "champ": "Fizz",
+            "role": "middle"
+          },
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          },
+          {
+            "champ": "Rakan",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Ezreal",
+        "k": 10
+      }
+    },
+    {
+      "name": "exam: Jinx is NOT recommended into a 4-dive comp",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Malphite",
+          "Sejuani",
+          "Orianna",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Camille",
+            "role": "top"
+          },
+          {
+            "champ": "Rengar",
+            "role": "jungle"
+          },
+          {
+            "champ": "Fizz",
+            "role": "middle"
+          },
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          },
+          {
+            "champ": "Rakan",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "not_in_top",
+        "champ": "Jinx",
+        "k": 10
+      }
+    },
+    {
+      "name": "exam: enchanters answer a full poke comp",
+      "scenario": {
+        "my_role": "utility",
+        "my_team": [
+          "Ornn",
+          "Vi",
+          "Syndra",
+          "Jinx"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Teemo",
+            "role": "top"
+          },
+          {
+            "champ": "Nidalee",
+            "role": "jungle"
+          },
+          {
+            "champ": "Zoe",
+            "role": "middle"
+          },
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          },
+          {
+            "champ": "Lux",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Alistar",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Bard",
+            "mastery": 0
+          },
+          {
+            "champ": "Blitzcrank",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Braum",
+            "mastery": 0
+          },
+          {
+            "champ": "Elise",
+            "mastery": 0
+          },
+          {
+            "champ": "Janna",
+            "mastery": 0
+          },
+          {
+            "champ": "Karma",
+            "mastery": 0
+          },
+          {
+            "champ": "Leona",
+            "mastery": 0
+          },
+          {
+            "champ": "Lulu",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Maokai",
+            "mastery": 0
+          },
+          {
+            "champ": "Milio",
+            "mastery": 0
+          },
+          {
+            "champ": "Morgana",
+            "mastery": 0
+          },
+          {
+            "champ": "Nami",
+            "mastery": 0
+          },
+          {
+            "champ": "Nautilus",
+            "mastery": 0
+          },
+          {
+            "champ": "Neeko",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Pyke",
+            "mastery": 0
+          },
+          {
+            "champ": "Rakan",
+            "mastery": 0
+          },
+          {
+            "champ": "Rell",
+            "mastery": 0
+          },
+          {
+            "champ": "Renata Glasc",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sona",
+            "mastery": 0
+          },
+          {
+            "champ": "Soraka",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Taric",
+            "mastery": 0
+          },
+          {
+            "champ": "Thresh",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yuumi",
+            "mastery": 0
+          },
+          {
+            "champ": "Zilean",
+            "mastery": 0
+          },
+          {
+            "champ": "Zyra",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Milio",
+        "k": 3
+      }
+    },
+    {
+      "name": "exam: invade skirmisher answers a lone Karthus jungle",
+      "scenario": {
+        "my_role": "jungle",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Karthus",
+            "role": "jungle"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Amumu",
+            "mastery": 0
+          },
+          {
+            "champ": "Bel'Veth",
+            "mastery": 0
+          },
+          {
+            "champ": "Briar",
+            "mastery": 0
+          },
+          {
+            "champ": "Diana",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Ekko",
+            "mastery": 0
+          },
+          {
+            "champ": "Elise",
+            "mastery": 0
+          },
+          {
+            "champ": "Evelynn",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiddlesticks",
+            "mastery": 0
+          },
+          {
+            "champ": "Graves",
+            "mastery": 0
+          },
+          {
+            "champ": "Hecarim",
+            "mastery": 0
+          },
+          {
+            "champ": "Ivern",
+            "mastery": 0
+          },
+          {
+            "champ": "Jarvan IV",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayn",
+            "mastery": 0
+          },
+          {
+            "champ": "Kha'Zix",
+            "mastery": 0
+          },
+          {
+            "champ": "Kindred",
+            "mastery": 0
+          },
+          {
+            "champ": "Lee Sin",
+            "mastery": 0
+          },
+          {
+            "champ": "Lillia",
+            "mastery": 0
+          },
+          {
+            "champ": "Master Yi",
+            "mastery": 0
+          },
+          {
+            "champ": "Naafiri",
+            "mastery": 0
+          },
+          {
+            "champ": "Nidalee",
+            "mastery": 0
+          },
+          {
+            "champ": "Nocturne",
+            "mastery": 0
+          },
+          {
+            "champ": "Nunu & Willump",
+            "mastery": 0
+          },
+          {
+            "champ": "Qiyana",
+            "mastery": 0
+          },
+          {
+            "champ": "Rammus",
+            "mastery": 0
+          },
+          {
+            "champ": "Rek'Sai",
+            "mastery": 0
+          },
+          {
+            "champ": "Rengar",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sejuani",
+            "mastery": 0
+          },
+          {
+            "champ": "Shaco",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Shyvana",
+            "mastery": 0
+          },
+          {
+            "champ": "Skarner",
+            "mastery": 0
+          },
+          {
+            "champ": "Sylas",
+            "mastery": 0
+          },
+          {
+            "champ": "Taliyah",
+            "mastery": 0
+          },
+          {
+            "champ": "Talon",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Udyr",
+            "mastery": 0
+          },
+          {
+            "champ": "Vi",
+            "mastery": 0
+          },
+          {
+            "champ": "Viego",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Wukong",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          },
+          {
+            "champ": "Zac",
+            "mastery": 0
+          },
+          {
+            "champ": "Zyra",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Elise",
+        "k": 8
+      }
+    },
+    {
+      "name": "exam: anti-tank answers a 5-frontline comp (1)",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Sejuani",
+          "Galio",
+          "Sion",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Ornn",
+            "role": "top"
+          },
+          {
+            "champ": "Sejuani",
+            "role": "jungle"
+          },
+          {
+            "champ": "Galio",
+            "role": "middle"
+          },
+          {
+            "champ": "Sion",
+            "role": "bottom"
+          },
+          {
+            "champ": "Leona",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Trundle",
+        "k": 5
+      }
+    },
+    {
+      "name": "exam: anti-tank answers a 5-frontline comp (2)",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Sejuani",
+          "Galio",
+          "Sion",
+          "Leona"
+        ],
+        "enemy_team": [
+          {
+            "champ": "Ornn",
+            "role": "top"
+          },
+          {
+            "champ": "Sejuani",
+            "role": "jungle"
+          },
+          {
+            "champ": "Galio",
+            "role": "middle"
+          },
+          {
+            "champ": "Sion",
+            "role": "bottom"
+          },
+          {
+            "champ": "Leona",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Dr. Mundo",
+        "k": 5
+      }
+    },
+    {
+      "name": "exam: Singed answers a sustain-stacked lane+comp",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [],
+        "enemy_team": [
+          {
+            "champ": "Aatrox",
+            "role": "top"
+          },
+          {
+            "champ": "Warwick",
+            "role": "jungle"
+          },
+          {
+            "champ": "Vladimir",
+            "role": "middle"
+          },
+          {
+            "champ": "Soraka",
+            "role": "bottom"
+          },
+          {
+            "champ": "Yuumi",
+            "role": "utility"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "in_top",
+        "champ": "Singed",
+        "k": 3
+      }
+    },
+    {
+      "name": "rule: hypercarry cashes in an enchanter duo partner",
+      "scenario": {
+        "my_role": "bottom",
+        "my_team": [
+          "Lulu"
+        ],
+        "ally_roles": {
+          "utility": "Lulu"
+        },
+        "enemy_team": [
+          {
+            "champ": "Caitlyn",
+            "role": "bottom"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aphelios",
+            "mastery": 0
+          },
+          {
+            "champ": "Ashe",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Caitlyn",
+            "mastery": 0
+          },
+          {
+            "champ": "Corki",
+            "mastery": 0
+          },
+          {
+            "champ": "Draven",
+            "mastery": 0
+          },
+          {
+            "champ": "Ezreal",
+            "mastery": 0
+          },
+          {
+            "champ": "Hwei",
+            "mastery": 0
+          },
+          {
+            "champ": "Jhin",
+            "mastery": 0
+          },
+          {
+            "champ": "Jinx",
+            "mastery": 0
+          },
+          {
+            "champ": "Kai'Sa",
+            "mastery": 0
+          },
+          {
+            "champ": "Kalista",
+            "mastery": 0
+          },
+          {
+            "champ": "Karthus",
+            "mastery": 0
+          },
+          {
+            "champ": "Kog'Maw",
+            "mastery": 0
+          },
+          {
+            "champ": "Lucian",
+            "mastery": 0
+          },
+          {
+            "champ": "Mel",
+            "mastery": 0
+          },
+          {
+            "champ": "Miss Fortune",
+            "mastery": 0
+          },
+          {
+            "champ": "Nilah",
+            "mastery": 0
+          },
+          {
+            "champ": "Samira",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sivir",
+            "mastery": 0
+          },
+          {
+            "champ": "Smolder",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Syndra",
+            "mastery": 0
+          },
+          {
+            "champ": "Tristana",
+            "mastery": 0
+          },
+          {
+            "champ": "Twitch",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Veigar",
+            "mastery": 0
+          },
+          {
+            "champ": "Xayah",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yunara",
+            "mastery": 0
+          },
+          {
+            "champ": "Zeri",
+            "mastery": 0
+          },
+          {
+            "champ": "Ziggs",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Jinx",
+        "rule": "duo_enchanter_enables_hypercarry"
+      }
+    },
+    {
+      "name": "rule: enchanter pick answers a locked hypercarry partner",
+      "scenario": {
+        "my_role": "utility",
+        "my_team": [
+          "Jinx"
+        ],
+        "ally_roles": {
+          "bottom": "Jinx"
+        },
+        "enemy_team": [
+          {
+            "champ": "Samira",
+            "role": "bottom"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Alistar",
+            "mastery": 0
+          },
+          {
+            "champ": "Annie",
+            "mastery": 0
+          },
+          {
+            "champ": "Bard",
+            "mastery": 0
+          },
+          {
+            "champ": "Blitzcrank",
+            "mastery": 0
+          },
+          {
+            "champ": "Brand",
+            "mastery": 0
+          },
+          {
+            "champ": "Braum",
+            "mastery": 0
+          },
+          {
+            "champ": "Elise",
+            "mastery": 0
+          },
+          {
+            "champ": "Janna",
+            "mastery": 0
+          },
+          {
+            "champ": "Karma",
+            "mastery": 0
+          },
+          {
+            "champ": "Leona",
+            "mastery": 0
+          },
+          {
+            "champ": "Lulu",
+            "mastery": 0
+          },
+          {
+            "champ": "Lux",
+            "mastery": 0
+          },
+          {
+            "champ": "Maokai",
+            "mastery": 0
+          },
+          {
+            "champ": "Milio",
+            "mastery": 0
+          },
+          {
+            "champ": "Morgana",
+            "mastery": 0
+          },
+          {
+            "champ": "Nami",
+            "mastery": 0
+          },
+          {
+            "champ": "Nautilus",
+            "mastery": 0
+          },
+          {
+            "champ": "Neeko",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Pyke",
+            "mastery": 0
+          },
+          {
+            "champ": "Rakan",
+            "mastery": 0
+          },
+          {
+            "champ": "Rell",
+            "mastery": 0
+          },
+          {
+            "champ": "Renata Glasc",
+            "mastery": 0
+          },
+          {
+            "champ": "Senna",
+            "mastery": 0
+          },
+          {
+            "champ": "Seraphine",
+            "mastery": 0
+          },
+          {
+            "champ": "Sona",
+            "mastery": 0
+          },
+          {
+            "champ": "Soraka",
+            "mastery": 0
+          },
+          {
+            "champ": "Swain",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Taric",
+            "mastery": 0
+          },
+          {
+            "champ": "Thresh",
+            "mastery": 0
+          },
+          {
+            "champ": "Vel'Koz",
+            "mastery": 0
+          },
+          {
+            "champ": "Xerath",
+            "mastery": 0
+          },
+          {
+            "champ": "Yuumi",
+            "mastery": 0
+          },
+          {
+            "champ": "Zilean",
+            "mastery": 0
+          },
+          {
+            "champ": "Zyra",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "fires",
+        "champ": "Lulu",
+        "rule": "duo_hypercarry_wants_enchanter"
+      }
+    },
+    {
+      "name": "GUARD (duo is bot-lane only): top laner gets no duo bonus from a support ally",
+      "scenario": {
+        "my_role": "top",
+        "my_team": [
+          "Lulu"
+        ],
+        "ally_roles": {
+          "utility": "Lulu"
+        },
+        "enemy_team": [
+          {
+            "champ": "Darius",
+            "role": "top"
+          }
+        ],
+        "pool": [
+          {
+            "champ": "Aatrox",
+            "mastery": 0
+          },
+          {
+            "champ": "Akali",
+            "mastery": 0
+          },
+          {
+            "champ": "Ambessa",
+            "mastery": 0
+          },
+          {
+            "champ": "Aurora",
+            "mastery": 0
+          },
+          {
+            "champ": "Camille",
+            "mastery": 0
+          },
+          {
+            "champ": "Cho'Gath",
+            "mastery": 0
+          },
+          {
+            "champ": "Darius",
+            "mastery": 0
+          },
+          {
+            "champ": "Dr. Mundo",
+            "mastery": 0
+          },
+          {
+            "champ": "Fiora",
+            "mastery": 0
+          },
+          {
+            "champ": "Gangplank",
+            "mastery": 0
+          },
+          {
+            "champ": "Garen",
+            "mastery": 0
+          },
+          {
+            "champ": "Gnar",
+            "mastery": 0
+          },
+          {
+            "champ": "Gragas",
+            "mastery": 0
+          },
+          {
+            "champ": "Gwen",
+            "mastery": 0
+          },
+          {
+            "champ": "Heimerdinger",
+            "mastery": 0
+          },
+          {
+            "champ": "Illaoi",
+            "mastery": 0
+          },
+          {
+            "champ": "Irelia",
+            "mastery": 0
+          },
+          {
+            "champ": "Jax",
+            "mastery": 0
+          },
+          {
+            "champ": "Jayce",
+            "mastery": 0
+          },
+          {
+            "champ": "K'Sante",
+            "mastery": 0
+          },
+          {
+            "champ": "Kayle",
+            "mastery": 0
+          },
+          {
+            "champ": "Kennen",
+            "mastery": 0
+          },
+          {
+            "champ": "Kled",
+            "mastery": 0
+          },
+          {
+            "champ": "Malphite",
+            "mastery": 0
+          },
+          {
+            "champ": "Mordekaiser",
+            "mastery": 0
+          },
+          {
+            "champ": "Nasus",
+            "mastery": 0
+          },
+          {
+            "champ": "Olaf",
+            "mastery": 0
+          },
+          {
+            "champ": "Ornn",
+            "mastery": 0
+          },
+          {
+            "champ": "Pantheon",
+            "mastery": 0
+          },
+          {
+            "champ": "Poppy",
+            "mastery": 0
+          },
+          {
+            "champ": "Quinn",
+            "mastery": 0
+          },
+          {
+            "champ": "Renekton",
+            "mastery": 0
+          },
+          {
+            "champ": "Riven",
+            "mastery": 0
+          },
+          {
+            "champ": "Rumble",
+            "mastery": 0
+          },
+          {
+            "champ": "Sett",
+            "mastery": 0
+          },
+          {
+            "champ": "Shen",
+            "mastery": 0
+          },
+          {
+            "champ": "Singed",
+            "mastery": 0
+          },
+          {
+            "champ": "Sion",
+            "mastery": 0
+          },
+          {
+            "champ": "Tahm Kench",
+            "mastery": 0
+          },
+          {
+            "champ": "Teemo",
+            "mastery": 0
+          },
+          {
+            "champ": "Trundle",
+            "mastery": 0
+          },
+          {
+            "champ": "Tryndamere",
+            "mastery": 0
+          },
+          {
+            "champ": "Urgot",
+            "mastery": 0
+          },
+          {
+            "champ": "Varus",
+            "mastery": 0
+          },
+          {
+            "champ": "Vayne",
+            "mastery": 0
+          },
+          {
+            "champ": "Volibear",
+            "mastery": 0
+          },
+          {
+            "champ": "Warwick",
+            "mastery": 0
+          },
+          {
+            "champ": "Xin Zhao",
+            "mastery": 0
+          },
+          {
+            "champ": "Yasuo",
+            "mastery": 0
+          },
+          {
+            "champ": "Yone",
+            "mastery": 0
+          },
+          {
+            "champ": "Yorick",
+            "mastery": 0
+          },
+          {
+            "champ": "Zaahen",
+            "mastery": 0
+          }
+        ]
+      },
+      "assert": {
+        "type": "not_fires",
+        "champ": "Jax",
+        "rule": "duo_enchanter_enables_hypercarry"
+      }
+    }
+  ]
+}

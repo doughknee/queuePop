@@ -1,0 +1,45 @@
+{
+  "_comment": "Curated champion-specific ability notes, keyed by champion then flag. Shown as the per-pick 'detail' under a fired rule so each champion's reasoning is its own kit, not a generic archetype line. Phase-1 champs already supply these via champion_judgment.json 'why'; this file covers the 20 seed champs (and can override anything). Keys must be exact flag names the rules key on (anti_tank, hard_engage, frontline, anti_ad, point_click_cc, cc_immunity, pick_potential, disengage, team_heal_shield, projectile_block, burst, scaling_late, ...).",
+
+  "Malphite": {
+    "hard_engage": "R Unstoppable Force — an unstoppable charge that knocks up the whole enemy team",
+    "frontline": "armor stacking + passive shield make him an immovable frontline",
+    "anti_ad": "passive shield + E attack-speed shred + armor scaling hard-counter AD"
+  },
+  "Vayne": { "anti_tank": "W Silver Bolts — every 3rd hit deals % max-HP true damage, melting tanks" },
+  "Leona": { "hard_engage": "E Zenith Blade into R Solar Flare locks a target down from range" },
+  "Thresh": {
+    "pick_potential": "Q Death Sentence hooks a target from screens away",
+    "disengage": "W lantern peels an ally out + E Flay knocks divers back"
+  },
+  "Lux": { "burst": "Q root sets up a full Q-E-R combo that deletes squishies" },
+  "Zed": { "burst": "shadow combo + R Death Mark one-shots a marked carry" },
+  "Malzahar": { "point_click_cc": "R Nether Grasp is a point-and-click suppress — undodgeable" },
+  "Olaf": {
+    "cc_immunity": "R Ragnarok makes him fully CC-immune for the duration",
+    "anti_tank": "E Reckless Swing deals true damage that ignores armor"
+  },
+  "Cho'Gath": {
+    "anti_tank": "E Vorpal Spikes % max-HP + R Feast true-damage execute punish tanks",
+    "frontline": "R stacks permanent max health into a giant frontline"
+  },
+  "Kassadin": { "scaling_late": "Riftwalk hyperscaler — weak early, oppressive once items online" },
+  "Amumu": {
+    "hard_engage": "R Curse of the Sad Mummy is a long, AoE multi-target stun engage",
+    "frontline": "tanky aura bruiser that sits on the enemy backline"
+  },
+  "Janna": {
+    "disengage": "Q knockup + R Monsoon blow the enemy off your carries",
+    "team_heal_shield": "E Eye of the Storm shields an ally + R heals the team"
+  },
+  "Soraka": { "team_heal_shield": "W Astral Infusion + R Wish keep the whole team topped up" },
+  "Fizz": {
+    "burst": "E Playful/Trickster dodges then R Chum the Waters bursts a target",
+    "pick_potential": "R shark is a long-range lockdown to start a pick"
+  },
+  "Yasuo": { "projectile_block": "W Wind Wall destroys all enemy projectiles in a wide arc" },
+  "Ezreal": {
+    "blink": "Arcane Shift (E) is a blink to dodge skillshots, escape dives, and reposition in fights",
+    "high_mobility": "low-cooldown E blink (reset-adjacent off Q poke) keeps him extremely safe and elusive"
+  }
+}

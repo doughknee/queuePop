@@ -1,0 +1,13 @@
+{
+  "_comment": "Curated role membership from Mobalytics tier lists (patch ~26.13). Tiers (S/A/B) are IGNORED — this is purely 'which champions are actually played in each role'. Authoritative for the counter engine, replacing class-tag inference. A champ's roles = every list it appears in. Update from the same source each meta shift.",
+
+  "top": ["Tryndamere","Kayle","Irelia","Yone","Aatrox","Olaf","Gangplank","Ornn","Jax","Malphite","Garen","Darius","Mordekaiser","Singed","Shen","Kled","Yorick","Pantheon","Urgot","Sett","Zaahen","Camille","Renekton","Quinn","Riven","Ambessa","Teemo","Fiora","Sion","Poppy","Dr. Mundo","Heimerdinger","Cho'Gath","Gragas","Vayne","Varus","Yasuo","Nasus","Volibear","Xin Zhao","Trundle","Tahm Kench","Rumble","K'Sante","Jayce","Illaoi","Aurora","Akali","Gnar","Gwen","Kennen","Warwick"],
+
+  "jungle": ["Naafiri","Viego","Jarvan IV","Kayn","Talon","Master Yi","Briar","Graves","Nocturne","Kha'Zix","Nidalee","Wukong","Ekko","Shen","Rammus","Evelynn","Vi","Hecarim","Udyr","Xin Zhao","Kindred","Fiddlesticks","Lee Sin","Lillia","Elise","Bel'Veth","Sylas","Shyvana","Shaco","Rek'Sai","Rengar","Warwick","Dr. Mundo","Diana","Karthus","Ivern","Taliyah","Aatrox","Zaahen","Skarner","Volibear","Trundle","Rumble","Ambessa","Qiyana","Jax","Zyra","Zac","Sejuani","Nunu & Willump","Amumu"],
+
+  "middle": ["Naafiri","Viktor","Vladimir","Syndra","Ahri","Xerath","Fizz","Sylas","Akali","Lissandra","Katarina","Veigar","Zed","Galio","Ekko","Irelia","Yone","LeBlanc","Yasuo","Akshan","Anivia","Talon","Vex","Hwei","Qiyana","Malzahar","Aurora","Zoe","Cassiopeia","Twisted Fate","Lux","Diana","Annie","Taliyah","Vel'Koz","Kassadin","Aurelion Sol","Orianna","Swain","Ryze","Mel","Brand","Azir","Locke"],
+
+  "bottom": ["Tristana","Smolder","Senna","Jinx","Caitlyn","Ashe","Vayne","Zeri","Jhin","Swain","Yunara","Twitch","Yasuo","Aphelios","Draven","Ezreal","Xayah","Nilah","Kog'Maw","Lucian","Samira","Seraphine","Sivir","Miss Fortune","Brand","Karthus","Kalista","Kai'Sa","Corki","Ziggs","Varus","Syndra","Mel","Hwei","Veigar"],
+
+  "utility": ["Pyke","Rell","Milio","Nautilus","Senna","Bard","Thresh","Seraphine","Leona","Soraka","Alistar","Janna","Lulu","Vel'Koz","Blitzcrank","Karma","Braum","Morgana","Taric","Rakan","Zilean","Tahm Kench","Xerath","Nami","Zyra","Sona","Poppy","Lux","Brand","Renata Glasc","Maokai","Swain","Pantheon","Neeko","Elise","Yuumi","Annie"]
+}

@@ -34,3 +34,9 @@ node_modules/
 # Local Claude Code tooling (settings, worktrees) — not for the repo
 .claude/
 scripts/config_before.json
+
+# Counter-engine analysis outputs (regenerable via scripts/coverage_sim.py etc.)
+data/coverage_report.json
+data/spotlight_report.json
+data/recommend_pct.json
+data/stuck_champs.json

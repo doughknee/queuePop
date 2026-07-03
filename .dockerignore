@@ -1,0 +1,11 @@
+# Draft-sim image only needs scripts/ engine files, data/ JSON, brand/fonts/.
+# Everything else stays out of the build context.
+*
+!scripts/counter_engine.py
+!scripts/draft_sim_server.py
+!scripts/draft_sim.html
+!data/champion_flags.json
+!data/champion_flags.seed.json
+!data/counter_rules.seed.json
+!data/counter_scenarios.seed.json
+!brand/fonts/

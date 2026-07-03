@@ -1,0 +1,300 @@
+{
+  "_comment": "Map-to-intent refinement layer for the mechanical ingest (docs/counter-engine.md §2b). The raw wiki categories are broader than the flag's intent, so these lists correct them. engage_only_dash / incidental_untargetability REMOVE a mechanically-added flag whose category is too broad. true_damage / percent_hp_damage ADD flags that have no clean wiki category. add/remove are per-champion overrides applied last. These lists are curated and meant to grow — seeded here with the cases verified so far.",
+  "engage_only_dash": [
+    "Malphite"
+  ],
+  "incidental_untargetability": [
+    "Zed"
+  ],
+  "true_damage": [
+    "Vayne",
+    "Olaf",
+    "Cho'Gath",
+    "Amumu",
+    "Corki",
+    "Fiora",
+    "Gwen",
+    "Sett",
+    "Twitch",
+    "Vel'Koz"
+  ],
+  "percent_hp_damage": [
+    "Vayne",
+    "Cho'Gath",
+    "Amumu",
+    "Malzahar",
+    "Aatrox",
+    "Dr. Mundo",
+    "Elise",
+    "Kog'Maw",
+    "Rek'Sai",
+    "Sett",
+    "Shen",
+    "Skarner",
+    "Trundle",
+    "Varus",
+    "Viego",
+    "Warwick",
+    "Xin Zhao",
+    "Zac"
+  ],
+  "_aoe_engage_note": "aoe_engage = genuine MULTI-TARGET AoE hard CC on a frontline body (wombo engage). Curated from kit text; single-target hooks (Nautilus/Blitzcrank) and skirmish carries (Qiyana/Yone) deliberately excluded. Consumed by wombo_engage_vs_lowmobility.",
+  "add": {
+    "Tryndamere": [
+      "undying"
+    ],
+    "Amumu": [
+      "aoe_engage",
+      "magic_amp"
+    ],
+    "Malphite": [
+      "aoe_engage"
+    ],
+    "Galio": [
+      "aoe_engage"
+    ],
+    "Maokai": [
+      "aoe_engage"
+    ],
+    "Sion": [
+      "aoe_engage",
+      "revive"
+    ],
+    "Ornn": [
+      "aoe_engage"
+    ],
+    "Rell": [
+      "aoe_engage"
+    ],
+    "Zac": [
+      "aoe_engage",
+      "revive"
+    ],
+    "Alistar": [
+      "aoe_engage"
+    ],
+    "Nunu & Willump": [
+      "aoe_engage"
+    ],
+    "Rammus": [
+      "aoe_engage"
+    ],
+    "Wukong": [
+      "aoe_engage"
+    ],
+    "Ivern": [
+      "ally_steroid",
+      "persistent_pets"
+    ],
+    "Janna": [
+      "ally_steroid"
+    ],
+    "Lulu": [
+      "ally_steroid",
+      "polymorph"
+    ],
+    "Milio": [
+      "ally_steroid",
+      "ally_cc_cleanse"
+    ],
+    "Nami": [
+      "ally_steroid"
+    ],
+    "Nidalee": [
+      "ally_steroid"
+    ],
+    "Sona": [
+      "ally_steroid"
+    ],
+    "Yuumi": [
+      "ally_steroid"
+    ],
+    "Singed": [
+      "antiheal"
+    ],
+    "Fiora": [
+      "parry_block"
+    ],
+    "Jax": [
+      "parry_block"
+    ],
+    "Nilah": [
+      "parry_block"
+    ],
+    "Garen": [
+      "execute"
+    ],
+    "Pyke": [
+      "execute",
+      "single_target_pick"
+    ],
+    "Urgot": [
+      "execute"
+    ],
+    "Akali": [
+      "execute"
+    ],
+    "Karthus": [
+      "isolation_hunter",
+      "revive"
+    ],
+    "Kha'Zix": [
+      "isolation_hunter",
+      "reset_snowball"
+    ],
+    "Katarina": [
+      "reset_snowball"
+    ],
+    "Talon": [
+      "reset_snowball"
+    ],
+    "Cassiopeia": [
+      "drain_mage"
+    ],
+    "Vladimir": [
+      "drain_mage",
+      "magic_amp"
+    ],
+    "Ahri": [
+      "charm_fear"
+    ],
+    "Evelynn": [
+      "charm_fear"
+    ],
+    "Fiddlesticks": [
+      "charm_fear"
+    ],
+    "Vex": [
+      "charm_fear"
+    ],
+    "Zoe": [
+      "charm_fear"
+    ],
+    "Senna": [
+      "global_ally_protect"
+    ],
+    "Soraka": [
+      "global_ally_protect"
+    ],
+    "Nocturne": [
+      "spell_shield"
+    ],
+    "Sivir": [
+      "spell_shield"
+    ],
+    "Blitzcrank": [
+      "single_target_pick",
+      "skillshot_reliant"
+    ],
+    "Nautilus": [
+      "single_target_pick",
+      "single_target_lockdown"
+    ],
+    "Thresh": [
+      "single_target_pick"
+    ],
+    "Elise": [
+      "persistent_pets"
+    ],
+    "Heimerdinger": [
+      "persistent_pets"
+    ],
+    "Malzahar": [
+      "persistent_pets",
+      "single_target_lockdown"
+    ],
+    "Naafiri": [
+      "persistent_pets"
+    ],
+    "Shaco": [
+      "persistent_pets"
+    ],
+    "Yorick": [
+      "persistent_pets"
+    ],
+    "Zyra": [
+      "persistent_pets"
+    ],
+    "Briar": [
+      "single_target_lockdown"
+    ],
+    "Mordekaiser": [
+      "single_target_lockdown"
+    ],
+    "Warwick": [
+      "single_target_lockdown"
+    ],
+    "Morgana": [
+      "spell_shield"
+    ],
+    "Yasuo": [
+      "knockup_payoff"
+    ],
+    "Samira": [
+      "knockup_payoff"
+    ],
+    "Kog'Maw": [
+      "revive"
+    ]
+  },
+  "remove": {
+    "Alistar": [
+      "burst"
+    ],
+    "Blitzcrank": [
+      "burst"
+    ],
+    "Galio": [
+      "burst"
+    ],
+    "Gnar": [
+      "burst"
+    ],
+    "Nunu & Willump": [
+      "burst"
+    ],
+    "Sejuani": [
+      "burst",
+      "cc_immunity"
+    ],
+    "Sion": [
+      "burst",
+      "untargetability",
+      "invulnerability"
+    ],
+    "Urgot": [
+      "hard_engage"
+    ],
+    "Garen": [
+      "cc_immunity"
+    ],
+    "Fiora": [
+      "team_heal_shield"
+    ],
+    "Karthus": [
+      "self_peel",
+      "untargetability"
+    ],
+    "Zilean": [
+      "untargetability",
+      "invulnerability"
+    ],
+    "Syndra": [
+      "untargetability",
+      "invulnerability"
+    ],
+    "Kalista": [
+      "untargetability",
+      "invulnerability"
+    ],
+    "Kog'Maw": [
+      "untargetability",
+      "invulnerability"
+    ],
+    "Poppy": [
+      "untargetability"
+    ]
+  },
+  "_finer_flags_note": "v2 finer flags (2026-06-26) to break flag-domination so every champ can be #1. Each grounded in _ability_text.json + adversarially verified.",
+  "_untargetability_audit_note": "2026-07-02 audit: untargetability/invulnerability removed where the effect is a death passive (Karthus/Kog Maw/Sion — revive flag covers those), ally-targeted (Zilean Chronoshift, Kalista Oathsworn stasis), enemy-targeted (Poppy R flight) or absent (Syndra). Death passives are NOT a separate flag: revive already means post-lethal action. Unresolved (wiki category vs missing DDragon text — verify at wiki level before touching): Aurora, Galio, Kindred(I), Kled, K Sante, Ryze, Tahm Kench, Urgot, Viego, Zaahen, Zac."
+}

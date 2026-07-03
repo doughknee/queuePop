@@ -1,0 +1,84 @@
+{
+  "_comment": "SEED dataset for the counter-engine vertical slice. ~20 hand-tagged champions across roles. Flags use the controlled vocabulary from docs/counter-engine.md. This is throwaway validation data, NOT the production dataset (that comes from the wiki/Meraki ingest in Phase 0).",
+
+  "Malphite": {
+    "roles": ["top", "middle", "jungle"],
+    "flags": ["melee", "immobile", "hard_cc", "displacement", "hard_engage", "cc_reliant", "frontline", "deals_magic", "anti_ad", "scaling_mid"]
+  },
+  "Yasuo": {
+    "roles": ["middle", "top", "bottom"],
+    "flags": ["melee", "dash", "high_mobility", "projectile_block", "sustained_dps", "deals_physical", "mobility_dependent", "scaling_mid"]
+  },
+  "Vayne": {
+    "roles": ["bottom", "top"],
+    "flags": ["ranged", "dash", "high_mobility", "sustained_dps", "percent_hp_damage", "true_damage", "anti_tank", "deals_physical", "displacement", "self_peel", "mobility_dependent", "scaling_late"]
+  },
+  "Caitlyn": {
+    "roles": ["bottom"],
+    "flags": ["ranged", "dash", "hard_cc", "sustained_dps", "deals_physical", "lane_poke", "mobility_dependent", "scaling_early"]
+  },
+  "Leona": {
+    "roles": ["support"],
+    "flags": ["melee", "dash", "hard_cc", "hard_engage", "cc_reliant", "frontline", "deals_magic", "scaling_early"]
+  },
+  "Thresh": {
+    "roles": ["support"],
+    "flags": ["ranged", "pick_potential", "hard_cc", "displacement", "skillshot_reliant", "disengage", "team_heal_shield", "deals_magic", "scaling_mid"]
+  },
+  "Lux": {
+    "roles": ["middle", "support"],
+    "flags": ["ranged", "immobile", "skillshot_reliant", "hard_cc", "burst", "deals_magic", "lane_poke", "mobility_dependent", "scaling_mid"]
+  },
+  "Zed": {
+    "roles": ["middle"],
+    "flags": ["melee", "dash", "high_mobility", "burst", "deals_physical", "pick_potential", "mobility_dependent", "scaling_mid"]
+  },
+  "Malzahar": {
+    "roles": ["middle"],
+    "flags": ["ranged", "immobile", "hard_cc", "point_click_cc", "waveclear", "self_peel", "deals_magic", "sustained_dps", "percent_hp_damage", "scaling_mid"]
+  },
+  "Olaf": {
+    "roles": ["jungle", "top"],
+    "flags": ["melee", "cc_immunity", "anti_tank", "true_damage", "deals_physical", "self_heal", "scaling_early"]
+  },
+  "Cho'Gath": {
+    "roles": ["top", "middle"],
+    "flags": ["melee", "immobile", "frontline", "hard_cc", "displacement", "true_damage", "percent_hp_damage", "deals_magic", "waveclear", "self_heal", "scaling_mid"]
+  },
+  "Lee Sin": {
+    "roles": ["jungle"],
+    "flags": ["melee", "dash", "high_mobility", "displacement", "deals_physical", "skillshot_reliant", "scaling_early"]
+  },
+  "Kassadin": {
+    "roles": ["middle"],
+    "flags": ["melee", "blink", "high_mobility", "burst", "deals_magic", "mobility_dependent", "scaling_late"]
+  },
+  "Ezreal": {
+    "roles": ["bottom"],
+    "flags": ["ranged", "blink", "high_mobility", "deals_physical", "skillshot_reliant", "lane_poke", "sustained_dps", "scaling_mid"]
+  },
+  "Amumu": {
+    "roles": ["jungle", "support"],
+    "flags": ["melee", "dash", "hard_engage", "hard_cc", "displacement", "cc_reliant", "frontline", "deals_magic", "true_damage", "percent_hp_damage", "scaling_mid"]
+  },
+  "Janna": {
+    "roles": ["support"],
+    "flags": ["ranged", "immobile", "disengage", "displacement", "hard_cc", "team_heal_shield", "self_peel", "deals_magic", "scaling_mid"]
+  },
+  "Soraka": {
+    "roles": ["support"],
+    "flags": ["ranged", "immobile", "team_heal_shield", "self_heal", "healing_dependent", "hard_cc", "deals_magic", "lane_poke", "scaling_mid"]
+  },
+  "Tryndamere": {
+    "roles": ["top"],
+    "flags": ["melee", "dash", "undying", "sustained_dps", "deals_physical", "self_heal", "mobility_dependent", "scaling_mid"]
+  },
+  "Fizz": {
+    "roles": ["middle"],
+    "flags": ["melee", "dash", "high_mobility", "untargetability", "hard_cc", "displacement", "burst", "deals_magic", "pick_potential", "skillshot_reliant", "mobility_dependent", "scaling_mid"]
+  },
+  "Jhin": {
+    "roles": ["bottom"],
+    "flags": ["ranged", "immobile", "sustained_dps", "deals_physical", "lane_poke", "hard_cc", "skillshot_reliant", "mobility_dependent", "scaling_mid"]
+  }
+}

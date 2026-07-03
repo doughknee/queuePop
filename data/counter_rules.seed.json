@@ -1,0 +1,1520 @@
+{
+  "_comment": "Rules for the counter engine. Pure data so weights/logic are tunable without code changes. Predicate fields: candidate / lane_opponent (subject specs with all/any/none flag lists); enemy_team / my_team (count specs, or a list of them). A count spec is {flag|flags|any_flags, min?, max?}: 'flag'=has it, 'flags'=has ALL, 'any_flags'=has ANY. Reason tokens: {enemy_with:FLAG}, {team_with:FLAG}, {enemy_with_all:F1,F2}, {enemy_with_any:F1,F2}. 'reason' = shown when the rule FIRES; 'gap' = shown when the draft offers this reward but the candidate misses it (drives the 'why not 100' breakdown). lane_partner (subject spec) = duo-synergy predicate matched against your BOT-LANE partner (ally utility when you are bottom, ally bottom when you are utility); requires callers to pass ally_roles.",
+  "rules": [
+    {
+      "id": "anti_tank_vs_frontline",
+      "scope": "matchup",
+      "weight": 25,
+      "boost": [
+        "percent_hp_damage",
+        "true_damage"
+      ],
+      "candidate": {
+        "all": [
+          "anti_tank"
+        ]
+      },
+      "enemy_team": {
+        "flag": "frontline",
+        "min": 1
+      },
+      "reason": "shreds their frontline ({enemy_with:frontline})",
+      "gap": "no way to shred their frontline ({enemy_with:frontline})"
+    },
+    {
+      "id": "armor_vs_ad_carry",
+      "scope": "matchup",
+      "weight": 12,
+      "candidate": {
+        "all": [
+          "anti_ad"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "sustained_dps",
+          "deals_physical"
+        ],
+        "min": 1
+      },
+      "reason": "you itemize armor into their AD carry ({enemy_with_all:sustained_dps,deals_physical})",
+      "gap": "doesn't itemize armor vs their AD carry ({enemy_with_all:sustained_dps,deals_physical})"
+    },
+    {
+      "id": "cc_immunity_vs_engage",
+      "scope": "matchup",
+      "weight": 18,
+      "candidate": {
+        "all": [
+          "cc_immunity"
+        ]
+      },
+      "enemy_team": {
+        "flag": "hard_engage",
+        "min": 1
+      },
+      "reason": "you ult through their lockdown ({enemy_with:hard_engage})",
+      "gap": "no way to ignore their lockdown ({enemy_with:hard_engage})"
+    },
+    {
+      "id": "lockdown_vs_hypercarry",
+      "scope": "matchup",
+      "weight": 12,
+      "boost": [
+        "displacement",
+        "point_click_cc"
+      ],
+      "candidate": {
+        "any": [
+          "hard_cc",
+          "point_click_cc"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "sustained_dps",
+          "immobile",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "you can pin their immobile carry ({enemy_with_all:sustained_dps,immobile})",
+      "gap": "no lockdown for their immobile carry ({enemy_with_all:sustained_dps,immobile})"
+    },
+    {
+      "id": "point_click_vs_assassin",
+      "scope": "matchup",
+      "weight": 14,
+      "scale_at": 1,
+      "candidate": {
+        "all": [
+          "point_click_cc"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "burst"
+        ],
+        "any_flags": [
+          "dash",
+          "blink",
+          "high_mobility"
+        ],
+        "min": 1
+      },
+      "reason": "your point-and-click CC shuts down their assassin ({enemy_with:burst})",
+      "gap": "no point-and-click CC to lock their assassin ({enemy_with:burst})"
+    },
+    {
+      "id": "mobility_dodges_skillshots",
+      "scope": "matchup",
+      "weight": 8,
+      "boost": [
+        "blink",
+        "high_mobility"
+      ],
+      "candidate": {
+        "any": [
+          "dash",
+          "blink",
+          "high_mobility"
+        ]
+      },
+      "enemy_team": {
+        "flag": "skillshot_reliant",
+        "min": 2
+      },
+      "reason": "your mobility dodges their skillshot-reliant kit ({enemy_with:skillshot_reliant})",
+      "gap": "low mobility to dodge their skillshots ({enemy_with:skillshot_reliant})"
+    },
+    {
+      "id": "burst_vs_immobile_carry",
+      "scope": "matchup",
+      "weight": 12,
+      "boost": [
+        "high_mobility",
+        "blink"
+      ],
+      "candidate": {
+        "all": [
+          "burst"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "sustained_dps",
+          "immobile",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "you can delete their immobile carry ({enemy_with_all:sustained_dps,immobile})",
+      "gap": "can't burst their immobile carry ({enemy_with_all:sustained_dps,immobile})"
+    },
+    {
+      "id": "projectile_block_vs_poke",
+      "scope": "matchup",
+      "weight": 10,
+      "candidate": {
+        "all": [
+          "projectile_block"
+        ]
+      },
+      "enemy_team": {
+        "flag": "lane_poke",
+        "min": 1
+      },
+      "reason": "you negate their poke ({enemy_with:lane_poke})",
+      "gap": "can't block their poke ({enemy_with:lane_poke})"
+    },
+    {
+      "id": "range_vs_melee_lane",
+      "scope": "lane",
+      "weight": 12,
+      "candidate": {
+        "all": [
+          "ranged"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "melee"
+        ],
+        "none": [
+          "dash",
+          "blink"
+        ]
+      },
+      "reason": "you outrange your lane opponent",
+      "gap": "you don't outrange your immobile-melee lane opponent"
+    },
+    {
+      "id": "team_needs_engage",
+      "scope": "team_need",
+      "weight": 18,
+      "boost": [
+        "displacement",
+        "hard_cc"
+      ],
+      "candidate": {
+        "all": [
+          "hard_engage"
+        ]
+      },
+      "my_team": {
+        "flag": "hard_engage",
+        "max": 0
+      },
+      "reason": "your team has no hard engage — you bring it",
+      "gap": "doesn't bring the hard engage your team lacks"
+    },
+    {
+      "id": "team_needs_frontline",
+      "scope": "team_need",
+      "weight": 15,
+      "candidate": {
+        "all": [
+          "frontline"
+        ]
+      },
+      "my_team": {
+        "flag": "frontline",
+        "max": 0
+      },
+      "reason": "your team has no frontline",
+      "gap": "doesn't give your team the frontline it lacks"
+    },
+    {
+      "id": "damage_balance_magic",
+      "scope": "team_need",
+      "weight": 14,
+      "candidate": {
+        "all": [
+          "deals_magic"
+        ]
+      },
+      "my_team": {
+        "flag": "deals_magic",
+        "max": 0
+      },
+      "reason": "your team is all-physical — you add magic damage",
+      "gap": "adds no magic damage to your all-physical team"
+    },
+    {
+      "id": "damage_balance_physical",
+      "scope": "team_need",
+      "weight": 14,
+      "candidate": {
+        "all": [
+          "deals_physical"
+        ]
+      },
+      "my_team": {
+        "flag": "deals_physical",
+        "max": 0
+      },
+      "reason": "your team is all-magic — you add physical damage",
+      "gap": "adds no physical damage to your all-magic team"
+    },
+    {
+      "id": "outscales_early_comp",
+      "scope": "scaling",
+      "weight": 12,
+      "candidate": {
+        "all": [
+          "scaling_late"
+        ]
+      },
+      "enemy_team": {
+        "flag": "scaling_early",
+        "min": 3
+      },
+      "reason": "you outscale their early-game comp",
+      "gap": "doesn't outscale their early-game comp"
+    },
+    {
+      "id": "protect_carry_vs_dive",
+      "scope": "team_need",
+      "weight": 13,
+      "boost": [
+        "team_heal_shield",
+        "hard_cc",
+        "disengage"
+      ],
+      "candidate": {
+        "any": [
+          "disengage",
+          "team_heal_shield"
+        ]
+      },
+      "my_team": {
+        "flag": "sustained_dps",
+        "min": 1
+      },
+      "enemy_team": {
+        "any_of": [
+          {
+            "flag": "hard_engage"
+          },
+          {
+            "flags": [
+              "burst"
+            ],
+            "any_flags": [
+              "dash",
+              "blink",
+              "high_mobility"
+            ]
+          }
+        ],
+        "min": 1
+      },
+      "reason": "your carry needs protection from their dive — your peel provides it",
+      "gap": "no peel to protect your carry from their dive"
+    },
+    {
+      "id": "pick_comp_vs_immobile_carry",
+      "scope": "matchup",
+      "weight": 11,
+      "boost": [
+        "hard_cc",
+        "point_click_cc"
+      ],
+      "candidate": {
+        "all": [
+          "pick_potential"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "immobile",
+          "sustained_dps",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "you can pick off their immobile carry ({enemy_with_all:immobile,sustained_dps})",
+      "gap": "no pick threat on their immobile carry ({enemy_with_all:immobile,sustained_dps})"
+    },
+    {
+      "id": "disengage_vs_engage",
+      "scope": "matchup",
+      "weight": 12,
+      "boost": [
+        "displacement",
+        "hard_cc"
+      ],
+      "candidate": {
+        "all": [
+          "disengage"
+        ]
+      },
+      "enemy_team": {
+        "flag": "hard_engage",
+        "min": 1
+      },
+      "reason": "your disengage answers their hard engage ({enemy_with:hard_engage})",
+      "gap": "no disengage for their hard engage ({enemy_with:hard_engage})"
+    },
+    {
+      "id": "waveclear_vs_poke_comp",
+      "scope": "matchup",
+      "weight": 8,
+      "candidate": {
+        "all": [
+          "waveclear"
+        ]
+      },
+      "enemy_team": {
+        "flag": "lane_poke",
+        "min": 3
+      },
+      "reason": "your waveclear blunts their poke/siege comp",
+      "gap": "weak waveclear vs their poke/siege comp"
+    },
+    {
+      "id": "synergy_engage_followup",
+      "scope": "comp",
+      "weight": 6,
+      "candidate": {
+        "any": [
+          "hard_cc",
+          "burst",
+          "anti_tank"
+        ]
+      },
+      "my_team": {
+        "flag": "hard_engage",
+        "min": 2
+      },
+      "reason": "amplifies your hard-engage comp — follow-up damage/CC for the all-in",
+      "gap": "adds no follow-up to your hard-engage comp"
+    },
+    {
+      "id": "synergy_poke_comp",
+      "scope": "comp",
+      "weight": 9,
+      "candidate": {
+        "any": [
+          "lane_poke",
+          "disengage"
+        ]
+      },
+      "my_team": {
+        "flag": "lane_poke",
+        "min": 2
+      },
+      "reason": "fits your poke & siege comp",
+      "gap": "doesn't fit your poke & siege comp"
+    },
+    {
+      "id": "squishy_into_assassin_no_peel",
+      "scope": "warning",
+      "weight": -14,
+      "candidate": {
+        "all": [
+          "immobile",
+          "ranged"
+        ],
+        "none": [
+          "self_peel",
+          "dash",
+          "blink"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "burst"
+        ],
+        "any_flags": [
+          "dash",
+          "blink",
+          "high_mobility"
+        ],
+        "min": 1
+      },
+      "my_team": {
+        "any_flags": [
+          "disengage",
+          "team_heal_shield"
+        ],
+        "max": 0
+      },
+      "reason": "you'd be exposed to their assassin with no team peel ({enemy_with:burst})"
+    },
+    {
+      "id": "melee_into_ranged_poke",
+      "scope": "warning",
+      "weight": -10,
+      "candidate": {
+        "all": [
+          "melee"
+        ],
+        "none": [
+          "dash",
+          "blink"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "ranged",
+          "lane_poke"
+        ]
+      },
+      "reason": "you'll get poked out in lane"
+    },
+    {
+      "_section": "ARCHETYPE-IDENTITY rules (added to give proactive win-condition champs a non-crowded niche). Each rewards an ARCHETYPE vs a DRAFT SHAPE, never a named matchup. 'no_scale' = absence/team-shape gate, weight not diluted by enemy count.",
+      "id": "hypercarry_outscales_low_lockdown",
+      "scope": "scaling",
+      "weight": 15,
+      "no_scale": true,
+      "boost": [
+        "self_peel"
+      ],
+      "candidate": {
+        "all": [
+          "sustained_dps",
+          "scaling_late"
+        ],
+        "none": [
+          "frontline"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "point_click_cc",
+          "hard_engage",
+          "burst"
+        ],
+        "max": 1
+      },
+      "reason": "the enemy draft is light on the lockdown and burst needed to stop a sustained-DPS scaler — you free-fire and win the long game",
+      "gap": "no scaling DPS to punish their lockdown-light draft"
+    },
+    {
+      "id": "artillery_zones_lowmobility",
+      "scope": "matchup",
+      "weight": 16,
+      "boost": [
+        "hard_cc"
+      ],
+      "candidate": {
+        "all": [
+          "lane_poke",
+          "ranged",
+          "deals_magic",
+          "immobile"
+        ]
+      },
+      "enemy_team": {
+        "flag": "immobile",
+        "min": 3
+      },
+      "reason": "you sit at max range and zone their low-mobility comp ({enemy_with:immobile}) — they can't close the gap on your artillery",
+      "gap": "no long-range artillery to zone their low-mobility comp ({enemy_with:immobile})"
+    },
+    {
+      "id": "assassin_dives_unpeeled_carry",
+      "scope": "matchup",
+      "weight": 16,
+      "no_scale": true,
+      "candidate": {
+        "all": [
+          "pick_potential",
+          "melee",
+          "burst"
+        ],
+        "any": [
+          "high_mobility",
+          "blink"
+        ]
+      },
+      "enemy_team": [
+        {
+          "flags": [
+            "immobile",
+            "sustained_dps",
+            "ranged"
+          ],
+          "min": 1
+        },
+        {
+          "flag": "point_click_cc",
+          "max": 1
+        }
+      ],
+      "reason": "your mobility dives past their thin peel to isolate and delete their immobile carry ({enemy_with_all:immobile,sustained_dps})",
+      "gap": "no burst-dive to punish their immobile carry ({enemy_with_all:immobile,sustained_dps})"
+    },
+    {
+      "id": "wombo_engage_vs_lowmobility",
+      "scope": "comp",
+      "weight": 16,
+      "candidate": {
+        "all": [
+          "aoe_engage"
+        ]
+      },
+      "enemy_team": {
+        "flag": "immobile",
+        "min": 3
+      },
+      "reason": "your AoE engage locks down their clumped, low-mobility comp ({enemy_with:immobile}) — they can't scatter from the multi-target CC",
+      "gap": "no AoE lockdown for their clumped, low-mobility comp ({enemy_with:immobile})"
+    },
+    {
+      "id": "enchanter_outheals_poke",
+      "scope": "matchup",
+      "weight": 14,
+      "boost": [
+        "disengage"
+      ],
+      "candidate": {
+        "all": [
+          "team_heal_shield"
+        ],
+        "none": [
+          "frontline"
+        ]
+      },
+      "enemy_team": {
+        "flag": "lane_poke",
+        "min": 3
+      },
+      "reason": "your team healing out-sustains their poke/siege comp ({enemy_with:lane_poke}) — they can't burn your team down from range",
+      "gap": "no team healing to out-sustain their poke comp ({enemy_with:lane_poke})"
+    },
+    {
+      "id": "early_tempo_vs_scaling",
+      "scope": "scaling",
+      "weight": 12,
+      "scale_at": 2,
+      "boost": [
+        "hard_engage"
+      ],
+      "candidate": {
+        "all": [
+          "scaling_early"
+        ]
+      },
+      "enemy_team": {
+        "flag": "scaling_late",
+        "min": 2
+      },
+      "reason": "their carries are greedy and need time — your early power spike snowballs a lead before they scale ({enemy_with:scaling_late})",
+      "gap": "no early tempo to punish their slow-scaling comp ({enemy_with:scaling_late})"
+    },
+    {
+      "id": "duelist_sidelanes_for_teamfight_comp",
+      "scope": "comp",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "sustained_dps",
+          "melee"
+        ],
+        "any": [
+          "self_heal",
+          "undying",
+          "healing_dependent"
+        ]
+      },
+      "my_team": {
+        "flag": "hard_engage",
+        "min": 2
+      },
+      "reason": "your team is built to group and force 5v5 — you take a side lane and split, applying pressure they must answer",
+      "gap": "no self-sufficient side-lane threat while your team groups to fight"
+    },
+    {
+      "id": "ally_steroid_amps_carry",
+      "scope": "comp",
+      "weight": 14,
+      "candidate": {
+        "all": [
+          "ally_steroid"
+        ],
+        "none": [
+          "frontline"
+        ]
+      },
+      "my_team": {
+        "flag": "sustained_dps",
+        "min": 1
+      },
+      "enemy_team": {
+        "any_flags": [
+          "burst",
+          "hard_engage"
+        ],
+        "min": 1
+      },
+      "reason": "you amplify your carry's output — a hypercarry your team builds around out-damages their dive",
+      "gap": "no offensive steroid to amplify your team's carry"
+    },
+    {
+      "id": "cleanse_vs_chain_cc",
+      "scope": "matchup",
+      "weight": 15,
+      "candidate": {
+        "all": [
+          "ally_cc_cleanse"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "hard_engage",
+          "point_click_cc",
+          "hard_cc"
+        ],
+        "min": 3
+      },
+      "reason": "you cleanse the chain-CC off your focused carry ({enemy_with_any:hard_engage,point_click_cc,hard_cc})",
+      "gap": "no ally cleanse for their chain-CC"
+    },
+    {
+      "id": "polymorph_shuts_assassin",
+      "scope": "matchup",
+      "weight": 14,
+      "no_scale": true,
+      "candidate": {
+        "all": [
+          "polymorph"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "burst"
+        ],
+        "any_flags": [
+          "dash",
+          "blink",
+          "high_mobility"
+        ],
+        "min": 1
+      },
+      "reason": "you polymorph their assassin out of the fight ({enemy_with:burst})",
+      "gap": "no polymorph to neutralize their assassin"
+    },
+    {
+      "id": "antiheal_vs_sustain",
+      "scope": "matchup",
+      "weight": 16,
+      "candidate": {
+        "all": [
+          "antiheal"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "healing_dependent",
+          "self_heal"
+        ],
+        "min": 2
+      },
+      "reason": "your built-in Grievous Wounds neuters their sustain ({enemy_with_any:healing_dependent,self_heal})",
+      "gap": "no built-in healing cut vs their sustain comp"
+    },
+    {
+      "id": "parry_vs_burst",
+      "scope": "matchup",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "parry_block"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "burst",
+          "hard_engage"
+        ],
+        "min": 1
+      },
+      "reason": "you parry their key burst/lockdown on demand ({enemy_with_any:burst,hard_engage})",
+      "gap": "no active parry for their burst/lockdown",
+      "scale_at": 2
+    },
+    {
+      "id": "execute_vs_immobile_carry",
+      "scope": "matchup",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "execute"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "immobile",
+          "sustained_dps",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "your execute reliably finishes their immobile carry ({enemy_with_all:immobile,sustained_dps})",
+      "gap": "no execute to close out their immobile carry"
+    },
+    {
+      "id": "isolation_hunter_vs_lowmobility",
+      "scope": "matchup",
+      "weight": 14,
+      "candidate": {
+        "all": [
+          "isolation_hunter"
+        ]
+      },
+      "enemy_team": {
+        "flag": "immobile",
+        "min": 2
+      },
+      "reason": "you delete their isolated, low-mobility targets ({enemy_with:immobile})",
+      "gap": "no isolation damage vs their low-mobility comp"
+    },
+    {
+      "id": "reset_snowball_vs_squishies",
+      "scope": "comp",
+      "weight": 14,
+      "no_scale": true,
+      "candidate": {
+        "all": [
+          "reset_snowball"
+        ]
+      },
+      "enemy_team": {
+        "flag": "frontline",
+        "max": 0
+      },
+      "reason": "their comp has NO frontline to body-block — you chain-reset takedowns across their squishy team",
+      "gap": "no takedown-reset to snowball their squishy comp"
+    },
+    {
+      "id": "drain_outsustains_poke",
+      "scope": "matchup",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "drain_mage"
+        ]
+      },
+      "enemy_team": {
+        "flag": "lane_poke",
+        "min": 2
+      },
+      "reason": "your spell-vamp out-sustains their poke ({enemy_with:lane_poke})",
+      "gap": "no drain sustain vs their poke"
+    },
+    {
+      "id": "charm_disarms_carry",
+      "scope": "matchup",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "charm_fear"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "immobile",
+          "sustained_dps",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "you charm/fear their key carry out of the fight ({enemy_with_all:immobile,sustained_dps})",
+      "gap": "no charm/fear to disarm their carry"
+    },
+    {
+      "id": "global_protect_caught_carry",
+      "scope": "comp",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "global_ally_protect"
+        ]
+      },
+      "my_team": {
+        "flag": "sustained_dps",
+        "min": 1
+      },
+      "enemy_team": {
+        "any_flags": [
+          "burst",
+          "hard_engage",
+          "pick_potential"
+        ],
+        "min": 1
+      },
+      "reason": "your global save shields a caught or split carry anywhere on the map ({enemy_with_any:burst,hard_engage,pick_potential})",
+      "gap": "no global protection for a caught carry"
+    },
+    {
+      "id": "spellshield_eats_pick",
+      "scope": "matchup",
+      "weight": 13,
+      "no_scale": true,
+      "candidate": {
+        "all": [
+          "spell_shield"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "point_click_cc",
+          "hard_engage",
+          "burst"
+        ],
+        "min": 1
+      },
+      "reason": "your spell shield eats their key ability ({enemy_with_any:point_click_cc,hard_engage,burst})",
+      "gap": "no spell shield for their key ability"
+    },
+    {
+      "id": "hook_vs_immobile_carry",
+      "scope": "matchup",
+      "weight": 14,
+      "candidate": {
+        "all": [
+          "single_target_pick"
+        ]
+      },
+      "enemy_team": {
+        "flags": [
+          "immobile",
+          "sustained_dps",
+          "ranged"
+        ],
+        "min": 1
+      },
+      "reason": "you hook their immobile carry out of position ({enemy_with_all:immobile,sustained_dps})",
+      "gap": "no hook to catch their immobile carry"
+    },
+    {
+      "id": "magic_amp_for_ap_team",
+      "scope": "team_need",
+      "weight": 12,
+      "candidate": {
+        "all": [
+          "magic_amp"
+        ]
+      },
+      "my_team": {
+        "flag": "deals_magic",
+        "min": 2
+      },
+      "reason": "you amplify the damage your AP team piles onto a target",
+      "gap": "no damage amp for your AP team"
+    },
+    {
+      "id": "pets_zone_lowmobility",
+      "scope": "comp",
+      "weight": 11,
+      "candidate": {
+        "all": [
+          "persistent_pets"
+        ]
+      },
+      "enemy_team": {
+        "flag": "immobile",
+        "min": 3
+      },
+      "reason": "your persistent pets zone and out-DPS their slow, low-mobility comp ({enemy_with:immobile})",
+      "gap": "no persistent bodies to zone their slow comp"
+    },
+    {
+      "id": "lockdown_vs_evasive_carry",
+      "scope": "matchup",
+      "weight": 15,
+      "candidate": {
+        "all": [
+          "single_target_lockdown"
+        ]
+      },
+      "enemy_team": [
+        {
+          "any_flags": [
+            "high_mobility",
+            "dash",
+            "blink"
+          ],
+          "min": 2
+        },
+        {
+          "flag": "sustained_dps",
+          "min": 1
+        }
+      ],
+      "reason": "your inescapable lockdown catches their slippery, high-mobility carry",
+      "gap": "no hard lockdown for their slippery carry"
+    },
+    {
+      "id": "revive_wins_attrition",
+      "scope": "comp",
+      "weight": 12,
+      "no_scale": true,
+      "candidate": {
+        "all": [
+          "revive"
+        ]
+      },
+      "enemy_team": {
+        "any_flags": [
+          "sustained_dps"
+        ],
+        "min": 2
+      },
+      "reason": "your revive wins the drawn-out teamfight their sustained DPS wants",
+      "gap": "no second life to win a long teamfight"
+    },
+    {
+      "id": "armor_vs_full_ad",
+      "scope": "matchup",
+      "weight": 16,
+      "scale_at": 5,
+      "candidate": {
+        "all": [
+          "anti_ad"
+        ]
+      },
+      "enemy_team": {
+        "flag": "deals_physical",
+        "min": 4
+      },
+      "reason": "their damage is almost entirely physical ({enemy_with:deals_physical}) — your armor stacking blanks the whole comp",
+      "gap": "no armor stacking to punish their all-physical damage"
+    },
+    {
+      "id": "immobile_carry_vs_threat_stack",
+      "scope": "warning",
+      "weight": -10,
+      "candidate": {
+        "all": [
+          "immobile",
+          "sustained_dps",
+          "ranged"
+        ]
+      },
+      "enemy_team": {
+        "any_of": [
+          {
+            "flag": "hard_engage"
+          },
+          {
+            "flags": [
+              "burst"
+            ],
+            "any_flags": [
+              "dash",
+              "blink",
+              "high_mobility"
+            ]
+          }
+        ],
+        "min": 3
+      },
+      "reason": "their divers can all reach you ({enemy_with_any:burst,hard_engage}) — an immobile carry needs heavy peel to function here"
+    },
+    {
+      "id": "self_sufficient_carry_vs_threats",
+      "scope": "matchup",
+      "weight": 13,
+      "scale_at": 4,
+      "candidate": {
+        "all": [
+          "ranged",
+          "sustained_dps"
+        ],
+        "any": [
+          "self_peel",
+          "blink"
+        ]
+      },
+      "enemy_team": {
+        "any_of": [
+          {
+            "flag": "hard_engage"
+          },
+          {
+            "flags": [
+              "burst"
+            ],
+            "any_flags": [
+              "dash",
+              "blink",
+              "high_mobility"
+            ]
+          }
+        ],
+        "min": 3
+      },
+      "boost": [
+        "untargetability"
+      ],
+      "reason": "you have your own outs vs their dive threats ({enemy_with_any:burst,hard_engage}) — you stay safe without demanding all the peel",
+      "gap": "no personal escape vs their stacked dive threats"
+    },
+    {
+      "id": "lane_bully_denies_scaler",
+      "scope": "lane",
+      "weight": 12,
+      "boost": [
+        "hard_engage",
+        "lane_poke"
+      ],
+      "candidate": {
+        "all": [
+          "scaling_early"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "scaling_late"
+        ],
+        "none": [
+          "ranged",
+          "dash",
+          "blink"
+        ]
+      },
+      "reason": "you hit your power spike first — bully their weak early game and deny the farm they need to come online",
+      "gap": "no early power to deny your slow-scaling lane opponent"
+    },
+    {
+      "id": "lane_safe_scaler_outlasts_bully",
+      "scope": "lane",
+      "weight": 10,
+      "candidate": {
+        "all": [
+          "scaling_late"
+        ],
+        "any": [
+          "dash",
+          "blink",
+          "self_peel"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "scaling_early"
+        ]
+      },
+      "reason": "your escape keeps you safe through their early aggression — farm past their spike and take over later",
+      "gap": "can't safely scale past their early-game lane pressure"
+    },
+    {
+      "id": "lane_immobile_scaler_into_bully",
+      "scope": "warning",
+      "weight": -10,
+      "candidate": {
+        "all": [
+          "scaling_late",
+          "melee"
+        ],
+        "none": [
+          "dash",
+          "blink",
+          "self_peel"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "scaling_early"
+        ]
+      },
+      "reason": "your weak early game has no escape from their lane bully — you'll be zoned off farm before you come online"
+    },
+    {
+      "id": "lane_antiheal_shuts_drain",
+      "scope": "lane",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "antiheal"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "healing_dependent"
+        ]
+      },
+      "reason": "your built-in Grievous Wounds cuts the healing their whole lane pattern depends on — their trades stop adding up",
+      "gap": "no built-in healing cut vs your drain-heavy lane opponent"
+    },
+    {
+      "id": "lane_allin_vs_no_escape",
+      "scope": "lane",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "burst"
+        ],
+        "any": [
+          "dash",
+          "blink"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "immobile"
+        ],
+        "none": [
+          "self_peel",
+          "frontline",
+          "spell_shield",
+          "point_click_cc",
+          "drain_mage",
+          "cc_immunity"
+        ]
+      },
+      "reason": "your all-in runs down a lane opponent with no escape and no answer — every mistake they make is lethal",
+      "gap": "no all-in threat on your escape-less lane opponent"
+    },
+    {
+      "id": "lane_no_escape_into_diver",
+      "scope": "warning",
+      "weight": -12,
+      "candidate": {
+        "all": [
+          "immobile"
+        ],
+        "none": [
+          "self_peel",
+          "spell_shield",
+          "untargetability",
+          "frontline",
+          "point_click_cc",
+          "drain_mage",
+          "cc_immunity",
+          "disengage"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "burst"
+        ],
+        "any": [
+          "dash",
+          "blink"
+        ]
+      },
+      "reason": "your lane opponent's all-in reaches you and you have no out — one mistake per wave is lethal"
+    },
+    {
+      "id": "lane_block_blanks_skillshots",
+      "scope": "lane",
+      "weight": 10,
+      "candidate": {
+        "any": [
+          "projectile_block",
+          "spell_shield"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "skillshot_reliant"
+        ]
+      },
+      "reason": "your block/spell shield eats the key skillshot their whole trade pattern is built around",
+      "gap": "nothing to deny your opponent's core skillshot"
+    },
+    {
+      "id": "lane_adc_allin_runs_down",
+      "scope": "lane",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "dash",
+          "hard_cc",
+          "displacement",
+          "sustained_dps"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "ranged",
+          "immobile"
+        ],
+        "none": [
+          "self_peel",
+          "dash",
+          "blink",
+          "disengage",
+          "displacement",
+          "point_click_cc",
+          "persistent_pets",
+          "spell_shield"
+        ]
+      },
+      "reason": "your all-in kit runs down a lane opponent who can't disengage — you win every extended 2v2",
+      "gap": "no all-in to punish their escape-less lane"
+    },
+    {
+      "id": "lane_adc_no_escape_into_allin",
+      "scope": "warning",
+      "weight": -11,
+      "candidate": {
+        "all": [
+          "ranged",
+          "immobile"
+        ],
+        "none": [
+          "self_peel",
+          "dash",
+          "blink",
+          "disengage",
+          "displacement",
+          "point_click_cc",
+          "persistent_pets",
+          "spell_shield"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "dash",
+          "hard_cc",
+          "displacement",
+          "sustained_dps"
+        ]
+      },
+      "reason": "their lane all-in runs you down and you have no disengage — you'll be playing every trade from behind"
+    },
+    {
+      "id": "sup_poke_whittles_engage_lane",
+      "scope": "lane",
+      "weight": 10,
+      "candidate": {
+        "all": [
+          "ranged",
+          "lane_poke"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "melee",
+          "hard_engage"
+        ],
+        "none": [
+          "projectile_block"
+        ]
+      },
+      "reason": "you poke their engage support off the wave — they start every all-in already whittled down",
+      "gap": "no poke to soften their engage support"
+    },
+    {
+      "id": "sup_allin_vs_no_escape_lane",
+      "scope": "lane",
+      "weight": 11,
+      "candidate": {
+        "all": [
+          "hard_engage",
+          "hard_cc"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "ranged"
+        ],
+        "none": [
+          "dash",
+          "blink",
+          "self_peel",
+          "disengage",
+          "point_click_cc",
+          "spell_shield"
+        ]
+      },
+      "reason": "your engage punishes a squishy backline support with no escape — every hooked position is a kill",
+      "gap": "no engage threat on their escape-less support"
+    },
+    {
+      "id": "sup_sustain_outlasts_poke_lane",
+      "scope": "lane",
+      "weight": 8,
+      "candidate": {
+        "all": [
+          "ranged",
+          "team_heal_shield"
+        ],
+        "none": [
+          "frontline",
+          "single_target_pick"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "ranged",
+          "lane_poke"
+        ]
+      },
+      "reason": "your heals absorb their poke — the lane they want to whittle down never actually gets low",
+      "gap": "no sustain to answer their poke lane"
+    },
+    {
+      "id": "early_skirmish_vs_weak_early_farmer",
+      "scope": "lane",
+      "weight": 13,
+      "candidate": {
+        "all": [
+          "high_mobility"
+        ],
+        "any": [
+          "hard_cc",
+          "point_click_cc"
+        ],
+        "none": [
+          "scaling_late"
+        ]
+      },
+      "lane_opponent": {
+        "all": [
+          "scaling_late"
+        ],
+        "none": [
+          "hard_cc",
+          "point_click_cc"
+        ]
+      },
+      "reason": "you win every early skirmish and invade — their weak-early jungler concedes camps, tempo, and objectives",
+      "gap": "no early skirmish pressure on their weak-early jungler"
+    },
+    {
+      "id": "knockup_payoff_with_displacers",
+      "scope": "comp",
+      "weight": 12,
+      "candidate": {
+        "all": [
+          "knockup_payoff"
+        ]
+      },
+      "my_team": {
+        "flag": "displacement",
+        "min": 2
+      },
+      "reason": "your team is stacked with knockups ({team_with:displacement}) — your kit converts every one of them into a kill window",
+      "gap": "no knockup payoff for your displacement-heavy team"
+    },
+    {
+      "id": "displacer_feeds_knockup_payoff",
+      "scope": "comp",
+      "weight": 9,
+      "candidate": {
+        "all": [
+          "displacement"
+        ]
+      },
+      "my_team": {
+        "flag": "knockup_payoff",
+        "min": 1
+      },
+      "reason": "your knockup feeds your ally's airborne payoff ({team_with:knockup_payoff}) — every displacement you land is their engage",
+      "gap": "no knockup to feed your ally's airborne payoff"
+    },
+    {
+      "id": "duo_enchanter_enables_hypercarry",
+      "scope": "duo",
+      "weight": 11,
+      "candidate": {
+        "all": [
+          "sustained_dps",
+          "scaling_late"
+        ]
+      },
+      "lane_partner": {
+        "all": [
+          "team_heal_shield"
+        ],
+        "none": [
+          "frontline"
+        ]
+      },
+      "reason": "your enchanter support exists to pump a hypercarry — you are the payoff pick for this duo",
+      "gap": "doesn't cash in your enchanter support's pump-the-carry kit"
+    },
+    {
+      "id": "duo_hypercarry_wants_enchanter",
+      "scope": "duo",
+      "weight": 11,
+      "candidate": {
+        "all": [
+          "team_heal_shield"
+        ],
+        "none": [
+          "frontline"
+        ]
+      },
+      "lane_partner": {
+        "all": [
+          "sustained_dps",
+          "scaling_late"
+        ]
+      },
+      "reason": "your hypercarry partner scales hardest with an enchanter keeping them alive and pumped",
+      "gap": "doesn't protect the hypercarry your duo is built around"
+    },
+    {
+      "id": "duo_engage_feeds_allin_adc",
+      "scope": "duo",
+      "weight": 10,
+      "candidate": {
+        "all": [
+          "sustained_dps",
+          "ranged"
+        ],
+        "any": [
+          "dash",
+          "blink"
+        ]
+      },
+      "lane_partner": {
+        "all": [
+          "hard_engage"
+        ]
+      },
+      "reason": "your support's engage starts the 2v2 — your mobility lets you follow it and finish",
+      "gap": "can't follow your engage support into the 2v2"
+    },
+    {
+      "id": "duo_engage_support_for_mobile_adc",
+      "scope": "duo",
+      "weight": 10,
+      "candidate": {
+        "all": [
+          "hard_engage",
+          "hard_cc"
+        ]
+      },
+      "lane_partner": {
+        "all": [
+          "sustained_dps",
+          "ranged"
+        ],
+        "any": [
+          "dash",
+          "blink"
+        ]
+      },
+      "reason": "your mobile ADC can follow hard engage — you bring the lockdown that starts their all-in",
+      "gap": "no engage to start fights for your mobile ADC"
+    },
+    {
+      "id": "duo_double_poke_lane",
+      "scope": "duo",
+      "weight": 8,
+      "candidate": {
+        "all": [
+          "lane_poke",
+          "ranged"
+        ]
+      },
+      "lane_partner": {
+        "all": [
+          "lane_poke",
+          "ranged"
+        ]
+      },
+      "reason": "double poke — your duo whittles the enemy lane off every wave",
+      "gap": "doesn't double down on your duo's poke pattern"
+    }
+  ]
+}

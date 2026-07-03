@@ -1,0 +1,4107 @@
+{
+  "_meta": {
+    "generated_from": "ddragon 16.13.1 + wiki categories + flag_overrides.json + seed/phase1 overlay",
+    "ddragon_version": "16.13.1",
+    "note": "Mechanical flags are authoritative; roles are hand-set for seed champs, else inferred from class tags (approximate).",
+    "champions": 173
+  },
+  "Aatrox": {
+    "id": "Aatrox",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "anti_tank": "Passive next-attack deals bonus magic damage based on the target's max health (%max-health), shredding tanks.",
+      "healing_dependent": "Umbral Dash passively heals him when damaging enemy champions; passive heals based on target max health; World Ender gives increased healing. Drain-bruiser archetype."
+    }
+  },
+  "Ahri": {
+    "id": "Ahri",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "charm_fear",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "high_mobility": "Spirit Rush dashes and can be cast up to three times before cooldown, gaining recasts on takedowns.",
+      "self_peel": "Spirit Rush's repeated dashes let her reposition out of a dive."
+    }
+  },
+  "Akali": {
+    "id": "Akali",
+    "roles": [
+      "middle",
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "execute",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "pick_potential": "Shuriken Flip marks the first enemy hit, then re-cast dashes to the marked target; R Perfect Execution leaps then dashes to execute, letting her chase down and delete an isolated target.",
+      "self_peel": "Twilight Shroud makes her invisible and 'unable to be selected by enemy spells and attacks', a survival tool against a dive."
+    }
+  },
+  "Akshan": {
+    "id": "Akshan",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "mobility_dependent",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "high_mobility": "Heroic Swing grapples to terrain and swings, repositionable, plus passive extra-attack move speed",
+      "self_peel": "Heroic Swing (E) is a grapple/swing escape; W grants camouflage + move speed to disengage",
+      "pick_potential": "Comeuppance locks onto a champion and fires stored bullets dealing missing-health damage to execute"
+    }
+  },
+  "Alistar": {
+    "id": "Alistar",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "aoe_engage",
+      "cc_immunity",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "hard_engage": "Q Pulverize tosses enemies into the air and W Headbutt knocks back; the WQ flash-engage combo is reliable fight-starting lockdown.",
+      "cc_immunity": "R Unbreakable Will removes all crowd control effects on himself and reduces incoming physical/magical damage."
+    }
+  },
+  "Ambessa": {
+    "id": "Ambessa",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel"
+    ],
+    "notes": {
+      "hard_engage": "Public Execution blinks to the farthest enemy champion in a line and suppresses them on arrival, then stuns — a reliable lockdown fight-starter.",
+      "pick_potential": "Public Execution blinks to the FARTHEST enemy in a line and locks them down, a single-target catch onto a back-line target.",
+      "self_peel": "Repudiation grants a shield and braces, blocking incoming non-minion damage and dealing increased damage if it blocked anything."
+    }
+  },
+  "Amumu": {
+    "id": "Amumu",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "magic_amp",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "true_damage"
+    ],
+    "notes": {
+      "hard_engage": "R Curse of the Sad Mummy is a long, AoE multi-target stun engage",
+      "frontline": "tanky aura bruiser that sits on the enemy backline"
+    }
+  },
+  "Anivia": {
+    "id": "Anivia",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "disengage": "Crystallize summons an impassable wall of ice that blocks all movement, splitting and peeling fights.",
+      "self_peel": "Passive reverts her to an egg and reborn at full health on fatal damage, surviving a dive."
+    }
+  },
+  "Annie": {
+    "id": "Annie",
+    "roles": [
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "burst",
+      "deals_magic",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "point_click_cc",
+      "ranged",
+      "scaling_early",
+      "waveclear"
+    ],
+    "notes": {
+      "point_click_cc": "Passive Pyromania makes her next offensive spell (e.g. point-and-click Disintegrate) stun the target, an undodgeable targeted stun.",
+      "hard_engage": "Tibbers + a Pyromania-charged AoE reliably locks down and starts fights with a guaranteed stun."
+    }
+  },
+  "Aphelios": {
+    "id": "Aphelios",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "pick_potential",
+      "ranged",
+      "scaling_late",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "lane_poke": "Calibrum (Rifle) is a long-range shot that marks for a long-range follow-up, strong ranged harass",
+      "scaling_late": "Five-weapon kit with limited self-peel; weak/clunky early, scales into a hypercarry",
+      "pick_potential": "Calibrum long-range mark + follow-up attack reaches isolated targets from afar"
+    }
+  },
+  "Ashe": {
+    "id": "Ashe",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "disengage",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "sustained_dps"
+    ],
+    "notes": {
+      "lane_poke": "Volley fires arrows in a cone for increased damage, strong poke",
+      "disengage": "Passive permaslow + Volley Frost Shot are hard slows that break up chases/dives",
+      "pick_potential": "Enchanted Crystal Arrow is a global-range missile that stuns the first champion hit",
+      "hard_engage": "Enchanted Crystal Arrow can initiate teamfights from across the map by stunning a target"
+    }
+  },
+  "Aurelion Sol": {
+    "id": "AurelionSol",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "waveclear"
+    ],
+    "notes": {
+      "self_peel": "Astral Flight lets him fly over terrain in a targeted direction to escape a dive."
+    }
+  },
+  "Aurora": {
+    "id": "Aurora",
+    "roles": [
+      "middle",
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "disengage",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant",
+      "untargetability"
+    ],
+    "notes": {
+      "high_mobility": "Across the Veil and Between Worlds both leap in a chosen direction, with Between Worlds also enabling teleport across its zone.",
+      "disengage": "The Weirding damages and slows then hops her backward to safety; Between Worlds leaves a slowing area she can teleport across.",
+      "self_peel": "Across the Veil leaps and turns her invisible with bonus move speed to survive a dive."
+    }
+  },
+  "Azir": {
+    "id": "Azir",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Sand Soldiers (Arise!/Conquering Sands) deal magic damage; AP scaling carry",
+      "high_mobility": "Shifting Sands dashes to a Sand Soldier and resets on champion hit",
+      "self_peel": "Shifting Sands shields and dashes away; Emperor's Divide wall knocks back divers",
+      "disengage": "Emperor's Divide summons a wall of soldiers that knocks back and blocks engage",
+      "scaling_late": "Hard mechanical scaling carry, weak and immobile early without soldiers",
+      "skillshot_reliant": "Damage funnels through Sand Soldier line attacks and Conquering Sands, all dodgeable"
+    }
+  },
+  "Bard": {
+    "id": "Bard",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "disengage",
+      "hard_cc",
+      "invulnerability",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield",
+      "untargetability"
+    ],
+    "notes": {
+      "pick_potential": "Q Cosmic Binding: missile that stuns the initial target if it strikes a wall or a second enemy, enabling roams/picks.",
+      "team_heal_shield": "W Caretaker's Shrine reveals a Health shrine that heals and speeds the first ally that touches it.",
+      "disengage": "R Tempered Fate puts all champions hit into stasis, and W shrine speeds up an ally for escape; both create distance to break off fights."
+    }
+  },
+  "Bel'Veth": {
+    "id": "Belveth",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_late",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Royal Maelstrom channels a storm of slashes that grants her lifesteal (and damage reduction) — sustain-reliant in extended fights."
+    }
+  },
+  "Blitzcrank": {
+    "id": "Blitzcrank",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "immobile",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "single_target_pick",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "pick_potential": "Q Rocket Grab grabs a single opponent on its path and drags them back to him; E Power Fist pops the target up to extend the pick."
+    }
+  },
+  "Brand": {
+    "id": "Brand",
+    "roles": [
+      "bottom",
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "waveclear"
+    ]
+  },
+  "Braum": {
+    "id": "Braum",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "melee",
+      "projectile_block",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "disengage": "E Unbreakable blocks projectiles and reduces incoming damage; W Stand Behind Me leaps to an ally granting Armor/MR, both peeling teammates.",
+      "projectile_block": "E Unbreakable intercepts all projectiles from a direction, causing them to hit him and be destroyed."
+    }
+  },
+  "Briar": {
+    "id": "Briar",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "single_target_lockdown",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive bleed heals her for a portion of damage dealt and grants increased healing based on missing health, but she has NO innate health regen — fully drain-reliant.",
+      "hard_engage": "Head Rush leaps to a unit and stuns them (breaking armor); Certain Death (R) beelines to her marked prey and fears surrounding enemies — reliable engage/lockdown."
+    }
+  },
+  "Caitlyn": {
+    "id": "Caitlyn",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "lane_poke",
+      "mobility_dependent",
+      "ranged",
+      "scaling_early",
+      "sustained_dps"
+    ]
+  },
+  "Camille": {
+    "id": "Camille",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "self_peel": "Passive grants a shield equal to a percentage of max health against the attacker's damage type on basic-attacking champions.",
+      "hard_engage": "Hookshot pulls to a wall then leaps off, knocking up enemy champions on landing; The Hextech Ultima dashes to and anchors a target — reliable lockdown engage."
+    }
+  },
+  "Cassiopeia": {
+    "id": "Cassiopeia",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "drain_mage",
+      "hard_cc",
+      "healing_dependent",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Twin Fang heals her for a percentage of damage dealt to poisoned targets, her core sustain pattern.",
+      "disengage": "Miasma slows and grounds enemies, preventing them from using movement abilities to chase."
+    }
+  },
+  "Cho'Gath": {
+    "id": "Chogath",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "immobile",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_heal",
+      "true_damage",
+      "waveclear"
+    ],
+    "notes": {
+      "anti_tank": "E Vorpal Spikes % max-HP + R Feast true-damage execute punish tanks",
+      "frontline": "R stacks permanent max health into a giant frontline"
+    }
+  },
+  "Corki": {
+    "id": "Corki",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps",
+      "true_damage",
+      "waveclear"
+    ],
+    "notes": {
+      "deals_magic": "Phosphorus Bomb, Valkyrie, and Missile Barrage deal magic damage alongside AD autos",
+      "lane_poke": "Missile Barrage stores missiles for repeated ranged poke",
+      "anti_tank": "Passive deals a percentage of basic attack damage as bonus true damage, partially ignoring resists",
+      "high_mobility": "Valkyrie flies a short distance leaving a fire trail",
+      "self_peel": "Valkyrie is a repositioning dash to escape dives",
+      "waveclear": "Phosphorus Bomb + Gatling Gun + Missile Barrage clear waves in an area"
+    }
+  },
+  "Darius": {
+    "id": "Darius",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "hard_engage": "Apprehend (E) sweeps up enemies with the axe hook and pulls them to him — a reliable point-blank lockdown pull to start fights.",
+      "healing_dependent": "Decimate heals based on enemy champions and large monsters hit by the blade — bleed-and-sustain bruiser.",
+      "anti_ad": "Apprehend passively causes Darius's physical damage to ignore a percentage of the target's Armor (armor penetration that blunts tank defenses)."
+    }
+  },
+  "Diana": {
+    "id": "Diana",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "hard_engage": "Moonfall (R) reveals and draws in all nearby enemies and slows them — an AoE pull lockdown that starts fights; Lunar Rush dashes to enemies.",
+      "self_peel": "Pale Cascade grants a temporary shield that absorbs damage, strengthened if the third sphere detonates.",
+      "skillshot_reliant": "Crescent Strike is a skillshot arc that must land to apply Moonlight (enabling free Lunar Rush resets)."
+    }
+  },
+  "Dr. Mundo": {
+    "id": "DrMundo",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "cc_immunity",
+      "deals_magic",
+      "frontline",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "percent_hp_damage",
+      "scaling_late",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "anti_tank": "Q Infected Bonesaw deals damage based on the target's current health.",
+      "cc_immunity": "Passive resists the first immobilizing effect that hits him, taking it as health loss instead.",
+      "healing_dependent": "R Maximum Dosage heals a percent of missing Health and regenerates max Health; W heals based on stored damage; passive restores health on cannister pickup."
+    }
+  },
+  "Draven": {
+    "id": "Draven",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "disengage",
+      "immobile",
+      "ranged",
+      "scaling_early",
+      "sustained_dps"
+    ],
+    "notes": {
+      "scaling_early": "Spinning Axe + Adoration snowball makes Draven a dominant early-laning bully whose relative power fades",
+      "disengage": "Stand Aside knocks enemies aside and slows, peeling divers"
+    }
+  },
+  "Ekko": {
+    "id": "Ekko",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_magic",
+      "hard_cc",
+      "high_mobility",
+      "invulnerability",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "pick_potential": "Phase Dive's empowered attack teleports him to his target, and entering his W anomaly stuns enemies (suspends them), enabling lockdown-and-delete on an isolated target.",
+      "self_peel": "Chronobreak makes him 'untargetable' and rewinds him to a previous position while healing, a survival escape against a dive."
+    }
+  },
+  "Elise": {
+    "id": "Elise",
+    "roles": [
+      "jungle",
+      "utility"
+    ],
+    "flags": [
+      "anti_tank",
+      "blink",
+      "burst",
+      "dash",
+      "deals_magic",
+      "hard_cc",
+      "high_mobility",
+      "percent_hp_damage",
+      "persistent_pets",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "anti_tank": "Human-form Q (Neurotoxin) 'Deals damage based upon how high the target's Health is' — damage scales with the target's current/max health, which punishes high-HP tanks.",
+      "pick_potential": "Human Cocoon stuns the first enemy hit; she can then swap to Spider form and Rappel descend onto the stunned target to burst it down.",
+      "self_peel": "Spider-form Rappel ascends Elise (and spiderlings) into the air, going untargetable, then descends, usable to dodge a dive."
+    }
+  },
+  "Evelynn": {
+    "id": "Evelynn",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "charm_fear",
+      "dash",
+      "deals_magic",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "pick_potential": "Allure charms the target and shreds their magic resist, then she bursts them; combined with Camouflage from Demon Shade she ambushes and deletes isolated targets.",
+      "self_peel": "Last Caress 'briefly goes untargetable' and warps her backwards a long distance, an escape against a dive."
+    }
+  },
+  "Ezreal": {
+    "id": "Ezreal",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "blink",
+      "deals_physical",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "blink": "Arcane Shift (E) is a blink to dodge skillshots, escape dives, and reposition in fights",
+      "high_mobility": "low-cooldown E blink (reset-adjacent off Q poke) keeps him extremely safe and elusive"
+    }
+  },
+  "Fiddlesticks": {
+    "id": "Fiddlesticks",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "cc_reliant",
+      "charm_fear",
+      "deals_magic",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "point_click_cc",
+      "ranged",
+      "scaling_mid",
+      "self_heal"
+    ],
+    "notes": {
+      "healing_dependent": "Bountiful Harvest drains health from nearby enemies as its sustain mechanic.",
+      "point_click_cc": "Terrify's activation targets an enemy unit and strikes it with fear, a point-and-click CC.",
+      "hard_engage": "Crowstorm flocks crows around him dealing AoE DPS, the classic flash/blink ult engage that starts fights."
+    }
+  },
+  "Fiora": {
+    "id": "Fiora",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "parry_block",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "true_damage"
+    ],
+    "notes": {
+      "anti_tank": "Passive Vitals restore health and grant move speed on hit, and Grand Challenge reveals all four Vitals; the duelist kit punishes high-health targets, and Vital procs deal bonus true damage that ignores resists (tank-shred).",
+      "self_peel": "Riposte parries ALL incoming damage and disables for a short time, then stabs to slow/stun.",
+      "team_heal_shield": "Grand Challenge heals Fiora AND her allies in the area over several seconds if she completes the Vitals."
+    }
+  },
+  "Fizz": {
+    "id": "Fizz",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "mobility_dependent",
+      "pick_potential",
+      "scaling_mid",
+      "skillshot_reliant",
+      "untargetability"
+    ],
+    "notes": {
+      "burst": "E Playful/Trickster dodges then R Chum the Waters bursts a target",
+      "pick_potential": "R shark is a long-range lockdown to start a pick"
+    }
+  },
+  "Galio": {
+    "id": "Galio",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_mid",
+      "team_heal_shield",
+      "untargetability"
+    ],
+    "notes": {
+      "hard_engage": "R Hero's Entrance designates an ally position then smashes down knocking up nearby enemies, a long-range fight-starting engage; E Justice Punch knocks up.",
+      "team_heal_shield": "R Hero's Entrance grants all allies in the landing area a magic shield."
+    }
+  },
+  "Gangplank": {
+    "id": "Gangplank",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "cc_immunity",
+      "deals_magic",
+      "deals_physical",
+      "immobile",
+      "lane_poke",
+      "melee",
+      "scaling_late",
+      "self_heal",
+      "waveclear"
+    ],
+    "notes": {
+      "cc_immunity": "Remove Scurvy eats citrus to cure crowd-control effects (a self-cleanse) and restore health.",
+      "lane_poke": "Parrrley is a ranged single-target poke that also plunders gold; Powder Keg lets him spread ranged burst.",
+      "waveclear": "Powder Keg chains explosions across enemies in the area, clearing waves; Cannon Barrage damages an area."
+    }
+  },
+  "Garen": {
+    "id": "Garen",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "deals_physical",
+      "execute",
+      "frontline",
+      "immobile",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "cc_immunity": "Decisive Strike breaks free of ALL slows affecting him and grants a burst of move speed (slow-cleanse)."
+    }
+  },
+  "Gnar": {
+    "id": "Gnar",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "hard_engage": "Mega Gnar's GNAR! (R) throws everything in a direction, stunning any enemy knocked into a wall — a reliable AoE lockdown engage; Wallop stuns in an area.",
+      "skillshot_reliant": "Boomerang Throw and GNAR! are skillshots; engage value depends on landing them (and on Rage timing for Mega form)."
+    }
+  },
+  "Gragas": {
+    "id": "Gragas",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "hard_engage": "Body Slam charges and collides with the first enemy, dealing AoE damage and stunning them — a reliable engage.",
+      "disengage": "Explosive Cask (R) knocks back enemies caught in the blast, a strong disengage/peel tool; Drunken Rage also reduces damage received.",
+      "self_peel": "Drunken Rage reduces damage received after the channel.",
+      "skillshot_reliant": "Barrel Roll and Explosive Cask are placed/thrown skillshots that must land."
+    }
+  },
+  "Graves": {
+    "id": "Graves",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "waveclear"
+    ],
+    "notes": {
+      "burst": "Shotgun spread (4 bullets) plus Collateral Damage delivers front-loaded burst rather than slow auto DPS",
+      "high_mobility": "Quickdraw dashes and its cooldown is lowered by basic attacks",
+      "self_peel": "Quickdraw dashes away and grants Armor/MR; Smoke Screen blinds-area slows pursuers",
+      "waveclear": "End of the Line + shotgun spread clear waves quickly"
+    }
+  },
+  "Gwen": {
+    "id": "Gwen",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "true_damage",
+      "untargetability"
+    ],
+    "notes": {
+      "anti_tank": "Passive on-hit deals bonus magic damage based on the target's health, and Snip Snip! center deals TRUE damage — both scale against and ignore the resists of durable targets.",
+      "healing_dependent": "Passive heals her for a portion of the bonus magic damage dealt to champions — sustain-reliant skirmisher.",
+      "self_peel": "Hallowed Mist makes her untargetable by enemies outside the mist, a strong self-peel zone."
+    }
+  },
+  "Hecarim": {
+    "id": "Hecarim",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "hard_engage": "Onslaught of Shadows (R) charges in a line and creates a shockwave causing nearby enemies to flee in terror — a reliable AoE fear engage; Devastating Charge knocks the target back.",
+      "healing_dependent": "Spirit of Dread grants health equal to a percentage of damage nearby enemies suffer — sustain in fights."
+    }
+  },
+  "Heimerdinger": {
+    "id": "Heimerdinger",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "persistent_pets",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "waveclear"
+    ]
+  },
+  "Hwei": {
+    "id": "Hwei",
+    "roles": [
+      "bottom",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "disengage": "Subject: Serenity grants utility tools and Spiraling Despair slows enemies, peeling fights apart."
+    }
+  },
+  "Illaoi": {
+    "id": "Illaoi",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "frontline",
+      "healing_dependent",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive Tentacles heal Illaoi when they damage a champion — sustain-heavy bruiser that wins extended fights."
+    }
+  },
+  "Irelia": {
+    "id": "Irelia",
+    "roles": [
+      "middle",
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "hard_engage": "Flawless Duet sends two blades that converge to stun enemies caught between; Vanguard's Edge (R) damages, marks, and forms a wall — reliable stun lockdown to start fights.",
+      "healing_dependent": "Bladesurge heals herself on each dash (with resets), giving strong skirmish sustain.",
+      "self_peel": "Defiant Dance takes reduced physical damage during its charge."
+    }
+  },
+  "Ivern": {
+    "id": "Ivern",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "ally_steroid",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "persistent_pets",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "E Triggerseed places a shield on an ally that explodes to slow/damage enemies; shield refreshes if it hits nothing."
+    }
+  },
+  "Janna": {
+    "id": "Janna",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_steroid",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "disengage": "Q knockup + R Monsoon blow the enemy off your carries",
+      "team_heal_shield": "E Eye of the Storm shields an ally + R heals the team"
+    }
+  },
+  "Jarvan IV": {
+    "id": "JarvanIV",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_ad",
+      "burst",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid"
+    ],
+    "notes": {
+      "hard_engage": "Dragon Strike + Demacian Standard combo knocks up enemies in his path and pulls him in; Cataclysm (R) leaps to a target and terraforms an arena trapping them — textbook hard lockdown engage.",
+      "anti_ad": "Dragon Strike lowers the Armor of enemies in its path (armor reduction that blunts the value of and exposes targets to physical damage)."
+    }
+  },
+  "Jax": {
+    "id": "Jax",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "frontline",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "parry_block",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "self_peel": "Counter Strike dodges all incoming attacks for a short duration then stuns surrounding enemies; Grandmaster-at-Arms grants bonus Armor and Magic Resist."
+    }
+  },
+  "Jayce": {
+    "id": "Jayce",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "lane_poke",
+      "melee",
+      "scaling_early",
+      "self_peel"
+    ],
+    "notes": {
+      "deals_magic": "Thundering Blow (Hammer) deals magic damage",
+      "burst": "Hammer leap + Thundering Blow + accelerated Shock Blast combo bursts a target",
+      "lane_poke": "Cannon-stance Shock Blast fired through Acceleration Gate is long-range poke",
+      "high_mobility": "To the Skies! leaps to an enemy; weapon swap grants move speed",
+      "self_peel": "Thundering Blow (Hammer) knocks an enemy back, peeling divers off himself",
+      "disengage": "Thundering Blow knockback breaks up engages",
+      "scaling_early": "Strong early-game lane bully that falls off relative to true scalers"
+    }
+  },
+  "Jhin": {
+    "id": "Jhin",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "sustained_dps"
+    ]
+  },
+  "Jinx": {
+    "id": "Jinx",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "mobility_dependent",
+      "pick_potential",
+      "ranged",
+      "scaling_late",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "waveclear": "Fishbones (rocket launcher) attacks deal area-of-effect damage to clear waves",
+      "scaling_late": "Hypercarry with no dash; very weak when caught early, snowballs hard via passive resets late",
+      "pick_potential": "Super Mega Death Rocket fires across the map and explodes on the first champion hit",
+      "disengage": "Flame Chompers throws a line of snares to root divers"
+    }
+  },
+  "K'Sante": {
+    "id": "KSante",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "blink",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_late",
+      "self_peel",
+      "team_heal_shield",
+      "untargetability"
+    ],
+    "notes": {
+      "hard_engage": "W Path Maker dashes and knocks back/stuns; R All Out knocks an enemy through walls then dashes after them to start the fight.",
+      "team_heal_shield": "E Footwork, when targeting an ally, dashes to them and both gain a shield."
+    }
+  },
+  "Kai'Sa": {
+    "id": "Kaisa",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "mobility_dependent",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Passive Plasma stacks deal bonus magic damage; Icathian Rain/Void Seeker AP scaling",
+      "high_mobility": "Killer Instinct dashes near an enemy champion (item-upgraded for repeated use)",
+      "self_peel": "Killer Instinct dash + Supercharge (invisibility when upgraded) to escape dives",
+      "scaling_late": "Item-dependent kit (Living Weapon upgrades) makes her a late-scaling hypercarry"
+    }
+  },
+  "Kalista": {
+    "id": "Kalista",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "mobility_dependent",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "high_mobility": "Passive lets her hop a short distance on every attack/Pierce wind-up, near-constant repositioning",
+      "self_peel": "Fate's Call can yank her Oathsworn or be used to reposition; passive hops kite divers",
+      "scaling_mid": "Strong skirmisher across the game, not a pure early bully or pure late hypercarry"
+    }
+  },
+  "Karma": {
+    "id": "Karma",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "point_click_cc",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "Inspire shields an ally and boosts their move speed; Mantra'd Inspire shields nearby allied champions.",
+      "point_click_cc": "Focused Resolve is a targeted tether that roots the enemy if not broken, an undodgeable targeted root.",
+      "disengage": "Inspire's shield + move speed lets allies peel away from fights."
+    }
+  },
+  "Karthus": {
+    "id": "Karthus",
+    "roles": [
+      "bottom",
+      "jungle"
+    ],
+    "flags": [
+      "deals_magic",
+      "disengage",
+      "immobile",
+      "isolation_hunter",
+      "ranged",
+      "revive",
+      "scaling_late",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "self_peel": "Passive lets him keep casting in spirit form after death, value beyond a single dive.",
+      "disengage": "Wall of Pain slows and shreds magic resist of all enemies passing through, peeling chasers."
+    }
+  },
+  "Kassadin": {
+    "id": "Kassadin",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "deals_magic",
+      "high_mobility",
+      "melee",
+      "mobility_dependent",
+      "scaling_late"
+    ],
+    "notes": {
+      "scaling_late": "Riftwalk hyperscaler — weak early, oppressive once items online"
+    }
+  },
+  "Katarina": {
+    "id": "Katarina",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "deals_magic",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "reset_snowball",
+      "scaling_mid"
+    ],
+    "notes": {
+      "pick_potential": "Shunpo blinks directly to a target to strike it, and her passive resets ability cooldowns on takedowns of champions she damaged, letting her chain-blink to delete isolated targets."
+    }
+  },
+  "Kayle": {
+    "id": "Kayle",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "deals_physical",
+      "immobile",
+      "invulnerability",
+      "lane_poke",
+      "melee",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "deals_magic": "Starfire Spellblade and ranged wave-of-fire attacks deal magic damage",
+      "team_heal_shield": "Celestial Blessing heals self and nearest ally; Divine Judgment makes an ally invulnerable",
+      "lane_poke": "Radiant Blast is a ranged piercing poke that slows and shreds resistances",
+      "scaling_late": "Famous hyperscaler — melee and weak early, becomes ranged AoE waveclear monster late",
+      "self_peel": "Divine Judgment grants invulnerability to survive being dived"
+    }
+  },
+  "Kayn": {
+    "id": "Kayn",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "healing_dependent",
+      "high_mobility",
+      "invulnerability",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "Darkin-form passive heals for a percentage of spell damage dealt to champions — drain sustain (form-dependent).",
+      "pick_potential": "Umbral Trespass hides in an enemy's body and bursts out for massive damage; combined with Shadow Step wall-walking it enables single-target catches/assassinations."
+    }
+  },
+  "Kennen": {
+    "id": "Kennen",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "high_mobility": "Lightning Rush morphs him into a fast lightning form that passes through units with bonus move speed.",
+      "hard_engage": "Slicing Maelstrom AoE plus stacking Marks of the Storm chain-stuns a clustered team to start fights.",
+      "self_peel": "Lightning Rush's move speed and unit pass-through lets him escape a dive."
+    }
+  },
+  "Kha'Zix": {
+    "id": "Khazix",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "isolation_hunter",
+      "melee",
+      "pick_potential",
+      "reset_snowball",
+      "scaling_mid",
+      "self_heal",
+      "self_peel"
+    ],
+    "notes": {
+      "pick_potential": "Passive marks Isolated enemies (cut off from allies) and his abilities deal increased damage to them; Leap's cooldown resets on champion kill/assist (evolved), built to single out and delete isolated targets.",
+      "self_peel": "Void Assault makes him Invisible with bonus Move Speed (and longer invis if evolved), usable to escape a dive."
+    }
+  },
+  "Kindred": {
+    "id": "Kindred",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "invulnerability",
+      "mobility_dependent",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "high_mobility": "Dance of Arrows is a repeatable tumble/dash",
+      "self_peel": "Lamb's Respite zone prevents all death and heals at the end, surviving dives",
+      "team_heal_shield": "Lamb's Respite heals all allies inside and stops them from dying; Wolf's Frenzy charge restores health"
+    }
+  },
+  "Kled": {
+    "id": "Kled",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "hard_engage": "Bear Trap on a Rope hooks an enemy champion and yanks them toward Kled; Chaaaaaaaarge!!! (R) charges to a location and rams the first enemy champion — reliable long-range lockdown engage."
+    }
+  },
+  "Kog'Maw": {
+    "id": "KogMaw",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "anti_tank",
+      "deals_magic",
+      "deals_physical",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "percent_hp_damage",
+      "pick_potential",
+      "ranged",
+      "revive",
+      "scaling_late",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "deals_magic": "Bio-Arcane Barrage, Caustic Spittle, Void Ooze, and Living Artillery all deal magic damage",
+      "anti_tank": "Bio-Arcane Barrage adds a percent of the target's maximum health as magic damage on-hit, melting tanks",
+      "lane_poke": "Living Artillery is long-range artillery poke",
+      "scaling_late": "Immobile hypercarry, extremely weak when caught, dominant DPS late",
+      "pick_potential": "Living Artillery fires at great distance and is increased significantly on low-health enemies, sniping isolated targets",
+      "waveclear": "Void Ooze + Living Artillery clear waves at range"
+    }
+  },
+  "LeBlanc": {
+    "id": "Leblanc",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_magic",
+      "hard_cc",
+      "high_mobility",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "pick_potential": "Sigil of Malice marks a target and detonates for heavy bonus damage when re-hit; Ethereal Chains roots a target that stays shackled, locking down and deleting an isolated target.",
+      "self_peel": "Distortion dashes to a location and can be re-activated within 4s to return to her starting point, an escape dash; her passive also briefly makes her invisible at low health."
+    }
+  },
+  "Lee Sin": {
+    "id": "LeeSin",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "scaling_early",
+      "skillshot_reliant"
+    ]
+  },
+  "Leona": {
+    "id": "Leona",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_early"
+    ],
+    "notes": {
+      "hard_engage": "E Zenith Blade into R Solar Flare locks a target down from range"
+    }
+  },
+  "Lillia": {
+    "id": "Lillia",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "hard_cc",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "anti_tank": "Passive: hitting a champion or monster with a skill deals additional MAX-HEALTH damage over time, scaling against high-health/tanky targets.",
+      "skillshot_reliant": "Swirlseed and her damage abilities are skillshots; Lilting Lullaby (R) only sleeps enemies already coated in Dream Dust applied by landed skills."
+    }
+  },
+  "Lissandra": {
+    "id": "Lissandra",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "invulnerability",
+      "point_click_cc",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant",
+      "untargetability"
+    ],
+    "notes": {
+      "point_click_cc": "Frozen Tomb cast on an enemy freezes and stuns it, a targeted undodgeable stun.",
+      "self_peel": "Frozen Tomb cast on herself makes her untargetable and invulnerable while healing.",
+      "hard_engage": "Glacial Path teleport into a point-click Frozen Tomb stun reliably starts fights."
+    }
+  },
+  "Locke": {
+    "id": "Locke",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_magic",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal"
+    ],
+    "notes": {
+      "pick_potential": "Ashen Pursuit teleports then dashes to attack his next target, and Purgatory throws a binding artifact that can execute enemies hit, letting him close on and delete an isolated target."
+    }
+  },
+  "Lucian": {
+    "id": "Lucian",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "ranged",
+      "scaling_early",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Passive double-shot and ally-shield/immobilize-triggered attacks deal bonus magic damage",
+      "burst": "Passive Lightslinger double-shots after every ability create a rapid combo burst pattern",
+      "high_mobility": "Relentless Pursuit dashes and its cooldown is reduced by Lightslinger attacks",
+      "self_peel": "Relentless Pursuit is a low-CD escape dash",
+      "scaling_early": "Strong lane bully with front-loaded combo damage that falls off relative to true late carries"
+    }
+  },
+  "Lulu": {
+    "id": "Lulu",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_steroid",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "polymorph",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "E Help, Pix! on an ally commands Pix to jump to and shield them.",
+      "disengage": "Q Glitterlance heavily slows enemies hit and R Wild Growth knocks up nearby enemies plus a slowing aura, both peeling tools to break off fights.",
+      "self_peel": "Q Glitterlance is fired by both Pix and Lulu and heavily slows, and W Whimsy can polymorph an attacking enemy so they can't attack or cast, peeling threats off herself."
+    }
+  },
+  "Lux": {
+    "id": "Lux",
+    "roles": [
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "burst",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "burst": "Q root sets up a full Q-E-R combo that deletes squishies"
+    }
+  },
+  "Malphite": {
+    "id": "Malphite",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "aoe_engage",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "melee",
+      "scaling_mid"
+    ],
+    "notes": {
+      "hard_engage": "R Unstoppable Force — an unstoppable charge that knocks up the whole enemy team",
+      "frontline": "armor stacking + passive shield make him an immovable frontline",
+      "anti_ad": "passive shield + E attack-speed shred + armor scaling hard-counter AD"
+    }
+  },
+  "Malzahar": {
+    "id": "Malzahar",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "percent_hp_damage",
+      "persistent_pets",
+      "point_click_cc",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "single_target_lockdown",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "point_click_cc": "R Nether Grasp is a point-and-click suppress — undodgeable"
+    }
+  },
+  "Maokai": {
+    "id": "Maokai",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "untargetability"
+    ],
+    "notes": {
+      "hard_engage": "W Twisted Advance becomes untargetable, dashes to a target and roots on arrival; R Nature's Grasp sends a wall of brambles that roots enemies in its path, both reliable fight-starting lockdown."
+    }
+  },
+  "Master Yi": {
+    "id": "MasterYi",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "blink",
+      "deals_physical",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_late",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "Meditate restores health and reduces damage taken during the channel — his primary sustain/defensive tool.",
+      "self_peel": "Meditate takes reduced damage for its duration; Highlander grants immunity to all slowing effects to escape peel."
+    }
+  },
+  "Mel": {
+    "id": "Mel",
+    "roles": [
+      "bottom",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "projectile_block",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "projectile_block": "Rebuttal forms a barrier that reflects enemy projectiles back at the attacker and prevents damage.",
+      "self_peel": "Rebuttal prevents her from taking damage and grants move speed, surviving a dive."
+    }
+  },
+  "Milio": {
+    "id": "Milio",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_cc_cleanse",
+      "ally_steroid",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "W Cozy Campfire heals allies in its zone, R Breath of Life heals allies, and E Warm Hugs tosses a shield to an ally.",
+      "disengage": "Q Ultra Mega Fire Kick knocks back an enemy and slows on impact, and R Breath of Life cleanses crowd control from allies, both aiding escape."
+    }
+  },
+  "Miss Fortune": {
+    "id": "MissFortune",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "burst",
+      "deals_physical",
+      "disengage",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "burst": "Bullet Time channels a barrage that can critically strike for large burst damage",
+      "lane_poke": "Double Up hits a target and one behind for repeated ranged harass",
+      "waveclear": "Double Up bounce + Make It Rain + Bullet Time clear waves quickly",
+      "disengage": "Make It Rain slows an area to peel/zone divers"
+    }
+  },
+  "Mordekaiser": {
+    "id": "Mordekaiser",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "point_click_cc",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "single_target_lockdown",
+      "sustained_dps"
+    ],
+    "notes": {
+      "point_click_cc": "Realm of Death (R) drags a single targeted victim to another dimension — a point-and-click, undodgeable banish/lockdown.",
+      "self_peel": "Indestructible stores damage dealt/taken into a shield that he can consume to heal.",
+      "healing_dependent": "Indestructible converts stored damage into a heal — a sustain pillar of his kit."
+    }
+  },
+  "Morgana": {
+    "id": "Morgana",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "skillshot_reliant",
+      "spell_shield",
+      "sustained_dps",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "pick_potential": "Q Dark Binding roots an enemy in place for an extended duration, enabling picks; R Soul Shackles chains nearby enemies and stuns after a delay.",
+      "team_heal_shield": "E Black Shield anoints an ally with a barrier that absorbs magic damage and disabling (CC) effects until broken."
+    }
+  },
+  "Naafiri": {
+    "id": "Naafiri",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "melee",
+      "persistent_pets",
+      "pick_potential",
+      "scaling_mid",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "pick_potential": "Hounds' Pursuit dashes Naafiri and her packmates at a champion dealing damage and revealing nearby enemies on takedown, with a recast, built to chase down and delete a single target.",
+      "self_peel": "The Call of the Pack makes her Untargetable while empowering her pack, usable to survive a dive."
+    }
+  },
+  "Nami": {
+    "id": "Nami",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_steroid",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "W Ebb and Flow bounces between allies and enemies, healing allies; E Tidecaller's Blessing empowers an ally.",
+      "disengage": "R Tidal Wave knocks up and slows enemies, E Tidecaller's Blessing slows targets of an ally's hits, and passive grants allies Move Speed on ability hits, all enabling peel/escape."
+    }
+  },
+  "Nasus": {
+    "id": "Nasus",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "deals_magic",
+      "deals_physical",
+      "frontline",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "scaling_late",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "scaling_late": "Siphoning Strike permanently stacks damage on champion/unit kills — the canonical infinite late-game stacker.",
+      "healing_dependent": "Passive grants bonus Life Steal — sustain-reliant in extended fights.",
+      "anti_ad": "Wither decelerates an enemy champion's Attack Speed (in addition to move speed), blunting an AD carry's auto-attack DPS; Spirit Fire also reduces Armor."
+    }
+  },
+  "Nautilus": {
+    "id": "Nautilus",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "pick_potential",
+      "point_click_cc",
+      "scaling_mid",
+      "single_target_lockdown",
+      "single_target_pick"
+    ],
+    "notes": {
+      "hard_engage": "Q Dredge Line pulls Nautilus and an enemy together; R Depth Charge is a homing shockwave that knocks up and stuns the target to start a fight.",
+      "pick_potential": "Q Dredge Line yanks a single enemy to him for a one-target pick.",
+      "point_click_cc": "R Depth Charge fires a shockwave that chases a chosen opponent and stuns on arrival (non-dodgeable homing lock)."
+    }
+  },
+  "Neeko": {
+    "id": "Neeko",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "hard_engage": "Pop Blossom leaps in and knocks up then stuns all nearby enemies, an AoE lockdown that starts fights (hidden if disguised).",
+      "self_peel": "Disguise as an ally/unit lets her dodge focus and escape a dive."
+    }
+  },
+  "Nidalee": {
+    "id": "Nidalee",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "ally_steroid",
+      "burst",
+      "dash",
+      "deals_magic",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "skillshot_reliant": "Her primary pick threat is Javelin Toss, a skillshot javelin that gains damage as it flies; missing it removes most of her burst setup.",
+      "team_heal_shield": "Human-form Primal Surge channels to heal her allies and grant them Attack Speed."
+    }
+  },
+  "Nilah": {
+    "id": "Nilah",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "parry_block",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "healing_dependent": "Drain-style melee carry; passive enhances and shares healing/shielding, and she relies on lifesteal/healing amplification to survive in melee.",
+      "team_heal_shield": "Passive lets her enhance and SHARE nearby healing and shielding from her allies; Jubilant Veil shares its effect to allies she touches.",
+      "self_peel": "Jubilant Veil increases move speed and dodges all incoming attacks for self."
+    }
+  },
+  "Nocturne": {
+    "id": "Nocturne",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "spell_shield",
+      "sustained_dps"
+    ],
+    "notes": {
+      "pick_potential": "Paranoia (R) blinds the map (removes enemy vision) then lets Nocturne launch onto a single enemy champion — the archetypal pick/dive onto an isolated target.",
+      "self_peel": "Shroud of Darkness's spell-block can negate an incoming CC/ability, protecting him."
+    }
+  },
+  "Nunu & Willump": {
+    "id": "Nunu",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "aoe_engage",
+      "cc_reliant",
+      "deals_magic",
+      "frontline",
+      "hard_engage",
+      "immobile",
+      "melee",
+      "scaling_mid"
+    ],
+    "notes": {
+      "hard_engage": "E Biggest Snowball rolls a growing snowball that knocks up enemies; R Absolute Zero is a massive channeled blizzard for fight-starting AoE damage and slow."
+    }
+  },
+  "Olaf": {
+    "id": "Olaf",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "cc_immunity",
+      "deals_physical",
+      "immobile",
+      "melee",
+      "scaling_early",
+      "self_heal",
+      "true_damage"
+    ],
+    "notes": {
+      "cc_immunity": "R Ragnarok makes him fully CC-immune for the duration",
+      "anti_tank": "E Reckless Swing deals true damage that ignores armor"
+    }
+  },
+  "Orianna": {
+    "id": "Orianna",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield",
+      "waveclear"
+    ],
+    "notes": {
+      "team_heal_shield": "Command: Protect attaches the Ball to an ally, shielding them and granting bonus Armor and Magic Resist.",
+      "hard_engage": "Command: Shockwave launches nearby enemies toward the Ball, an AoE pull that starts or wins fights."
+    }
+  },
+  "Ornn": {
+    "id": "Ornn",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "aoe_engage",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_late",
+      "self_peel"
+    ],
+    "notes": {
+      "hard_engage": "R Call of the Forge summons an elemental that Ornn can recast to charge into, knocking up enemies to start the fight; E Searing Charge knocks up on terrain collision."
+    }
+  },
+  "Pantheon": {
+    "id": "Pantheon",
+    "roles": [
+      "top",
+      "utility"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "invulnerability",
+      "melee",
+      "projectile_block",
+      "scaling_early",
+      "self_peel",
+      "untargetability"
+    ],
+    "notes": {
+      "hard_engage": "Shield Vault dashes to a target, damaging and STUNNING them — a reliable point-blank lockdown engage; Grand Starfall leaps in.",
+      "self_peel": "Aegis Assault sets his shield, becoming invulnerable to damage from the front while striking.",
+      "projectile_block": "Aegis Assault blocks all damage (including projectiles/attacks) coming from the front during its channel.",
+      "scaling_early": "Lane-bully spear poke and early all-in burst; falls off into late game (classic early scaling)."
+    }
+  },
+  "Poppy": {
+    "id": "Poppy",
+    "roles": [
+      "top",
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "melee",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "disengage": "R Keeper's Verdict knocks enemies very far away; W Steadfast Presence stops enemy dashes around her, grounding and slowing dash-engagers, all anti-engage peel."
+    }
+  },
+  "Pyke": {
+    "id": "Pyke",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "execute",
+      "hard_cc",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "single_target_pick",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "burst": "R Death From Below blinks to and executes low-health enemies; passive converts bonus health into Bonus AD for high single-target damage.",
+      "pick_potential": "Q Bone Skewer pulls an enemy toward him and E Phantom Undertow dashes and leaves a returning phantom that stuns enemies along its path, enabling picks.",
+      "self_peel": "W Ghostwater Dive enters Camouflage with decaying Move Speed and E Phantom Undertow dashes away leaving a stunning phantom, letting him escape/disengage."
+    }
+  },
+  "Qiyana": {
+    "id": "Qiyana",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid"
+    ],
+    "notes": {
+      "pick_potential": "Audacity dashes to an enemy and her empowered attacks/abilities burst them, letting her close on and delete an isolated target.",
+      "hard_engage": "Supreme Display of Talent sends a shockwave that detonates elements (e.g. terrain/river) to stun and damage nearby enemies, a reliable AoE lockdown that starts fights."
+    }
+  },
+  "Quinn": {
+    "id": "Quinn",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_early",
+      "self_peel"
+    ],
+    "notes": {
+      "burst": "Harrier mark + Blinding Assault + Vault delivers front-loaded burst, not slow auto DPS",
+      "high_mobility": "Vault dashes to an enemy then leaps off; Behind Enemy Lines is a huge roaming move-speed ult",
+      "self_peel": "Vault dashes to a target, interrupts it, and leaps away to max attack range to escape dives",
+      "lane_poke": "Blinding Assault is ranged area harass that also blinds",
+      "scaling_early": "Strong early lane bully/roamer that falls off as a marksman",
+      "disengage": "Vault's blind + leap-off and Blinding Assault blind disrupt divers"
+    }
+  },
+  "Rakan": {
+    "id": "Rakan",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "ranged",
+      "scaling_mid",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "high_mobility": "W Grand Entrance dashes to a location, E Battle Dance flies to an allied champion and can be re-cast for free, and R The Quickness grants Move Speed; repeated dashes/movement tools.",
+      "hard_engage": "W Grand Entrance dashes in and knocks up nearby enemies on arrival, a reliable fight-starting lockdown; R The Quickness charms enemies touched.",
+      "team_heal_shield": "Q Gleaming Quill heals allies after hitting a champion/epic monster, and E Battle Dance shields the allied champion he flies to."
+    }
+  },
+  "Rammus": {
+    "id": "Rammus",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_ad",
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "point_click_cc",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "anti_ad": "Passive grants bonus AD scaling with Armor and MR; W Defensive Ball Curl vastly increases Armor/MR and returns damage to enemies that attack him, blunting auto-attackers.",
+      "hard_engage": "Q Powerball accelerates into enemies dealing damage and slowing to start a fight, combining with E taunt.",
+      "point_click_cc": "E Frenzying Taunt is a targeted taunt that forces a chosen enemy champion into a reckless assault."
+    }
+  },
+  "Rek'Sai": {
+    "id": "RekSai",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "Passive Fury is consumed while Burrowed to restore health — her core sustain mechanic.",
+      "hard_engage": "Unburrow knocks up and damages nearby enemies — a reliable AoE knock-up lockdown to start fights.",
+      "anti_tank": "Void Rush (R) lunges at a marked target for heavy damage based on their MAXIMUM health, scaling against tanks."
+    }
+  },
+  "Rell": {
+    "id": "Rell",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "anti_ad",
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "anti_ad": "Passive steals Armor and Magic Resist on hit, stripping enemy armor (reduces enemy AD-mitigation and physical durability).",
+      "hard_engage": "W Ferromancy crashes down knocking enemies up while mounting/dismounting; R Magnet Storm violently pulls nearby enemies toward her, reliable AoE fight-starting lockdown."
+    }
+  },
+  "Renata Glasc": {
+    "id": "Renata",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "pick_potential": "Q Handshake roots the first enemy hit and can recast to throw the unit in a direction, isolating a target.",
+      "team_heal_shield": "W Bailout buffs an ally and delays their death (saving them on a takedown), and E Loyalty Program shields allies hit."
+    }
+  },
+  "Renekton": {
+    "id": "Renekton",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_early",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "hard_engage": "Ruthless Predator stuns the target (1.5s when empowered) and Slice and Dice dashes in — reliable point-blank stun lockdown to commit a fight.",
+      "healing_dependent": "Cull the Meek heals for a portion of damage dealt (increased above 50 Fury) — sustain bruiser.",
+      "anti_ad": "Empowered Slice and Dice reduces the Armor of units hit (armor shred).",
+      "scaling_early": "Fury-fueled early lane dominance that tapers off late (classic early-game bully)."
+    }
+  },
+  "Rengar": {
+    "id": "Rengar",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_ad",
+      "burst",
+      "dash",
+      "deals_physical",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "self_peel"
+    ],
+    "notes": {
+      "anti_ad": "Thrill of the Hunt's leap onto the tracked enemy reduces their armor, blunting their durability against physical damage.",
+      "pick_potential": "Thrill of the Hunt Camouflages him, reveals the nearest enemy champion, and lets him leap to that tracked target from range, built to single out and delete an isolated target.",
+      "self_peel": "Battle Roar's Ferocity effect breaks crowd control effects on him, letting him shrug off lockdown during a dive."
+    }
+  },
+  "Riven": {
+    "id": "Riven",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "self_peel": "Valor steps forward and blocks incoming damage (a shield); Broken Wings' third cast knocks back nearby enemies.",
+      "disengage": "Broken Wings third activation knocks back nearby enemies, creating space to disengage; Valor's dash + shield aids escape.",
+      "skillshot_reliant": "Ki Burst and Wind Slash (R) are skillshots/AoE that must be aimed to land the stun and execute damage."
+    }
+  },
+  "Rumble": {
+    "id": "Rumble",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "disengage",
+      "immobile",
+      "lane_poke",
+      "melee",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "self_peel": "Scrap Shield grants a shield and a burst of speed (increased in Danger Zone).",
+      "disengage": "The Equalizer (R) lays a wall of flames that slows and damages, zoning enemies off to disengage; Electro Harpoon slows.",
+      "lane_poke": "Electro Harpoon is a ranged poke that slows and shreds Magic Resist; Flamespitter pokes in a cone.",
+      "waveclear": "Flamespitter torches a cone over 3 seconds, strong waveclear."
+    }
+  },
+  "Ryze": {
+    "id": "Ryze",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "ranged",
+      "scaling_late",
+      "skillshot_reliant",
+      "sustained_dps",
+      "untargetability",
+      "waveclear"
+    ]
+  },
+  "Samira": {
+    "id": "Samira",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "knockup_payoff",
+      "mobility_dependent",
+      "projectile_block",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Passive adds bonus magic damage on melee-range attacks",
+      "high_mobility": "Wild Rush dashes through enemies and resets on champion kill",
+      "self_peel": "Blade Whirl destroys incoming missiles and Wild Rush dashes away from danger",
+      "projectile_block": "Blade Whirl destroys enemy missiles in an area around her, windwall-style",
+      "scaling_mid": "Snowbally skirmisher, strong across mid-game once items come online"
+    }
+  },
+  "Sejuani": {
+    "id": "Sejuani",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "scaling_mid"
+    ],
+    "notes": {
+      "hard_engage": "Q Arctic Assault charges forward knocking enemies into the air; R Glacial Prison throws a bola that freezes and stuns the first champion hit to start a fight.",
+      "cc_immunity": "Passive Frost Armor grants immunity to slows while active."
+    }
+  },
+  "Senna": {
+    "id": "Senna",
+    "roles": [
+      "bottom",
+      "utility"
+    ],
+    "flags": [
+      "deals_physical",
+      "global_ally_protect",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "pick_potential",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "lane_poke": "Piercing Darkness is a long-range beam that damages enemies through a target",
+      "team_heal_shield": "Piercing Darkness heals allies it passes through; Dawning Shadow shields allies globally",
+      "self_peel": "Last Embrace root + Curse of the Black Mist makes her unselectable and camouflaged to escape",
+      "pick_potential": "Dawning Shadow fires a global beam across the map damaging enemies and shielding allies",
+      "scaling_late": "Mist-stacking scaler — very weak AD early, becomes a long-range crit carry late"
+    }
+  },
+  "Seraphine": {
+    "id": "Seraphine",
+    "roles": [
+      "bottom",
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "W Surround Sound shields and hastes nearby allies, and additionally heals nearby allies if she is already shielded.",
+      "disengage": "E Beat Drop impairs movement (slow/root) of enemies in a line and R Encore charms enemies hit, both creating space to break off.",
+      "lane_poke": "Q High Note deals ranged area damage and passive grants bonus magic damage and range on her next attack, supporting safe poke."
+    }
+  },
+  "Sett": {
+    "id": "Sett",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "burst",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_peel",
+      "true_damage"
+    ],
+    "notes": {
+      "hard_engage": "Facebreaker pulls in enemies on opposite sides and stuns them; The Show Stopper (R) carries and slams an enemy champion, slowing nearby enemies — reliable lockdown engage.",
+      "self_peel": "Haymaker stores damage taken as Grit and converts it into a shield on cast.",
+      "anti_tank": "Knuckle Down's next two attacks deal additional damage based on the target's MAX health; Haymaker center deals true damage — both scale against / ignore the resists of durable targets."
+    }
+  },
+  "Shaco": {
+    "id": "Shaco",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "deals_physical",
+      "hard_cc",
+      "high_mobility",
+      "melee",
+      "persistent_pets",
+      "pick_potential",
+      "scaling_mid",
+      "untargetability"
+    ],
+    "notes": {
+      "pick_potential": "Deceive teleports him invisibly to a location with an empowered crit attack from behind, and Jack In The Box fears enemies, letting him ambush and delete an isolated target."
+    }
+  },
+  "Shen": {
+    "id": "Shen",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "blink",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "frontline",
+      "hard_cc",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_peel",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "anti_tank": "Q Twilight Assault deals damage based on the target's max health.",
+      "team_heal_shield": "R Stand United shields a target allied champion from incoming damage then teleports to them."
+    }
+  },
+  "Shyvana": {
+    "id": "Shyvana",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "hard_engage": "Dragon's Descent (R) transforms and leaps forward causing enemies along the path to flee — a reliable long-range fear engage.",
+      "waveclear": "Emberstrike hits the target plus surrounding area and Molten Burst explodes on large targets, giving strong AoE clear."
+    }
+  },
+  "Singed": {
+    "id": "Singed",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "antiheal",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "immobile",
+      "melee",
+      "scaling_mid",
+      "sustained_dps"
+    ]
+  },
+  "Sion": {
+    "id": "Sion",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "anti_tank",
+      "aoe_engage",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "melee",
+      "revive",
+      "scaling_late",
+      "self_heal"
+    ],
+    "notes": {
+      "anti_tank": "Passive (post-death reanimation) attacks deal bonus damage based on the target's maximum Health.",
+      "anti_ad": "E Roar of the Slayer reduces the Armor of enemies hit, stripping physical durability.",
+      "hard_engage": "R Unstoppable Onslaught charges across the map, knocking up enemies on collision based on distance charged; Q Decimating Smash knocks up and stuns if fully charged, both fight-starting."
+    }
+  },
+  "Sivir": {
+    "id": "Sivir",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "spell_shield",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "waveclear": "Boomerang Blade + Ricochet bounces clear entire waves extremely fast",
+      "self_peel": "Spell Shield blocks a single enemy ability cast on her and grants health + move speed",
+      "lane_poke": "Boomerang Blade is a long ranged poke that damages both ways"
+    }
+  },
+  "Skarner": {
+    "id": "Skarner",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_tank",
+      "cc_reliant",
+      "deals_magic",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "immobile",
+      "melee",
+      "percent_hp_damage",
+      "pick_potential",
+      "point_click_cc",
+      "scaling_mid"
+    ],
+    "notes": {
+      "anti_tank": "Passive Quaking deals max Health magic damage over its duration at max stacks.",
+      "hard_engage": "E Ixtal's Impact charges through terrain, slamming a collided champion into the next wall to stun, opening the fight; R Impale suppresses and drags.",
+      "pick_potential": "R Impale suppresses enemy champions and drags the victims along as Skarner moves, isolating a target.",
+      "point_click_cc": "R Impale is a targeted suppression that locks down chosen enemies and drags them."
+    }
+  },
+  "Smolder": {
+    "id": "Smolder",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_late",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "deals_magic": "Super Scorcher Breath and his fire abilities deal magic damage",
+      "lane_poke": "Achooo! is a ranged poke that explodes on champions",
+      "high_mobility": "Flap, Flap, Flap takes flight ignoring terrain to reposition",
+      "self_peel": "Flap, Flap, Flap flies over terrain to escape dives",
+      "waveclear": "Super Scorcher Breath + Achooo! + MMOOOMMMM! clear waves with AoE fire",
+      "scaling_late": "Stack-based scaler (Dragon Practice) — weak early, ramps into a hypercarry"
+    }
+  },
+  "Sona": {
+    "id": "Sona",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_steroid",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "W Aria of Perseverance heals Sona and a nearby wounded ally and grants tagged allies a shield aura.",
+      "disengage": "E Song of Celerity grants nearby allies bonus Move Speed and R Crescendo stuns enemy champions, both enabling escape/peel.",
+      "lane_poke": "Q Hymn of Valor sends bolts dealing magic damage to nearby enemies, a repeatable ranged poke tool."
+    }
+  },
+  "Soraka": {
+    "id": "Soraka",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "deals_magic",
+      "global_ally_protect",
+      "hard_cc",
+      "healing_dependent",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "W Astral Infusion + R Wish keep the whole team topped up"
+    }
+  },
+  "Swain": {
+    "id": "Swain",
+    "roles": [
+      "bottom",
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "healing_dependent",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive Soul Fragments heal him and raise max health; Demonic Ascension drains health from nearby enemies to sustain.",
+      "frontline": "Permanent max-health growth from Soul Fragments plus draining ult lets him hold the front.",
+      "self_peel": "Nevermove roots and can pull enemies, and Demonic Ascension's drain sustains him through a dive."
+    }
+  },
+  "Sylas": {
+    "id": "Sylas",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "high_mobility": "Abscond dashes to a location and Abduct recasts to pull himself to an enemy he hits.",
+      "healing_dependent": "Kingslayer heals him when used against enemy champions, his core sustain.",
+      "hard_engage": "Abduct pulls himself to an enemy, and a hijacked engage ult lets him start fights.",
+      "self_peel": "Abscond dash plus Kingslayer self-heal let him survive and escape a dive."
+    }
+  },
+  "Syndra": {
+    "id": "Syndra",
+    "roles": [
+      "bottom",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "pick_potential": "Unleashed Power bombards a single enemy champion with all her spheres for long-range single-target burst (and executes low-health targets per passive)."
+    }
+  },
+  "Tahm Kench": {
+    "id": "TahmKench",
+    "roles": [
+      "top",
+      "utility"
+    ],
+    "flags": [
+      "blink",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "frontline",
+      "hard_cc",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "team_heal_shield",
+      "untargetability"
+    ],
+    "notes": {
+      "disengage": "R Devour can swallow an ally to remove them from harm (shielding them); Thick Skin converts stored damage into a shield, both protective peel.",
+      "team_heal_shield": "R Devour shields a targeted ally champion while they are devoured."
+    }
+  },
+  "Taliyah": {
+    "id": "Taliyah",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "disengage": "Weaver's Wall creates a very long wall to block and split pursuers; Seismic Shove throws enemies away."
+    }
+  },
+  "Talon": {
+    "id": "Talon",
+    "roles": [
+      "jungle",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "melee",
+      "pick_potential",
+      "reset_snowball",
+      "scaling_mid",
+      "self_heal",
+      "self_peel"
+    ],
+    "notes": {
+      "pick_potential": "Noxian Diplomacy leaps to and stabs (crit in melee) a target with health/cooldown refund on kill; his passive Wound stacks then bleed for heavy damage, built to close on and delete an isolated target.",
+      "self_peel": "Shadow Assault makes him Invisible with bonus Move Speed, and Assassin's Path vaults over any terrain on a low cooldown, both usable to escape a dive."
+    }
+  },
+  "Taric": {
+    "id": "Taric",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "invulnerability",
+      "melee",
+      "scaling_mid",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "Q Starlight's Touch heals nearby allied champions and W Bastion shields an ally plus passively grants Armor to Taric and the Bastion ally."
+    }
+  },
+  "Teemo": {
+    "id": "Teemo",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "deals_magic",
+      "deals_physical",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_early",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Toxic Shot poison on-hit and Blinding Dart deal magic damage; AP-scaling DoT carry",
+      "lane_poke": "Auto + Toxic Shot poison and Blinding Dart give strong ranged lane harass",
+      "self_peel": "Move Quick (passive invisibility when still/in brush + sprint) and Noxious Trap slows let him escape dives",
+      "scaling_early": "Strong early lane bully whose relative power fades into the late game"
+    }
+  },
+  "Thresh": {
+    "id": "Thresh",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "single_target_pick",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "pick_potential": "Q Death Sentence hooks a target from screens away",
+      "disengage": "W lantern peels an ally out + E Flay knocks divers back"
+    }
+  },
+  "Tristana": {
+    "id": "Tristana",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "burst",
+      "dash",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "burst": "Explosive Charge bomb + Buster Shot detonation delivers a heavy burst combo",
+      "high_mobility": "Rocket Jump leaps a long distance and its cooldown resets on kills/Explosive Charge",
+      "self_peel": "Rocket Jump escapes dives; Buster Shot knocks an attacker back off her",
+      "disengage": "Buster Shot knocks a target back to break up a dive or fight",
+      "scaling_late": "Range-grows-with-level hypercarry, weak early, strong late",
+      "waveclear": "Explosive Charge AoE on kill clears waves"
+    }
+  },
+  "Trundle": {
+    "id": "Trundle",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "anti_tank",
+      "deals_physical",
+      "disengage",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive heals for a percent of nearby dying units' max health; Frozen Domain increases healing from all sources — sustain pillar.",
+      "disengage": "Pillar of Ice creates impassable terrain that walls off and slows enemies, a strong peel/disengage tool.",
+      "anti_ad": "Chomp saps some of the target's Attack Damage (reduces their AD output).",
+      "anti_tank": "Subjugate (R) steals a percent of the target's Health, Armor, and Magic Resistance (doubling over 4s) — %-stat steal that directly shreds a tank's durability."
+    }
+  },
+  "Tryndamere": {
+    "id": "Tryndamere",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "melee",
+      "mobility_dependent",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps",
+      "undying"
+    ]
+  },
+  "Twisted Fate": {
+    "id": "TwistedFate",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "deals_magic",
+      "hard_cc",
+      "hard_engage",
+      "lane_poke",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "deals_magic": "Wild Cards, Pick a Card, and Stacked Deck deal magic damage; AP carry",
+      "burst": "Gold Card stun + Wild Cards + Stacked Deck is a quick burst combo, not auto DPS",
+      "lane_poke": "Wild Cards throws three cards as ranged poke",
+      "waveclear": "Wild Cards pierces through multiple minions to clear waves",
+      "pick_potential": "Destiny reveals all enemy champions globally and teleports him onto an isolated target via Gate",
+      "hard_engage": "Destiny's global reveal + Gate teleport + Gold Card lets him initiate fights from across the map"
+    }
+  },
+  "Twitch": {
+    "id": "Twitch",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "anti_tank",
+      "deals_magic",
+      "deals_physical",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps",
+      "true_damage"
+    ],
+    "notes": {
+      "deals_magic": "Venom Cask and Contaminate deal magic damage on poisoned targets",
+      "anti_tank": "Passive basic attacks apply Deadly Venom dealing true damage each second, bypassing armor on tanks",
+      "lane_poke": "Venom Cask + Contaminate provide ranged poke on stacked targets",
+      "self_peel": "Ambush grants camouflage and move speed to escape or avoid dives",
+      "scaling_late": "Spray and Pray late-game piercing AoE hypercarry; very weak when caught early"
+    }
+  },
+  "Udyr": {
+    "id": "Udyr",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "cc_immunity",
+      "deals_magic",
+      "deals_physical",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "self_peel": "Iron Mantle grants a shield and healing on his next attacks (bigger on recast).",
+      "healing_dependent": "Iron Mantle heals him on his next attacks and over time (recast), his core sustain stance.",
+      "hard_engage": "Blazing Stampede gains move speed and his first attack on each target STUNS them — a reliable run-down lockdown engage.",
+      "cc_immunity": "Blazing Stampede recast grants immunity to immobilizing effects for a couple seconds."
+    }
+  },
+  "Urgot": {
+    "id": "Urgot",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "execute",
+      "frontline",
+      "hard_cc",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "self_peel": "Disdain charges in a direction shielding himself and hurls a caught enemy champion aside.",
+      "hard_engage": "Fear Beyond Death (R) chem-drill impales the first enemy champion hit (locks them) and can execute; Disdain catches and displaces a champion — reliable lockdown engage.",
+      "lane_poke": "Corrosive Charge is a ranged explosive that pokes and slows at a target location; 350 attack range supports auto-poke."
+    }
+  },
+  "Varus": {
+    "id": "Varus",
+    "roles": [
+      "bottom",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "deals_magic",
+      "deals_physical",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "mobility_dependent",
+      "percent_hp_damage",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Blighted Quiver and ability detonations deal magic damage; on-hit/AP builds viable",
+      "lane_poke": "Piercing Arrow is a long-range charged poke",
+      "anti_tank": "Blighted Quiver detonates Blight stacks dealing magic damage based on the target's maximum health, shredding tanks",
+      "pick_potential": "Chain of Corruption is a long-range immobilize that spreads to nearby champions to lock down a target",
+      "disengage": "Hail of Arrows desecrated ground slows and reduces enemy healing to zone/peel"
+    }
+  },
+  "Vayne": {
+    "id": "Vayne",
+    "roles": [
+      "bottom",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "mobility_dependent",
+      "percent_hp_damage",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps",
+      "true_damage"
+    ],
+    "notes": {
+      "anti_tank": "W Silver Bolts — every 3rd hit deals % max-HP true damage, melting tanks"
+    }
+  },
+  "Veigar": {
+    "id": "Veigar",
+    "roles": [
+      "bottom",
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_late",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "disengage": "Event Horizon creates a cage that stuns enemies passing through, a defensive zone to peel chasers."
+    }
+  },
+  "Vel'Koz": {
+    "id": "Velkoz",
+    "roles": [
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "anti_tank",
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "true_damage"
+    ],
+    "notes": {
+      "anti_tank": "Passive Organic Deconstruction bursts true damage at 3 stacks, and Life Form Disintegration Ray converts to true damage on researched champions, ignoring tank resistances."
+    }
+  },
+  "Vex": {
+    "id": "Vex",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "charm_fear",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "self_peel": "Personal Space grants a shield and damages nearby enemies, plus the passive fear interrupts dashes to deter a dive.",
+      "pick_potential": "Shadow Surge marks an enemy champion then recasts to dash in and deal damage, catching an isolated target."
+    }
+  },
+  "Vi": {
+    "id": "Vi",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_ad",
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_peel"
+    ],
+    "notes": {
+      "self_peel": "Passive charges a shield over time that activates by hitting an enemy with an ability.",
+      "hard_engage": "Cease and Desist (R) runs down a single enemy, knocking aside others, then knocks the target up and slams them down — an unstoppable point-and-click lockdown; Vault Breaker knocks back.",
+      "anti_ad": "Denting Blows breaks the opponent's Armor (armor shred), reducing tank/AD durability."
+    }
+  },
+  "Viego": {
+    "id": "Viego",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_tank",
+      "blink",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "percent_hp_damage",
+      "pick_potential",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "Passive seizes slain enemies and heals for a percentage of the target's max health; Blade of the Ruined King steals health on-hit — drain sustain.",
+      "pick_potential": "Heartbreaker (R) teleports and executes an enemy champion, knocking away their allies — a single-target assassination/catch on a low-health target.",
+      "anti_tank": "Blade of the Ruined King passive deals bonus percent CURRENT-health damage on-hit, scaling against high-health targets (current-health, not missing-health)."
+    }
+  },
+  "Viktor": {
+    "id": "Viktor",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "self_peel": "Siphon Power grants a shield (and bonus move speed when augmented) to absorb a dive's burst."
+    }
+  },
+  "Vladimir": {
+    "id": "Vladimir",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "deals_magic",
+      "drain_mage",
+      "healing_dependent",
+      "immobile",
+      "magic_amp",
+      "ranged",
+      "scaling_late",
+      "self_heal",
+      "self_peel",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "Transfusion steals life and Sanguine Pool siphons life; his whole kit is drain-based sustain.",
+      "self_peel": "Sanguine Pool makes him untargetable for 2 seconds, escaping a dive."
+    }
+  },
+  "Volibear": {
+    "id": "Volibear",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Frenzied Maul's repeat-cast on a marked target heals Volibear — sustain mechanic.",
+      "hard_engage": "Thundering Smash gains speed toward enemies and STUNS the first one he attacks; Stormbringer (R) leaps and slows enemies beneath while disabling nearby towers — reliable lockdown dive engage."
+    }
+  },
+  "Warwick": {
+    "id": "Warwick",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "melee",
+      "percent_hp_damage",
+      "point_click_cc",
+      "scaling_mid",
+      "self_heal",
+      "single_target_lockdown",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive heals equal to bonus magic damage below 50% health (tripled below 25%); Jaws of the Beast heals for damage dealt — core drain sustain.",
+      "hard_engage": "Infinite Duress (R) leaps and suppresses the first champion collided with for 1.5s — a reliable lockdown engage; Blood Hunt grants chase speed.",
+      "point_click_cc": "Infinite Duress suppresses the target for 1.5s once it connects (a hard, cleanse-resistant lockdown).",
+      "anti_tank": "Jaws of the Beast deals damage based on the target's MAXIMUM health, scaling against high-health tanks."
+    }
+  },
+  "Wukong": {
+    "id": "MonkeyKing",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_ad",
+      "aoe_engage",
+      "burst",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid"
+    ],
+    "notes": {
+      "hard_engage": "Cyclone (R) spins and knocks up enemies struck while gaining move speed — a reliable AoE knock-up lockdown to start fights.",
+      "anti_ad": "Crushing Blow reduces the target's armor for a few seconds (armor shred); passive also stacks armor for himself, blunting incoming AD."
+    }
+  },
+  "Xayah": {
+    "id": "Xayah",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "deals_physical",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps",
+      "untargetability",
+      "waveclear"
+    ],
+    "notes": {
+      "lane_poke": "Double Daggers throws two daggers as ranged harass that drop recallable Feathers",
+      "self_peel": "Featherstorm leaps into the air becoming untargetable, dodging dives entirely",
+      "disengage": "Bladecaller recalls Feathers to root pursuing enemies",
+      "waveclear": "Post-ability attacks hit all targets along their path plus Double Daggers clear waves"
+    }
+  },
+  "Xerath": {
+    "id": "Xerath",
+    "roles": [
+      "middle",
+      "utility"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "deals_magic",
+      "hard_cc",
+      "immobile",
+      "lane_poke",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "pick_potential": "Rite of the Arcane fires numerous long-range barrages that, combined with Shocking Orb's stun, catch and burst an isolated target from afar."
+    }
+  },
+  "Xin Zhao": {
+    "id": "XinZhao",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "anti_tank",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "invulnerability",
+      "melee",
+      "percent_hp_damage",
+      "scaling_mid",
+      "self_heal",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "healing_dependent": "Passive third attack heals Xin Zhao — skirmish sustain.",
+      "hard_engage": "Audacious Charge dashes to an enemy (slowing/AoE) and Three Talon Strike's third hit knocks up — reliable point-blank lockdown engage.",
+      "self_peel": "Crescent Guard (R) knocks back non-challenged targets and makes him impervious to damage from champions outside the circle — strong anti-dive self-peel.",
+      "anti_tank": "Crescent Guard (R) deals damage to nearby enemies based on their CURRENT Health, scaling against high-health targets (current-health, not missing)."
+    }
+  },
+  "Yasuo": {
+    "id": "Yasuo",
+    "roles": [
+      "bottom",
+      "middle",
+      "top"
+    ],
+    "flags": [
+      "blink",
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "high_mobility",
+      "knockup_payoff",
+      "melee",
+      "mobility_dependent",
+      "projectile_block",
+      "scaling_mid",
+      "sustained_dps"
+    ],
+    "notes": {
+      "projectile_block": "W Wind Wall destroys all enemy projectiles in a wide arc"
+    }
+  },
+  "Yone": {
+    "id": "Yone",
+    "roles": [
+      "middle",
+      "top"
+    ],
+    "flags": [
+      "blink",
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "high_mobility",
+      "melee",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant",
+      "sustained_dps"
+    ],
+    "notes": {
+      "self_peel": "Spirit Cleave grants a shield scaling with the number of champions hit.",
+      "hard_engage": "Fate Sealed (R) blinks behind the last champion in a line and pulls all enemies hit toward him; Mortal Steel's 2-stack dash knocks enemies airborne — reliable lockdown engage.",
+      "skillshot_reliant": "Mortal Steel and Fate Sealed are directional skillshots that must land to apply their airborne/pull effects."
+    }
+  },
+  "Yorick": {
+    "id": "Yorick",
+    "roles": [
+      "top"
+    ],
+    "flags": [
+      "anti_ad",
+      "deals_physical",
+      "disengage",
+      "frontline",
+      "healing_dependent",
+      "immobile",
+      "melee",
+      "persistent_pets",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "healing_dependent": "Last Rites heals himself on the empowered attack — light sustain.",
+      "disengage": "Dark Procession summons a destructible wall that blocks enemy movement, a zoning/peel/disengage tool.",
+      "anti_ad": "Mourning Mist reduces the target's armor (armor shred), exposing them to physical damage.",
+      "waveclear": "Mist Walkers (passive) and Last Rites grave-digging let him swarm and clear waves with summoned units."
+    }
+  },
+  "Yunara": {
+    "id": "Yunara",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Passive crits deal bonus magic damage and Arc of Judgment deals damage; hybrid output",
+      "lane_poke": "Arc of Judgment fires a spinning bead that damages and slows at range",
+      "high_mobility": "Kanmei's Steps grants move speed/ghosting and becomes a dash in Transcendent State",
+      "self_peel": "Kanmei's Steps move speed + ghost/dash lets her escape dives"
+    }
+  },
+  "Yuumi": {
+    "id": "Yuumi",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "ally_steroid",
+      "dash",
+      "deals_magic",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield",
+      "untargetability"
+    ],
+    "notes": {
+      "team_heal_shield": "Passive restores health to the next ally she attaches to, E Zoomies passes shield/Move Speed/Attack Speed to her ally when attached, and R Final Chapter heals allies."
+    }
+  },
+  "Zaahen": {
+    "id": "Zaahen",
+    "roles": [
+      "jungle",
+      "top"
+    ],
+    "flags": [
+      "dash",
+      "deals_physical",
+      "displacement",
+      "hard_cc",
+      "hard_engage",
+      "healing_dependent",
+      "high_mobility",
+      "invulnerability",
+      "melee",
+      "scaling_mid",
+      "self_heal",
+      "sustained_dps",
+      "untargetability"
+    ],
+    "notes": {
+      "healing_dependent": "The Darkin Glaive heals himself on its slashes and Grim Deliverance (R) heals for a portion of the damage dealt — drain-style Darkin sustain.",
+      "hard_engage": "Dreaded Return stabs then PULLS enemies toward him; The Darkin Glaive recast knocks up the target — reliable lockdown engage."
+    }
+  },
+  "Zac": {
+    "id": "Zac",
+    "roles": [
+      "jungle"
+    ],
+    "flags": [
+      "anti_tank",
+      "aoe_engage",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "displacement",
+      "frontline",
+      "hard_cc",
+      "hard_engage",
+      "melee",
+      "percent_hp_damage",
+      "revive",
+      "scaling_mid",
+      "self_heal",
+      "untargetability"
+    ],
+    "notes": {
+      "anti_tank": "W Unstable Matter deals a percentage of the enemy's maximum health as magic damage.",
+      "hard_engage": "E Elastic Slingshot launches him across a distance into the enemy; R Let's Bounce bounces four times knocking up and slowing enemies, reliable long-range fight-starting engage."
+    }
+  },
+  "Zed": {
+    "id": "Zed",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "dash",
+      "deals_physical",
+      "high_mobility",
+      "melee",
+      "mobility_dependent",
+      "pick_potential",
+      "scaling_mid"
+    ],
+    "notes": {
+      "burst": "shadow combo + R Death Mark one-shots a marked carry"
+    }
+  },
+  "Zeri": {
+    "id": "Zeri",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "dash",
+      "deals_magic",
+      "deals_physical",
+      "high_mobility",
+      "lane_poke",
+      "mobility_dependent",
+      "ranged",
+      "scaling_late",
+      "self_peel",
+      "sustained_dps"
+    ],
+    "notes": {
+      "deals_magic": "Passive: her attacks deal magic damage and are treated as abilities",
+      "lane_poke": "Ultrashock Laser is a long-range slowing poke that expands into a laser off walls",
+      "high_mobility": "Spark Surge dashes and vaults/grinds over terrain, very high repositioning",
+      "self_peel": "Spark Surge dashes over walls to escape dives; Lightning Crash stacks move speed",
+      "scaling_late": "Energy-stacking hypercarry, weak early, scales hard into the late game"
+    }
+  },
+  "Ziggs": {
+    "id": "Ziggs",
+    "roles": [
+      "bottom"
+    ],
+    "flags": [
+      "burst",
+      "cc_reliant",
+      "dash",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "lane_poke",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "waveclear"
+    ],
+    "notes": {
+      "disengage": "Satchel Charge detonates to knock enemies away (and self-knockback to reposition), peeling fights apart."
+    }
+  },
+  "Zilean": {
+    "id": "Zilean",
+    "roles": [
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "hard_cc",
+      "immobile",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "team_heal_shield"
+    ],
+    "notes": {
+      "team_heal_shield": "R Chronoshift places a time rune on an ally that teleports them back in time (resurrecting) if they take lethal damage.",
+      "disengage": "E Time Warp increases an ally's Move Speed (or slows an enemy) to enable escape; Q Time Bomb stun (when a bomb detonates another) adds peel."
+    }
+  },
+  "Zoe": {
+    "id": "Zoe",
+    "roles": [
+      "middle"
+    ],
+    "flags": [
+      "blink",
+      "burst",
+      "cc_reliant",
+      "charm_fear",
+      "deals_magic",
+      "hard_cc",
+      "lane_poke",
+      "pick_potential",
+      "ranged",
+      "scaling_mid",
+      "self_peel",
+      "skillshot_reliant"
+    ],
+    "notes": {
+      "pick_potential": "A long-range Paddle Star that deals more the farther it flies, set up by Sleepy Trouble Bubble's sleep, one-shots an isolated target.",
+      "self_peel": "Portal Jump blinks her away for 1 second then back, dodging a dive's burst."
+    }
+  },
+  "Zyra": {
+    "id": "Zyra",
+    "roles": [
+      "jungle",
+      "utility"
+    ],
+    "flags": [
+      "cc_reliant",
+      "deals_magic",
+      "disengage",
+      "displacement",
+      "hard_cc",
+      "immobile",
+      "persistent_pets",
+      "ranged",
+      "scaling_mid",
+      "skillshot_reliant",
+      "sustained_dps",
+      "waveclear"
+    ],
+    "notes": {
+      "disengage": "Stranglethorns knocks all enemies airborne as it contracts, a wide AoE that peels chasers and breaks up an engage."
+    }
+  }
+}

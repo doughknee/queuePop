@@ -1,0 +1,146 @@
+{
+  "_comment": "Hand-built champ-select scenarios for eyeballing engine output. Each has the role you're picking, your already-locked allies, the locked enemy team (with roles for lane matching), and the candidate pool with your mastery points on each.",
+  "scenarios": [
+    {
+      "name": "Last pick ADC into a tanky comp",
+      "note": "You're the final pick. Team already has tons of engage. Enemy is frontline-heavy. Does it value the anti-tank + your comfort pick?",
+      "my_role": "bottom",
+      "my_team": [
+        "Malphite",
+        "Amumu",
+        "Lux",
+        "Leona"
+      ],
+      "enemy_team": [
+        {
+          "champ": "Cho'Gath",
+          "role": "top"
+        },
+        {
+          "champ": "Olaf",
+          "role": "jungle"
+        },
+        {
+          "champ": "Kassadin",
+          "role": "middle"
+        },
+        {
+          "champ": "Caitlyn",
+          "role": "bottom"
+        },
+        {
+          "champ": "Janna",
+          "role": "support"
+        }
+      ],
+      "pool": [
+        {
+          "champ": "Vayne",
+          "mastery": 150000
+        },
+        {
+          "champ": "Jhin",
+          "mastery": 80000
+        },
+        {
+          "champ": "Ezreal",
+          "mastery": 40000
+        }
+      ]
+    },
+    {
+      "name": "Team has no engage or frontline",
+      "note": "Four squishy/carry allies already locked, zero initiation. Does a team-need pick beat a higher-mastery comfort pick?",
+      "my_role": "jungle",
+      "my_team": [
+        "Vayne",
+        "Tristana",
+        "Janna",
+        "Tryndamere"
+      ],
+      "enemy_team": [
+        {
+          "champ": "Yasuo",
+          "role": "top"
+        },
+        {
+          "champ": "Olaf",
+          "role": "jungle"
+        },
+        {
+          "champ": "Lux",
+          "role": "middle"
+        },
+        {
+          "champ": "Caitlyn",
+          "role": "bottom"
+        },
+        {
+          "champ": "Thresh",
+          "role": "support"
+        }
+      ],
+      "pool": [
+        {
+          "champ": "Lee Sin",
+          "mastery": 110000
+        },
+        {
+          "champ": "Amumu",
+          "mastery": 60000
+        },
+        {
+          "champ": "Malphite",
+          "mastery": 45000
+        }
+      ]
+    },
+    {
+      "name": "Mid lane into a fed-threat assassin",
+      "note": "Enemy has Zed mid + other threats; your team has Janna peel. Does it find the anti-assassin pick and correctly NOT panic about your squishies (peel exists)?",
+      "my_role": "middle",
+      "my_team": [
+        "Caitlyn",
+        "Janna",
+        "Malphite",
+        "Amumu"
+      ],
+      "enemy_team": [
+        {
+          "champ": "Cho'Gath",
+          "role": "top"
+        },
+        {
+          "champ": "Lee Sin",
+          "role": "jungle"
+        },
+        {
+          "champ": "Zed",
+          "role": "middle"
+        },
+        {
+          "champ": "Vayne",
+          "role": "bottom"
+        },
+        {
+          "champ": "Thresh",
+          "role": "support"
+        }
+      ],
+      "pool": [
+        {
+          "champ": "Malzahar",
+          "mastery": 70000
+        },
+        {
+          "champ": "Lux",
+          "mastery": 90000
+        },
+        {
+          "champ": "Kassadin",
+          "mastery": 50000
+        }
+      ]
+    }
+  ]
+}

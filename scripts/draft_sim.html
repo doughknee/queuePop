@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>queuePop · Draft Sim</title>
+<style>
+  @font-face{font-family:'Cinzel';src:url('/fonts/Cinzel.ttf') format('truetype');font-weight:500 700;font-display:swap}
+  @font-face{font-family:'Marcellus';src:url('/fonts/Marcellus.ttf') format('truetype');font-display:swap}
+  :root{
+    --bg:#010A13; --panel:#0A141E; --panel2:#0E1B27; --line:#1F3243;
+    --gold:#C8AA6E; --gold2:#F0E6D2; --bronze:#785A28; --teal:#0AC8B9;
+    --txt:#D9C8A0; --muted:#8295A6; --good:#3FC9A0; --bad:#E0506A; --blue:#0AC8B9; --red:#E0506A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1100px 480px at 50% -120px,#06212b,var(--bg)) fixed;color:var(--txt);
+    font:14px/1.55 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+  header{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    background:linear-gradient(180deg,rgba(10,200,185,.05),transparent)}
+  header h1{margin:0;font-family:Cinzel,serif;font-size:23px;font-weight:700;letter-spacing:2px;color:var(--gold2);text-transform:uppercase} header h1 b{color:var(--gold)}
+  .panel h2,.team h2,.ana h3,.mpanel h2,.reshead h2{font-family:Marcellus,serif}
+  header .sub{color:var(--muted);font-size:12.5px}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px 22px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:9px 10px;font:inherit}
+  button{background:var(--gold);color:#1a1410;border:0;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+  button.ghost{background:transparent;color:var(--gold2);border:1px solid var(--line);font-weight:500}
+  button.mini{padding:4px 10px;font-size:12px}
+  .hint{color:var(--muted);font-size:12px}
+  /* champ-select board */
+  .board{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .team{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;position:relative}
+  .team::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+  .team.blue::before{background:linear-gradient(90deg,var(--blue),transparent)}
+  .team.red::before{background:linear-gradient(270deg,var(--red),transparent)}
+  .team h2{margin:2px 0 10px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase}
+  .team.blue h2{color:var(--blue)} .team.red h2{color:var(--red)}
+  .slot{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .pos{display:flex;align-items:center;gap:6px;width:74px;flex:none;color:var(--muted)}
+  .pos img{width:18px;height:18px;opacity:.8}
+  .pos span{font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  /* searchable picker */
+  .pick{position:relative;display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;flex:1;min-width:0}
+  .pick img.ico{width:30px;height:30px;border-radius:6px;background:#0a0d12;flex:none;visibility:hidden}
+  .pick.has img.ico{visibility:visible}
+  .pick input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--txt);padding:5px 0;font:inherit}
+  .pick input::placeholder{color:var(--muted)}
+  .pick .menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:40;background:#10161f;
+    border:1px solid var(--line);border-radius:8px;max-height:300px;overflow:auto;box-shadow:0 14px 34px rgba(0,0,0,.6)}
+  .pick .opt{display:flex;align-items:center;gap:9px;padding:6px 9px;cursor:pointer}
+  .pick .opt:hover,.pick .opt.active{background:#1d2735}
+  .pick .opt img{width:24px;height:24px;border-radius:5px;flex:none}
+  .pick .opt small{margin-left:auto;color:var(--muted);font-size:11px}
+  .clearbtn{background:none;border:0;color:var(--muted);cursor:pointer;padding:0 2px;font-size:16px}
+  /* the YOU slot */
+  .you{flex:1;display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(200,170,110,.12),transparent);
+    border:1px dashed var(--gold);border-radius:8px;padding:6px 10px;min-height:42px}
+  .you img{width:30px;height:30px;border-radius:6px;visibility:hidden}
+  .you.filled img{visibility:visible}
+  .you .lbl{color:var(--gold);font-weight:600;font-size:13px}
+  .you .fitmini{margin-left:auto;color:var(--gold2);font-weight:700}
+  /* mastery */
+  .mpanel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:16px 0}
+  .mpanel h2{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .addrow{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .addrow .pick{flex:1;max-width:360px} .addrow input.pts{width:110px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 8px 3px 4px}
+  .chip img{width:22px;height:22px;border-radius:50%} .chip input{width:62px;background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--gold2);text-align:right;font:inherit}
+  .chip .x{cursor:pointer;color:var(--muted)}
+  /* draft read */
+  .analysis{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .ana{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .ana.blue{border-top:2px solid var(--blue)} .ana.red{border-top:2px solid var(--red)}
+  .ana h3{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .tag{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--gold2)}
+  .tag.warn{color:var(--red);border-color:rgba(255,90,90,.4)}
+  .afact{font-size:12.5px;color:var(--muted);margin:3px 0}
+  .afact b{color:var(--txt);font-weight:600}
+  .needs{grid-column:1 / -1;background:rgba(200,170,110,.08);border:1px solid rgba(200,170,110,.3);border-radius:10px;padding:9px 13px;font-size:13px}
+  .needs b{color:var(--gold)}
+  .strat{grid-column:1 / -1;background:rgba(10,200,185,.06);border:1px solid rgba(10,200,185,.28);border-radius:10px;padding:8px 13px}
+  .strat .sline{font-size:13px;margin:3px 0;color:var(--txt)}
+  .strat .slab{display:inline-block;width:52px;color:var(--blue);font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;vertical-align:top}
+  .items{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .items .ilab{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .items .item{font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;color:var(--muted)}
+  .items .item b{color:var(--blue)}
+  @media(max-width:880px){.analysis{grid-template-columns:1fr}}
+  /* results */
+  .verdict{background:linear-gradient(90deg,rgba(200,170,110,.16),rgba(200,170,110,.04));border:1px solid var(--gold);border-radius:12px;padding:12px 16px;margin:4px 0 8px;font-size:14px;line-height:1.55}
+  .verdict b{color:var(--gold2)} .verdict .cav{color:var(--muted)}
+  .reshead{display:flex;align-items:center;gap:10px;margin:18px 0 6px}
+  .reshead h2{margin:0;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--gold2)}
+  .card{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:10px 0}
+  .card.top{border-color:var(--gold);box-shadow:0 0 0 1px rgba(200,170,110,.25) inset}
+  .card .left{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;flex:none;text-align:center}
+  .card .left img{width:52px;height:52px;border-radius:10px}
+  .card .rank{color:var(--muted);font-size:12px} .card .cname{font-weight:650;color:var(--gold2);font-size:13px;line-height:1.1}
+  .fit{display:flex;flex-direction:column;align-items:center;width:74px;flex:none;justify-content:center}
+  .fit .num{font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .fit .den{font-size:10px;color:var(--muted);letter-spacing:1px}
+  .fit .pill{margin-top:4px;font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .fit .pill.HIGH{color:var(--good);border-color:var(--good)} .fit .pill.MEDIUM{color:var(--gold);border-color:var(--gold)}
+  .body{flex:1;min-width:0}
+  .grp{margin:2px 0}
+  .grp .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-right:6px}
+  .line{display:flex;gap:8px;font-size:13px;margin:2px 0}
+  .line .w{font-variant-numeric:tabular-nums;width:30px;text-align:right;flex:none}
+  .pos1{color:var(--good)} .neg1{color:var(--bad)} .gap1{color:#7d8794}
+  .comfort{color:var(--gold)}
+  .detail{color:var(--muted);font-style:italic;font-size:12.5px}
+  .scoremath{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .scoremath b{color:var(--gold2)}
+  .kit{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+  .kit span{font-size:10.5px;letter-spacing:.3px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+  .lane{font-size:12.5px;color:var(--blue);margin-bottom:6px}
+  .empty,.err{color:var(--muted);padding:10px} .err{color:var(--bad)}
+  .center{text-align:center}
+  @media(max-width:880px){.board{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>queue<b>Pop</b> · Draft Sim</h1>
+  <span class="sub">pick your role + the draft → best champ <i>for the job</i> across <span id="champcount">…</span> champions · fit 0–100 with what each pick brings & misses</span>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <label class="hint">Your role</label>
+    <select id="myrole">
+      <option value="top">Top</option><option value="jungle">Jungle</option>
+      <option value="middle" selected>Middle</option><option value="bottom">Bottom</option>
+      <option value="utility">Support</option>
+    </select>
+    <button id="run">Evaluate ▶</button>
+    <button class="ghost" id="rand">🎲 Random draft</button>
+    <button class="ghost" id="clear">Clear</button>
+    <span class="hint" id="laneinfo"></span>
+  </div>
+
+  <div class="board">
+    <div class="team blue"><h2>◤ Your team</h2><div id="myteam"></div></div>
+    <div class="team red"><h2>Enemy team ◥</h2><div id="enemy"></div></div>
+  </div>
+
+  <div class="mpanel">
+    <h2>My champions — priority only (optional)</h2>
+    <div class="hint">Mastery adds a comfort bonus and a “comfort” badge, but never gates the pick. Saved in this browser.</div>
+    <div class="addrow"><span id="mpick" style="flex:1;max-width:360px;display:flex"></span>
+      <input class="pts" id="mpts" type="number" value="100000" min="0" step="10000" title="mastery points">
+      <button class="ghost mini" id="madd">+ add</button></div>
+    <div class="chips" id="mchips"></div>
+    <div class="addrow" style="margin-top:8px;gap:14px;align-items:center">
+      <label class="hint" style="cursor:pointer;user-select:none"><input type="checkbox" id="poolonly" style="accent-color:var(--teal);vertical-align:-2px"> Recommend only from my champions</label>
+      <button class="ghost mini" id="bansbtn" title="Which lane opponents most shut down your champion pool?">Suggest bans</button>
+    </div>
+    <div id="bansout"></div>
+  </div>
+
+  <div id="analysis"></div>
+
+  <div class="reshead"><h2>Recommendation</h2><span class="hint" id="poolinfo"></span></div>
+  <div id="results"><div class="empty">Set your role and the draft, then hit Evaluate.</div></div>
+  <div class="center"><button class="ghost mini" id="showall" style="display:none"></button></div>
+</div>
+
+<script>
+const ROLES=[["top","Top"],["jungle","Jungle"],["middle","Middle"],["bottom","Bottom"],["utility","Support"]];
+let CHAMPS=[], NAMESET=new Set(), NAME2OBJ={}, VERSION="", LAST=null, SHOWALL=false;
+let MASTERY=JSON.parse(localStorage.getItem("qp_mastery")||"{}");
+let allyByRole={}, enemyByRole={};
+
+const iconUrl=id=>`https://ddragon.leagueoflegends.com/cdn/${VERSION}/img/champion/${id}.png`;
+const posUrl=r=>`https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champ-select/global/default/svg/position-${r}.svg`;
+
+function makePicker(onchange,initial){
+  const wrap=document.createElement("div"); wrap.className="pick";
+  const ico=document.createElement("img"); ico.className="ico";
+  const inp=document.createElement("input"); inp.placeholder="search…"; inp.autocomplete="off";
+  const clr=document.createElement("button"); clr.className="clearbtn"; clr.textContent="×"; clr.tabIndex=-1;
+  const menu=document.createElement("div"); menu.className="menu"; menu.style.display="none";
+  wrap.append(ico,inp,clr,menu);
+  let value="",active=-1,items=[];
+  function setVal(name){ value=name||""; if(value){inp.value=value;ico.src=iconUrl(NAME2OBJ[value].id);wrap.classList.add("has");}else{inp.value="";wrap.classList.remove("has");} menu.style.display="none"; if(onchange)onchange(value); }
+  function render(f){ f=(f||"").toLowerCase(); items=CHAMPS.filter(c=>c.name.toLowerCase().includes(f)).slice(0,40); active=-1; menu.innerHTML="";
+    items.forEach(c=>{const o=document.createElement("div");o.className="opt";o.innerHTML=`<img src="${iconUrl(c.id)}"><span>${c.name}</span><small>${c.roles.map(r=>r==="utility"?"sup":r.slice(0,3)).join("·")}</small>`;o.onmousedown=e=>{e.preventDefault();setVal(c.name);};menu.append(o);});
+    menu.style.display=items.length?"block":"none"; }
+  inp.addEventListener("focus",()=>render(""));
+  inp.addEventListener("input",()=>{value="";wrap.classList.remove("has");render(inp.value);});
+  inp.addEventListener("keydown",e=>{ if(menu.style.display==="none")return;
+    if(e.key==="ArrowDown")active=Math.min(active+1,items.length-1);
+    else if(e.key==="ArrowUp")active=Math.max(active-1,0);
+    else if(e.key==="Enter"){if(items[active]){e.preventDefault();setVal(items[active].name);}return;}
+    else return; e.preventDefault(); [...menu.children].forEach((o,i)=>o.classList.toggle("active",i===active)); if(menu.children[active])menu.children[active].scrollIntoView({block:"nearest"}); });
+  inp.addEventListener("blur",()=>setTimeout(()=>{menu.style.display="none"; if(!NAMESET.has(inp.value))setVal("");},120));
+  clr.onclick=()=>{setVal("");inp.focus();};
+  if(initial)setVal(initial);
+  return {el:wrap,get:()=>value,set:setVal};
+}
+
+function posSlot(role,label){ const p=document.createElement("div"); p.className="pos";
+  p.innerHTML=`<img src="${posUrl(role)}" onerror="this.style.display='none'"><span>${label}</span>`; return p; }
+
+function buildBoard(){
+  const myrole=document.getElementById("myrole").value;
+  const mt=document.getElementById("myteam"); mt.innerHTML="";
+  ROLES.forEach(([val,label])=>{ const slot=document.createElement("div"); slot.className="slot"; slot.append(posSlot(val,label));
+    if(val===myrole){ const you=document.createElement("div"); you.className="you"; you.id="youslot";
+      you.innerHTML=`<img><span class="lbl">★ your pick</span>`; slot.append(you);
+    } else { const p=makePicker(v=>{allyByRole[val]=v;liveEval();}, allyByRole[val]||""); slot.append(p.el); }
+    mt.append(slot); });
+  const en=document.getElementById("enemy"); en.innerHTML="";
+  ROLES.forEach(([val,label])=>{ const slot=document.createElement("div"); slot.className="slot"; slot.append(posSlot(val,label));
+    const p=makePicker(v=>{enemyByRole[val]=v;liveEval();}, enemyByRole[val]||""); slot.append(p.el); en.append(slot); });
+}
+
+function saveMastery(){localStorage.setItem("qp_mastery",JSON.stringify(MASTERY));}
+function renderMastery(){ const box=document.getElementById("mchips"); box.innerHTML="";
+  Object.entries(MASTERY).sort((a,b)=>b[1]-a[1]).forEach(([name,pts])=>{ if(!NAME2OBJ[name])return;
+    const chip=document.createElement("div");chip.className="chip";
+    const img=document.createElement("img");img.src=iconUrl(NAME2OBJ[name].id);
+    const n=document.createElement("span");n.textContent=name;
+    const p=document.createElement("input");p.type="number";p.value=pts;p.min=0;p.step=10000;p.onchange=()=>{MASTERY[name]=parseInt(p.value||"0",10);saveMastery();liveEval();};
+    const x=document.createElement("span");x.className="x";x.textContent="✕";x.onclick=()=>{delete MASTERY[name];saveMastery();renderMastery();liveEval();};
+    chip.append(img,n,p,x);box.append(chip);}); }
+
+let liveT=null, evalSeq=0;
+function liveEval(){ clearTimeout(liveT); liveT=setTimeout(evaluate,180); }  // debounced auto-eval as you draft
+
+async function suggestBans(){
+  const myrole=document.getElementById("myrole").value;
+  const out=document.getElementById("bansout");
+  const mine=Object.keys(MASTERY).filter(n=>((NAME2OBJ[n]||{}).roles||[]).includes(myrole));
+  if(!mine.length){out.innerHTML='<div class="hint" style="margin-top:6px">Add champions you play (that play '+myrole+') to get personal ban suggestions.</div>';return;}
+  out.innerHTML='<div class="hint" style="margin-top:6px">Checking every '+myrole+' opponent against your pool…</div>';
+  const pool=mine.map(n=>({champ:n,mastery:MASTERY[n]||0}));
+  let data; try{ data=await (await fetch("/api/bans",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({my_role:myrole,pool})})).json(); }
+  catch(e){out.innerHTML='<div class="err">Request failed: '+e+'</div>';return;}
+  if(data.error){out.innerHTML='<div class="err">'+data.error+'</div>';return;}
+  out.innerHTML='<div class="hint" style="margin:8px 0 4px">Toughest '+myrole+' matchups for <b>your</b> pool ('+mine.join(", ")+') — ban candidates:</div>'+
+    '<div class="chips">'+data.bans.map((b,i)=>{
+      const o=NAME2OBJ[b.champ]||{};
+      const tip='Your best answer: '+b.best_answer+' ('+b.best_fit+'/100)'+(b.threat_note?' · '+b.threat_note:'');
+      return '<span class="chip" title="'+tip.replace(/"/g,"&quot;")+'"><img src="'+(o.id?iconUrl(o.id):'')+'">'+
+        '<span>'+(i+1)+'. '+b.champ+'</span><span style="opacity:.65;margin-left:5px;font-size:11px">best answer '+b.best_fit+'/100</span></span>';
+    }).join("")+'</div>';
+}
+
+async function evaluate(){
+  const myrole=document.getElementById("myrole").value;
+  const enemy_team=ROLES.map(([v])=>v).filter(v=>enemyByRole[v]).map(v=>({champ:enemyByRole[v],role:v}));
+  const my_team=ROLES.map(([v])=>v).filter(v=>v!==myrole&&allyByRole[v]).map(v=>allyByRole[v]);
+  let candidates=CHAMPS.filter(c=>(c.roles||[]).includes(myrole));
+  const poolOnly=document.getElementById("poolonly").checked&&Object.keys(MASTERY).length;
+  if(poolOnly) candidates=candidates.filter(c=>MASTERY[c.name]!=null);
+  const pool=candidates.map(c=>({champ:c.name,mastery:MASTERY[c.name]||0}));
+  const res=document.getElementById("results");
+  const myseq=++evalSeq;
+  if(!pool.length){res.innerHTML='<div class="err">'+(poolOnly?'None of your champions play '+myrole+' — untick “only my champions” or add some.':'No champions for that role.')+'</div>';return;}
+  if(!LAST)res.innerHTML='<div class="empty">Evaluating '+pool.length+' candidates…</div>';
+  let data; try{ data=await (await fetch("/api/evaluate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({my_role:myrole,enemy_team,my_team,ally_roles:allyByRole,pool})})).json(); }
+  catch(e){res.innerHTML='<div class="err">Request failed: '+e+'</div>';return;}
+  if(myseq!==evalSeq) return;  // a newer evaluate superseded this one — drop the stale result
+  if(data.error){res.innerHTML='<div class="err">'+data.error+'</div>';return;}
+  LAST=data; SHOWALL=false;
+  document.getElementById("laneinfo").textContent=data.lane_opponent?("lane vs "+data.lane_opponent):"";
+  document.getElementById("poolinfo").textContent="· ranked "+pool.length+" "+myrole+" champions"+(poolOnly?" (your pool)":"");
+  renderAnalysis(data.analysis);
+  renderResults();
+  const top=data.results[0], you=document.getElementById("youslot");
+  if(top&&you){ you.classList.add("filled"); const o=NAME2OBJ[top.champ]||{};
+    you.querySelector("img").src=o.id?iconUrl(o.id):""; you.querySelector(".lbl").textContent=top.champ;
+    if(!you.querySelector(".fitmini")){const f=document.createElement("span");f.className="fitmini";you.append(f);} you.querySelector(".fitmini").textContent=top.fit; }
+}
+
+function teamCard(side,title,s){
+  if(!s) return `<div class="ana ${side}"><h3>${title}</h3><div class="afact">— no champions —</div></div>`;
+  const warnable=t=>side==="red"&&/dive|pick|hard-engage|scaling/.test(t);
+  const tags=s.tags.map(t=>`<span class="tag${warnable(t)?' warn':''}">${t}</span>`).join("");
+  let facts=`<div class="afact">Damage: <b>${s.physical} AD</b> / <b>${s.magic} AP</b></div>`;
+  if(s.frontline.length) facts+=`<div class="afact">Frontline: <b>${s.frontline.join(", ")}</b></div>`;
+  const threats=[...new Set([...s.burst,...s.hypercarry])];
+  if(side==="red"&&threats.length) facts+=`<div class="afact">Threats: <b>${threats.join(", ")}</b></div>`;
+  if(side==="blue"&&s.carries.length) facts+=`<div class="afact">Carries: <b>${s.carries.join(", ")}</b></div>`;
+  if(s.healing.length>=2) facts+=`<div class="afact">Sustain: <b>${s.healing.join(", ")}</b>${side==="red"?" — rush Grievous Wounds":""}</div>`;
+  return `<div class="ana ${side}"><h3>${title}</h3>${tags?`<div class="tags">${tags}</div>`:""}${facts}</div>`;
+}
+function renderAnalysis(a){
+  const box=document.getElementById("analysis");
+  if(!a||(!a.enemy&&!a.team)){box.innerHTML="";return;}
+  let html=teamCard("blue","Your team",a.team)+teamCard("red","Enemy team",a.enemy);
+  let strat="";
+  if(a.game_plan) strat+=`<div class="sline"><span class="slab">Tempo</span>${a.game_plan}</div>`;
+  if(a.win_condition) strat+=`<div class="sline"><span class="slab">Win</span>${a.win_condition.replace(/^Win condition:\s*/,"")}</div>`;
+  if(strat) html+=`<div class="strat">${strat}</div>`;
+  if(a.needs&&a.needs.length) html+=`<div class="needs">Your team is missing: <b>${a.needs.join(", ")}</b> — picks that provide these are prioritized below.</div>`;
+  if(a.itemization&&a.itemization.length) html+=`<div class="items"><span class="ilab">Build vs their comp:</span>`+a.itemization.map(h=>`<span class="item"><b>${h.item}</b> — ${h.why}</span>`).join("")+`</div>`;
+  box.innerHTML=html;
+}
+function kitTags(name){
+  const f=new Set((NAME2OBJ[name]||{}).flags||[]);
+  const t=[];
+  const ad=f.has("deals_physical"),ap=f.has("deals_magic");
+  if(ad&&ap)t.push("mixed dmg"); else if(ad)t.push("AD"); else if(ap)t.push("AP");
+  if(f.has("scaling_late"))t.push("scales hard"); else if(f.has("scaling_early"))t.push("early-game"); else t.push("mid-game");
+  if(f.has("high_mobility"))t.push("high mobility"); else if(f.has("immobile"))t.push("immobile");
+  if(f.has("burst"))t.push("burst"); else if(f.has("sustained_dps"))t.push("sustained DPS");
+  if(f.has("frontline"))t.push("frontline");
+  return t;
+}
+function laneRead(cn,on){
+  if(!on||!NAME2OBJ[on]||!NAME2OBJ[cn]) return [];
+  const c=new Set(NAME2OBJ[cn].flags||[]), o=new Set(NAME2OBJ[on].flags||[]);
+  const oMob=o.has("dash")||o.has("blink")||o.has("high_mobility");
+  const cMob=c.has("dash")||c.has("blink")||c.has("high_mobility");
+  const n=[];
+  if(c.has("ranged")&&o.has("melee")&&!oMob) n.push("you outrange them");
+  if(c.has("melee")&&!cMob&&o.has("ranged")&&o.has("lane_poke")) n.push("you get poked early");
+  if(cMob&&o.has("skillshot_reliant")) n.push("dodge their key spells");
+  if(c.has("scaling_late")&&o.has("scaling_early")) n.push("cede early, outscale");
+  if(c.has("scaling_early")&&o.has("scaling_late")) n.push("punish them before they scale");
+  if(c.has("burst")&&o.has("immobile")) n.push("all-in kill threat");
+  if(o.has("burst")&&c.has("immobile")&&!c.has("self_peel")) n.push("respect their all-in");
+  return n.slice(0,2);
+}
+function line(cls,w,text,detail){ return `<div class="line"><span class="w ${cls}">${w}</span><span class="${cls}">${text}${detail?`<span class="detail"> — ${detail}</span>`:``}</span></div>`; }
+function renderResults(){
+  const res=document.getElementById("results"); res.innerHTML="";
+  const all=LAST.results, list=SHOWALL?all:all.slice(0,8);
+  const top=all[0];
+  if(top){
+    const strip=s=>s.replace(/\s*\([^)]*\)/g,"");
+    // Headline = the most matchup-SPECIFIC strong reason, not just the heaviest.
+    // (A "your team needs engage" team-need shouldn't narrate over "they're full AD".)
+    const SCOPE_RANK={lane:0,matchup:1,duo:2,scaling:3,comp:4,team_need:5};
+    const posR=top.fired.filter(f=>f.weight>0), maxw=posR.length?posR[0].weight:0;
+    const lead=posR.filter(f=>f.weight>=maxw*0.6)
+      .sort((a,b)=>(SCOPE_RANK[a.scope]??3)-(SCOPE_RANK[b.scope]??3)||b.weight-a.weight)[0];
+    const con=top.fired.find(f=>f.weight<0), gap=(top.gaps||[])[0];
+    const second=all[1], margin=second?Math.round(top.score-second.score):null;
+    let v=`<b>${top.champ}</b> · ${top.fit}/100 fit — `+(lead?strip(lead.reason):"a balanced pick for this draft");
+    if(LAST.analysis&&LAST.analysis.game_plan) v+=". "+LAST.analysis.game_plan;
+    const cav=con?con.reason:(gap?gap.reason:null);
+    if(cav) v+=` <span class="cav">Watch out — ${strip(cav)}.</span>`;
+    const tied=all.filter((r,i)=>i>0&&Math.abs(top.score-r.score)<1.5).map(r=>r.champ);
+    if(tied.length) v+=` <span class="cav">Effectively tied with ${tied.slice(0,3).join(", ")} — comfort decides.</span>`;
+    else if(margin!=null){const tier=margin>=12?"clear best pick":margin>=5?"best here, but there are options":"very close — your comfort can decide";
+      v+=` <span class="cav">${LAST.confidence} confidence: ${tier} (+${margin} over ${second.champ}).</span>`;}
+    const box=document.createElement("div"); box.className="verdict"; box.innerHTML="▶ "+v; res.append(box);
+  }
+  list.forEach((r,idx)=>{
+    const o=NAME2OBJ[r.champ]||{};
+    const pros=(r.fired||[]).filter(f=>f.weight>=0);
+    const cons=(r.fired||[]).filter(f=>f.weight<0);
+    const card=document.createElement("div"); card.className="card"+(idx===0?" top":"");
+    let body='<div class="kit">'+kitTags(r.champ).map(k=>`<span>${k}</span>`).join("")+'</div>';
+    const lr=laneRead(r.champ,LAST.lane_opponent);
+    if(lr.length) body+=`<div class="lane">⚔ vs ${LAST.lane_opponent} — ${lr.join(" · ")}</div>`;
+    if(pros.length) body+='<div class="grp"><span class="lab">Brings</span>'+pros.map(f=>line("pos1","+"+f.weight,f.reason,f.detail)).join("")+'</div>';
+    if(r.mastery_score>0) body+='<div class="grp">'+line("comfort","+"+Math.round(r.mastery_score),r.mastery_label)+'</div>';
+    if(cons.length) body+='<div class="grp"><span class="lab">Risks</span>'+cons.map(f=>line("neg1",f.weight,f.reason)).join("")+'</div>';
+    const gaps=(r.gaps||[]).slice();
+    let gapLines=gaps.map(g=>line("gap1","—",g.reason)).join("");
+    if(!r.mastery_points) gapLines+=line("gap1","—","not a champion you play (no comfort bonus)");
+    if(gapLines) body+='<div class="grp"><span class="lab">Missing vs an ideal pick</span>'+gapLines+'</div>';
+    if(!pros.length&&!cons.length&&!gaps.length&&r.mastery_points) body+='<div class="hint" style="padding:4px 0">Solid neutral pick — nothing in this draft specifically favors or fights it.</div>';
+    {const b=r.breakdown||{}; const p=[`base ${Math.round(b.base||0)}`];
+     if(b.top) p.push(`<span class="pos1">+${Math.round(b.top)}</span> best reason`);
+     if(b.extras>=1) p.push(`<span class="pos1">+${Math.round(b.extras)}</span> other reasons (diminished)`);
+     if(b.comfort>0) p.push(`<span class="comfort">+${Math.round(b.comfort)}</span> comfort`);
+     if(b.risk<0) p.push(`<span class="neg1">−${Math.abs(Math.round(b.risk))}</span> risk`);
+     body+=`<div class="scoremath">${p.join(" ")} = <b>${Math.round(r.score)} pts</b> → <b>${r.fit}</b>/100 fit</div>`;}
+    const tiedPrev=idx>0&&Math.abs(list[idx-1].score-r.score)<1.5;
+    card.innerHTML=`<div class="left"><span class="rank">${tiedPrev?"=":"#"+(idx+1)}</span><img src="${o.id?iconUrl(o.id):''}"><span class="cname">${r.champ}</span></div>`+
+      `<div class="fit"><span class="num">${r.fit}</span><span class="den">/100 FIT</span>${idx===0?`<span class="pill ${LAST.confidence}">${LAST.confidence}</span>`:``}</div>`+
+      `<div class="body">${body||'<div class="hint">No factors triggered.</div>'}</div>`;
+    res.append(card);
+  });
+  const btn=document.getElementById("showall");
+  btn.style.display=all.length>8?"inline-block":"none";
+  btn.textContent=SHOWALL?"Show top 8":("Show all "+all.length);
+}
+
+function randomDraft(){
+  const used=new Set(), myrole=document.getElementById("myrole").value;
+  const pickFor=role=>{const o=CHAMPS.filter(c=>(c.roles||[]).includes(role)&&!used.has(c.name));
+    if(!o.length)return ""; const n=o[Math.floor(Math.random()*o.length)].name; used.add(n); return n;};
+  enemyByRole={};allyByRole={};
+  ROLES.forEach(([v])=>{ enemyByRole[v]=pickFor(v); if(v!==myrole) allyByRole[v]=pickFor(v); });
+  buildBoard(); liveEval();
+}
+function clearAll(){ allyByRole={};enemyByRole={};LAST=null;buildBoard();
+  document.getElementById("analysis").innerHTML="";
+  document.getElementById("results").innerHTML='<div class="empty">Set your role and the draft, then hit Evaluate.</div>';
+  document.getElementById("laneinfo").textContent="";document.getElementById("poolinfo").textContent="";document.getElementById("showall").style.display="none"; }
+
+async function init(){
+  const data=await (await fetch("/api/champions")).json();
+  CHAMPS=data.champions; VERSION=data.version; NAMESET=new Set(CHAMPS.map(c=>c.name)); CHAMPS.forEach(c=>NAME2OBJ[c.name]=c);
+  document.getElementById("champcount").textContent=data.count;
+  buildBoard(); renderMastery();
+  const mp=makePicker(); document.getElementById("mpick").append(mp.el);
+  document.getElementById("madd").onclick=()=>{const n=mp.get(); if(!n)return; MASTERY[n]=parseInt(document.getElementById("mpts").value||"0",10); saveMastery(); renderMastery(); mp.set(""); liveEval();};
+  document.getElementById("myrole").onchange=()=>{buildBoard();document.getElementById("bansout").innerHTML="";liveEval();};
+  document.getElementById("run").onclick=evaluate;
+  document.getElementById("rand").onclick=randomDraft;
+  const po=document.getElementById("poolonly");
+  po.checked=localStorage.getItem("qp_poolonly")==="1";
+  po.onchange=()=>{localStorage.setItem("qp_poolonly",po.checked?"1":"0");liveEval();};
+  document.getElementById("bansbtn").onclick=suggestBans;
+  document.getElementById("clear").onclick=clearAll;
+  document.getElementById("showall").onclick=()=>{SHOWALL=!SHOWALL;renderResults();};
+}
+init();
+</script>
+</body>
+</html>
