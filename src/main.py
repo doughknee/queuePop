@@ -222,6 +222,26 @@ def main():
     # the window makes pywebview recurse the WebView2 COM graph and hang startup.
     api._window = window
 
+    # Windows 11's DWM rounds every top-level window by default; the League
+    # client uses square corners, so opt this window out via
+    # DWMWA_WINDOW_CORNER_PREFERENCE (33) = DWMWCP_DONOTROUND (1). Harmless
+    # no-op on Windows 10, where the attribute doesn't exist (call just fails).
+    def square_corners():
+        try:
+            hwnd = int(window.native.Handle)  # WinForms host form
+        except Exception:
+            hwnd = ctypes.WinDLL("user32").FindWindowW(None, "queuePop")
+        if hwnd:
+            pref = ctypes.c_int(1)
+            try:
+                ctypes.WinDLL("dwmapi").DwmSetWindowAttribute(
+                    ctypes.c_void_p(hwnd), 33, ctypes.byref(pref), ctypes.sizeof(pref)
+                )
+            except Exception:
+                pass
+
+    window.events.shown += square_corners
+
     # Closing the window hides it to the tray instead of quitting; only the
     # tray "Exit" item (which flips this flag) actually tears the app down.
     app_state = {"quitting": False}

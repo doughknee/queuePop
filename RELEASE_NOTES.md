@@ -1,9 +1,17 @@
-A fast fix for a 1.4.2 hiccup: clicking **Refresh champion data** could make all of your champion icons disappear. That's resolved — refresh works cleanly now, and if it happened to you, updating brings your icons right back.
+Some releases add features. Some fix bugs. And then — once in a generation — a release *corrects the very geometry of your desktop*. This is that release.
 
-## 🐛 Fixed
+For too long, Windows 11 has been quietly rounding queuePop's corners behind your back. Soft. Curved. **Wrong.** The League client would never. One man saw it. One man spoke up.
 
-Champion icons no longer vanish after you use **Refresh champion data**. Refreshed portraits now display correctly everywhere — the picker, your plan, live champ select, and your profile. If your icons went blank in 1.4.2, this release restores them automatically.
+## ✨ The headline act
+
+- **Perfect 90° window corners.** queuePop's frame now matches the League client's razor-sharp hextech edges — all four corners, mathematically exact, no notes. Windows 11 wanted them round; we respectfully declined on your behalf. (Windows 10 users: your corners were already flat, and now they're flat *on purpose*.)
+
+## 🏆 Hall of Fame
+
+This entire release exists because **@Beenis** — visionary, patriot, first of his name, keeper of the right angle — glanced at our window and immediately clocked what the rest of us had scrolled past a thousand times: *"those corners are round."* Four words that shook the project to its foundation.
+
+Scientists estimate this change affects roughly 340 pixels. Historians will argue it changed everything. Beenis, this one's for you. o7
 
 ## 🔧 Under the hood
 
-Refreshed portraits are now copied into the app's own asset folder instead of being loaded from an external path the embedded browser refuses to render, so the relative image paths that already worked keep working.
+- The app now opts out of the OS-level rounded-corner treatment when the window is shown. That's it. That's the whole release. It's perfect.
