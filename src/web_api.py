@@ -163,40 +163,33 @@ async def _fetch_game_queues(conn):
         return None
     return await r.json()
 
-# LCU region code -> op.gg region slug. The client reports either short codes
-# (NA, EUW) or platform ids (NA1, EUW1); cover both.
-_OPGG_REGION = {
-    "NA": "na", "NA1": "na", "EUW": "euw", "EUW1": "euw",
-    "EUNE": "eune", "EUN1": "eune", "KR": "kr", "BR": "br", "BR1": "br",
-    "JP": "jp", "JP1": "jp", "OCE": "oce", "OC1": "oce",
-    "LAN": "lan", "LA1": "lan", "LAS": "las", "LA2": "las",
-    "TR": "tr", "TR1": "tr", "RU": "ru", "PH": "ph", "PH2": "ph",
-    "SG": "sg", "SG2": "sg", "TH": "th", "TH2": "th", "TW": "tw", "TW2": "tw",
-    "VN": "vn", "VN2": "vn", "ME": "me", "ME1": "me",
-}
+# LCU region code -> (op.gg slug, Riot platform id). The client reports either
+# short codes (NA, EUW) or platform ids (NA1, EUW1) — both key the same pair.
+# One table so the two derived lookups can never drift apart.
+_REGIONS = {}
+for _keys, _pair in [
+    (("NA", "NA1"), ("na", "na1")), (("EUW", "EUW1"), ("euw", "euw1")),
+    (("EUNE", "EUN1"), ("eune", "eun1")), (("KR",), ("kr", "kr")),
+    (("BR", "BR1"), ("br", "br1")), (("JP", "JP1"), ("jp", "jp1")),
+    (("OCE", "OC1"), ("oce", "oc1")), (("LAN", "LA1"), ("lan", "la1")),
+    (("LAS", "LA2"), ("las", "la2")), (("TR", "TR1"), ("tr", "tr1")),
+    (("RU",), ("ru", "ru")), (("PH", "PH2"), ("ph", "ph2")),
+    (("SG", "SG2"), ("sg", "sg2")), (("TH", "TH2"), ("th", "th2")),
+    (("TW", "TW2"), ("tw", "tw2")), (("VN", "VN2"), ("vn", "vn2")),
+    (("ME", "ME1"), ("me", "me1")),
+]:
+    for _k in _keys:
+        _REGIONS[_k] = _pair
 
 
 def _opgg_region(region):
     r = (region or "").upper().strip()
-    return _OPGG_REGION.get(r, r.lower())
-
-
-# LCU region code -> Riot platform id (na1, euw1, …). Some tracker sites key off
-# the platform id rather than the short region slug.
-_PLATFORM = {
-    "NA": "na1", "NA1": "na1", "EUW": "euw1", "EUW1": "euw1",
-    "EUNE": "eun1", "EUN1": "eun1", "KR": "kr", "BR": "br1", "BR1": "br1",
-    "JP": "jp1", "JP1": "jp1", "OCE": "oc1", "OC1": "oc1",
-    "LAN": "la1", "LA1": "la1", "LAS": "la2", "LA2": "la2",
-    "TR": "tr1", "TR1": "tr1", "RU": "ru", "PH": "ph2", "PH2": "ph2",
-    "SG": "sg2", "SG2": "sg2", "TH": "th2", "TH2": "th2", "TW": "tw2", "TW2": "tw2",
-    "VN": "vn2", "VN2": "vn2", "ME": "me1", "ME1": "me1",
-}
+    return _REGIONS.get(r, (r.lower(), None))[0]
 
 
 def _platform(region):
     r = (region or "").upper().strip()
-    return _PLATFORM.get(r, r.lower())
+    return _REGIONS.get(r, (None, r.lower()))[1]
 
 
 def external_profile_links(name, tag, region, platform):

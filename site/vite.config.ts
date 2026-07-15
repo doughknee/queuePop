@@ -1,17 +1,10 @@
 import { defineConfig } from 'vite'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// Static marketing site: `npm run build` builds the client bundle, then an SSR
+// pass (src/prerender.tsx + prerender.mjs) bakes the rendered page into
+// dist/index.html so any static host (nginx) serves real HTML.
 export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    // Static marketing site: prerender the route to HTML so it can be served
-    // by any static host (nginx) — no Node server needed at runtime.
-    tanstackStart({
-      prerender: { enabled: true, crawlLinks: true },
-      pages: [{ path: '/' }],
-    }),
-    viteReact(),
-  ],
+  plugins: [tailwindcss(), viteReact()],
 })

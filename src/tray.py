@@ -1,20 +1,8 @@
-import sys
-import os
 from pystray import Icon, Menu, MenuItem as item
 from PIL import Image
 
 import config
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+from config import resource_path
 
 
 class TrayIcon:
@@ -84,10 +72,6 @@ class TrayIcon:
             menu=self._create_menu(),
         )
         return self.icon
-
-    def run(self):
-        """Creates and runs the tray icon (blocking)."""
-        self._build_icon().run()
 
     def run_detached(self):
         """Creates and runs the tray icon in its own thread (non-blocking).

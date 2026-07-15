@@ -8,15 +8,15 @@ A lightweight, automated tool for **League of Legends** and **Teamfight Tactics*
 
 ## 📸 Screenshots
 
-![queuePop dashboard, monitoring, ranked overview, and live activity](docs/screenshots/dashboard.png)
+![queuePop dashboard, monitoring, ranked overview, and live activity](site/public/shots/dashboard.png)
 
 | Auto pick/ban & notifications | Champion priority list |
 | :---: | :---: |
-| ![Settings](docs/screenshots/settings.png) | ![Champion select](docs/screenshots/champ-select.png) |
+| ![Settings](site/public/shots/settings.png) | ![Champion select](site/public/shots/champ-select.png) |
 | **Per-champion loadouts** | **One-click queue** |
-| ![Loadout editor](docs/screenshots/loadout.png) | ![Queue launcher](docs/screenshots/queue.png) |
+| ![Loadout editor](site/public/shots/loadout.png) | ![Queue launcher](site/public/shots/queue.png) |
 | **Rank & mastery at a glance** | **Every queue, including TFT** |
-| ![Profile overview](docs/screenshots/profile.png) | ![Full queue picker](docs/screenshots/queue-all.png) |
+| ![Profile overview](site/public/shots/profile.png) | ![Full queue picker](docs/screenshots/queue-all.png) |
 
 ## 🚀 Features
 

@@ -1,7 +1,7 @@
 # queuePop, marketing site
 
-Single-page marketing site for queuePop, built with **Vite + TanStack Start**
-(React + TypeScript) and **Tailwind CSS v4**. It mirrors the app's Hextech visual
+Single-page marketing site for queuePop, built with **Vite + React**
+(TypeScript) and **Tailwind CSS v4**. It mirrors the app's Hextech visual
 identity (gold/teal palette, Cinzel/Marcellus type) using only license-clean
 assets, **no Riot Games artwork or trademarks** appear on the site.
 
@@ -16,16 +16,17 @@ npm run dev        # http://localhost:3000
 ## Build
 
 ```bash
-npm run build      # prerenders the page to static files in dist/client/
+npm run build      # prerenders the page to static files in dist/
 npm run preview    # preview the production build locally
 ```
 
-The route is prerendered to plain HTML + assets in `dist/client/`, so this is a
+The page is prerendered to plain HTML + assets in `dist/` (an SSR pass bakes
+the rendered markup into `index.html`, see `prerender.mjs`), so this is a
 fully static site, no Node server at runtime.
 
 ## Deploy (Docker / Coolify)
 
-A `Dockerfile` builds the site and serves `dist/client/` with nginx. In Coolify:
+A `Dockerfile` builds the site and serves `dist/` with nginx. In Coolify:
 
 - Build Pack: **Dockerfile**
 - Base Directory: **/site**
@@ -40,7 +41,7 @@ docker build -t queuepop-site ./site
 docker run -p 8080:3000 queuepop-site   # http://localhost:8080
 ```
 
-Any static host also works, just upload `dist/client/`.
+Any static host also works, just upload `dist/`.
 
 ## Things to wire up before launch
 
@@ -50,7 +51,8 @@ Any static host also works, just upload `dist/client/`.
 
 ## Structure
 
-- `src/routes/`, `__root.tsx` (document shell + head) and `index.tsx` (page).
+- `index.html` (document shell + head), `src/App.tsx` (the page),
+  `src/main.tsx` (client entry) and `src/prerender.tsx` (build-time SSR entry).
 - `src/components/`, section components + `PlayEmblem` (recreated from
   `../../brand/play-button.svg`) and the `icons.tsx` original icon set.
 - `src/styles/globals.css`, Tailwind v4 `@theme` tokens + ported `.hextech` /

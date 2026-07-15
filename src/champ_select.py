@@ -143,12 +143,11 @@ class ChampSelect:
         self._trade_state = {}     # (kind, tradeId) -> 'accepted'|'notified'|'declined'
         self._trade_out = None     # our live outgoing request: {'id', 'cell'} or None
         self._trade_last = {}      # tradeId -> monotonic time of our last action (cooldown)
-        self._swap_state = {}      # (kind, swapId) -> 'accepted'|'notified'|'declined'
-        self._swap_out = None      # our live outgoing pick-order request: {'id', 'cell'}
-        self._swap_last = {}       # swapId -> monotonic time of our last action (cooldown)
-        self._pos_state = {}       # role swaps: same shape as _swap_state
-        self._pos_out = None
-        self._pos_last = {}
+        # Pick-order ('pick') and role ('pos') swap reconciler state, one slot
+        # each: state=(kind, swapId)->'accepted'|'notified'|'declined',
+        # out=our live outgoing request {'id','cell'}|None, last=cooldowns.
+        self._swapctl = {k: {'state': {}, 'out': None, 'last': {}}
+                         for k in ('pick', 'pos')}
         self._bench_seen = {}      # championId -> when it first became the bench target
         self._bench_target = None  # championId we last tried to grab off the bench
         self._mastery_rows = None  # championId -> mastery facts, cached per session
@@ -274,12 +273,8 @@ class ChampSelect:
         self._trade_state = {}
         self._trade_out = None
         self._trade_last = {}
-        self._swap_state = {}
-        self._swap_out = None
-        self._swap_last = {}
-        self._pos_state = {}
-        self._pos_out = None
-        self._pos_last = {}
+        self._swapctl = {k: {'state': {}, 'out': None, 'last': {}}
+                         for k in ('pick', 'pos')}
         self._bench_seen = {}
         self._bench_target = None
         self._mastery_rows = None
@@ -1215,151 +1210,69 @@ class ChampSelect:
                         order.append(c)
         return {c: i + 1 for i, c in enumerate(order)}
 
-    async def _handle_pick_order(self, session_conn, session, local_cell, wants):
+    # The two swap features (pick order, assigned role) run the same reconcile
+    # state machine; only the session key, endpoint, labels, and wording differ.
+    _SWAP_KINDS = {
+        'pick': {
+            'kind': 'pick', 'session_key': 'pickOrderSwaps',
+            'endpoint': 'pick-order-swaps', 'event_kind': 'pick_swap',
+            'log': 'pick swap',
+            'accept_console': '🔃 Accepted pick swap → {label} pick',
+            'accept_event': 'Accepted pick-order swap — now picking {label}',
+            'accept_fail': 'Pick-order swap accept failed',
+            'received': 'Pick-order swap requested by a teammate',
+            'cancel': 'Cancelled pick-order swap request',
+            'request_console': '🔃 Requesting the {label} pick',
+            'request_event': 'Requesting a pick-order swap for the {label} pick',
+            'request_fail': 'Pick-order swap request failed',
+        },
+        'pos': {
+            'kind': 'pos', 'session_key': 'positionSwaps',
+            'endpoint': 'position-swaps', 'event_kind': 'role_swap',
+            'log': 'position swap',
+            'accept_console': '🔄 Accepted role swap → {label}',
+            'accept_event': 'Accepted role swap — now playing {label}',
+            'accept_fail': 'Role swap accept failed',
+            'received': 'Role swap requested by a teammate',
+            'cancel': 'Cancelled role swap request',
+            'request_console': '🔄 Requesting a role swap → {label}',
+            'request_event': 'Requesting a role swap for {label}',
+            'request_fail': 'Role swap request failed',
+        },
+    }
+
+    async def _handle_pick_order(self, connection, session, local_cell, wants):
         """Trade pick order toward the best spot on the priority line (`wants`,
-        1..5 best-first) we can still get. Reconciled like champ trades: ONE
-        live outgoing request, aimed at the highest-ranked improvement whose
-        holder hasn't declined — a decline drops to the next spot on the list.
-        Incoming swaps are accepted only when they move us UP the list."""
-        connection = session_conn
+        1..5 best-first) we can still get."""
         my_team = session.get('myTeam', []) or []
         positions = self._pick_positions(session, my_team)
-        my_pos = positions.get(local_cell)
-        if not my_pos:
-            return
-        swaps = session.get('pickOrderSwaps') or []
-
-        def rank(pos):  # index on the priority line; unlisted ranks last
-            try:
-                return wants.index(pos)
-            except ValueError:
-                return len(wants)
-
-        my_rank = rank(my_pos)
-
-        # Incoming offers: accept only if the other player's spot ranks higher
-        # on our line than ours does; otherwise just surface it once.
-        for s in swaps:
-            if s.get('state') != 'RECEIVED':
-                continue
-            sid = s.get('id')
-            their_pos = positions.get(s.get('cellId'))
-            if their_pos and rank(their_pos) < my_rank:
-                if self._swap_state.get(('recv', sid)) != 'accepted':
-                    self._swap_state[('recv', sid)] = 'accepted'
-                    ok = await self._post_pick_swap(connection, sid, 'accept')
-                    label = self._ORDINAL.get(their_pos, their_pos)
-                    if ok:
-                        config.console.print(f"[success]🔃 Accepted pick swap → {label} pick[/]")
-                        events.push(f"Accepted pick-order swap — now picking {label}",
-                                    "success", kind="pick_swap")
-                    else:
-                        events.push("Pick-order swap accept failed", "warning", kind="pick_swap")
-                    self._log(f"pick swap {sid} accept (pos {their_pos}) ok={ok}")
-            elif self._swap_state.get(('recv', sid)) != 'notified':
-                self._swap_state[('recv', sid)] = 'notified'
-                events.push("Pick-order swap requested by a teammate", "info", kind="pick_swap")
-                self._log(f"pick swap {sid} received (pos {their_pos}, not higher-ranked)")
-
-        now = time.monotonic()
-
-        # Resolve our outstanding request first so a fresh DECLINED is known
-        # before this tick's target is chosen (a decline falls down the line).
-        out = self._swap_out
-        if out:
-            s = next((x for x in swaps if x.get('id') == out['id']), None)
-            state = (s or {}).get('state')
-            if state == 'DECLINED':
-                self._swap_state[('req', out['id'])] = 'declined'
-            if state not in ('SENT', 'BUSY'):
-                self._swap_out = None
-
-        # Best improvement still worth asking for: walk the line above our
-        # current rank; skip spots whose holder declined or is cooling down.
-        target = None  # (cell, swap id)
-        for want in wants[:my_rank]:
-            cell = next((c for c, p in positions.items()
-                         if p == want and c != local_cell), None)
-            if cell is None:
-                continue
-            s = next((x for x in swaps if x.get('cellId') == cell), None)
-            if not s:
-                continue
-            sid = s.get('id')
-            if self._swap_state.get(('req', sid)) == 'declined':
-                continue
-            if self._swap_out and self._swap_out['id'] == sid:
-                target = (cell, sid)  # the pending request is still our best ask
-                break
-            if s.get('state') != 'AVAILABLE':
-                continue
-            if now - self._swap_last.get(sid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
-                continue
-            target = (cell, sid)
-            break
-
-        out = self._swap_out
-        if out:
-            # Cancel a live request that's no longer the best ask (we moved up,
-            # its holder changed, or a higher-ranked spot freed up).
-            if target is None or out['id'] != target[1]:
-                ok = await self._post_pick_swap(connection, out['id'], 'cancel')
-                events.push("Cancelled pick-order swap request", "info", kind="pick_swap")
-                self._log(f"pick swap {out['id']} cancel ok={ok}")
-                self._swap_last[out['id']] = now
-                self._swap_out = None
-            return  # one swap action per tick keeps the reconcile simple
-
-        if target is None:
-            return
-        best_cell, sid = target
-        want = positions.get(best_cell)
-        self._swap_last[sid] = now
-        ok = await self._post_pick_swap(connection, sid, 'request')
-        label = self._ORDINAL.get(want, want)
-        if ok:
-            self._swap_out = {'id': sid, 'cell': best_cell}
-            config.console.print(f"[info]🔃 Requesting the {label} pick[/]")
-            events.push(f"Requesting a pick-order swap for the {label} pick",
-                        "info", kind="pick_swap")
-        else:
-            events.push("Pick-order swap request failed", "warning", kind="pick_swap")
-        self._log(f"pick swap {sid} request (want {want}, holder cell {best_cell}) ok={ok}")
-
-    async def _post_pick_swap(self, connection, swap_id, action):
-        """POST a pick-order-swap action (request/accept/decline/cancel)."""
-        try:
-            resp = await connection.request(
-                'post',
-                f'/lol-champ-select/v1/session/pick-order-swaps/{swap_id}/{action}'
-            )
-        except Exception as e:
-            self._log(f"pick swap {swap_id} {action} raised: {e!r}")
-            return False
-        if resp.status >= 400:
-            self._log(f"pick swap {swap_id} {action} -> HTTP {resp.status}")
-            return False
-        return True
-
-    # --- Position (role) swaps ------------------------------------------
+        await self._reconcile_swaps(connection, session, local_cell, wants,
+                                    positions, self._SWAP_KINDS['pick'],
+                                    self._ORDINAL)
 
     async def _handle_position_swap(self, connection, session, local_cell, wants):
         """Trade assigned roles toward the best role on the priority line
-        (`wants`, best first). Reconciled exactly like pick-order swaps: one
-        live request at the highest-ranked improvement's holder, a decline
-        drops to the next role on the list, incoming offers accepted only when
-        they move us up it, declines never re-asked."""
-        my_team = session.get('myTeam', []) or []
-        pos_of = {}
-        my_pos = ''
-        for p in my_team:
-            pos = (p.get('assignedPosition') or '').lower()
-            pos_of[p.get('cellId')] = pos
-            if p.get('cellId') == local_cell:
-                my_pos = pos
+        (`wants`, best first)."""
+        pos_of = {p.get('cellId'): (p.get('assignedPosition') or '').lower()
+                  for p in session.get('myTeam', []) or []}
+        await self._reconcile_swaps(connection, session, local_cell, wants,
+                                    pos_of, self._SWAP_KINDS['pos'], ROLE_LABELS)
+
+    async def _reconcile_swaps(self, connection, session, local_cell, wants,
+                               pos_of, spec, labels):
+        """Shared reconcile loop for pick-order and role swaps. A swap is a
+        standing offer, not an action, so this reconciles each poll: keep at
+        most ONE live outgoing request, aimed at the highest-ranked improvement
+        whose holder hasn't declined — a decline drops to the next entry on the
+        list — and cancel it the moment it goes stale. Incoming offers are
+        accepted only when they move us UP the list (else surfaced once).
+        `pos_of` maps our team's cellId -> slot (1..5 pick position or role
+        key); `wants` is the priority line (best first) in the same terms."""
+        my_pos = pos_of.get(local_cell)
         if not my_pos:
-            return  # no assigned roles in this queue
-        swaps = session.get('positionSwaps') or []
+            return  # nothing assigned in this queue
+        swaps = session.get(spec['session_key']) or []
+        st = self._swapctl[spec['kind']]
 
         def rank(pos):  # index on the priority line; unlisted ranks last
             try:
@@ -1369,44 +1282,48 @@ class ChampSelect:
 
         my_rank = rank(my_pos)
 
-        # Incoming offers: accept only one that moves us up the line.
+        # Incoming offers: accept only if the other player's slot ranks higher
+        # on our line than ours does; otherwise just surface it once.
         for s in swaps:
             if s.get('state') != 'RECEIVED':
                 continue
             sid = s.get('id')
             their_pos = pos_of.get(s.get('cellId'))
             if their_pos and rank(their_pos) < my_rank:
-                if self._pos_state.get(('recv', sid)) != 'accepted':
-                    self._pos_state[('recv', sid)] = 'accepted'
-                    ok = await self._post_position_swap(connection, sid, 'accept')
-                    label = ROLE_LABELS.get(their_pos, their_pos)
+                if st['state'].get(('recv', sid)) != 'accepted':
+                    st['state'][('recv', sid)] = 'accepted'
+                    ok = await self._post_swap(connection, spec, sid, 'accept')
+                    label = labels.get(their_pos, their_pos)
                     if ok:
-                        config.console.print(f"[success]🔄 Accepted role swap → {label}[/]")
-                        events.push(f"Accepted role swap — now playing {label}",
-                                    "success", kind="role_swap")
+                        config.console.print(
+                            f"[success]{spec['accept_console'].format(label=label)}[/]")
+                        events.push(spec['accept_event'].format(label=label),
+                                    "success", kind=spec['event_kind'])
                     else:
-                        events.push("Role swap accept failed", "warning", kind="role_swap")
-                    self._log(f"position swap {sid} accept ({their_pos}) ok={ok}")
-            elif self._pos_state.get(('recv', sid)) != 'notified':
-                self._pos_state[('recv', sid)] = 'notified'
-                events.push("Role swap requested by a teammate", "info", kind="role_swap")
-                self._log(f"position swap {sid} received ({their_pos}, not higher-ranked)")
+                        events.push(spec['accept_fail'], "warning",
+                                    kind=spec['event_kind'])
+                    self._log(f"{spec['log']} {sid} accept ({their_pos}) ok={ok}")
+            elif st['state'].get(('recv', sid)) != 'notified':
+                st['state'][('recv', sid)] = 'notified'
+                events.push(spec['received'], "info", kind=spec['event_kind'])
+                self._log(f"{spec['log']} {sid} received ({their_pos}, "
+                          f"not higher-ranked)")
 
         now = time.monotonic()
 
         # Resolve our outstanding request first so a fresh DECLINED is known
         # before this tick's target is chosen (a decline falls down the line).
-        out = self._pos_out
+        out = st['out']
         if out:
             s = next((x for x in swaps if x.get('id') == out['id']), None)
             state = (s or {}).get('state')
             if state == 'DECLINED':
-                self._pos_state[('req', out['id'])] = 'declined'
+                st['state'][('req', out['id'])] = 'declined'
             if state not in ('SENT', 'BUSY'):
-                self._pos_out = None
+                st['out'] = None
 
         # Best improvement still worth asking for: walk the line above our
-        # current rank; skip roles whose holder declined or is cooling down.
+        # current rank; skip slots whose holder declined or is cooling down.
         target = None  # (cell, swap id)
         for want in wants[:my_rank]:
             cell = next((c for c, p in pos_of.items()
@@ -1417,57 +1334,60 @@ class ChampSelect:
             if not s:
                 continue
             sid = s.get('id')
-            if self._pos_state.get(('req', sid)) == 'declined':
+            if st['state'].get(('req', sid)) == 'declined':
                 continue
-            if self._pos_out and self._pos_out['id'] == sid:
+            if st['out'] and st['out']['id'] == sid:
                 target = (cell, sid)  # the pending request is still our best ask
                 break
             if s.get('state') != 'AVAILABLE':
                 continue
-            if now - self._pos_last.get(sid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
+            if now - st['last'].get(sid, -self.TRADE_COOLDOWN) < self.TRADE_COOLDOWN:
                 continue
             target = (cell, sid)
             break
 
-        out = self._pos_out
+        out = st['out']
         if out:
             # Cancel a live request that's no longer the best ask (we moved up,
-            # its holder changed, or a higher-ranked role freed up).
+            # its holder changed, or a higher-ranked slot freed up).
             if target is None or out['id'] != target[1]:
-                ok = await self._post_position_swap(connection, out['id'], 'cancel')
-                events.push("Cancelled role swap request", "info", kind="role_swap")
-                self._log(f"position swap {out['id']} cancel ok={ok}")
-                self._pos_last[out['id']] = now
-                self._pos_out = None
+                ok = await self._post_swap(connection, spec, out['id'], 'cancel')
+                events.push(spec['cancel'], "info", kind=spec['event_kind'])
+                self._log(f"{spec['log']} {out['id']} cancel ok={ok}")
+                st['last'][out['id']] = now
+                st['out'] = None
             return  # one swap action per tick keeps the reconcile simple
 
         if target is None:
             return
         best_cell, sid = target
         want = pos_of.get(best_cell)
-        self._pos_last[sid] = now
-        ok = await self._post_position_swap(connection, sid, 'request')
-        label = ROLE_LABELS.get(want, want)
+        st['last'][sid] = now
+        ok = await self._post_swap(connection, spec, sid, 'request')
+        label = labels.get(want, want)
         if ok:
-            self._pos_out = {'id': sid, 'cell': best_cell}
-            config.console.print(f"[info]🔄 Requesting a role swap → {label}[/]")
-            events.push(f"Requesting a role swap for {label}", "info", kind="role_swap")
+            st['out'] = {'id': sid, 'cell': best_cell}
+            config.console.print(
+                f"[info]{spec['request_console'].format(label=label)}[/]")
+            events.push(spec['request_event'].format(label=label),
+                        "info", kind=spec['event_kind'])
         else:
-            events.push("Role swap request failed", "warning", kind="role_swap")
-        self._log(f"position swap {sid} request (want {want}, holder {best_cell}) ok={ok}")
+            events.push(spec['request_fail'], "warning", kind=spec['event_kind'])
+        self._log(f"{spec['log']} {sid} request (want {want}, "
+                  f"holder cell {best_cell}) ok={ok}")
 
-    async def _post_position_swap(self, connection, swap_id, action):
-        """POST a position-swap action (request/accept/decline/cancel)."""
+    async def _post_swap(self, connection, spec, swap_id, action):
+        """POST a swap action (request/accept/decline/cancel). True on success."""
         try:
             resp = await connection.request(
                 'post',
-                f'/lol-champ-select/v1/session/position-swaps/{swap_id}/{action}'
+                f"/lol-champ-select/v1/session/{spec['endpoint']}/{swap_id}/{action}"
             )
         except Exception as e:
-            self._log(f"position swap {swap_id} {action} raised: {e!r}")
+            self._log(f"{spec['log']} {swap_id} {action} raised: {e!r}")
             return False
         if resp.status >= 400:
-            self._log(f"position swap {swap_id} {action} -> HTTP {resp.status}")
+            self._log(f"{spec['log']} {swap_id} {action} -> HTTP {resp.status}")
             return False
         return True
 

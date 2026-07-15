@@ -26,6 +26,16 @@ else:
 
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
+
+def resource_path(relative_path):
+    """Absolute path to a bundled resource, for dev and PyInstaller builds
+    (PyInstaller extracts to a temp dir exposed as sys._MEIPASS)."""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 # --- RICH THEME SETUP ---
 custom_theme = Theme({
     "info": "cyan",

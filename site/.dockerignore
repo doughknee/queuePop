@@ -1,9 +1,7 @@
 node_modules
-.output
-.nitro
-.tanstack
-.vite
 dist
+dist-ssr
+.vite
 *.local
 *.log
 .DS_Store

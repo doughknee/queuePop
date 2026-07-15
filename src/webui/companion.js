@@ -168,36 +168,11 @@ function onLog(e) {
 }
 
 function connectStream() {
-  if (!window.EventSource) {
-    // Very old browser, fall back to interval polling.
-    poll();
-    setInterval(poll, 1500);
-    return;
-  }
   const es = new EventSource(`/api/stream?after=${lastId}`);
   es.addEventListener("log", onLog);
   es.addEventListener("synced", () => (primed = true));
   es.onopen = () => setConn(true, "Watching");
   es.onerror = () => setConn(false, "Reconnecting…"); // EventSource auto-retries
-}
-
-// Fallback poller (only used when EventSource is unavailable).
-async function poll() {
-  try {
-    const res = await fetch(`/api/feed?after=${lastId}`, { cache: "no-store" });
-    const data = await res.json();
-    for (const ev of data.events || []) {
-      lastId = Math.max(lastId, ev.id);
-      if (primed && ev.kind === "queue_pop") {
-        const m = (ev.message || "").match(/Queue popped:\s*([^, -]+)/i);
-        startAlarm(m ? m[1].trim() : "");
-      }
-      renderFeed([ev]);
-    }
-    primed = true;
-  } catch (_) {
-    setConn(false, "Offline");
-  }
 }
 
 async function pollStatus() {

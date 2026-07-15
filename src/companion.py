@@ -11,8 +11,8 @@ Design notes:
   * Strictly read-only: it exposes the in-memory event feed and a tiny status
     blob. It never mutates config or issues LCU actions, which is what makes it
     safe to bind on 0.0.0.0 (reachable from other devices on the Wi-Fi).
-  * The phone page polls /api/feed and alarms when it sees an event tagged
-    kind == "queue_pop" (see events.push / lcu.ready_check_changed).
+  * The phone page listens to the /api/stream SSE feed and alarms when it sees
+    an event tagged kind == "queue_pop" (see events.push / lcu.ready_check_changed).
 """
 
 import asyncio
@@ -99,16 +99,6 @@ def _make_app(lcu=None):
     async def index(_request):
         return web.FileResponse(os.path.join(web_root, "companion.html"))
 
-    async def feed(request):
-        try:
-            after = int(request.query.get("after", 0))
-        except (TypeError, ValueError):
-            after = 0
-        return web.json_response({
-            "latest": events.latest_id(),
-            "events": events.get_since(after),
-        })
-
     def _companion_cfg():
         return ((getattr(lcu, "config", {}) or {}).get("companion", {}) or {}) if lcu else {}
 
@@ -181,7 +171,6 @@ def _make_app(lcu=None):
 
     app = web.Application()
     app.router.add_get("/", index)
-    app.router.add_get("/api/feed", feed)
     app.router.add_get("/api/status", status)
     app.router.add_get("/api/sound", sound)
     app.router.add_get("/api/stream", stream)
@@ -260,11 +249,3 @@ def attach_lcu(lcu):
     """Give the companion access to the live LCU connector (for /api/status).
     Call before start()."""
     start._lcu = lcu
-
-
-def stop():
-    """Ask the server loop to stop. Best-effort; the thread is a daemon anyway."""
-    global _running
-    if _loop and _loop.is_running():
-        _loop.call_soon_threadsafe(_loop.stop)
-    _running = False

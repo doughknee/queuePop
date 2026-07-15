@@ -1,7 +1,7 @@
 # queuePop marketing site — production image for Coolify (or any Docker host).
 #
-# The site is fully static: the TanStack Start build prerenders the page to
-# HTML (dist/client/), so we serve it with nginx. No Node runtime needed.
+# The site is fully static: the build prerenders the page to HTML (dist/), so
+# we serve it with nginx. No Node runtime needed.
 #
 # Coolify setup:
 #   - Build Pack:     Dockerfile
@@ -17,7 +17,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build + prerender (outputs static files to dist/client/).
+# Build + prerender (outputs static files to dist/).
 COPY . .
 RUN npm run build
 
@@ -25,7 +25,7 @@ RUN npm run build
 FROM nginx:1.27-alpine AS runtime
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist/client /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 3000
 
