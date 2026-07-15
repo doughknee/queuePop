@@ -1,10 +1,9 @@
-import sys
-import os
 import time
 import asyncio
 import aiohttp
 from plyer import notification
 import config
+from config import resource_path
 
 # Hextech gold, as a decimal int for Discord embed `color`.
 _EMBED_GOLD = 0xC8AA6E
@@ -16,17 +15,6 @@ last_sent = {}
 
 def _mark(channel, what):
     last_sent[channel] = {"ts": time.time(), "what": what}
-
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 
 def send_desktop_event(title, message, what="alert"):

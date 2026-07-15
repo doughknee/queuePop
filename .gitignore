@@ -13,13 +13,6 @@ config.json
 stats.json
 *.log
 
-# ARAM pick-window diagnostic output (scripts/capture_aram_pick.py)
-scripts/aram_pick_capture.jsonl
-scripts/capture_watcher.out
-scripts/capture_watcher.err
-scripts/dev_app.out
-scripts/dev_app.err
-
 # Downloaded League assets — regenerated via scripts/fetch_assets.py
 src/webui/assets/champions/
 src/webui/assets/positions/
@@ -35,7 +28,8 @@ node_modules/
 .claude/
 scripts/config_before.json
 
-# Counter-engine analysis outputs (regenerable via scripts/coverage_sim.py etc.)
+# Counter-engine analysis outputs (from retired tuning scripts; kept ignored
+# so old local runs don't show up as untracked noise)
 data/coverage_report.json
 data/spotlight_report.json
 data/recommend_pct.json

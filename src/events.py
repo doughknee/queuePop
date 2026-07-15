@@ -49,10 +49,3 @@ def get_since(after_id=0, limit=100):
 def latest_id():
     with _lock:
         return _seq
-
-
-def clear():
-    global _seq
-    with _lock:
-        _events.clear()
-        _seq = 0

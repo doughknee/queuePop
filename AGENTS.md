@@ -18,11 +18,12 @@
 - `scripts/` — all build/dev tooling, invoked from the repo root so their
   relative paths resolve: `build_release.py` (release orchestrator),
   `queuePop.spec` (PyInstaller), `tailwind.config.js`, `run.cmd` / `stop.cmd`
-  (launch/kill the app), `fetch_assets.py` (download champion/role icons), and
-  `lcu_docs_gen.py` + `lcuapi.txt` (regenerate the `docs/lcu/` API reference).
-- `docs/` — `screenshots/` (README images) and `lcu/` (vendored LCU API reference).
+  (launch/kill the app), and `fetch_assets.py` (download champion/role icons).
+  For LCU endpoint reference, query the live client's `/help` — don't trust
+  static docs (Riot renames routes between patches).
+- `docs/` — `screenshots/` (README-only images; the rest live in `site/public/shots/`).
 - `installer/queuePop.iss` — Inno Setup script for the installed build.
-- `site/` — marketing site (Vite + TanStack Start); self-contained.
+- `site/` — marketing site (Vite + React, prerendered to static HTML); self-contained.
 - Build artifacts (`build/`, `dist/`, `releases/`) are generated and gitignored.
 
 ## Build, Test, and Development Commands
