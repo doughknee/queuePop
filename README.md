@@ -21,14 +21,28 @@ A lightweight, automated tool for **League of Legends** and **Teamfight Tactics*
 ## 🚀 Features
 
 *   **Auto-Accept Queues:** Instantly accepts the "Ready Check" popup.
-*   **Auto Pick & Ban:** Automatically bans and picks champions based on your assigned role, with ordered backup picks if your first choice is banned or taken. Hovers your pick and auto-locks it just before the timer runs out.
-*   **ARAM Bench Grab:** In ARAM, automatically swaps to your highest-priority champion the moment it appears on the reroll bench, and applies that champ's loadout (runes, summoner spells, skin).
-*   **Per-Champion Loadouts:** Save runes, summoner spells, and a skin per champion; they're applied automatically once you're locked in.
-*   **System Tray Integration:** Runs silently in the background; minimize to tray to keep your taskbar clean.
-*   **Discord Notifications:** Get a ping on your phone (via Discord Webhook) when your queue pops!
-*   **Game Mode Detection:** Smartly identifies if it's Ranked, ARAM, or TFT.
-*   **Queue Filtering:** Configure exactly which game modes to accept (e.g., only "TFT Ranked").
-*   **Zero-Interference:** Uses the LCU API directly, no screen scraping or mouse hijacking.
+*   **Auto Pick & Ban:** Automatically bans and picks champions based on your assigned role, with ordered backup picks. Hovers early and locks just before the timer.
+*   **Per-Champion Loadouts:** Summoner spells, runes, and skin per champion per role; applied automatically on lock-in.
+*   **ARAM Bench Grab:** Watches the reroll bench and swaps to your priority champion with a fallback ranking mode.
+*   **Champion Trades:** Auto-requests trades for higher-priority champions; one live request at a time, cancelled if it goes stale.
+*   **Live Champ-Select View:** Real-time board of both teams: intents, locks, spells, skins, bans, and pending trades.
+*   **Phone Companion:** Open on any phone; alarms when queue pops with built-in or custom alert sounds.
+*   **Discord Notifications:** Webhook pings with optional @mention when your queue pops.
+*   **Account Dashboard:** Riot ID, level, Solo/Flex/TFT ranks, top mastery, recent matches, and tracker links.
+*   **PLAY Launcher:** One-click queue with accept delay option.
+*   **Alert Event Matrix:** Fine-grained control over which events trigger which alerts.
+*   **Role & Pick Priority:** Set per-role priority for champs and control which champ appears first in pick order.
+*   **Auto Runes:** Loadout runes apply automatically on lock-in.
+*   **Champion Data Refresh:** Auto-refresh account data (mastery, rank) on demand.
+*   **Release Notes:** In-app release notes when you update.
+*   **Service Record:** Review your match history with stats and win rates.
+*   **Game Mode Detection:** Smartly identifies Ranked, ARAM, TFT, Blind Pick, and more.
+*   **System Tray Integration:** Runs in the background; close the window to hide it to the tray.
+*   **Zero-Interference:** Uses the official LCU API directly; no screen scraping or mouse hijacking.
+
+## 🎮 Draft Simulator
+
+The **Draft Sim** is a standalone web app and counter-pick engine that helps you plan team comps and understand matchups. Run it locally with `python scripts/draft_sim_server.py` or deploy it with Docker: `docker build -t queuepop-draft-sim . && docker run -p 5000:5000 queuepop-draft-sim`.
 
 ## 📥 Installation
 
@@ -64,14 +78,15 @@ If you are a developer, you can run it directly with Python.
 
 ## ⚙️ Configuration
 
-On the first run, a setup wizard will appear in a console window.
+On the first run, queuePop creates a default config file and opens the app window with all automation disabled. You'll configure everything in the UI as you go.
 
-1.  **Discord Webhook (Optional):** Paste a webhook URL to receive notifications.
-2.  **Discord User ID (Optional):** Enter your ID (e.g., `123456789`) to get `@mentioned` when the queue pops.
-3.  **Allowed Queues:** Select which modes to auto-accept (or leave blank for all).
+**Optional setup:**
+1.  **Discord Webhook:** Paste a webhook URL in the Alerts tab to get notified when queue pops.
+2.  **Discord User ID:** Enter your ID (e.g., `123456789`) for an @mention in those pings.
+3.  **Allowed Queues:** Under the Dashboard, toggle which game modes to auto-accept.
 
 ### Auto Pick & Ban
-Open **Settings** from the tray icon and switch to the **Champ Select** tab:
+Click the **Champ Select** tab in the app and configure per-role bans and picks:
 
 1.  Tick **Enable Auto Pick / Ban**.
 2.  For each role, enter comma-separated champion names for **Ban(s)** and **Pick(s)**, e.g. `Ahri, Syndra, Lux`. Picks are tried in order, so list backups in case your first choice is banned or already taken by a teammate.
@@ -80,21 +95,18 @@ Open **Settings** from the tray icon and switch to the **Champ Select** tab:
 > Role-based pick & ban applies to queues with assigned roles (Draft Pick, Ranked Solo/Duo, Ranked Flex). Blind Pick has no roles and is left alone.
 
 ### ARAM
-ARAM doesn't let you pick a champion outright — you're dealt one and share a
-bench with your team. So instead of picking, queuePop **watches the bench and
-instantly grabs the best champ available** the moment it shows up. Two ways to
-choose "best", both under **Settings → Champ Select → ARAM**:
+In ARAM, queuePop watches the reroll bench and instantly grabs the best champion when one appears. Under **Champ Select → ARAM**:
 
-*   **Priority list** — tick **Grab a higher-priority champ off the bench** and
-    build a ranked list on **Champ Select → ARAM** (e.g. `Ziggs, Lux, Ashe`);
-    queuePop trades toward the highest-ranked one available.
-*   **Highest mastery** — tick **Auto-pick my highest-mastery champ available**
-    to skip sorting ~180 champs entirely; queuePop always reaches for the
-    highest-mastery champ you own. This disables the ARAM editor tab (the list
-    is no longer used).
+*   **ARAM takeover** — toggle to enable the whole system (bench grabs, champion trades, auto-loadout).
+*   **Fallback mode** — pick how queuePop ranks champions beyond your priority list:
+    - **Off:** List only; queuePop never goes beyond your picks.
+    - **Highest:** Falls back to your most-played champs.
+    - **Lowest:** Falls back to champs you've barely touched (never-played first).
+    - **Rusty:** Falls back to whichever you haven't played in the longest.
+    - **Milestone:** Falls back to whichever is closest to the next mastery level.
+    - **Random:** Falls back to a shuffled order per lobby.
 
-Whatever champ you end up on gets its saved loadout (runes, spells, skin)
-applied automatically. Works in every ARAM mode (ARAM, ARAM Mayhem, …).
+Build a priority list in the **ARAM** tab of the **Champ Select** editor. Whatever champ you end up on gets its saved loadout (runes, spells, skin) applied automatically.
 
 ### Modifying Settings
 *   Open the app window and use the **Settings** tab — every change auto-saves.
@@ -103,12 +115,14 @@ applied automatically. Works in every ARAM mode (ARAM, ARAM Mayhem, …).
 
 ## 🖥️ Usage
 
-1.  Launch `queuePop.exe`.
-2.  The application will minimize to the system tray (look for the Thresh icon).
-3.  **Right-click** the tray icon to:
-    *   **Pause/Resume:** Temporarily stop auto-accepting.
-    *   **Show/Hide Console:** View the activity log and debug info.
+1.  Launch `queuePop.exe` — the window opens on the Dashboard tab.
+2.  Configure your picks, bans, alerts, and queue filters in the app. All changes auto-save.
+3.  **Right-click** the tray icon (Thresh sigil) to:
+    *   **Open queuePop:** Show the app window.
+    *   **Pause/Resume:** Temporarily disable all automation.
+    *   **Show/Hide Console:** View the activity log and debug output.
     *   **Exit:** Close the application.
+4.  Close the window to hide it to the tray; the app keeps running in the background.
 
 ## 🛠️ Building
 
