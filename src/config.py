@@ -89,6 +89,8 @@ def default_config():
         "show_last_queue": True,
         # Create the window hidden (tray only) at launch.
         "start_minimized": False,
+        # First-run "Set me up" wizard finished or skipped (Dashboard reopens it).
+        "setup_done": False,
         "companion": {
             "enabled": False,
             "port": 8420,

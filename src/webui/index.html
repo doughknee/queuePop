@@ -126,6 +126,55 @@
     </div>
   </div>
 
+  <!-- First-run "Set me up" wizard (pages/setup.js): one screen, seeded from
+       the player's own mastery + recent matches. Reuses .skin-modal chrome. -->
+  <div id="setup-modal" class="skin-modal hidden">
+    <div class="skin-backdrop"></div>
+    <div class="setup-panel hextech framed">
+      <div class="skin-head">
+        <h3>Set me up</h3>
+        <button id="setup-skip" type="button" class="setup-skip">Skip</button>
+      </div>
+      <div class="setup-body">
+        <div class="setup-sec">
+          <div class="set-card-title">Queues to auto-accept</div>
+          <div id="setup-queues" class="queue-pills"></div>
+        </div>
+        <div class="setup-sec">
+          <div class="set-card-title">Your picks</div>
+          <p id="setup-picks-note" class="set-row-hint mb-2">From your mastery and recent games. Untick anything you don't play.</p>
+          <div id="setup-replace-row" class="set-row mb-3 hidden">
+            <span class="sw"><input id="setup_replace" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_replace" class="set-row-label">Replace my current lists</label>
+            <span class="help" data-tip="Some roles already have picks. Off: only empty roles are filled. On: the ticked champions replace every role's list.">?</span>
+          </div>
+          <div id="setup-roles" class="setup-roles"></div>
+        </div>
+        <div class="setup-sec space-y-3">
+          <div class="set-card-title">Automation</div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_accept" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_accept" class="set-row-label">Auto-accept queue pops</label>
+          </div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_pick" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_pick" class="set-row-label">Auto-pick and ban in champ select</label>
+          </div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_discord" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_discord" class="set-row-label">Discord ping when a queue pops</label>
+          </div>
+          <input id="setup_webhook" type="text" placeholder="Discord webhook URL (optional)"
+            class="hextech-input hidden w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+          <p id="setup-webhook-hint" class="text-xs text-red-400 hidden"></p>
+        </div>
+      </div>
+      <div class="setup-foot">
+        <button id="setup-done" type="button" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Frameless resize grips (window edges + corners) -->
   <div class="resize-grip rg-n"  data-edge="n"></div>
   <div class="resize-grip rg-s"  data-edge="s"></div>
@@ -327,6 +376,7 @@
               <p class="hero-kicker">Monitoring</p>
               <p id="hero-status" class="hero-status">, </p>
             </div>
+            <button id="setup-open" class="hextech hero-pause" title="Pick queues and champions from your own mastery">Set me up</button>
             <button id="pause-btn" class="hextech hero-pause" title="Pause / resume monitoring">
               <svg id="pause-ico" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
                 <rect x="2.6" y="2" width="2.3" height="8" rx="0.4" />
@@ -352,6 +402,7 @@
             </span>
           </div>
         </div>
+        <p id="setup-hint" class="set-row-hint hidden">Set me up when League is open: queuePop will suggest your queues and picks.</p>
 
         <!-- Activity, framed, scrollable, filterable, with timestamps and
              per-game session dividers — the page's heartbeat, so it sits high. -->
@@ -833,6 +884,7 @@
   <script src="js/pages/champ.js"></script>
   <script src="js/pages/loadout.js"></script>
   <script src="js/pages/notifications.js"></script>
+  <script src="js/pages/setup.js"></script>
   <script src="js/boot.js"></script>
 </body>
 </html>

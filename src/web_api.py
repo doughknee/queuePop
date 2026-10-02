@@ -21,6 +21,7 @@ import asset_refresh
 import champ_select
 import companion
 import events
+import setup_suggest
 import updater
 import notifications
 from notifications import send_discord_test, send_desktop_event
@@ -510,6 +511,12 @@ def _normalize_config(data):
         "last_queue_id": _coerce_queue_id(data.get("last_queue_id")),
         "show_last_queue": bool(data.get("show_last_queue", True)),
         "start_minimized": bool(data.get("start_minimized", False)),
+        # Additive key (2026-10): the first-run "Set me up" wizard has been
+        # finished or skipped. Configs that already allow-list queues predate
+        # the wizard and were set up by hand, so they count as done.
+        "setup_done": bool(
+            data.get("setup_done", bool(data.get("allowed_queue_ids")))
+        ),
         "companion": _normalize_companion(data.get("companion")),
         "champ_select": _normalize_champ_select(data.get("champ_select")),
         # Remembered window size (written by main.py's resized handler).
@@ -652,8 +659,9 @@ class Api:
         return self._lcu.call(_fetch, timeout=8.0) or []
 
     def get_match_history(self, count=10):
-        """Recent matches for the local player: [{championId, win, kills, deaths,
-        assists, queueId, ts}], newest first. Best-effort, empty when the client
+        """Recent matches for the local player: [{position, championId, win,
+        kills, deaths, assists, queueId, ts}], newest first. `position` is the
+        Rift role key or None (setup_suggest.match_position). Best-effort, empty when the client
         is closed or match history isn't reachable."""
         try:
             count = max(1, min(int(count), 20))
@@ -702,7 +710,11 @@ class Api:
                 if part is None:
                     continue
                 st = part.get("stats") or {}
+                tl = part.get("timeline") or {}
                 out.append({
+                    "position": setup_suggest.match_position(
+                        g.get("mapId"), tl.get("lane"), tl.get("role")
+                    ),
                     "championId": part.get("championId"),
                     "win": bool(st.get("win")),
                     "kills": st.get("kills", 0),
@@ -714,6 +726,33 @@ class Api:
             return out
 
         return self._lcu.call(_fetch, timeout=8.0) or []
+
+    def suggest_picks(self):
+        """Seed data for the first-run "Set me up" wizard: top-5 picks per Rift
+        role from the player's own mastery + recent match positions, the
+        playable queues, and the last-played queue (config, else newest match).
+        Queues still come back when the client is offline (static fallback);
+        roles are then empty and ok is False."""
+        quick = self.get_quick_queues()
+        queues = [{"id": q["id"], "name": q["name"]} for q in quick["queues"]]
+        empty = {r: [] for r in setup_suggest.ROLES}
+        if not getattr(self._lcu, "connected", False):
+            return {"ok": False, "roles": empty, "queues": queues, "last": quick["last"]}
+        names = getattr(self._lcu.champ_select, "id_to_name", {}) or {}
+        mastery = [
+            {"name": names.get(m["championId"]), "points": m.get("points", 0)}
+            for m in self.get_champion_mastery()
+        ]
+        history = self.get_match_history(20)
+        matches = [
+            {"name": names.get(m.get("championId")), "position": m.get("position")}
+            for m in history
+        ]
+        roles = setup_suggest.derive_role_picks(
+            mastery, matches, setup_suggest.load_champion_roles()
+        )
+        last = quick["last"] or (history[0].get("queueId") if history else None)
+        return {"ok": True, "roles": roles, "queues": queues, "last": last}
 
     def get_champ_select(self):
         """Live, read-only champ-select snapshot for the dashboard takeover:

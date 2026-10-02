@@ -1441,3 +1441,26 @@
 .def-spell-pop .lo-spell-clear { grid-column: 1 / -1; }
 .def-spell-pop.hidden { display: none; }
 
+/* --- First-run "Set me up" wizard (pages/setup.js). Reuses .skin-modal/.skin-head,
+   .queue-pills/.qp for queues and .sw toggles; role tiles mirror the .qp chip. */
+.setup-panel { position: relative; width: min(760px, 94vw); max-height: 90vh; display: flex; flex-direction: column; background: linear-gradient(180deg, #04101d 0%, #010a13 70%); animation: loIn .22s cubic-bezier(.2,.8,.2,1) both; }
+.setup-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
+.setup-sec .set-card-title { margin-bottom: 10px; }
+.setup-sec .hidden { display: none; } /* beats .set-row's display: flex */
+.setup-skip { border: 0; background: transparent; color: #A09B8C; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+.setup-skip:hover { color: #F0E6D2; }
+.setup-foot { display: flex; justify-content: flex-end; padding: 12px 20px; border-top: 1px solid rgb(120 90 40 / 0.3); }
+.setup-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.setup-role { display: flex; flex-direction: column; gap: 5px; padding: 9px; background: rgb(1 10 19 / 0.35); outline: 1px solid rgb(120 90 40 / 0.25); outline-offset: -1px; }
+.setup-role-head { display: flex; align-items: center; gap: 6px; font-family: Cinzel, Georgia, serif; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #C8AA6E; margin-bottom: 2px; }
+.setup-role-head img { width: 15px; height: 15px; }
+.setup-role-empty { font-size: 11.5px; font-style: italic; color: #6f6a5d; }
+.setup-tile { position: relative; display: flex; align-items: center; gap: 7px; padding: 4px 6px; cursor: pointer; color: #A09B8C; font-size: 12.5px; outline: 1px solid transparent; outline-offset: -1px; transition: color .15s ease, outline-color .15s ease, background-color .15s ease; }
+.setup-tile input { position: absolute; opacity: 0; width: 0; height: 0; }
+.setup-tile img, .setup-tile .setup-ini { width: 24px; height: 24px; flex-shrink: 0; object-fit: cover; opacity: .45; filter: grayscale(1); outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; transition: opacity .15s ease, filter .15s ease; }
+.setup-tile .setup-ini { display: grid; place-items: center; font-size: 9px; color: #C8AA6E; }
+.setup-tile .setup-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.setup-tile:hover { color: #F0E6D2; outline-color: rgb(200 170 110 / 0.4); }
+.setup-tile:has(input:checked) { color: #F0E6D2; background: rgb(200 170 110 / 0.12); outline-color: #C8AA6E; }
+.setup-tile input:checked ~ img, .setup-tile input:checked ~ .setup-ini { opacity: 1; filter: none; }
+

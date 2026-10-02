@@ -15,6 +15,8 @@ a = Analysis(
     datas=[
         (os.path.join(ROOT, 'assets', 'queuepop.ico'), 'assets'),
         (os.path.join(ROOT, 'src', 'webui'), 'webui'),
+        # Role table for the first-run pick suggestions (setup_suggest.py).
+        (os.path.join(ROOT, 'data', 'champion_roles.json'), 'data'),
     ],
     hiddenimports=(
         ['rich', 'pystray', 'PIL', 'webview', 'clr', 'aiohttp', 'qrcode']
