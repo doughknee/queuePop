@@ -857,9 +857,12 @@ class Api:
                 by_id[cid] = dict(c)
 
         id_to_name = getattr(self._lcu.champ_select, "id_to_name", {}) or {}
-        for cid, name in id_to_name.items():
-            if not cid or cid < 0 or not name or cid in by_id:
+        # Ascending ids + a name set: a duplicate name keeps the lowest ID.
+        names = {(c.get("name") or "").lower() for c in by_id.values()}
+        for cid, name in sorted(id_to_name.items()):
+            if not cid or cid < 0 or not name or cid in by_id or name.lower() in names:
                 continue
+            names.add(name.lower())
             by_id[cid] = {"id": cid, "name": name, "alias": None}
 
         merged = list(by_id.values())
