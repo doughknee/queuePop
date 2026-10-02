@@ -55,6 +55,7 @@ _cache = {
     "url": "",            # human releases page / this release's html_url
     "assets": [],         # [{name, url, size}]
     "error": None,        # last error string, if a check failed
+    "status": None,       # HTTP status of a failed lookup (404 = no release)
 }
 _last_check_ts = 0.0
 _applying = False  # guard so a double-click doesn't kick off two updates
@@ -178,16 +179,18 @@ def _do_check():
                 or f"https://github.com/{GITHUB_REPO}/releases/latest",
                 "assets": assets,
                 "error": None,
+                "status": None,
             })
     except urllib.error.HTTPError as e:
         # 404 = no published release yet (or private repo); treat as "nothing".
         error = f"HTTP {e.code}"
         with _lock:
-            _cache.update({"checked": True, "available": False, "error": error})
+            _cache.update({"checked": True, "available": False,
+                           "error": error, "status": e.code})
     except Exception as e:
         error = str(e)
         with _lock:
-            _cache.update({"checked": True, "error": error})
+            _cache.update({"checked": True, "error": error, "status": None})
     finally:
         _last_check_ts = time.time()
     return status()
@@ -249,8 +252,13 @@ def start_background():
     Runs on a daemon thread so it never blocks shutdown."""
     def _loop():
         time.sleep(4)  # let the client connect + UI settle first
+        last_err = None
         while True:
             snap = _do_check()
+            err = snap.get("error")
+            if err and err != last_err:  # one feed entry per distinct failure
+                events.push(f"Update check failed: {err}", "warning", kind="update")
+            last_err = err
             if snap.get("available"):
                 events.push(
                     f"Update available: v{snap['latest']} "
@@ -334,6 +342,15 @@ del "%~f0"
 """
 
 
+def _fail(reason):
+    """Surface an update failure to the UI feed (the web_api caller returns
+    before this thread finishes, so the return value alone is never seen)."""
+    reason = str(reason)
+    events.push(f"Update failed: {reason}", "danger", kind="update")
+    _ulog(f"update failed: {reason}")
+    return {"ok": False, "error": reason}
+
+
 def apply(on_exit=None):
     """Download the appropriate asset and hand off to the swap/installer step,
     then trigger the app to quit (via `on_exit`) so the file can be replaced.
@@ -348,16 +365,18 @@ def apply(on_exit=None):
         _applying = True
     try:
         if not getattr(sys, "frozen", False):
-            return {"ok": False, "error": "Updates only apply to the packaged app"}
+            return _fail("Updates only apply to the packaged app")
 
         snap = check()
         if not snap.get("available"):
-            return {"ok": False, "error": "No update available"}
+            err = snap.get("error")
+            return _fail(f"Couldn't look up the release ({err})" if err
+                         else "No update available")
 
         installed, _ = is_installed()
         asset = _pick_asset(snap.get("assets") or [], installed)
         if not asset:
-            return {"ok": False, "error": "No matching download in the release"}
+            return _fail("No matching download in the release")
 
         events.push(f"Downloading v{snap['latest']}…", "info", kind="update")
         _ulog(f"update start: v{snap['latest']} asset={asset['name']} "
@@ -391,9 +410,7 @@ def apply(on_exit=None):
             return _apply_installed(local, on_exit)
         return _apply_portable(local, tmp, on_exit)
     except Exception as e:
-        events.push(f"Update failed: {e}", "danger", kind="update")
-        _ulog(f"update failed: {e}")
-        return {"ok": False, "error": str(e)}
+        return _fail(e)
     finally:
         with _lock:
             _applying = False
