@@ -23,6 +23,7 @@ function hydrateAlerts() {
   toggleDiscordBody();
   $("desktop_notifications").checked = !!c.desktop_notifications;
   toggleDesktopRow();
+  $("start_minimized").checked = !!c.start_minimized;
 
   const comp = c.companion || {};
   $("companion_enabled").checked = !!comp.enabled;
@@ -48,6 +49,7 @@ function syncAlertsToStore() {
   c.user_id = $("user_id").value;
   c.discord_enabled = $("discord_enabled").checked;
   c.desktop_notifications = $("desktop_notifications").checked;
+  c.start_minimized = $("start_minimized").checked;
   c.companion = {
     enabled: $("companion_enabled").checked,
     port: Number($("companion_port").value) || 8420,

@@ -87,6 +87,8 @@ def default_config():
         "last_queue_id": None,
         # Pin the last-played mode to the top of the PLAY dropdown.
         "show_last_queue": True,
+        # Create the window hidden (tray only) at launch.
+        "start_minimized": False,
         "companion": {
             "enabled": False,
             "port": 8420,

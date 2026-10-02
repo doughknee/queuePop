@@ -19,6 +19,17 @@ from tray import TrayIcon
 from _version import __version__
 
 
+# First-run default AND floor (mirrored in web_api's MIN_WINDOW_SIZE) - the
+# champ-select trays need the width to lay out.
+MIN_WINDOW_SIZE = (762, 800)
+
+
+def persistable_size(width, height):
+    """True when a resized event is a real window size worth remembering (not a
+    minimised 160x28 stub)."""
+    return width >= MIN_WINDOW_SIZE[0] and height >= MIN_WINDOW_SIZE[1]
+
+
 def webui_index():
     """Absolute path to the web UI entry point, for dev and frozen builds.
 
@@ -194,14 +205,13 @@ def main():
     index_path = webui_index()
 
     # Open at the size the window was last left at (saved by on_resized below);
-    # 762x800 is the first-run default AND the floor (mirrored in web_api's
-    # MIN_WINDOW_SIZE) — the champ-select trays need the width to lay out.
+    # A stored size below MIN_WINDOW_SIZE is clamped up to it.
     win_cfg = settings.get("window") or {}
     try:
-        win_w = max(762, int(win_cfg.get("width", 762)))
-        win_h = max(800, int(win_cfg.get("height", 800)))
+        win_w = max(MIN_WINDOW_SIZE[0], int(win_cfg.get("width", 0)))
+        win_h = max(MIN_WINDOW_SIZE[1], int(win_cfg.get("height", 0)))
     except (TypeError, ValueError):
-        win_w, win_h = 762, 800
+        win_w, win_h = MIN_WINDOW_SIZE
 
     window = webview.create_window(
         "queuePop",
@@ -209,7 +219,8 @@ def main():
         js_api=api,
         width=win_w,
         height=win_h,
-        min_size=(762, 800),
+        min_size=MIN_WINDOW_SIZE,
+        hidden=bool(settings.get("start_minimized", False)),
         background_color="#020617",
         # Drop the native OS chrome so the web UI can draw its own League-themed
         # title bar (min/maximize/close live in src/webui/window-chrome.js).
@@ -261,7 +272,7 @@ def main():
     resize_timer = [None]
 
     def on_resized(width, height):
-        if api._maximized:
+        if api._maximized or not persistable_size(width, height):
             return
 
         def save():
