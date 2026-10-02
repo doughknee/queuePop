@@ -8,7 +8,7 @@ const QP_MANIFEST = [
   "features/nav", "features/status", "features/play", "features/summoner",
   "features/activity", "features/update",
   "pages/home", "pages/live", "pages/account", "pages/champ", "pages/loadout",
-  "pages/notifications",
+  "pages/notifications", "pages/setup",
 ];
 
 (function assertModules() {
