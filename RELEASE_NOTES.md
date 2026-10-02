@@ -1,13 +1,23 @@
-We deleted **83,000 lines** from queuePop and it does… exactly the same thing. That's the whole release, and we're weirdly proud of it.
+If you've seen **two Ezreals** in the champ picker since League Classic launched, this is the release that sends the impostor home. The rest of it is about one thing: when something fails, queuePop now *tells you* instead of smiling and nodding.
 
-Every project quietly hoards things it doesn't need — API docs frozen in 2018, finished experiments, two copies of the same logic wearing different hats. This release took out the trash, so every future fix and feature lands in a smaller, sharper codebase. If you notice *anything* behaving differently, that's a bug — tell us.
+## 🏛️ League Classic
 
-## 🔧 Under the hood
+- **The double-champion bug is fixed.** Classic added a second copy of every returning champion to the client's list, and the picker (and your saved pick lists) could land on the wrong one. queuePop now keeps the real one every time.
+- **Classic draft actually works.** Classic has bans but no assigned positions, so auto pick/ban silently did nothing. It now falls back to your role-priority role (or the first role with picks) and runs bans, picks, spells, runes and skins as normal.
+- **A rejected pick no longer stalls champ select.** If the client refuses a champ, queuePop moves to the next one on your list instead of standing there looking locked in.
 
-- **Pick-order swaps and role swaps now share one battle-tested brain** instead of two identical twins — same behavior in champ select, half the code to maintain, plus a new automated check that proves it (requests the best spot, falls down your priority line on a decline, cancels stale asks, never accepts a downgrade).
-- **The phone companion listens on its live event stream only.** The dial-up-era fallback for browsers without server-sent events (last spotted in the wild circa 2012) is gone.
-- **~79,000 lines of stale League client API docs are out.** They dated to client 8.24 and had already lied to us once — queuePop verifies endpoints against your live client instead, which is how it survives Riot's renames.
-- **The marketing site went on a diet**: its heavyweight web framework is replaced by plain Vite + React with the same prerendered result — 44 packages where there were hundreds.
-- Retired the counter-engine tuning experiments (their winning numbers are baked in), deduplicated 3.4 MB of screenshots, and swept out dead code.
+## 🔔 Failures you can see
 
-Nothing new. Nothing fixed. Nothing broken. Sometimes the best feature is 83,000 fewer lines that could go wrong. o7
+- **Discord and desktop alerts** that fail now show up as a warning in the activity feed and on the Alerts page. Previously a dead webhook still said "sent".
+- **PLAY, cancel and quick-queue errors** pop a toast ("Riot Client not found", "Lobby error") instead of doing nothing.
+- **A failed update** re-enables the Update button and says why. "No release found" and "couldn't reach the server" are now different messages.
+
+## 🧹 Small things
+
+- **Start in the tray** is a new checkbox on the Alerts page.
+- The window size is no longer saved while minimised, so no more 160×28 ghost windows.
+- The bench-grab delay slider and the backend finally agree on the maximum (3 s).
+- The champ select log rotates at 1 MB instead of growing forever.
+- README and the site now describe the app you're actually running.
+
+Four small automated checks ride along under `tests/` so these stay fixed. o7
