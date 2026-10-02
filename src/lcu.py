@@ -58,6 +58,8 @@ class LCU:
         self.paused = False
         self.connected = False
         self.gameflow_phase = None
+        self.queue_name = None  # last popped queue, for later alerts
+        self.locked_champion_id = None  # set by champ_select on a pick lock
         # Live connection handle, kept so the web UI can make on-demand requests
         # (summoner info, quick-queue, etc.) outside the event handlers.
         self._connection = None
@@ -96,7 +98,7 @@ class LCU:
         ev = self.config.get("alert_events") or {}
         return bool(ev.get(key, key == "queue_pop"))
 
-    async def _alert(self, key, title, body, what):
+    async def _alert(self, key, title, body, what, champion_id=None):
         """Fan an event out to the desktop + Discord channels that are both
         enabled and subscribed to it. (The phone companion alarms off the
         events feed on queue pops only — by design; an alarm per gameflow
@@ -108,7 +110,8 @@ class LCU:
         if self.config.get("discord_enabled", True):
             await send_discord_event(
                 self.config.get("webhook_url"), self.config.get("user_id"),
-                title=title, description=body, what=what,
+                key, body, queue=self.queue_name, champion_id=champion_id,
+                champion=self.champ_select.id_to_name.get(champion_id), what=what,
             )
 
     async def disconnect(self, connection):
@@ -191,6 +194,7 @@ class LCU:
             self.accepting_match = True
             
             game_mode, queue_id = await self.get_queue_info(connection)
+            self.queue_name = game_mode
             
             # --- Selective Accept Logic ---
             allowed_queues = self.config.get("allowed_queue_ids", [])
@@ -270,6 +274,8 @@ class LCU:
         if not isinstance(phase, str) or phase == self.gameflow_phase:
             return
         self.gameflow_phase = phase
+        if phase in ("Lobby", "EndOfGame"):
+            self.queue_name = self.locked_champion_id = None
         info = PHASE_EVENTS.get(phase)
         if info:
             message, level, kind = info
@@ -284,7 +290,7 @@ class LCU:
             stats.inc("games")
             await self._alert("game_start", "🎮 Game starting",
                               "The loading screen is up — your game is starting.",
-                              what="Game start")
+                              what="Game start", champion_id=self.locked_champion_id)
 
     def start(self):
         """Starts the LCU connector. This is a blocking call."""

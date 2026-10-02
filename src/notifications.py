@@ -51,35 +51,89 @@ def send_desktop_notification(game_mode):
                        what="Queue pop")
 
 
-def _discord_payload(user_id, title, description, fields=None):
-    """Build a Discord webhook payload: an @mention in `content` (so the push
-    actually fires on the user's phone) plus a tidy embed for the visuals."""
-    embed = {
-        "title": title,
-        "description": description,
-        "color": _EMBED_GOLD,
-        "footer": {"text": "queuePop • auto-accepting"},
-    }
+# kind -> (embed title, colour). `what` labels in last_sent stay separate.
+_KINDS = {
+    "queue_pop": ("⚡ Queue Popped", _EMBED_GOLD),
+    "champ_select": ("⚔️ Champ select started", 0x3498DB),
+    "locked_pick": ("🔒 Pick locked", 0x2ECC71),
+    "game_start": ("🎮 Game starting", 0x9B59B6),
+    "game_end": ("🏁 Game over", 0x95A5A6),
+    "disconnect": ("🔌 Client disconnected", 0xE74C3C),
+    "test": ("✅ queuePop test", _EMBED_GOLD),
+}
+
+DDRAGON = "https://ddragon.leagueoflegends.com"
+# Filled lazily by _load_ddragon: Data Dragon wants the champion's alias
+# ("MonkeyKing" for Wukong), not its display name, plus the current version.
+_ddragon = {"version": None, "by_id": {}, "by_name": {}}
+
+
+async def _load_ddragon(session):
+    """Fetch Data Dragon's version + champion list once. A failure only means
+    no thumbnail; the alert still goes out."""
+    if _ddragon["version"]:
+        return
+    try:
+        t = aiohttp.ClientTimeout(total=8)
+        async with session.get(f"{DDRAGON}/api/versions.json", timeout=t) as r:
+            version = (await r.json())[0]
+        async with session.get(
+                f"{DDRAGON}/cdn/{version}/data/en_US/champion.json", timeout=t) as r:
+            data = list((await r.json())["data"].values())
+        _ddragon["by_id"] = {int(c["key"]): c["id"] for c in data}
+        _ddragon["by_name"] = {c["name"].lower(): c["id"] for c in data}
+        _ddragon["version"] = version
+    except Exception as e:
+        config.console.log(f"[yellow]Data Dragon lookup failed: {e}[/]")
+
+
+def build_discord_payload(kind, text, *, queue=None, champion=None,
+                          champion_id=None, mention=None):
+    """Webhook JSON: the @mention alone in `content` (so the push fires on the
+    phone) plus one embed. An unknown kind falls back to plain text."""
+    content = f"<@{mention}>" if mention else ""
+    if kind not in _KINDS:
+        return {"content": f"{content} {text}".strip()}
+    title, color = _KINDS[kind]
+    embed = {"title": title, "description": text, "color": color,
+             "footer": {"text": "queuePop • auto-accepting"}}
+    fields = []
+    if queue:
+        fields.append({"name": "Queue", "value": queue, "inline": True})
+    if champion:
+        fields.append({"name": "Champion", "value": champion, "inline": True})
     if fields:
         embed["fields"] = fields
-    return {
-        "content": f"<@{user_id}>" if user_id else "",
-        "embeds": [embed],
-    }
+    alias = (_ddragon["by_id"].get(champion_id)
+             or _ddragon["by_name"].get((champion or "").lower()))
+    if alias:
+        embed["thumbnail"] = {
+            "url": f"{DDRAGON}/cdn/{_ddragon['version']}/img/champion/{alias}.png"}
+    return {"content": content, "embeds": [embed]}
 
 
-async def send_discord_event(webhook_url, user_id, title, description,
-                             fields=None, what="alert"):
+async def _post(session, webhook_url, kind, text, mention, queue=None,
+                champion=None, champion_id=None, verbose=False):
+    if champion or champion_id:
+        await _load_ddragon(session)
+    payload = build_discord_payload(kind, text, queue=queue, champion=champion,
+                                    champion_id=champion_id, mention=mention)
+    async with session.post(webhook_url, json=payload) as resp:
+        # Discord returns 204 No Content on a successful webhook post.
+        if not 200 <= resp.status < 300:
+            body = (await resp.text())[:200] if verbose else ""
+            raise RuntimeError(f"Discord returned {resp.status}: {body}".rstrip(": "))
+
+
+async def send_discord_event(webhook_url, user_id, kind, text, *, queue=None,
+                             champion=None, champion_id=None, what="alert"):
     """Post an event embed to the webhook (no-op without a URL)."""
     if not webhook_url:
         return
-    payload = _discord_payload(user_id, title=title, description=description,
-                               fields=fields)
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(webhook_url, json=payload) as resp:
-                if not 200 <= resp.status < 300:
-                    raise RuntimeError(f"Discord returned {resp.status}")
+            await _post(session, webhook_url, kind, text, user_id, queue,
+                        champion, champion_id)
             _mark("discord", what)
             config.console.log("[cyan]Discord notification sent.[/]")
         except Exception as e:
@@ -89,27 +143,17 @@ async def send_discord_event(webhook_url, user_id, title, description,
 async def send_discord_ping(webhook_url, user_id, game_mode):
     """The queue-pop Discord notification."""
     await send_discord_event(
-        webhook_url, user_id,
-        title="⚡ Queue Popped",
-        description="Accepting your match automatically, get back to your PC!",
-        fields=[{"name": "Mode", "value": game_mode or "Unknown", "inline": True}],
-        what="Queue pop",
+        webhook_url, user_id, "queue_pop",
+        "Accepting your match automatically, get back to your PC!",
+        queue=game_mode or "Unknown", what="Queue pop",
     )
 
 
 async def _post_discord_test(webhook_url, user_id):
-    payload = _discord_payload(
-        user_id,
-        title="✅ queuePop test",
-        description="Your Discord webhook is working. You'll get a ping like this "
-                    "when your queue pops.",
-    )
     async with aiohttp.ClientSession() as session:
-        async with session.post(webhook_url, json=payload) as resp:
-            # Discord returns 204 No Content on a successful webhook post.
-            if resp.status >= 400:
-                body = await resp.text()
-                raise RuntimeError(f"Discord returned {resp.status}: {body[:200]}")
+        await _post(session, webhook_url, "test",
+                    "Your Discord webhook is working. You'll get a ping like "
+                    "this when your queue pops.", user_id, verbose=True)
 
 
 def send_discord_test(webhook_url, user_id):
