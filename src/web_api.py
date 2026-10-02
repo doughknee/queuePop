@@ -409,7 +409,7 @@ def _normalize_aram(aram, aram_role_mode):
     aram = aram or {}
     enabled = bool(aram.get("enabled", False) or aram.get("auto_mastery", False))
     try:
-        delay = min(5.0, max(0.0, float(aram.get("bench_delay", 0) or 0)))
+        delay = min(3.0, max(0.0, float(aram.get("bench_delay", 0) or 0)))
     except (TypeError, ValueError):
         delay = 0.0
     return {
@@ -509,6 +509,7 @@ def _normalize_config(data):
         ),
         "last_queue_id": _coerce_queue_id(data.get("last_queue_id")),
         "show_last_queue": bool(data.get("show_last_queue", True)),
+        "start_minimized": bool(data.get("start_minimized", False)),
         "companion": _normalize_companion(data.get("companion")),
         "champ_select": _normalize_champ_select(data.get("champ_select")),
         # Remembered window size (written by main.py's resized handler).

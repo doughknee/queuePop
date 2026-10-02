@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import logging.handlers
 import os
 import random
 import time
@@ -28,7 +29,8 @@ logger = logging.getLogger("champ_select")
 if not logger.handlers:
     logger.setLevel(logging.DEBUG)
     try:
-        _handler = logging.FileHandler(LOG_FILE, mode="a", encoding="utf-8")
+        _handler = logging.handlers.RotatingFileHandler(
+            LOG_FILE, maxBytes=1_000_000, backupCount=2, encoding="utf-8")
         _handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s"))
         logger.addHandler(_handler)
     except Exception:
