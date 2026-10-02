@@ -114,6 +114,15 @@ SPELL_NAMES = {s["id"]: s["name"] for s in SUMMONER_SPELLS}
 RUNE_PAGE_NAME = "queuePop (auto)"
 
 
+def fallback_role(cs):
+    """Role for a positionless, benchless draft (League Classic): the first
+    `role_priority` entry that has picks, else the first configured role with
+    picks, else None."""
+    roles = cs.get('roles') or {}
+    prio = ChampSelect._prio_list(cs, 'role_priority', 'preferred_role', ROLES)
+    return next((r for r in prio + ROLES if (roles.get(r) or {}).get('picks')), None)
+
+
 class ChampSelect:
     """
     Handles automatic banning and picking during champ select.
@@ -134,6 +143,9 @@ class ChampSelect:
         self._task = None
         self._running = False
         self._last_sig = None    # last logged champ-select state signature
+        self._last_norole_sig = None  # last logged "no role config" signature
+        self._fallback_logged = False  # positionless-role fallback logged this session
+        self._skip = set()       # (kind, championId) whose pick/ban request failed this session
         self._spells_for = None    # championId we last set summoner spells for
         self._runes_for = None     # championId we last applied runes for
         self._skin_for = None      # championId we last auto-selected a skin for
@@ -200,16 +212,17 @@ class ChampSelect:
             data = await resp.json()
             cmap = {}
             id_to_name = {}
-            for champ in data:
+            for champ in sorted(data, key=lambda c: c.get('id') or 0):
                 cid = champ.get('id')
                 if not cid or cid < 0:
                     continue  # -1 is the "None" placeholder entry
                 name = champ.get('name', '') or ''
                 alias = champ.get('alias', '') or ''
+                # setdefault + ascending ids: a duplicate name keeps the lowest ID.
                 if name:
-                    cmap[name.lower()] = cid
+                    cmap.setdefault(name.lower(), cid)
                 if alias:
-                    cmap[alias.lower()] = cid
+                    cmap.setdefault(alias.lower(), cid)
                 id_to_name[cid] = name or alias
 
             self.champion_map = cmap
@@ -264,6 +277,9 @@ class ChampSelect:
             return
         self._running = True
         self._last_sig = None
+        self._last_norole_sig = None
+        self._fallback_logged = False
+        self._skip = set()
         self._spells_for = None
         self._runes_for = None
         self._skin_for = None
@@ -327,10 +343,19 @@ class ChampSelect:
                 break
 
         roles_cfg = cs.get('roles', {}) or {}
-        role_cfg = roles_cfg.get(position)
-        aram_cfg = roles_cfg.get(ARAM_ROLE, {}) or {}
         # ARAM is signalled by the reroll bench; it has no assigned position.
         is_aram = bool(session.get('benchEnabled'))
+        # League Classic draft: no assigned position and no bench. Use the
+        # user's top-priority configured role instead of doing nothing.
+        if not position and not is_aram:
+            fb = fallback_role(cs)
+            if fb:
+                position = fb
+                if not self._fallback_logged:
+                    self._fallback_logged = True
+                    self._log(f"no assignedPosition and no bench; using role {fb!r} from config")
+        role_cfg = roles_cfg.get(position)
+        aram_cfg = roles_cfg.get(ARAM_ROLE, {}) or {}
 
         # The active pick-priority list for trades + skins context: the assigned
         # role's picks on the Rift, or the ARAM list in ARAM, else nothing.
@@ -462,8 +487,8 @@ class ChampSelect:
             # No assigned-role pick/ban here (Blind, unconfigured, or ARAM
             # automation off). The cosmetic handlers still run. Log once.
             sig2 = ("no-role", position)
-            if sig2 != self._last_sig:
-                self._last_sig = sig2
+            if sig2 != self._last_norole_sig:
+                self._last_norole_sig = sig2
                 self._log(f"no role config for position={position!r}; team positions="
                           f"{[(p.get('cellId'), p.get('assignedPosition')) for p in my_team]}")
 
@@ -566,7 +591,7 @@ class ChampSelect:
         """Return the first configured champ that's still available (backups)."""
         for nm in names or []:
             cid = self._resolve(nm)
-            if cid and cid not in unavailable:
+            if cid and cid not in unavailable and ('ban', cid) not in self._skip:
                 return cid
         return None
 
@@ -584,20 +609,23 @@ class ChampSelect:
         # shot) silently fail.
         if state != ('hover', champion_id):
             ok = await self._patch(connection, action_id, champion_id, complete=False)
-            action_state[action_id] = ('hover', champion_id)
             label = "Declaring intent" if intent else "Hovering"
-            config.console.print(f"[info]{label} {kind}: {display}[/]")
-            events.push(f"{label} {kind}: {display}", "info", kind="champ")
+            if ok:
+                action_state[action_id] = ('hover', champion_id)
+                config.console.print(f"[info]{label} {kind}: {display}[/]")
+                events.push(f"{label} {kind}: {display}", "info", kind="champ")
+            else:
+                self._skip.add((kind, champion_id))  # rejected: try the next champ
             self._log(f"{label} {kind}: {display} (action {action_id}) -> ok={ok}")
             return
 
         if lock:
             ok = await self._patch(connection, action_id, champion_id, complete=True)
-            action_state[action_id] = ('locked', champion_id)
-            config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
-            events.push(f"Locked {kind}: {display}", "success", kind="champ")
             self._log(f"LOCK {kind}: {display} (action {action_id}) -> ok={ok}")
             if ok:
+                action_state[action_id] = ('locked', champion_id)
+                config.console.print(f"[success]🔒 Locked {kind}: {display}[/]")
+                events.push(f"Locked {kind}: {display}", "success", kind="champ")
                 stats.inc("picks_locked" if kind == "pick" else "bans_locked")
 
     async def _patch(self, connection, action_id, champion_id, complete):
@@ -999,7 +1027,7 @@ class ChampSelect:
             return None
         pickable = await self._pickable_ids(connection)
         for cid in pri:
-            if cid in unavailable:
+            if cid in unavailable or ('pick', cid) in self._skip:
                 continue
             if pickable and cid not in pickable:
                 continue
