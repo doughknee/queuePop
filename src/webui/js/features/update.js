@@ -7,6 +7,8 @@ let updateState = null;
 let updateDismissed = false; // "Later" hides the banner for this session only
 let updating = false;        // an update is downloading/installing
 let updatingBtn = null;      // the button that kicked it off (progress mirror)
+let updatingLabel = null;    // its original text, restored if the update fails
+let updateFailure = null;    // last "Update failed: …" reason, shown on About
 
 function showUpdateBanner(show) {
   const b = $("upd-banner");
@@ -31,7 +33,10 @@ function renderUpdate(s) {
   const aUpd = $("about-update");
   const aNotes = $("about-notes");
   if (has) {
-    if (msg) { msg.textContent = `Version v${s.latest} is available.`; msg.className = "upd-msg good"; }
+    if (msg) {
+      msg.textContent = updateFailure || `Version v${s.latest} is available.`;
+      msg.className = updateFailure ? "upd-msg" : "upd-msg good";
+    }
     aUpd && aUpd.classList.remove("hidden");
     if (aNotes && s.url) { aNotes.href = s.url; aNotes.classList.remove("hidden"); }
   } else {
@@ -42,7 +47,9 @@ function renderUpdate(s) {
       // current while a check is still pending is the bug that made Settings
       // disagree with the activity feed.
       msg.textContent = s && s.error
-        ? "Couldn't reach the update server."
+        ? (s.status === 404 ? "No release found (404)."
+          : s.status ? `Update server error (HTTP ${s.status}).`
+          : "Couldn't reach the update server.")
         : (s && s.checked ? "You're up to date." : "Checking for updates…");
     }
     aUpd && aUpd.classList.add("hidden");
@@ -74,6 +81,8 @@ async function doUpdate(btn) {
   updatingBtn = btn || null;
   showUpdateBanner(false);
   const label = btn ? btn.textContent : null;
+  updatingLabel = label;
+  updateFailure = null;
   if (btn) { btn.disabled = true; btn.textContent = "Updating…"; }
   showToast("Downloading update…");
   try {
@@ -98,7 +107,19 @@ async function doUpdate(btn) {
 // ("Downloading v1.4.0… 40% of 60 MB"); mirror it on the button so the About
 // page shows movement instead of a frozen "Updating…".
 QP.bus.on("activity:event", (ev) => {
-  if (!updating || !updatingBtn || ev.kind !== "update") return;
+  if (!updating || ev.kind !== "update") return;
+  // apply_update returns before the worker thread finishes, so failures there
+  // only arrive here: re-enable the button and show the reason.
+  if (/^Update failed/i.test(ev.message)) {
+    updating = false;
+    if (updatingBtn) { updatingBtn.disabled = false; updatingBtn.textContent = updatingLabel; }
+    updatingBtn = null;
+    updateFailure = ev.message;
+    showToast(ev.message, false);
+    renderUpdate(updateState); // re-show the banner so they can retry
+    return;
+  }
+  if (!updatingBtn) return;
   const pct = ev.message.match(/(\d+)\s*%/);
   if (pct) updatingBtn.textContent = `Downloading… ${pct[1]}%`;
   else if (/preparing install/i.test(ev.message)) updatingBtn.textContent = "Installing…";
