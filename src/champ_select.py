@@ -630,9 +630,11 @@ class ChampSelect:
                 events.push(f"Locked {kind}: {display}", "success", kind="champ")
                 if kind == "pick":
                     self.lcu.locked_champion_id = champion_id
-                    await self.lcu._alert("locked_pick", "🔒 Pick locked",
-                                          f"Locked in {display}.", "Locked pick",
-                                          champion_id=champion_id)
+                    alert = getattr(self.lcu, "_alert", None)
+                    if alert:
+                        await alert("locked_pick", "🔒 Pick locked",
+                                    f"Locked in {display}.", "Locked pick",
+                                    champion_id=champion_id)
                 stats.inc("picks_locked" if kind == "pick" else "bans_locked")
 
     async def _patch(self, connection, action_id, champion_id, complete):
