@@ -68,3 +68,9 @@
   dummy values in any shared examples and redact logs.
 - Update `scripts/queuePop.spec` (and `installer/queuePop.iss` if needed) when
   adding new bundled assets so PyInstaller and the installer pick them up.
+
+## Home
+- Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
+  not only the one you added. A worker merged a change that broke a sibling test once (2026-10-01).
+- The Release workflow triggers on `src/_version.py` changing on main and creates the tag itself;
+  rewrite `RELEASE_NOTES.md` (player-facing, shown in-app) in the same commit.
