@@ -1,8 +1,8 @@
 export const LINKS = {
-  download: 'https://github.com/brandon-relentnet/queuePop/releases/latest',
-  github: 'https://github.com/brandon-relentnet/queuePop',
+  download: 'https://github.com/doughknee/queuePop/releases/latest',
+  github: 'https://github.com/doughknee/queuePop',
   donate: 'https://buymeacoffee.com/doughknee',
-  releases: 'https://github.com/brandon-relentnet/queuePop/releases',
+  releases: 'https://github.com/doughknee/queuePop/releases',
 } as const
 
 export const FEATURES = [
@@ -29,7 +29,7 @@ export const FEATURES = [
   {
     icon: 'live',
     title: 'Live Champ-Select View',
-    body: 'A real-time board of both teams: intents, locks, spells, skins, bans, pending trades, and a millisecond-accurate phase timer.',
+    body: 'A real-time board of both teams: intents, locks, spells, skins, bans, pending trades, and a phase timer (0.1 s resolution, refreshed roughly every 0.7 s).',
   },
   {
     icon: 'phone',
