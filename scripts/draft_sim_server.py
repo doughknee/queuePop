@@ -1,7 +1,7 @@
 """Draft Sim server — a web UI to test the counter engine interactively.
 
 Serves draft_sim.html and a tiny JSON API that runs the REAL engine
-(scripts/counter_engine.py), so the sim and the production engine never drift.
+(src/counter_engine.py), so the sim and the production engine never drift.
 
 Launch via the preview tooling (.claude/launch.json -> "draft-sim"), or directly:
 
@@ -19,7 +19,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "src"))
 import counter_engine as ce  # noqa: E402
 
 HOST = os.environ.get("HOST", "127.0.0.1")

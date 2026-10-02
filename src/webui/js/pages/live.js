@@ -54,10 +54,51 @@ $("champ-live").addEventListener("click", (e) => {
 });
 
 async function refreshChampLive() {
-  let cs = {};
-  try { cs = (await api().get_champ_select()) || {}; } catch (_) { return; }
+  const wantSugg = QP.store.config?.champ_select?.show_suggestions ?? true;
+  let cs = {}, sugg = null;
+  try {
+    [cs, sugg] = await Promise.all([
+      api().get_champ_select(),
+      wantSugg ? api().pick_suggestions().catch(() => null) : null,
+    ]);
+    cs = cs || {};
+  } catch (_) { return; }
   if (!cs.active) return; // session not ready yet; keep showing the last frame
-  renderChampLive(cs);
+  renderChampLive(cs, sugg);
+}
+
+// "queuePop suggests" (pick_suggestions → counter_engine): top bans until an
+// enemy locks, then the best counters from the role's own pick list. Display
+// only — auto-pick never reads it.
+function suggPanel(s) {
+  if (!s || !s.ok) return "";
+  const bans = s.phase === "bans";
+  const items = bans ? s.bans : s.picks;
+  if (!items || !items.length) return "";
+  const conf = !bans && items[0].confidence
+    ? `<span class="cs-conf ${items[0].confidence.toLowerCase()}">${escapeHtml(items[0].confidence)} confidence</span>`
+    : "";
+  const cards = items.map((it) => {
+    const icon = champIconById(it.id);
+    const reasons = bans ? [it.reason] : it.reasons || [];
+    return (
+      `<div class="cs-sugg-card">` +
+        `<div class="cs-mini${bans ? " ban" : ""}">` +
+          (icon ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />` : "") +
+        `</div>` +
+        `<div class="cs-meta"><span class="cs-name">${escapeHtml(it.champ)}</span>` +
+          reasons.map((r) => `<span class="cs-sugg-why">${escapeHtml(r)}</span>`).join("") +
+        `</div>` +
+      `</div>`
+    );
+  }).join("");
+  return (
+    `<div class="cs-sugg">` +
+      `<div class="cs-sugg-head"><span class="cs-sugg-title">queuePop suggests</span>` +
+        `<span class="cs-strip-label">${bans ? "Bans" : "Picks"}</span>${conf}</div>` +
+      `<div class="cs-sugg-list">${cards}</div>` +
+    `</div>`
+  );
 }
 
 function csPortrait(p) {
@@ -118,7 +159,7 @@ const TRADE_WORDS = {
   CANCELLED: "cancelled",
 };
 
-function renderChampLive(cs) {
+function renderChampLive(cs, sugg) {
   const phase = (cs.phase || "Champ Select").replace(/_/g, " ");
 
   const ticker = lastAutoEv
@@ -171,6 +212,7 @@ function renderChampLive(cs) {
           : `<div class="text-subText text-sm italic px-2 py-1">Hidden</div>`) +
       `</div>` +
     `</div>` +
+    suggPanel(sugg) +
     bansStrip + tradesStrip + benchStrip;
 }
 

@@ -593,6 +593,11 @@
                 <span class="sw"><input id="show_intent" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
                 <span class="help" data-tip="Hover your planned pick during planning so teammates see it. Off keeps it hidden until you lock — no ban-sniping.">?</span>
               </div>
+              <div class="behavior-row">
+                <span class="behavior-label">Show pick suggestions</span>
+                <span class="sw"><input id="show_suggestions" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+                <span class="help" data-tip="The live view's 'queuePop suggests' panel: bans before the enemy locks, then the best counters from your own pick list for your role. Suggestions only — auto-pick still follows your list.">?</span>
+              </div>
               <div class="cs-sec">ARAM</div>
               <div class="behavior-row">
                 <span class="behavior-label">ARAM takeover</span>
@@ -644,6 +649,7 @@
             <div class="alert-ev-row">
               <label class="qp" title="The ready check appears"><input type="checkbox" data-ev="queue_pop" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Queue pops</span></label>
               <label class="qp" title="Champ select begins"><input type="checkbox" data-ev="champ_select" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Champ select starts</span></label>
+              <label class="qp" title="queuePop locks in your pick"><input type="checkbox" data-ev="locked_pick" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Locked pick</span></label>
               <label class="qp" title="The loading screen comes up"><input type="checkbox" data-ev="game_start" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Game starts</span></label>
               <label class="qp" title="The League client closes or drops"><input type="checkbox" data-ev="disconnect" /><span class="qp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span class="qp-name">Client disconnects</span></label>
               <span class="help" data-tip="These events go to every channel below that's switched on. The phone companion is the exception — its alarm only fires on queue pops.">?</span>

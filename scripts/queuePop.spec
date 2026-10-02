@@ -16,7 +16,13 @@ a = Analysis(
         (os.path.join(ROOT, 'assets', 'queuepop.ico'), 'assets'),
         (os.path.join(ROOT, 'src', 'webui'), 'webui'),
         # Role table for the first-run pick suggestions (setup_suggest.py).
+        # Also infers enemy roles for the live pick suggestions (web_api).
         (os.path.join(ROOT, 'data', 'champion_roles.json'), 'data'),
+        # Everything src/counter_engine.py loads at import (live pick/ban
+        # suggestions). The seed flags file is only a fallback when
+        # champion_flags.json is missing, so it isn't shipped.
+        (os.path.join(ROOT, 'data', 'champion_flags.json'), 'data'),
+        (os.path.join(ROOT, 'data', 'counter_rules.seed.json'), 'data'),
     ],
     hiddenimports=(
         ['rich', 'pystray', 'PIL', 'webview', 'clr', 'aiohttp', 'qrcode']

@@ -20,6 +20,7 @@ import config
 import asset_refresh
 import champ_select
 import companion
+import counter_engine
 import events
 import setup_suggest
 import updater
@@ -396,6 +397,7 @@ def _normalize_champ_select(cs):
         "spot_priority": spot_priority,
         "role_priority": role_priority,
         "show_intent": bool(cs.get("show_intent", True)),
+        "show_suggestions": bool(cs.get("show_suggestions", True)),
         "auto_runes": bool(cs.get("auto_runes", False)),
         "roles": roles,
         "trades": {"enabled": bool((cs.get("trades", {}) or {}).get("enabled", False))},
@@ -498,7 +500,7 @@ def _normalize_config(data):
         # phone companion alarms on queue pops only, by design.
         "alert_events": {
             k: bool((data.get("alert_events") or {}).get(k, k == "queue_pop"))
-            for k in ("queue_pop", "champ_select", "game_start", "disconnect")
+            for k in ("queue_pop", "champ_select", "game_start", "disconnect", "locked_pick")
         },
         "allowed_queue_ids": _clean_queue_ids(data.get("allowed_queue_ids")),
         # Additive key (2026-06): 0 = accept instantly, else wait this many
@@ -549,6 +551,8 @@ class Api:
         self._icon_cache = {}
         # Lazily-loaded bundled skins catalog: {championId(str): [{id,name,…}]}.
         self._skins_catalog = None
+        # data/champion_roles.json, loaded on the first pick_suggestions().
+        self._champion_roles = None
         # Mirror any previously-refreshed champion portraits into this session's
         # bundled asset dir so the web UI loads them via its relative path —
         # WebView2 won't render cross-directory file:// images. Fast no-op when
@@ -865,6 +869,58 @@ class Api:
             }
 
         return self._lcu.call(_fetch, timeout=6.0) or {"active": False}
+
+    def pick_suggestions(self):
+        """"queuePop suggests" for the live view, from counter_engine: top-3
+        bans until an enemy locks, then top-3 picks from the role's own pick
+        list, each with two reasons + the engine's confidence label. Display
+        only, auto-pick never reads it. {ok: False} outside champ select, in
+        ARAM, or when the role has no pick list."""
+        cs = self._lcu.champ_select
+
+        async def _fetch(conn):
+            r = await conn.request("get", "/lol-champ-select/v1/session")
+            if r.status != 200:
+                return None
+            session = await r.json()
+            if not getattr(cs, "id_to_name", None):
+                await cs.load_champion_data(conn)
+            # champ_select's session-cached mastery map: one LCU call per draft.
+            return session, (await cs._mastery_points(conn)) or {}
+
+        got = self._lcu.call(_fetch, timeout=6.0)
+        if not got:
+            return {"ok": False}
+        session, points = got
+        settings = (self._lcu.config or {}).get("champ_select") or {}
+        local = session.get("localPlayerCellId")
+        me = next((p for p in session.get("myTeam") or [] if p.get("cellId") == local), {})
+        role = (me.get("assignedPosition") or "").lower()
+        if not role and not session.get("benchEnabled"):
+            role = champ_select.fallback_role(settings)  # DONI-322 League Classic
+        picks = ((settings.get("roles") or {}).get(role) or {}).get("picks") or []
+        if role not in setup_suggest.ROLES or not picks:
+            return {"ok": False}
+
+        names = getattr(cs, "id_to_name", {}) or {}
+        if self._champion_roles is None:
+            self._champion_roles = setup_suggest.load_champion_roles()
+        locked = lambda team: [names[p["championId"]] for p in team or []
+                               if p.get("championId") in names]
+        enemies = locked(session.get("theirTeam"))
+        bans = session.get("bans") or {}
+        banned = [names.get(b) for b in (bans.get("myTeamBans") or []) + (bans.get("theirTeamBans") or [])]
+        scn = {
+            "my_role": role,
+            "my_team": locked(session.get("myTeam")),
+            "enemy_team": [{"champ": n, "role": counter_engine.infer_role(n, self._champion_roles)}
+                           for n in enemies],
+            "pool": [{"champ": n, "mastery": points.get(cs._resolve(n), 0)} for n in picks],
+        }
+        out = counter_engine.live_suggestions(scn, taken=banned)
+        for item in out["bans"] + out["picks"]:
+            item["id"] = cs._resolve(item["champ"])  # portrait icon in the panel
+        return {"ok": True, **out}
 
     def get_champion_catalog(self):
         """Champion catalog [{id, name, alias}] for the UI, read via Python (not

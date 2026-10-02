@@ -605,6 +605,18 @@
     .cs-ticker-msg { font-size: 12.5px; color: #C8AA6E; min-width: 0;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+    /* "queuePop suggests" panel under the teams (pick_suggestions). */
+    .cs-sugg { padding: 10px 12px; background: rgb(1 10 19 / 0.35); outline: 1px solid rgb(200 170 110 / 0.35); outline-offset: -1px; }
+    .cs-sugg-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .cs-sugg-title { font-family: Cinzel, Georgia, serif; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #C8AA6E; }
+    .cs-conf { margin-left: auto; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 6px; color: #A09B8C; outline: 1px solid rgb(120 90 40 / 0.4); outline-offset: -1px; }
+    .cs-conf.high { color: #0AC8B9; outline-color: rgb(10 200 185 / 0.45); }
+    .cs-conf.medium { color: #C8AA6E; outline-color: rgb(200 170 110 / 0.45); }
+    .cs-sugg-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+    .cs-sugg-card { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; min-width: 0; outline: 1px solid rgb(120 90 40 / 0.18); outline-offset: -1px; }
+    .cs-sugg-card .cs-mini { width: 36px; height: 36px; }
+    .cs-sugg-why { font-size: 11px; color: #A09B8C; line-height: 1.3; margin-top: 2px; }
+
     /* --- Skin-favorites picker modal ----------------------------------- */
     .skin-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; }
     .skin-modal.hidden { display: none; }
