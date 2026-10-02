@@ -56,14 +56,28 @@ QP.bus.on("status", (s) => {
   renderPause(s.paused);
 });
 
+// Run a bridge call; toast {ok:false, error} results and thrown errors instead
+// of swallowing them. Returns the result (or null if it threw).
+async function playCall(fn, fallback) {
+  try {
+    const res = await fn();
+    if (res && res.ok === false) showToast(res.error || fallback, false);
+    return res;
+  } catch (e) {
+    console.error(fallback, e);
+    showToast(fallback, false);
+    return null;
+  }
+}
+
 $("play-btn").addEventListener("click", async () => {
   const mode = $("play-btn").dataset.mode || "launch";
   if (mode === "launch") {
     closeQueueMenu();
-    await api().launch_league();
+    await playCall(() => api().launch_league(), "Couldn't launch League");
   } else if (mode === "cancel") {
     closeQueueMenu();
-    await api().cancel_queue();
+    await playCall(() => api().cancel_queue(), "Couldn't cancel the queue");
     refreshStatus();
   } else if (mode === "live") {
     closeQueueMenu();
@@ -268,14 +282,14 @@ async function toggleShown(id, rowEl) {
     const chk = rowEl.querySelector(".qm-echeck");
     if (chk) chk.innerHTML = on ? QM_CHECK : "";
   }
-  try { await api().set_favorites(qmShown); } catch (_) {}
+  await playCall(() => api().set_favorites(qmShown), "Couldn't save your queue list");
 }
 
 async function startQuickQueue(id) {
   qmEditing = false;
   closeQueueMenu();
-  await api().start_queue(id);
-  qmLast = Number(id);
+  const res = await playCall(() => api().start_queue(id), "Couldn't start the queue");
+  if (res && res.ok) qmLast = Number(id);
   refreshStatus(); // flip PLAY → IN QUEUE
 }
 
@@ -286,7 +300,7 @@ async function toggleShowLast(el) {
     el.classList.toggle("on", qmShowLast);
     el.innerHTML = qmShowLast ? QM_CHECK : "";
   }
-  try { await api().set_show_last_queue(qmShowLast); } catch (_) {}
+  await playCall(() => api().set_show_last_queue(qmShowLast), "Couldn't save your queue setting");
 }
 
 function onQueueMenuClick(e) {
