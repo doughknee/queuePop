@@ -13,7 +13,7 @@ not a Zed counter") so they can never silently regress.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import counter_engine as ce  # noqa: E402
 
 DATA = ce.ROOT / "data"

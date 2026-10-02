@@ -76,6 +76,7 @@ def default_config():
             "champ_select": False,
             "game_start": False,
             "disconnect": False,
+            "locked_pick": False,
         },
         "allowed_queue_ids": [],
         # Grace window (seconds, 0 = instant) between the pop and the accept —
@@ -117,6 +118,9 @@ def default_config():
             # Hover our intended pick during planning so the team sees it.
             # Off = stay hidden until we actually pick (no ban-sniping).
             "show_intent": True,
+            # Live view's "queuePop suggests" panel (counter_engine): ban and
+            # pick suggestions from the role's own pick list. Display only.
+            "show_suggestions": True,
             # Role priority line for Draft/Ranked: a ranked list of position
             # keys (best first), used when autofilled away from them — same
             # decline-falls-down-the-line semantics as spot_priority. [] = off.

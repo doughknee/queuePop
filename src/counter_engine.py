@@ -5,13 +5,18 @@ Scores candidate champions against a champ-select scenario using kit attributes
 
 Pure-Python, no deps. Run from the repo root:
 
-    py scripts/counter_engine.py
+    py src/counter_engine.py
+
+Ships inside the app (web_api.pick_suggestions) and backs the Draft Sim
+(scripts/draft_sim_server.py). Data resolves from sys._MEIPASS when frozen
+(scripts/queuePop.spec bundles the JSON it loads), else the repo's data/.
 
 Reads data/champion_flags.seed.json, data/counter_rules.seed.json, and
 data/counter_scenarios.seed.json. See docs/counter-engine.md for the design.
 """
 
 import collections
+import functools
 import json
 import re
 import zlib
@@ -19,7 +24,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
+DATA = Path(getattr(sys, "_MEIPASS", ROOT)) / "data"
 
 # Scoring knobs — the "weighting" we want to eyeball. Tune freely.
 MASTERY_FULL_AT = 100_000      # mastery points that earn the full comfort bonus
@@ -385,6 +390,50 @@ def confidence(results):
     if margin >= 3 or ratio >= 0.09:
         return "MEDIUM"
     return "LOW"
+
+
+# ---- live champ select (web_api.pick_suggestions) ---------------------------
+
+def infer_role(name, champion_roles):
+    """An enemy's likely role from champion_roles.json ({role: [names]}): the
+    list it ranks highest in, None when unlisted (the live session hides
+    enemy positions)."""
+    # ponytail: per-champ guess, no team-wide role assignment; add one if two
+    # enemies colliding on a role ever hides the real lane opponent.
+    best = None
+    for role, names in champion_roles.items():
+        if name in names and (best is None or names.index(name) < best[1]):
+            best = (role, names.index(name))
+    return best[0] if best else None
+
+
+def _two_reasons(r):
+    reasons = [f["reason"] for f in r["fired"]] + [r["mastery_label"]]
+    return (reasons + ["no strong matchup edge either way"])[:2]
+
+
+@functools.lru_cache(maxsize=32)
+def _bans_cached(my_role, pool_key):
+    # suggest_bans is ~40ms; the live view polls every 700ms with the same pool.
+    return suggest_bans(my_role, [{"champ": c, "mastery": m} for c, m in pool_key], top_k=10)
+
+
+def live_suggestions(scn, top_k=3, taken=()):
+    """{phase, bans, picks} for the live view: bans until an enemy has locked,
+    then picks ranked from the scenario's pool (the user's own list). `taken`
+    = champs already banned, so they aren't suggested as bans."""
+    if not scn["enemy_team"]:
+        pool_key = tuple((p["champ"], p.get("mastery", 0)) for p in scn["pool"])
+        skip = set(taken) | set(scn["my_team"])
+        bans = [b for b in _bans_cached(scn["my_role"], pool_key) if b["champ"] not in skip]
+        return {"phase": "bans", "picks": [], "bans": [
+            {"champ": b["champ"], "reason": b["threat_note"]
+             or f"your best answer is only {b['best_answer']}"} for b in bans[:top_k]]}
+    results, _ = evaluate_scenario(scn)
+    label = confidence(results)
+    return {"phase": "picks", "bans": [], "picks": [
+        {"champ": r["champ"], "score": round(r["score"], 1), "confidence": label,
+         "reasons": _two_reasons(r)} for r in results[:top_k]]}
 
 
 # ---- draft analysis ---------------------------------------------------------

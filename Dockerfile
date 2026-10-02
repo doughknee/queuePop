@@ -5,7 +5,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY scripts/counter_engine.py scripts/draft_sim_server.py scripts/draft_sim.html scripts/
+COPY src/counter_engine.py src/
+COPY scripts/draft_sim_server.py scripts/draft_sim.html scripts/
 COPY data/champion_flags.json \
      data/counter_rules.seed.json \
      data/counter_scenarios.seed.json \

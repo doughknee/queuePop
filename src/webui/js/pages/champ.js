@@ -173,6 +173,9 @@ function buildChampTab() {
   $("show_intent").addEventListener("change", () => {
     QP.store.set("champ_select.show_intent", $("show_intent").checked);
   });
+  $("show_suggestions").addEventListener("change", () => {
+    QP.store.set("champ_select.show_suggestions", $("show_suggestions").checked);
+  });
   // Master switches: the same flags as the role-tab gate cards, surfaced here
   // so the takeover can be turned OFF after it's on (the gate card vanishes
   // once enabled — this is the way back).
@@ -479,6 +482,7 @@ function hydrateBehavior() {
   $("trades_enabled").checked = !!(cs.trades || {}).enabled;
   $("auto_runes").checked = !!cs.auto_runes;
   $("show_intent").checked = cs.show_intent ?? true;
+  $("show_suggestions").checked = cs.show_suggestions ?? true;
   renderPrioLine("spot-seg");
   renderPrioLine("role-seg");
   const delay = String(Math.round(Number(aramCfg().bench_delay) || 0));
