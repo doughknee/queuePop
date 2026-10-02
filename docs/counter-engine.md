@@ -253,7 +253,7 @@ score(c) = w_counter  * Σ matchup_rules(c)
 ## 6. Build phases
 
 **Status:** Phases 0, 2, 3 (prototype-level) are built and green — `scripts/ingest_flags.py`
-generates `data/champion_flags.json` for all 173 champions; `scripts/counter_engine.py` runs;
+generates `data/champion_flags.json` for all 173 champions; `src/counter_engine.py` runs;
 `scripts/golden_test.py` is 35/35 against the full roster. Mechanical flags cover all 173, and **Phase 1 (judgment flags) is DONE — all 173 champions are
 fully tagged** (`data/champion_judgment.json`, built by per-class agent batches grounded in
 ability text). The verification gates earned their keep repeatedly: golden caught a missing
