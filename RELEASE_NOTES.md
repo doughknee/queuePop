@@ -1,23 +1,24 @@
-If you've seen **two Ezreals** in the champ picker since League Classic launched, this is the release that sends the impostor home. The rest of it is about one thing: when something fails, queuePop now *tells you* instead of smiling and nodding.
+This is the one where queuePop starts *helping you draft*, not just clicking buttons for you. Three new things, all of them visible the first time you open the app.
 
-## 🏛️ League Classic
+## 🧭 Set me up
 
-- **The double-champion bug is fixed.** Classic added a second copy of every returning champion to the client's list, and the picker (and your saved pick lists) could land on the wrong one. queuePop now keeps the real one every time.
-- **Classic draft actually works.** Classic has bans but no assigned positions, so auto pick/ban silently did nothing. It now falls back to your role-priority role (or the first role with picks) and runs bans, picks, spells, runes and skins as normal.
-- **A rejected pick no longer stalls champ select.** If the client refuses a champ, queuePop moves to the next one on your list instead of standing there looking locked in.
+- **New install? Sixty seconds to a working setup.** With League open, queuePop now offers a one-screen wizard: tick the queues you want auto-accepted, review five role cards pre-filled from *your* mastery and recent lanes, flip the toggles you want, done. No more hand-building pick lists before the app does anything.
+- **Already set up?** Nothing changes unless you ask. A **Set me up** button on the Dashboard reopens it any time, and it will not replace a filled list unless you tick "Replace".
 
-## 🔔 Failures you can see
+## 🧠 queuePop suggests
 
-- **Discord and desktop alerts** that fail now show up as a warning in the activity feed and on the Alerts page. Previously a dead webhook still said "sent".
-- **PLAY, cancel and quick-queue errors** pop a toast ("Riot Client not found", "Lobby error") instead of doing nothing.
-- **A failed update** re-enables the Update button and says why. "No release found" and "couldn't reach the server" are now different messages.
+- **Live counter-pick and ban advice, in plain English.** During a draft, the live view now shows the top 3 bans for your role, then, once the enemy starts locking, the top 3 picks from *your own list*, each with the two biggest reasons ("your team is all-magic, you add physical damage", "exposed to their assassin with no peel") and a confidence rating.
+- It only ever suggests champions you listed, and it never changes what auto-pick locks. It is advice, not a takeover. Turn it off on the Champ Select page if you want silence.
+- Under the hood this is the Draft Sim engine, now shipping inside the app.
 
-## 🧹 Small things
+## 💬 Discord, but prettier
 
-- **Start in the tray** is a new checkbox on the Alerts page.
-- The window size is no longer saved while minimised, so no more 160×28 ghost windows.
-- The bench-grab delay slider and the backend finally agree on the maximum (3 s).
-- The champ select log rotates at 1 MB instead of growing forever.
-- README and the site now describe the app you're actually running.
+- **Alerts are embeds now.** Queue pop, champ select, game start and friends arrive with a colour, the queue name, and the champion's icon when one is locked.
+- New optional **Locked pick** alert on the Alerts page, off by default.
 
-Four small automated checks ride along under `tests/` so these stay fixed. o7
+## 🧹 Also
+
+- The alert matrix gained the locked-pick row, and a stale doc path was fixed.
+- Seven small automated checks now guard the whole set, plus the engine's 70-scenario golden test.
+
+Heads-up: the suggestions panel is brand new and has been tested against recorded drafts, not yet against a thousand of yours. If it says something dumb, screenshot it and tell us. o7
