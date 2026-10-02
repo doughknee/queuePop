@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 from plyer import notification
 import config
+import events
 from config import resource_path
 
 # Hextech gold, as a decimal int for Discord embed `color`.
@@ -15,6 +16,14 @@ last_sent = {}
 
 def _mark(channel, what):
     last_sent[channel] = {"ts": time.time(), "what": what}
+
+
+def _fail(channel, what, err):
+    """A real alert failed: surface it on the Alerts page (`last_sent` gets an
+    `error`), in the activity feed, and in the console."""
+    last_sent[channel] = {"ts": time.time(), "what": what, "error": str(err)}
+    events.push(f"{channel.capitalize()} alert failed: {err}", "warning")
+    config.console.log(f"[yellow]{channel.capitalize()} alert failed: {err}[/]")
 
 
 def send_desktop_event(title, message, what="alert"):
@@ -32,7 +41,7 @@ def send_desktop_event(title, message, what="alert"):
         config.console.log("[cyan]Desktop notification sent.[/]")
         return True
     except Exception as e:
-        config.console.log(f"[yellow]Failed to send desktop notification: {e}[/]")
+        _fail("desktop", what, e)
         return False
 
 
@@ -68,11 +77,13 @@ async def send_discord_event(webhook_url, user_id, title, description,
                                fields=fields)
     async with aiohttp.ClientSession() as session:
         try:
-            await session.post(webhook_url, json=payload)
+            async with session.post(webhook_url, json=payload) as resp:
+                if not 200 <= resp.status < 300:
+                    raise RuntimeError(f"Discord returned {resp.status}")
             _mark("discord", what)
             config.console.log("[cyan]Discord notification sent.[/]")
         except Exception as e:
-            config.console.log(f"[yellow]Failed to send Discord ping: {e}[/]")
+            _fail("discord", what, e)
 
 
 async def send_discord_ping(webhook_url, user_id, game_mode):
