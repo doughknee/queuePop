@@ -114,7 +114,10 @@ QP.bus.on("status", (s) => {
   renderCompanionStatus();
   // "Last sent" lines: proof each channel is actually delivering.
   const last = s.alert_last || {};
-  const fmt = (i) => (i ? `Last sent: ${i.what} · ${fmtAgoShort(i.ts)}` : "");
+  const fmt = (i) =>
+    !i ? "" : i.error
+      ? `✗ Last attempt failed: ${i.error} · ${fmtAgoShort(i.ts)}`
+      : `Last sent: ${i.what} · ${fmtAgoShort(i.ts)}`;
   $("desktop-last").textContent = fmt(last.desktop);
   $("discord-last").textContent = fmt(last.discord);
 });
