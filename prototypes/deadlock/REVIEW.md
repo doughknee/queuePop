@@ -87,3 +87,14 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Visually inspected desktop 1440, tablet 768, phone 390, and narrow phone 320. No horizontal overflow at these sizes. Phone selection scrolls to the dossier; return focuses the search. Browser warning/error capture was empty.
 - Updated comparison with before/after and Warden, Infernus, and Ivy examples. Saved a phone preview. Existing build, report, and earlier V2 references remain available.
 - Local frontend study only; no backend, deployment, or remote publication changes.
+
+
+## Reference-led street-poster pass
+
+- Reviewed the two supplied images as the target. Identified the mismatch as composition/material/type, not merely insufficient grain: full-page green parchment, smooth cameos, delicate serif headings, and a uniform muted wash.
+- Replaced the broad parchment canvas with soot/charcoal. Used cream for type and small notes, rust and spectral green as accents, and unsuppressed character colors. Added overlapping torn character posters at the city entrance, ripped dossier framing, black print strips, flecked ink, and faint occult diagrams.
+- Applied the direction to hero dossiers, builds, reports, guide, companion, navigation, and outer frame. Reused the six existing portraits and item artwork. Added two locally served SIL-licensed display fonts, with license/provenance files.
+- Visually reviewed city, heroes, builds, and history at desktop and phone sizes. Checked all five primary pages at 320 and 768 CSS pixels: no horizontal overflow. Also inspected 390-pixel dossiers and 1440-pixel desktop pages. Reduced poster overlap on tablet and faded diagrams behind reading areas.
+- Exercised hero inspection, purchase stages and item explanations, keyboard focus, match result/hero filters, empty results and recovery. Selected hero and existing save preferences were preserved. Browser warning/error capture was empty; JavaScript syntax and whitespace checks passed.
+- Retained the user's browser zoom and cleared temporary viewport overrides. Updated comparison.html with both supplied references, immediate before/after, the city/build/report views, and phone example.
+- The resulting visual direction is substantially closer to the supplied references. It remains an adaptation: authored marks and alternative fonts, existing portrait assets rather than bespoke full-body compositions. Body text is not distressed. No backend, deployment, or remote publication changes.

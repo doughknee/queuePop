@@ -4,7 +4,7 @@ A standalone, functional frontend design study inside the QueuePop repository. T
 
 ## Preview
 
-From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the previous weathered archive with the new individual hero files and retains earlier references.
+From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the supplied references and previous green archive with the new dark street-poster direction and retains earlier references.
 
 ## Art direction
 
@@ -65,3 +65,12 @@ The four small SVG texture/ornament files (`paper-grain.svg`, `paper-weather.svg
 `dossiers.css` gives all six files distinct ink colors, city crops, decorative symbolic marks, pinned portrait glass, handwritten notes, and numbered file navigation. These authored marks are atmospheric ornaments, not in-game ability icons. The existing six static portraits are reused.
 
 Each hero can be linked directly, for example `#/heroes/infernus`. Browsing preserves the directory search and does not change the chosen hero. Previous/next buttons wrap through the archive and retain keyboard focus. On phones, opening a dossier scrolls to it; a return control focuses the search field. Reduced-motion preferences skip the smooth scroll. No new dependencies or runtime network calls.
+
+
+## Reference-led street-poster pass
+
+The supplied October 12 reference images reset the visual target: near-black surrounding space, heavy cream display type, ripped print, black title strips, saturated character art, and occult diagrams. `street.css` is the latest visual layer over the prototype. `DIRECTION.md` records the palette and review decisions.
+
+The city uses overlapping Ivy/Infernus posters. Every archive page now shares a dark canvas; the hero cameos become torn posters, builds use scuffed item tiles and a small paper note, and reports retain clear charts and statistics. Full-page routes and all existing frontend behavior are retained. At phone sizes, the decorative homepage collage is omitted to protect text space; hero dossiers retain their posters.
+
+New local assets are authored `street-ritual.svg` and `ink-grit.svg`, two open-licensed display fonts (licenses/provenance under `assets/fonts/`), the two supplied image references, and browser captures `assets/street-*.jpg`. No new runtime service calls or packages. The fonts are alternatives chosen for the references, not the game's proprietary font.
