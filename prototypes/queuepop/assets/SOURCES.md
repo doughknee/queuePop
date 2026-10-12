@@ -20,3 +20,9 @@ Fifteen ability icons were downloaded from the image links on Riot's official [A
 - Yasuo: `passive/Yasuo_Passive.png`; `spell/YasuoQ1Wrapper.png`, `YasuoW.png`, `YasuoE.png`, `YasuoR.png`.
 
 Ability names, broad descriptions, roles, and short lore paraphrases were checked against those official pages. Ability details link back to Riot. Guidance, match narratives, and the next-game focus choices are authored for this concept. The geometric crest and ornamental framing are original interface decoration, not official region emblems.
+
+## Armory sanctuary / 2026-10-12
+
+`armory-sanctuary.png` is original generated concept artwork made with the built-in image-generation tool: a quiet painted fantasy sanctuary with weathered stone, bronze inlays, mountain ruins and restrained magical light. It is not official Riot artwork or a literal location claim. The prompt requested a continuous background scene with no characters, items, text or interface, leaving space for functional controls. The exact prompt is saved in the task output `league-armory-art-notes.md`.
+
+The spirit, light and wind ornaments in `armorySigil()` are original code-native UI graphics. They suggest the three champions' character without claiming to reproduce official regional emblems.

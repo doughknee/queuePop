@@ -74,3 +74,9 @@ Validation: overview, collection, dossier, builds, history and report checked at
 The match chronicle uses an asymmetric featured cover and two supporting covers, adapting to one or two filtered results. Dedicated reports pair selectable chapters with nine authored tactical sketches across the three sample matches. Each sketch is explicitly illustrative, never presented as recorded telemetry or a replay. Report item links open the exact final-stage purchase. Other-match links allow continued review without returning to the index.
 
 Validation: all three builds, history index and three reports checked at 320, 390, 768, 1440 and 2560 CSS pixels, with no horizontal overflow or broken loaded images. Desktop armory/chronicle/review and phone item decisions/review were visually inspected. Verified item and stage changes, matching ability navigation, exact report-to-item navigation, one/two-match filtering, changing chapter sketches, and saved-plan persistence after reload; restored the original saved preference after testing. These remain frontend concept fixtures. Production source, TFT and the approved Deadlock design are unchanged.
+
+## Armory material pass / 2026-10-12
+
+`league-armory.css` gives builds a painted sanctuary environment, arched portrait, open engraved relic settings and an aged field note. Spirit, light and wind ornaments and personal copy distinguish the three champions. The scene and note textures use one shared local generated asset; CSS masks and overlays protect text contrast. No extra motion or external runtime requests are introduced.
+
+Checked all three armories at 320, 600, 768, 1024, 1440 and 2560 CSS pixels with no document overflow or broken loaded images. Visually inspected desktop and phone composition, relic selection and field-note readability. Existing stage, item, ability and saved-plan behavior remains in place. Artwork provenance is in `assets/SOURCES.md`.
