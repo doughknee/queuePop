@@ -10,3 +10,13 @@
 - Deadlock artwork/styles: reused from the approved sibling study; see that study's asset provenance.
 
 This concept is not an official Riot or Valve product. Match records, plan copy, and TFT formations are authored mock data.
+
+## League spellbook / 2026-10-12
+
+Fifteen ability icons were downloaded from the image links on Riot's official [Ahri](https://www.leagueoflegends.com/en-us/champions/ahri/), [Lux](https://www.leagueoflegends.com/en-us/champions/lux/), and [Yasuo](https://www.leagueoflegends.com/en-us/champions/yasuo/) pages. Their linked asset base at capture was `https://ddragon.leagueoflegends.com/cdn/16.20.1/img/`. This is image provenance, not a claim of live balance data. Local files are `{ahri,lux,yasuo}-{p,q,w,e,r}.png`.
+
+- Ahri: `passive/Ahri_SoulEater2.png`; `spell/Ahri{Q,W,E,R}.png`.
+- Lux: `passive/LuxIlluminatingFraulein.png`; `spell/LuxLightBinding.png`, `LuxPrismaticWave.png`, `LuxLightStrikeKugel.png`, `LuxR.png`.
+- Yasuo: `passive/Yasuo_Passive.png`; `spell/YasuoQ1Wrapper.png`, `YasuoW.png`, `YasuoE.png`, `YasuoR.png`.
+
+Ability names, broad descriptions, roles, and short lore paraphrases were checked against those official pages. Ability details link back to Riot. Guidance, match narratives, and the next-game focus choices are authored for this concept. The geometric crest and ornamental framing are original interface decoration, not official region emblems.

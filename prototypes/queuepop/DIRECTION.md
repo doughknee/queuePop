@@ -25,3 +25,20 @@ Fixture data is illustrative and intentionally not represented as current patch 
 League's playbook uses a full-height champion banner beside a restrained illuminated leaf. Purchases sit in circular relic settings along a three-part path; the selected item explains a decision in place. The journal gives each match an illustrated chapter, while reports pair a cinematic outcome with a short, selectable narrative. Keep gold as structure, blue as atmosphere, and typography readable rather than ornamental everywhere.
 
 TFT's interiors use collectible formation studies, generous rounded corners, gold carry tokens, and a violet strategy table. Warm paper notes hold one decision at a time. Match reports center the board itself, with read-only snapshots and a clear path back to the editable plan. Do not imply these illustrative rosters correspond to a live set.
+
+## League world pass
+
+Design tokens: obsidian `#050D14`, deep blue `#0D1C25`, aged gold `#C8AA6E`, ivory `#F0E6D0`, spell light `#79C9CF`, muted defeat `#9F6058`. Cinzel carries champion names; Marcellus provides editorial hierarchy; Segoe UI keeps controls readable.
+
+The old overview led with a generic welcome headline and put the champion behind it. The new composition gives the champion the scene: large identity at left, uninterrupted character artwork at right, a compact portrait selector, and a quiet shared QueuePop header. Gold framing, clipped corners, and concentric engraving borrow the material vocabulary of the League client without borrowing Deadlock's paper or grunge.
+
+```
+Shared QueuePop masthead / League navigation
+Champion scene: identity + action | character artwork | portrait selection
+Preparation gateway             | most relevant sample match
+One selected focus for the next game
+```
+
+The collection opens dedicated champion dossiers with real ability artwork, a selectable spellbook, strengths, considerations, and a locally remembered focus. Practical interiors inherit the same framing and type, while retaining their functioning item choices and match chapters. Match reports show an explicitly illustrative final loadout. Keep focus, ability selection, and navigation inline; no popup menus.
+
+Review criterion: more gold around the old boxes would not meet the brief. Composition and content both changed. Do not extend this League pass into TFT or the approved Deadlock design.

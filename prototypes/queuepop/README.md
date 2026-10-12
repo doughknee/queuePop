@@ -50,3 +50,11 @@ Screenshot deliverables are saved in the task's outputs directory. Artwork prove
 - Checked all seven revised page types at 320px, 768px, and 1440px: no horizontal document overflow or broken loaded images. Visually inspected desktop layouts and 390px phone playbook/report layouts.
 - Exercised champion-specific items, stage and item selection, defeat filtering, report chapters, positioning lessons, final-board snapshots, board moves and restoration, and refresh persistence. Verified Deadlock switching retains the browser document. Browser error/warning log was empty.
 - Passed JavaScript syntax and Git whitespace checks. No production source or original Deadlock files changed.
+
+## League world pass / 2026-10-12
+
+`league-world.js` and `league-world.css` own the champion-led League overview, gallery, dedicated `/league/champions/{ahri,lux,yasuo}` dossiers, ability exploration, and next-game focus. League page titles identify the current champion or journal. Existing builds now connect directly to individual abilities; match reports include illustrative final-loadout links. The three splash images are warmed for champion switching.
+
+Focus choices are validated and stored per champion under the separate `queuepop-league-focus-v1` key. They are local preferences only. Riot artwork provenance and source links are documented in `assets/SOURCES.md` and exposed from each spellbook.
+
+Validation: ten League routes at 320px, 768px, and 1440px rendered their expected headings with no horizontal overflow or broken loaded images. Desktop overview, collection, dossier and match report were visually reviewed; 390px Lux dossier and ability selection were inspected. Exercised champion switching, unique regional copy, ability changes, direct build-to-ability navigation, next-game focus persistence after reload, and champion-specific report-to-build navigation. JavaScript syntax and Git whitespace checks passed. Production source, TFT pages and original Deadlock files are unchanged.
