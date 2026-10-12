@@ -24,7 +24,7 @@ The composition is a city seen through stepped Art Deco architectural framing. T
 - Simulated queue with start, elapsed time, cancel, ready check, and reset. The timer continues while its panel is closed.
 - Phone and Discord preferences remembered locally. Neither sends notifications.
 
-No Steam/game calls, pywebview bridge, matchmaking, real accounts, notification delivery, or live strategy data. Hero selection and queue state are intentionally session-only. Build flags and notification preferences use `queuepop-deadlock-city-v1` in localStorage and degrade to session-only storage when unavailable.
+No Steam/game calls, pywebview bridge, matchmaking, real accounts, notification delivery, or live strategy data. Queue state is intentionally session-only. Hero selection, build flags, and notification preferences use `queuepop-deadlock-city-v1` in localStorage and degrade to session-only storage when unavailable.
 
 ## Assets
 
@@ -33,3 +33,10 @@ No Steam/game calls, pywebview bridge, matchmaking, real accounts, notification 
 ## Validation
 
 JavaScript syntax and whitespace checks. Browser inspection at 1440, 1024, 768, 390, and 320 pixels; mobile archive rendering; horizontal-overflow checks; hero search and selection; build approach selection and save persistence after reload; match filtering; guide expansion; modal Escape/focus restoration; queue start/close/reopen/pop/reset/cancel; notification preference persistence. See the review report for the actual completed checks.
+
+
+## Second design pass
+
+The archive now has a persistent section navigation and a split hero directory/dossier. Six locally stored Valve hero portraits replace placeholder glyphs; selection is remembered on this device and updates the city desk. The celestial seal opens the field guide on desktop, while the phone layout keeps its simpler text entry. Shared SVG line icons replace platform-dependent navigation glyphs. Feedback is rendered inside the native dialog so confirmation stays visible above its backdrop.
+
+Portrait provenance is documented in `assets/heroes/README.md`. The API is used only to obtain the static artwork during development; the app still makes no runtime service calls. `assets/first-pass.jpg` preserves the first redesign for comparison.

@@ -7,6 +7,7 @@
   <title>Deadlock · QueuePop</title>
   <link rel="icon" href="assets/queuepop-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refinements.css">
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -39,12 +40,12 @@
           <button class="ticket" data-open="heroes"><span class="ticket-sigil" aria-hidden="true">✥</span><span>Find your hero<small>Enter the dossiers</small></span><span class="ticket-arrow" aria-hidden="true">↗</span></button>
           <button class="underlink" data-open="guides">New to the city? Start here <span aria-hidden="true">↗</span></button>
         </section>
-        <div class="moon-seal" aria-hidden="true"><span class="seal-orbit"></span><span class="seal-eye">◈</span><span class="seal-line"></span></div>
+        <button class="moon-seal" data-open="guides" aria-label="Open the field guide"><span class="seal-label">The field guide</span><span class="seal-orbit"></span><span class="seal-eye">◈</span><span class="seal-line" aria-hidden="true"></span></button>
         <div class="location-note" aria-hidden="true"><span class="location-rule"></span><span>Midtown<br><em>There’s always another way through.</em></span></div>
 
         <section class="night-desk" aria-label="Your night in the city">
-          <button class="desk-entry dossier-entry" data-open="heroes"><span class="entry-symbol" aria-hidden="true">♜</span><span><small>Tonight’s person of interest</small><strong>The Warden</strong><em>Meet the city’s last line of defense</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
-          <button class="desk-entry build-entry" data-open="builds"><span class="entry-symbol" aria-hidden="true">⌘</span><span><small>A plan worth keeping</small><strong>Make every soul count.</strong><em>Open your build ledger</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
+          <button class="desk-entry dossier-entry" data-open="heroes"><span class="entry-portrait"><img src="assets/heroes/warden.webp" alt="" width="100" height="136"></span><span><small>Tonight’s person of interest</small><strong>The Warden</strong><em>Meet the city’s last line of defense</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
+          <button class="desk-entry build-entry" data-open="builds"><span class="ledger-symbol" aria-hidden="true"><i></i><i></i><i></i></span><span><small>A plan worth keeping</small><strong>Make every soul count.</strong><em>Open your build ledger</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
           <button class="desk-entry match-entry" data-open="history"><span class="victory-seal" aria-hidden="true">V</span><span><small>Your last encounter · Sample</small><strong>A night well won.</strong><em><b>18 / 7 / 9</b> &nbsp; Warden · 32:18</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
         </section>
       </main>
@@ -52,7 +53,7 @@
     </div>
     <footer class="companion-bar"><span class="companion-label"><img src="assets/queuepop-mark.svg" width="22" height="22" alt=""><span>Go live a little.<small>We’ll keep an eye on your queue.</small></span></span><span class="companion-status" id="queue-status" role="status">Local demo · Ready when you are</span><button data-open="companion">Open companion <span aria-hidden="true">↗</span></button></footer>
   </div>
-  <dialog id="sheet" aria-labelledby="sheet-title"><div class="sheet-top"><span>Deadlock / The midnight bureau</span><button id="close-sheet" aria-label="Close panel">✕</button></div><div id="sheet-body"></div></dialog>
+  <dialog id="sheet" aria-labelledby="sheet-title"><div class="sheet-top"><span class="bureau-heading"><span aria-hidden="true">✥</span> The midnight bureau <small>Knowledge is a kindness.</small></span><button id="close-sheet" aria-label="Close panel"><span>Close</span> ✕</button></div><nav class="archive-tabs" aria-label="Archive sections"><button data-open="heroes">Dossiers</button><button data-open="builds">Build ledger</button><button data-open="history">Match record</button><button data-open="guides">Field guide</button></nav><div id="sheet-body"></div><div id="sheet-feedback" role="status" hidden></div></dialog>
   <div class="toast" id="toast" role="status" hidden></div>
 </body>
 </html>
