@@ -42,3 +42,9 @@ One selected focus for the next game
 The collection opens dedicated champion dossiers with real ability artwork, a selectable spellbook, strengths, considerations, and a locally remembered focus. Practical interiors inherit the same framing and type, while retaining their functioning item choices and match chapters. Match reports show an explicitly illustrative final loadout. Keep focus, ability selection, and navigation inline; no popup menus.
 
 Review criterion: more gold around the old boxes would not meet the brief. Composition and content both changed. Do not extend this League pass into TFT or the approved Deadlock design.
+
+## Wide displays and navigation
+
+Use a full-window scene with a composed content area, following the spatial principle of the approved Deadlock concept. Do not cap the entire League canvas: cap reading and interaction areas instead. On wide displays, give champion artwork room to breathe while preserving a comfortable distance between related controls.
+
+The League navigation is its own landmark: crest at left, four illustrated destinations in the center, selected champion at right. Its gold cut-corner active plate and inset diamond provide a stronger sense of place. Tablet and phone layouts retain direct access to every destination without a popup menu. This visual language belongs to League; the shared QueuePop masthead and other game worlds remain separate.

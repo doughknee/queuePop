@@ -58,3 +58,11 @@ Screenshot deliverables are saved in the task's outputs directory. Artwork prove
 Focus choices are validated and stored per champion under the separate `queuepop-league-focus-v1` key. They are local preferences only. Riot artwork provenance and source links are documented in `assets/SOURCES.md` and exposed from each spellbook.
 
 Validation: ten League routes at 320px, 768px, and 1440px rendered their expected headings with no horizontal overflow or broken loaded images. Desktop overview, collection, dossier and match report were visually reviewed; 390px Lux dossier and ability selection were inspected. Exercised champion switching, unique regional copy, ability changes, direct build-to-ability navigation, next-game focus persistence after reload, and champion-specific report-to-build navigation. JavaScript syntax and Git whitespace checks passed. Production source, TFT pages and original Deadlock files are unchanged.
+
+## League wide layout and navigation / 2026-10-12
+
+Removed the inherited 1,600px canvas cap for League. Artwork and game navigation now fill the viewport; practical sections expand up to 1,760px with fluid gutters. Champion scenes, gallery portraits, builds and journal entries adapt their proportions for larger displays.
+
+League has a centered illustrated navigation with an active gold plate, accessible current-page state, keyboard focus styling, and a selected-champion dossier shortcut. Tablet layouts simplify the brand; phone layouts keep all four destinations visible with large icon-and-label targets. The shared QueuePop header remains mounted.
+
+Validation: overview, collection, dossier, builds, history and report checked at 320, 390, 768, 1024, 1440, 1920 and 2560 CSS pixels, with no document overflow or broken loaded images. Visually reviewed ultrawide overview/builds at 3413px, desktop collection/history/report, tablet builds and phone overview. Navigation labels fit at eleven widths including breakpoint boundaries. Verified all four destinations, the champion shortcut, current-page state and a Deadlock round trip retaining the same document. Browser warning/error log was empty. Linear bug logging was attempted but requires connector reauthentication.
