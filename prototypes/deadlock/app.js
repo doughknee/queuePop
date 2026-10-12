@@ -170,10 +170,10 @@ document.addEventListener('click', event => {
     toast(`${hero.name} selected${storageAvailable ? ' and remembered on this device' : ' for this visit'}.`);
   }
   if(button.hasAttribute('data-save-build')) { saved[currentBuild] = !saved[currentBuild]; persist(); syncBuildSaved(); button.textContent = saved[currentBuild] ? 'Saved to your ledger ✓' : 'Save this build'; button.setAttribute('aria-pressed',String(saved[currentBuild])); toast(saved[currentBuild] ? storageAvailable ? 'Saved on this device.' : 'Saved for this visit. Browser storage is unavailable.' : 'Removed from your saved ledger.'); }
-  if(button.dataset.build) { currentBuild = button.dataset.build; buildStage = 0; selectedItem = ''; renderBuilds(); document.querySelector(`[data-build="${currentBuild}"]`).focus({preventScroll:true}); }
+  if(button.dataset.build) { currentBuild = button.dataset.build; buildStage = 0; selectedItem = ''; renderBuilds(); document.querySelector(`[data-build="${currentBuild}"]`).focus({preventScroll:true}); revealCasework('.plan-cover'); }
   if(button.dataset.stage) { buildStage = Number(button.dataset.stage); selectedItem = ''; renderBuildStage(); }
   if(button.dataset.item) { selectedItem = button.dataset.item; renderItemNote(); }
-  if(button.dataset.report) { currentMatch = button.dataset.report; renderMatchReport(); }
+  if(button.dataset.report) { currentMatch = button.dataset.report; renderMatchReport(); revealCasework('.report-cover'); }
   if(button.hasAttribute('data-clear-records')) { recordFilter = 'All'; recordHero = 'All'; renderHistory(); document.querySelector('[data-filter="All"]').focus({preventScroll:true}); }
   if(button.dataset.matchBuild) { currentBuild = button.dataset.matchBuild; buildStage = 2; selectedItem = ''; openPage('builds'); }
   if(button.dataset.heroBuild) { const matching = Object.keys(buildPlans).find(key => buildPlans[key].hero === button.dataset.heroBuild); currentBuild = matching || 'balanced'; buildStage = 0; selectedItem = ''; openPage('builds'); if(!matching) toast('This study includes Warden and Ivy builds. Showing the Warden sample.'); }

@@ -98,3 +98,13 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Exercised hero inspection, purchase stages and item explanations, keyboard focus, match result/hero filters, empty results and recovery. Selected hero and existing save preferences were preserved. Browser warning/error capture was empty; JavaScript syntax and whitespace checks passed.
 - Retained the user's browser zoom and cleared temporary viewport overrides. Updated comparison.html with both supplied references, immediate before/after, the city/build/report views, and phone example.
 - The resulting visual direction is substantially closer to the supplied references. It remains an adaptation: authored marks and alternative fonts, existing portrait assets rather than bespoke full-body compositions. Body text is not distressed. No backend, deployment, or remote publication changes.
+
+
+## Illustrated builds and encounter clippings pass
+
+- Used the user's four preferred crops as the direction: overlapping torn prints, selected paper tabs, black label strips, scuffed item tiles, and cream explanation notes. Preserved the accepted city and hero treatments.
+- Added illustrated build covers with stage-aware item collages, paper purchase tabs, bolder item-name strips, and native expandable plan-adaptation advice. Preserved loadout portrait/sidebar, saved flags, stage choices, and item explanations.
+- Added hero/result posters, detachable score slips, stamped timeline labels, and cream takeaway notes to encounter reports. Rust accents distinguish defeat while the written result remains explicit.
+- Verified all three plans and all nine stages: cover artwork matches the selected stage's three item icons. Verified plan-adaptation notes, report filtering and empty recovery, expanded next-match advice, and report-to-build links opening the closing stage.
+- Browser-checked 1440 desktop, 768 tablet, 390 phone, and 320 narrow phone layouts. No horizontal overflow in checked build/report layouts. Visually reviewed long Ivy titles and narrow score slips. Phone selections scroll to details and focus the selected heading; viewport overrides were reset afterward. Browser warnings/errors were empty. Syntax and whitespace checks passed.
+- Updated comparison with both pages before/after and phone examples. No external assets, backend work, other-game changes, deployment, or remote publishing.

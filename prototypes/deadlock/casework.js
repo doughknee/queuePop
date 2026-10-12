@@ -10,11 +10,11 @@ function renderBuilds() {
       <div class="loadout-portrait"><img src="assets/heroes/${plan.hero}.webp" alt="" width="180" height="244"><span>${heroes.find(hero => hero.id === plan.hero).name}<small>Your loadout subject</small></span></div>
       <div class="loadout-options">${Object.entries(buildPlans).map(([key,item]) => `<button data-build="${key}" aria-pressed="${key === currentBuild}"><span class="file-notch" aria-hidden="true">${key === currentBuild ? '◆' : '◇'}</span><span><strong>${item.name}</strong><small>${heroes.find(hero => hero.id === item.hero).name} / ${item.style}</small></span><span class="saved-mark" aria-label="${saved[key] ? 'Saved' : 'Not saved'}">${saved[key] ? '✓' : ''}</span></button>`).join('')}</div>
       <p class="directory-footnote">A good build tells you why.<br>Not just what.</p></aside>
-    <section class="loadout-workbench" aria-label="Selected build">
-      <div class="loadout-heading"><div><div class="sheet-kicker">${plan.style}</div><h3>${plan.name}</h3><p class="case-line">${plan.line}</p></div><span class="loadout-stamp" aria-hidden="true">FIELD<br>TEST NOTES</span></div>
+    <section class="loadout-workbench" data-plan="${currentBuild}" aria-label="Selected build">
+      <div class="plan-cover"><div class="loadout-heading"><div><div class="sheet-kicker">${heroes.find(hero => hero.id === plan.hero).name} / ${plan.style}</div><h3 tabindex="-1">${plan.name}</h3><p class="case-line">${plan.line}</p></div></div><div class="cover-kit" aria-hidden="true"></div><span class="cover-edition" aria-hidden="true">A plan for the streets</span></div>
       <p class="loadout-intro">${plan.intro}</p>
       <nav class="purchase-stages" aria-label="Purchase stage">${plan.stages.map((stage,index) => `<button data-stage="${index}" aria-pressed="${index === buildStage}"><span class="stage-number"><span>0${index+1}</span></span><span>${stage.name}</span></button>`).join('')}</nav>
-      <div id="stage-content"></div>
+      <div id="stage-content"></div><details class="build-adaptation"><summary>When the match changes</summary><p>${plan.tip}</p></details>
       <div class="casework-footer"><span>Sample loadout · Check current in-game items</span><button class="action" data-save-build aria-pressed="${saved[currentBuild]}">${saved[currentBuild] ? 'Saved to your ledger ✓' : 'Save this build'}</button></div>
     </section></div>`;
   renderBuildStage();
@@ -24,7 +24,8 @@ function renderBuilds() {
 function renderBuildStage() {
   const stage = buildPlans[currentBuild].stages[buildStage];
   if(!stage.items.includes(selectedItem)) selectedItem = stage.items[0];
-  document.querySelector('#stage-content').innerHTML = `<div class="stage-caption"><h4>${stage.cue}</h4><p>${stage.note}</p></div>
+  document.querySelector('.cover-kit').innerHTML = stage.items.map(id => `<span class="kit-print ${ledgerItems[id].type}"><img src="assets/items/${id}.webp" alt=""></span>`).join('');
+  document.querySelector('#stage-content').innerHTML = `<div class="stage-caption"><span class="stage-index" aria-hidden="true">0${buildStage+1}</span><div><h4>${stage.cue}</h4><p>${stage.note}</p></div></div>
     <div class="purchase-tray" aria-label="Inspect a sample item">${stage.items.map(id => {const item = ledgerItems[id];return `<button class="item-choice ${item.type}" data-item="${id}" aria-pressed="${id === selectedItem}"><span class="item-medallion"><img src="assets/items/${id}.webp" alt="" width="52" height="52"></span><strong>${item.name}</strong><small>${item.type}</small></button>`;}).join('')}</div>
     <section class="item-explanation" id="item-explanation" aria-label="Item purpose" aria-live="polite"></section>`;
   for(const button of document.querySelectorAll('[data-stage]')) button.setAttribute('aria-pressed',String(Number(button.dataset.stage) === buildStage));
@@ -56,11 +57,21 @@ function renderHistory() {
 function renderMatchReport() {
   const record = records.find(item => item.id === currentMatch);
   const points = record.lead.map((value,index) => `${20+index*80},${65-value*2.5}`).join(' ');
-  document.querySelector('#match-report').innerHTML = `<header class="report-heading"><div><div class="sheet-kicker">Case ${record.id} / ${record.hero} / Sample report</div><h3>${record.title}</h3><p class="case-line">${record.line}</p></div><div class="outcome-stamp ${record.result === 'Defeat' ? 'is-defeat' : ''}"><span>${record.result === 'Victory' ? 'V' : 'D'}</span><small>${record.result}</small></div></header>
+  document.querySelector('#match-report').dataset.result = record.result;
+  document.querySelector('#match-report').innerHTML = `<header class="report-cover"><div class="report-poster ${record.result === 'Defeat' ? 'is-defeat' : ''}"><img src="assets/heroes/${record.heroId}.webp" alt="${record.hero}" width="200" height="270"><span class="report-result">${record.result}</span></div><div class="report-heading"><div><div class="sheet-kicker">Encounter ${record.id} / ${record.hero} / Sample report</div><h3 tabindex="-1">${record.title}</h3><p class="case-line">${record.line}</p><span class="report-build-label">${buildPlans[record.build].name} <span> / ${record.when}</span></span></div></div></header>
     <dl class="report-facts"><div><dt>Kills / Deaths / Assists</dt><dd>${record.score}</dd></div><div><dt>Souls collected</dt><dd>${record.souls}</dd></div><div><dt>Match duration</dt><dd>${record.time}</dd></div></dl>
     <section class="lead-chart"><div class="chart-label"><h4>How the night turned</h4><span>Team soul lead · Illustrative · ${record.lead[6] > 0 ? '+' : ''}${record.lead[6]}k final</span></div><div class="chart-plot"><svg preserveAspectRatio="none" viewBox="0 0 520 120" role="img" aria-label="Illustrative team soul lead in thousands at seven evenly spaced points: ${record.lead.join(', ')}"><path d="M20 20H500M20 65H500M20 108H500" stroke="currentColor" opacity=".12"/><path d="M20 65H500" stroke="currentColor" opacity=".4" stroke-dasharray="3 5"/><polyline points="${points}" fill="none" stroke="${record.result === 'Victory' ? '#456449' : '#976349'}" stroke-width="2.5" stroke-linejoin="round"/><circle cx="500" cy="${65-record.lead[6]*2.5}" r="4" fill="${record.result === 'Victory' ? '#456449' : '#976349'}"/></svg><span class="chart-zero">Even</span></div><div class="chart-axis"><span>First wave</span><span>Mid-match</span><span>${record.time} / Final</span></div></section>
     <ol class="encounter-timeline">${record.timeline.map(([time,title,copy]) => `<li><time>${time}</time><div><h4>${title}</h4><p>${copy}</p></div></li>`).join('')}</ol>
     <section class="report-takeaway"><div><span class="sheet-kicker">The thing to remember</span><p>${record.takeaway}</p></div><details><summary>For the next match</summary><p>${record.next}</p></details></section>
     <div class="casework-footer"><span>Fictional match, stats & analysis</span><button class="back-link" data-match-build="${record.build}">Review ${buildPlans[record.build].name} ↗</button></div>`;
   for(const button of document.querySelectorAll('[data-report]')) button.setAttribute('aria-pressed',String(button.dataset.report === currentMatch));
+}
+
+// On phones, bring the selected clipping into view, just like hero dossiers.
+function revealCasework(selector) {
+  if(!matchMedia('(max-width:760px)').matches) return;
+  const target = document.querySelector(selector);
+  if(!target) return;
+  target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth'});
+  target.querySelector('h3')?.focus({preventScroll:true});
 }

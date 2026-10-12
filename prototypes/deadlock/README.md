@@ -74,3 +74,10 @@ The supplied October 12 reference images reset the visual target: near-black sur
 The city uses overlapping Ivy/Infernus posters. Every archive page now shares a dark canvas; the hero cameos become torn posters, builds use scuffed item tiles and a small paper note, and reports retain clear charts and statistics. Full-page routes and all existing frontend behavior are retained. At phone sizes, the decorative homepage collage is omitted to protect text space; hero dossiers retain their posters.
 
 New local assets are authored `street-ritual.svg` and `ink-grit.svg`, two open-licensed display fonts (licenses/provenance under `assets/fonts/`), the two supplied image references, and browser captures `assets/street-*.jpg`. No new runtime service calls or packages. The fonts are alternatives chosen for the references, not the game's proprietary font.
+
+
+## Illustrated builds and encounter clippings
+
+`fieldwork.css` extends the accepted torn-poster direction specifically to builds and match history. The loadout cover's three printed item illustrations update with the selected purchase stage; the stage controls are ripped paper tabs. Item names use black poster strips. Each plan exposes its existing adaptation advice through a native details control.
+
+Reports now feature the match hero in a victory/defeat poster, a cream score slip, stamped timeline labels, and a torn-paper takeaway. Hero/result filters, chart data, linked builds, and saved flags retain their behavior. At phone widths, choosing a build or report scrolls and focuses its heading; reduced motion uses an immediate scroll. No new external assets or runtime services. Current captures use `assets/fieldwork-*.jpg`.
