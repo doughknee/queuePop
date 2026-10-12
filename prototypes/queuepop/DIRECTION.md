@@ -19,3 +19,9 @@ TFT:     game navigation / playful landscape / composition board + strategy note
 Review before implementation: a second stat dashboard would repeat the rejected first Deadlock pass. Prefer game artwork, character choice, and playable planning tools; statistics support the task. Shared brand is intentionally quiet so the game worlds can be distinct. No popup menus or modals. Deadlock remains approved and intact; a persistent isolated game view reuses its original local scripts/styles/assets under the shared masthead.
 
 Fixture data is illustrative and intentionally not represented as current patch advice. TFT formations use familiar champion portraits to demonstrate the planner, not a claimed live set roster.
+
+## Interior depth
+
+League's playbook uses a full-height champion banner beside a restrained illuminated leaf. Purchases sit in circular relic settings along a three-part path; the selected item explains a decision in place. The journal gives each match an illustrated chapter, while reports pair a cinematic outcome with a short, selectable narrative. Keep gold as structure, blue as atmosphere, and typography readable rather than ornamental everywhere.
+
+TFT's interiors use collectible formation studies, generous rounded corners, gold carry tokens, and a violet strategy table. Warm paper notes hold one decision at a time. Match reports center the board itself, with read-only snapshots and a clear path back to the editable plan. Do not imply these illustrative rosters correspond to a live set.
