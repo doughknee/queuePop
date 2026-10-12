@@ -37,9 +37,7 @@ const formationNotes = [
   [['Give the fireworks room.','Start with Jinx’s pocket, then arrange the rest of the board around it.'],['Protect the first few seconds.','Use your frontline to delay contact while the backline finds its rhythm.'],['Move with a reason.','Keep the damage pocket protected when adapting to the next opponent.']]
 ];
 
-function tftComps() {
-  return `${subnav('tft','comps')}${pageHead('A little inspiration for your next board','Great teams start with an idea.','Three formation studies. A hundred ways to make them yours.')}<section class="formation-studies">${formations.map((f,i)=>`<article class="formation-study study-${i}"><div class="study-art" style="--champ-art:url('assets/${f.carry}.webp')"><span class="study-index">0${i+1} <small>FORMATION STUDY</small></span><div class="carry-stamp">${icon(f.carry)}<span>Build around<strong>${units[f.carry]}</strong></span></div></div><div class="study-copy"><p class="eyebrow">${f.tag}</p><h2>${f.name}</h2><p>${f.line}</p><div class="study-roster">${Object.values(f.board).map(u=>`<span title="${units[u]}">${icon(u)}<small>${units[u]}</small></span>`).join('')}</div><div class="study-footer"><button class="action" data-plan="${i}">Make it your own <span>↗</span></button><small>${state.savedComps.includes(i)?'✓ In your collection':'7 units · Example formation'}</small></div></div></article>`).join('')}</section><section class="quiet-note"><span>✧</span><div><h3>The best plan still leaves room for a surprise.</h3><p>Explore positioning and team-building ideas. These rosters are illustrative, independent of any live TFT set.</p></div></section>`;
-}
+function tftComps(){return tftCollection();}
 
 function tftPlanner() {
   const f=formations[state.plan], notes=formationNotes[state.plan], selected=notes[plannerLesson];

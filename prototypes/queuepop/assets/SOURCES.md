@@ -26,3 +26,9 @@ Ability names, broad descriptions, roles, and short lore paraphrases were checke
 `armory-sanctuary.png` is original generated concept artwork made with the built-in image-generation tool: a quiet painted fantasy sanctuary with weathered stone, bronze inlays, mountain ruins and restrained magical light. It is not official Riot artwork or a literal location claim. The prompt requested a continuous background scene with no characters, items, text or interface, leaving space for functional controls. The exact prompt is saved in the task output `league-armory-art-notes.md`.
 
 The spirit, light and wind ornaments in `armorySigil()` are original code-native UI graphics. They suggest the three champions' character without claiming to reproduce official regional emblems.
+
+## Convergence pavilion / 2026-10-12
+
+`convergence-pavilion.png` is original artwork generated with the built-in image-generation tool: a painted floating garden pavilion, warm lanterns, plum-wood strategy table, brass fittings and a violet cloudscape. It is inspired by a magical tabletop mood, not an official Riot arena or an exact game-location recreation. No characters, logos or UI were generated into the environment. Exact prompt and generation mode are recorded in the task output `tft-art-notes.md`.
+
+The TFT home reuses the previously sourced five-year celebration illustration as evergreen visual reference. Comp and match portraits reuse the Riot splash artwork already listed above. The cube, formation, hex and journal glyphs in `convergenceMark()` are original code-native navigation graphics.
