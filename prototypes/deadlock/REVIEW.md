@@ -44,3 +44,14 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Browser zoom was already 120%. Desktop screenshot dimensions were adjusted to retain a 1440 CSS-pixel layout without changing that preference; all temporary viewport overrides were cleared.
 - Preserved the first-pass screenshot; updated comparison.html with the current homepage and dossier captures.
 - Linear was checked again and still requires reconnection. No remote publishing or deployment occurred.
+
+## Build and match-report pass
+
+- Rebuilt builds as an illustrated ledger: three Warden/Ivy plans, three purchase stages per plan, twelve local item icons, selectable purpose notes, independent saved flags, and linked hero dossiers.
+- Rebuilt match history as three fictional after-action reports: hero/result filters, selected encounter details, three useful stats, a sample soul-lead chart, timed narrative moments, expandable next-match guidance, and links to each report's sample loadout.
+- Browser-verified changing all stages, inspecting different items, all three plans, saving Ivy's plan, and the saved state surviving reload. Existing Warden saved states remained intact.
+- Verified all three reports change their content, defeat + Warden produces an honest empty state, clearing restores all records, and Ivy's report/dossier open the Ivy plan. The report link opens its closing stage.
+- Visually inspected desktop, tablet (768 CSS pixels), 390-pixel phone and 320-pixel narrow phone treatments. Both archive sections have equal dialog client/scroll widths at 768, 390, and 320 pixels. Phone timelines become a vertical sequence.
+- Verified Escape closes the native dialog and restores focus to its launcher. No captured browser warnings/errors; syntax checks pass for all three scripts.
+- Updated comparison page with browser captures of builds and history. Static icon provenance is recorded; the preview remains frontend-only with fictional match data and illustrative builds.
+- Linear connection remains blocked by the previously verified authentication requirement. No remote publication or issue update was performed.

@@ -18,8 +18,8 @@ The composition is a city seen through stepped Art Deco architectural framing. T
 ## Functional scope
 
 - Six searchable hero dossiers, playstyle notes, and selection reflected in the city view.
-- Two illustrative Warden build approaches, independently saved in local browser storage.
-- Match-result filters over three clearly fictional sample records.
+- Three illustrated Warden/Ivy loadouts with purchase stages, selectable item explanations, and independent local saves.
+- Hero/result filters and three fictional after-action reports, including a soul-lead chart, encounter timeline, expandable takeaway, and linked loadout.
 - Expandable introductory field guide.
 - Simulated queue with start, elapsed time, cancel, ready check, and reset. The timer continues while its panel is closed.
 - Phone and Discord preferences remembered locally. Neither sends notifications.
@@ -40,3 +40,9 @@ JavaScript syntax and whitespace checks. Browser inspection at 1440, 1024, 768, 
 The archive now has a persistent section navigation and a split hero directory/dossier. Six locally stored Valve hero portraits replace placeholder glyphs; selection is remembered on this device and updates the city desk. The celestial seal opens the field guide on desktop, while the phone layout keeps its simpler text entry. Shared SVG line icons replace platform-dependent navigation glyphs. Feedback is rendered inside the native dialog so confirmation stays visible above its backdrop.
 
 Portrait provenance is documented in `assets/heroes/README.md`. The API is used only to obtain the static artwork during development; the app still makes no runtime service calls. `assets/first-pass.jpg` preserves the first redesign for comparison.
+
+## Builds and match reports
+
+The build ledger uses an arched hero portrait, three loadout files, a diamond-marked purchase rail, and locally stored item art. The match archive uses selectable encounter files and an editorial report with three restrained stats, a fictional momentum chart, three key moments, and a next-match note. The two sections link directly to the relevant loadout; Ivy's dossier opens her support plan. The other four dossiers explain that only Warden and Ivy have sample builds.
+
+Fixtures live in archive-data.js, archive rendering in casework.js, and their responsive styles in casework.css. These loadouts illustrate interaction design; no patch-specific prices, numerical item effects, or current build ranking is claimed. Asset provenance is in assets/items/README.md and sources.json.
