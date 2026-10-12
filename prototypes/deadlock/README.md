@@ -4,16 +4,16 @@ A standalone, functional frontend design study inside the QueuePop repository. T
 
 ## Preview
 
-From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` shows the supplied V2 screenshot beside the new browser capture.
+From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the former popup archive with the new full-page experience and retains the original V2 reference.
 
 ## Art direction
 
-The composition is a city seen through stepped Art Deco architectural framing. The full scene carries the atmosphere; the restrained bottom desk carries the useful information. A notched admission ticket opens the hero archive. Navigation, ornament, and controls use one architectural vocabulary. QueuePop stays visible in the quiet outer frame and companion controls.
+The composition is a city seen through curved Art Deco architectural framing. The full scene carries the atmosphere; the restrained bottom desk carries the useful information. A curved admission ticket leads to the dedicated hero page. Navigation, ornament, and controls use one architectural vocabulary. QueuePop stays visible in the quiet outer frame and companion controls.
 
 - Ink green `#15201c`, aged bone `#e8dec0`, tarnished brass `#a5976e`, spectral sage `#a8c9aa`, paper `#e1d5b5`.
 - Local Marcellus for scene and archive headings; Georgia for the Deadlock-inspired study wordmark; Arial for compact controls.
 - Asymmetric, left-aligned arrival copy with the skyline open on the right. A single low desk replaces independent stat cards. On phones the scene crops intentionally and the desk becomes a readable list.
-- No decorative continuous animation. Reduced-motion preferences disable transitions. Native modal dialogs support keyboard trapping, Escape, and focus restoration.
+- No decorative continuous animation. Reduced-motion preferences disable transitions. Dedicated hash-routed pages support direct links, refresh, browser Back/Forward, and a persistent navigation. Page changes focus the main heading; the skip link preserves the current route.
 
 ## Functional scope
 
@@ -46,3 +46,9 @@ Portrait provenance is documented in `assets/heroes/README.md`. The API is used 
 The build ledger uses an arched hero portrait, three loadout files, a diamond-marked purchase rail, and locally stored item art. The match archive uses selectable encounter files and an editorial report with three restrained stats, a fictional momentum chart, three key moments, and a next-match note. The two sections link directly to the relevant loadout; Ivy's dossier opens her support plan. The other four dossiers explain that only Warden and Ivy have sample builds.
 
 Fixtures live in archive-data.js, archive rendering in casework.js, and their responsive styles in casework.css. These loadouts illustrate interaction design; no patch-specific prices, numerical item effects, or current build ranking is claimed. Asset provenance is in assets/items/README.md and sources.json.
+
+## Dedicated-page pass
+
+The archive overlay is removed entirely. Heroes, builds, match history, field guide, and companion are full-page views under `#/heroes`, `#/builds`, `#/history`, `#/guides`, and `#/companion`. `#/` is the city. Hash routing keeps direct links working on the simple static preview server. Page changes update the browser title and active navigation. The demo queue remains in memory while moving among pages.
+
+Each archive page has its own city-backed heading, full-width paper surface, and normal document scrolling. `pages.css` adds curved architecture, uneven paper edges, cameo portraits, oval seals, and asymmetrical controls. The companion retains its existing frontend-only behavior. The previous modal screenshots are preserved for comparison; current captures use `assets/pages-*.jpg`.

@@ -18,6 +18,7 @@ function renderBuilds() {
       <div class="casework-footer"><span>Sample loadout · Check current in-game items</span><button class="action" data-save-build aria-pressed="${saved[currentBuild]}">${saved[currentBuild] ? 'Saved to your ledger ✓' : 'Save this build'}</button></div>
     </section></div>`;
   renderBuildStage();
+  liftPageHeading();
 }
 
 function renderBuildStage() {
@@ -49,6 +50,7 @@ function renderHistory() {
     ${visible.length ? `<div class="casework-layout match-layout"><aside class="encounter-directory" aria-label="Choose a match">${visible.map(record => `<button class="encounter ${record.result === 'Defeat' ? 'is-defeat' : ''}" data-report="${record.id}" aria-pressed="${record.id === currentMatch}" aria-label="Report ${record.id}: ${record.result}, ${record.hero}"><span class="encounter-top"><span>${record.result}</span><small>No. ${record.id}</small></span><span class="encounter-person"><img src="assets/heroes/${record.heroId}.webp" alt="" width="54" height="73"><span><strong>${record.hero}</strong><small>${record.score}</small></span></span><span class="encounter-meta">${record.when}<span>${record.time}</span></span></button>`).join('')}<p class="directory-footnote">Every encounter leaves<br>something worth learning.</p></aside><article class="match-report" id="match-report" aria-label="Selected match report" aria-live="polite"></article></div>` : '<section class="empty-reports"><span aria-hidden="true">◇</span><h3>No reports in this drawer.</h3><p>Try another hero or show all three sample encounters.</p><button class="action" data-clear-records>Show all matches</button></section>'}`;
   document.querySelector('#record-hero').value = recordHero;
   if(currentMatch) renderMatchReport();
+  liftPageHeading();
 }
 
 function renderMatchReport() {

@@ -9,30 +9,33 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="refinements.css">
   <link rel="stylesheet" href="casework.css">
+  <link rel="stylesheet" href="pages.css">
   <script src="archive-data.js" defer></script>
   <script src="casework.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip" href="#city">Skip to the city</a>
+  <a class="skip" href="#city">Skip to page content</a>
   <div class="app-shell">
     <header class="masthead">
-      <a class="brand" href="./" aria-label="QueuePop Deadlock home"><img src="assets/queuepop-mark.svg" alt="" width="25" height="25">QueuePop<span class="brand-star">✦</span></a>
+      <a class="brand" href="#/" data-home aria-label="QueuePop Deadlock home"><img src="assets/queuepop-mark.svg" alt="" width="25" height="25">QueuePop<span class="brand-star">✦</span></a>
       <span class="edition">A companion for the other side</span>
       <button class="profile" data-open="companion"><span class="status-dot"></span><span id="header-status">Companion ready</span><span class="profile-avatar">Q</span></button>
     </header>
 
+      <nav class="city-nav" aria-label="Deadlock navigation">
+        <a class="nav-current" aria-current="page" href="#/" data-home><span aria-hidden="true">◈</span>The city</a>
+        <a href="#/heroes" data-open="heroes"><span aria-hidden="true">♜</span>Heroes</a>
+        <a href="#/builds" data-open="builds"><span aria-hidden="true">⌘</span>Builds</a>
+        <a href="#/history" data-open="history"><span aria-hidden="true">◷</span>Match history</a>
+        <a href="#/guides" data-open="guides"><span aria-hidden="true">✧</span>Field guide</a>
+      </nav>
+
     <div class="world">
       <div class="city-art" aria-hidden="true"></div>
       <div class="scene-shade" aria-hidden="true"></div>
-      <svg class="architecture" viewBox="0 0 1440 880" preserveAspectRatio="none" aria-hidden="true"><path d="M24 880V180H48V130H76V94H132V62H238V40H1202V62H1308V94H1364V130H1392V180H1416V880"/><path d="M35 880V192H60V142H88V106H145V74H250V52H1190V74H1295V106H1352V142H1380V192H1405V880"/><path d="M0 224H24M1416 224H1440M0 234H24M1416 234H1440"/><path d="M590 40L620 18H820L850 40M638 18V6H802V18"/></svg>
-      <nav class="city-nav" aria-label="Deadlock navigation">
-        <button class="nav-current" aria-current="page" data-home><span aria-hidden="true">◈</span>The city</button>
-        <button data-open="heroes"><span aria-hidden="true">♜</span>Heroes</button>
-        <button data-open="builds"><span aria-hidden="true">⌘</span>Builds</button>
-        <button data-open="history"><span aria-hidden="true">◷</span>Match history</button>
-        <button data-open="guides"><span aria-hidden="true">✧</span>Field guide</button>
-      </nav>
+      <svg class="architecture" viewBox="0 0 1440 880" preserveAspectRatio="none" aria-hidden="true"><path d="M24 880V220Q24 40 240 40H1200Q1416 40 1416 220V880"/><path d="M35 880V224Q35 52 244 52H1196Q1405 52 1405 224V880"/><path d="M0 224H24M1416 224H1440M0 234H24M1416 234H1440"/><path d="M590 40L620 18H820L850 40M638 18V6H802V18"/></svg>
+
 
       <main id="city">
         <div class="title-lockup"><span class="wordmark">DEADLOCK</span><span class="wordmark-sub"><i></i>The midnight bureau<i></i></span></div>
@@ -54,9 +57,18 @@
       </main>
       <footer class="world-footer"><span>Knowledge is a kindness. Share what you learn.</span><span class="demo-note">Design study · Fictional match data</span><a href="comparison.html">Before / after <span aria-hidden="true">↗</span></a></footer>
     </div>
+    <main id="sheet" class="archive-page" hidden aria-labelledby="sheet-title">
+      <header class="page-heading">
+        <div class="page-breadcrumb"><a href="#/" data-home>The midnight bureau</a><span aria-hidden="true"> / </span><span id="page-location"></span></div>
+        <div id="page-title"></div>
+        <svg class="page-orbit" viewBox="0 0 240 200" aria-hidden="true"><ellipse cx="120" cy="100" rx="94" ry="68"/><ellipse cx="120" cy="100" rx="77" ry="87" transform="rotate(-28 120 100)"/><path d="M8 100Q120 16 232 100Q120 184 8 100ZM120 14V186M26 100H214"/><circle cx="120" cy="100" r="24"/><path d="M111 75Q143 100 111 125Q128 100 111 75Z" fill="currentColor"/></svg>
+      </header>
+      <div class="page-paper"><div id="sheet-body"></div></div>
+      <footer class="page-colophon"><span>Knowledge is a kindness.</span><a href="comparison.html">The design so far ↗</a><span>QueuePop / Deadlock study</span></footer>
+    </main>
     <footer class="companion-bar"><span class="companion-label"><img src="assets/queuepop-mark.svg" width="22" height="22" alt=""><span>Go live a little.<small>We’ll keep an eye on your queue.</small></span></span><span class="companion-status" id="queue-status" role="status">Local demo · Ready when you are</span><button data-open="companion">Open companion <span aria-hidden="true">↗</span></button></footer>
   </div>
-  <dialog id="sheet" aria-labelledby="sheet-title"><div class="sheet-top"><span class="bureau-heading"><span aria-hidden="true">✥</span> The midnight bureau <small>Knowledge is a kindness.</small></span><button id="close-sheet" aria-label="Close panel"><span>Close</span> ✕</button></div><nav class="archive-tabs" aria-label="Archive sections"><button data-open="heroes">Dossiers</button><button data-open="builds">Build ledger</button><button data-open="history">Match record</button><button data-open="guides">Field guide</button></nav><div id="sheet-body"></div><div id="sheet-feedback" role="status" hidden></div></dialog>
+
   <div class="toast" id="toast" role="status" hidden></div>
 </body>
 </html>

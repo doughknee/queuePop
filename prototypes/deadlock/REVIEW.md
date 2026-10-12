@@ -55,3 +55,14 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Verified Escape closes the native dialog and restores focus to its launcher. No captured browser warnings/errors; syntax checks pass for all three scripts.
 - Updated comparison page with browser captures of builds and history. Static icon provenance is recorded; the preview remains frontend-only with fictional match data and illustrative builds.
 - Linear connection remains blocked by the previously verified authentication requirement. No remote publication or issue update was performed.
+
+
+## Dedicated-page and curved-framing pass
+
+- Removed the dialog markup and all modal open/close behavior. Every section, including the guide and companion, now has a dedicated full-page route, shared persistent navigation, one visible main landmark, and its own browser title.
+- Replaced angular frames with broad curved paper edges, uneven lower edges, portrait cameos, soft loadout/item controls, oval seals, and curved rules. Updated the city entrance to share this shape vocabulary.
+- Verified browser Back, Forward, and refresh retain the correct section. Tested the skip link without changing the page address. Confirmed there are no dialog elements.
+- Visually reviewed desktop at 1440 CSS pixels, tablet at 768, and phones at 390 and 320. Fixed a decorative orbit extending beyond the phone page; document scroll width now equals client width in tested narrow layouts.
+- Exercised hero-to-build links, loadout changes, purchase stages and item notes, match filters and empty state, guide navigation, and the full-page companion start/leave/return/pop/reset flow. Queue state stays available across in-app navigation. Browser captured no warnings/errors.
+- Preserved earlier modal captures and updated comparison.html to show the popup versus dedicated-page design, with the original V2 reference retained.
+- Existing local-only scope remains: no production app, backend, other game, deployment, or remote publication changes. Linear reconciliation remains pending the previously reported connector reauthentication.
