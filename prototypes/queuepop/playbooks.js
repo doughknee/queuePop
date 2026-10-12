@@ -28,30 +28,8 @@ const matchChapters = {
   l3: [['07:10','Find your rhythm.','A measured start','Short trades left space to choose when to commit.'],['18:05','Follow the signal.','The team arrives','Your strongest opening came with a teammate ready to follow.'],['27:20','Keep the connection.','Finish together','Staying near your team turned movement into useful pressure.']]
 };
 
-function leagueBuilds() {
-  const c=champions[state.champion], items=(state.champion==='yasuo'?swordSets:itemSets)[buildStage];
-  const chosen=items[selectedItem]||items[0], reasoning=itemReasoning[chosen[0]];
-  return `${subnav('league','builds')}<section class="rift-playbook" style="--champ-art:url('assets/${state.champion}.webp');--portrait-position:${state.champion==='yasuo'?'90%':'66%'} center">
-    <aside class="legend-banner"><div class="banner-orbit" aria-hidden="true"></div><div class="legend-caption"><p class="eyebrow">${c.title}</p><h1>${c.name}</h1><p>${c.style}</p><span class="banner-seal">◆</span></div><span class="banner-folio">THE CHAMPION PLAYBOOK / 0${Object.keys(champions).indexOf(state.champion)+1}</span></aside>
-    <div class="playbook-leaf"><div class="folio-heading"><p class="eyebrow">Your playbook / Mid lane</p>${saveButton(state.savedLeague,'save-league','Save plan')}</div><h2>${c.line}</h2><p class="leaf-intro">${c.tip}</p><label class="champion-picker">Champion<select id="build-champion" aria-label="Champion">${Object.entries(champions).map(([id,c])=>`<option value="${id}" ${state.champion===id?'selected':''}>${c.name}</option>`).join('')}</select></label>
-    <div class="purchase-path" aria-label="Purchase stage">${['Opening','Core direction','Adapt & finish'].map((s,i)=>`<button data-stage="${i}" aria-pressed="${buildStage===i}"><span>${['I','II','III'][i]}</span><b>${s}</b></button>`).join('')}</div>
-    <div class="relics" aria-label="Inspect a purchase">${items.map(([id,name],i)=>`<button class="relic" data-item="${i}" aria-pressed="${selectedItem===i}" aria-controls="item-insight"><span class="relic-socket"><img src="assets/item-${id}.png" alt=""></span><strong>${name}</strong><small>${buildStage===2?'A situational choice':i===0?'Start here':'Support the plan'}</small></button>`).join('')}</div>
-    <article class="item-insight" id="item-insight" aria-live="polite"><span class="insight-glyph" aria-hidden="true">◇</span><div><p class="eyebrow">${chosen[1]} / The thinking behind it</p><h3>${reasoning[0]}</h3><p>${reasoning[1]}</p><span class="decision-cue">Look for <b>${reasoning[2]}</b></span></div></article>
-    <p class="sample-note">Illustrative purchases, not a current-patch guide. Select an item to explore the decision.</p></div></section>
-    ${leaguePreparation()}<section class="playbook-postscript"><span>From preparation to reflection</span><p>A good plan learns from the last game.</p>${link('#/league/history','Open your match journal','text-link')}</section>`;
-}
-
-function leagueHistory(id) {
-  const r=leagueMatches.find(m=>m.id===id);
-  if(r) {
-    const moments=matchChapters[r.id], moment=moments[reviewMoment];
-    return `${subnav('league','history')}<div class="rift-journal">${link('#/league/history','All matches','back-link')}
-      <section class="encounter-hero" style="--champ-art:url('assets/${r.hero}.webp')"><div><p class="eyebrow">${r.date} / Sample match</p><span class="encounter-result ${r.result==='Victory'?'result-win':'result-loss'}">${r.result}</span><h1>${r.line}</h1><p>${champions[r.hero].name} · Mid lane · ${r.time}</p></div><div class="encounter-stats"><div><b>${r.kda}</b><span>Kills / Deaths / Assists</span></div><div><b>${r.cs}</b><span>Minions</span></div><div><b>${r.vision}</b><span>Vision score</span></div></div></section>
-      <section class="match-reflection"><div class="chapter-content"><p class="eyebrow">Three moments / One story</p><div class="match-timeline" aria-label="Match chapters">${moments.map((m,i)=>`<button data-moment="${i}" aria-pressed="${reviewMoment===i}" aria-controls="chapter-insight"><span>${m[0]}</span><b>${m[2]}</b></button>`).join('')}</div><article id="chapter-insight" aria-live="polite"><span class="chapter-numeral">${['I','II','III'][reviewMoment]}</span><div><h2>${moment[1]}</h2><p>${moment[3]}</p><small>Illustrated review · Sample event</small></div></article></div><aside class="next-game-note"><p class="eyebrow">Bring this into the next queue</p><h3>One thing to take forward.</h3><p>${r.note}</p>${link('#/league/builds/'+r.hero,'Revisit '+champions[r.hero].name+'’s plan','text-link')}</aside></section>${leagueReportLoadout(r)}</div>`;
-  }
-  const matches=leagueMatches.filter(m=>historyFilter==='All'||m.result===historyFilter);
-  return `${subnav('league','history')}${pageHead('The match journal','Every match leaves a mark.','The opening. The turning point. The thing you take with you.')}<section class="rift-journal journal-index"><div class="filter-row" aria-label="Match result">${['All','Victory','Defeat'].map(f=>`<button data-filter="${f}" aria-pressed="${historyFilter===f}">${f}</button>`).join('')}<small>${matches.length} sample ${matches.length===1?'match':'matches'}</small></div><div class="encounter-list">${matches.map(r=>`<a class="encounter-entry ${r.result==='Defeat'?'lost':''}" href="#/league/history/${r.id}" style="--champ-art:url('assets/${r.hero}.webp')"><div class="entry-portrait" aria-hidden="true"></div><div class="entry-story"><p class="eyebrow">${r.date} · ${r.time}</p><span class="${r.result==='Victory'?'result-win':'result-loss'}">${r.result} / ${champions[r.hero].name}</span><h2>${r.line}</h2><p>${matchChapters[r.id][1][2]} <span>· Mid lane</span></p></div><div class="entry-score"><strong>${r.kda}</strong><small>K / D / A</small><span>Read the match <b>↗</b></span></div></a>`).join('')}</div><p class="journal-footnote">◇ &nbsp; A useful habit: one decision to repeat. One to reconsider.</p></section>`;
-}
+function leagueBuilds() { return leagueArmory(); }
+function leagueHistory(id) { return leagueChronicle(id); }
 
 const formationNotes = [
   [['A front row buys time.','Give Garen and Leona the first contact, with your damage dealers well behind them.'],['Leave a second way to win.','Lux and Ashe provide another angle while Ahri holds the main damage pocket.'],['The safest corner can change.','Scout the next opponent before choosing where your carry will stand.']],

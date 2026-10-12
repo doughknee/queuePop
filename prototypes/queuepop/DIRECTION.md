@@ -48,3 +48,9 @@ Review criterion: more gold around the old boxes would not meet the brief. Compo
 Use a full-window scene with a composed content area, following the spatial principle of the approved Deadlock concept. Do not cap the entire League canvas: cap reading and interaction areas instead. On wide displays, give champion artwork room to breathe while preserving a comfortable distance between related controls.
 
 The League navigation is its own landmark: crest at left, four illustrated destinations in the center, selected champion at right. Its gold cut-corner active plate and inset diamond provide a stronger sense of place. Tablet and phone layouts retain direct access to every destination without a popup menu. This visual language belongs to League; the shared QueuePop masthead and other game worlds remain separate.
+
+## Armory and chronicle
+
+Give each champion a personal field book: Ahri's second opening, Lux's line of light, Yasuo's measured storm. The identity portrait and saved plan anchor the page; purchases become inspectable objects in engraved settings, with a visible reason and ability connection. The three numerals represent the actual opening, developing, and adapting sequence.
+
+Make match history feel collected rather than tabulated. One tall illustrated cover leads, with two supporting memories; outcome, champion, duration and KDA remain easy to scan. In a report, the chapter controls connect directly to an illustrated battlefield sketch and a short decision narrative. Keep the sketches deliberately schematic and label them as illustrative, not replays. No modal flows, speculative live statistics, or new motion are needed.
