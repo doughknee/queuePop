@@ -80,3 +80,11 @@ Validation: all three builds, history index and three reports checked at 320, 39
 `league-armory.css` gives builds a painted sanctuary environment, arched portrait, open engraved relic settings and an aged field note. Spirit, light and wind ornaments and personal copy distinguish the three champions. The scene and note textures use one shared local generated asset; CSS masks and overlays protect text contrast. No extra motion or external runtime requests are introduced.
 
 Checked all three armories at 320, 600, 768, 1024, 1440 and 2560 CSS pixels with no document overflow or broken loaded images. Visually inspected desktop and phone composition, relic selection and field-note readability. Existing stage, item, ability and saved-plan behavior remains in place. Artwork provenance is in `assets/SOURCES.md`.
+
+## Champion and chronicle material pass / 2026-10-12
+
+`league-materials.css` extends the approved armory's painted sanctuary, aged bronze, champion ornaments and worn field-note materials to the champion collection, three dossiers, match chronicle and three reports. Collection portraits have arched frames and individual mottos. Ability descriptions use readable parchment with circular ability controls. Match covers, chapter navigation, tactical sketches, takeaway notes and final-loadout links share the same material language.
+
+Reuses the existing local sanctuary artwork and original spirit/light/wind ornaments. No new external assets, motion, backend integration or balance claims. The shared navigation, builds, TFT and Deadlock remain unchanged.
+
+Validation: eight revised routes at 320, 390, 768, 1440 and 2560 CSS pixels without document overflow or broken loaded images. Visually inspected desktop collection, dossier, history and report, plus phone spellbook and chapters. Exercised passive/ultimate selection including keyboard activation, one/two/all match filters, report chapter changes and exact report-to-build item navigation. Browser warning/error log empty. JavaScript syntax and Git whitespace checks passed. Prototype-only changes; production tests not run.
