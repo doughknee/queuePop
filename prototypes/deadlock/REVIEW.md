@@ -66,3 +66,14 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Exercised hero-to-build links, loadout changes, purchase stages and item notes, match filters and empty state, guide navigation, and the full-page companion start/leave/return/pop/reset flow. Queue state stays available across in-app navigation. Browser captured no warnings/errors.
 - Preserved earlier modal captures and updated comparison.html to show the popup versus dedicated-page design, with the original V2 reference retained.
 - Existing local-only scope remains: no production app, backend, other game, deployment, or remote publication changes. Linear reconciliation remains pending the previously reported connector reauthentication.
+
+
+## Atmosphere and wear pass
+
+- Added a lamplit night-service sign, overhead wires, deeper city shading, and city-backed portrait cameos.
+- Added authored local SVG grain, edge stains/foxing, fold lines, surface scratches, and a faint civic seal. Distress is in backgrounds and margins; interactive labels remain intact. All purely decorative markup is aria-hidden and does not capture pointer events.
+- Kept all texture static. No audio, continuous animation, new service calls, packages, or backend behavior.
+- Strengthened small informative text and keyboard focus on parchment. Verified keyboard Tab reaches a visible purple outline on the item controls. Increased-contrast mode removes main paper texturing.
+- Visually inspected the hero, build, history, city, and guide treatments. Verified 1440 desktop, 768 tablet, 390 phone, and 320 narrow layouts. Corrected the rotated seal's aspect ratio so it cannot create horizontal scrolling. Tested layouts have equal document client/scroll widths.
+- Verified item-stage changes, item explanation selection, and match-result filtering remain functional. Captured browser warnings/errors were empty. JavaScript syntax and whitespace checks passed.
+- Saved the latest screenshots and updated comparison.html with an immediate clean-page versus weathered-page comparison. Earlier V2 and popup references remain available.

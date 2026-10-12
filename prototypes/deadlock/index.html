@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="refinements.css">
   <link rel="stylesheet" href="casework.css">
   <link rel="stylesheet" href="pages.css">
+  <link rel="stylesheet" href="atmosphere.css">
   <script src="archive-data.js" defer></script>
   <script src="casework.js" defer></script>
   <script src="app.js" defer></script>
@@ -61,9 +62,11 @@
       <header class="page-heading">
         <div class="page-breadcrumb"><a href="#/" data-home>The midnight bureau</a><span aria-hidden="true"> / </span><span id="page-location"></span></div>
         <div id="page-title"></div>
+        <div class="night-service-sign" aria-hidden="true"><span class="sign-lamp"></span><span>Midtown</span><strong>Night service</strong><small>Keep a light in the window.</small></div>
+        <svg class="overhead-wire" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 12Q650 150 1200 36M0 21Q660 166 1200 45"/><path d="M1052 63v35"/></svg>
         <svg class="page-orbit" viewBox="0 0 240 200" aria-hidden="true"><ellipse cx="120" cy="100" rx="94" ry="68"/><ellipse cx="120" cy="100" rx="77" ry="87" transform="rotate(-28 120 100)"/><path d="M8 100Q120 16 232 100Q120 184 8 100ZM120 14V186M26 100H214"/><circle cx="120" cy="100" r="24"/><path d="M111 75Q143 100 111 125Q128 100 111 75Z" fill="currentColor"/></svg>
       </header>
-      <div class="page-paper"><div id="sheet-body"></div></div>
+      <div class="page-paper"><div class="paper-edition" aria-hidden="true"><span>City records office <i>·</i> Midnight division</span><span class="edition-note">Recorded after sundown.</span></div><div class="paper-seal" aria-hidden="true"></div><div id="sheet-body"></div></div>
       <footer class="page-colophon"><span>Knowledge is a kindness.</span><a href="comparison.html">The design so far ↗</a><span>QueuePop / Deadlock study</span></footer>
     </main>
     <footer class="companion-bar"><span class="companion-label"><img src="assets/queuepop-mark.svg" width="22" height="22" alt=""><span>Go live a little.<small>We’ll keep an eye on your queue.</small></span></span><span class="companion-status" id="queue-status" role="status">Local demo · Ready when you are</span><button data-open="companion">Open companion <span aria-hidden="true">↗</span></button></footer>

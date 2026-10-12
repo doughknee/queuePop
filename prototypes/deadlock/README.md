@@ -4,7 +4,7 @@ A standalone, functional frontend design study inside the QueuePop repository. T
 
 ## Preview
 
-From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the former popup archive with the new full-page experience and retains the original V2 reference.
+From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the previous clean pages with the new weathered treatment and retains earlier references.
 
 ## Art direction
 
@@ -52,3 +52,9 @@ Fixtures live in archive-data.js, archive rendering in casework.js, and their re
 The archive overlay is removed entirely. Heroes, builds, match history, field guide, and companion are full-page views under `#/heroes`, `#/builds`, `#/history`, `#/guides`, and `#/companion`. `#/` is the city. Hash routing keeps direct links working on the simple static preview server. Page changes update the browser title and active navigation. The demo queue remains in memory while moving among pages.
 
 Each archive page has its own city-backed heading, full-width paper surface, and normal document scrolling. `pages.css` adds curved architecture, uneven paper edges, cameo portraits, oval seals, and asymmetrical controls. The companion retains its existing frontend-only behavior. The previous modal screenshots are preserved for comparison; current captures use `assets/pages-*.jpg`.
+
+## Atmosphere and wear
+
+`atmosphere.css` adds static material wear: local paper grain, edge foxing, fold marks, scratched metal/glass, and faded civic seals. The city heading includes overhead wires and a lamplit night-service sign; portrait backgrounds now show the same city. Decorative details are hidden from assistive technology and do not intercept pointer input. Phone layouts omit the sign and reduce the edge treatment. Small informational labels and keyboard focus use stronger contrast; the increased-contrast preference removes the main paper texture.
+
+The four small SVG texture/ornament files (`paper-grain.svg`, `paper-weather.svg`, `surface-wear.svg`, `city-seal.svg`) were authored for this prototype. No new external assets, dependencies, service calls, animation, or functionality changes were added. Current screenshots use `assets/weathered-*.jpg`; earlier captures remain available.
