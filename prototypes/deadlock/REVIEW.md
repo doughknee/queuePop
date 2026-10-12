@@ -77,3 +77,13 @@ Linear project lookup was blocked by an `UNAUTHORIZED` response requiring reauth
 - Visually inspected the hero, build, history, city, and guide treatments. Verified 1440 desktop, 768 tablet, 390 phone, and 320 narrow layouts. Corrected the rotated seal's aspect ratio so it cannot create horizontal scrolling. Tested layouts have equal document client/scroll widths.
 - Verified item-stage changes, item explanation selection, and match-result filtering remain functional. Captured browser warnings/errors were empty. JavaScript syntax and whitespace checks passed.
 - Saved the latest screenshots and updated comparison.html with an immediate clean-page versus weathered-page comparison. Earlier V2 and popup references remain available.
+
+
+## Individual dossier pass
+
+- Added six distinct portrait/ink treatments, pinned glass, decorative subject marks, handwritten marginal notes, and field-observation labels. Reused all existing static artwork.
+- Added numbered previous/next navigation, chosen-hero checkmarks, individual hash links, browser titles, and phone directory-return behavior. Browsing remains separate from explicit selection.
+- Browser-verified direct-link refresh, Back/Forward, all six next steps including wraparound, retained pager focus, search and empty states, and saved selection across reload. Restored Warden as the selected hero afterward.
+- Visually inspected desktop 1440, tablet 768, phone 390, and narrow phone 320. No horizontal overflow at these sizes. Phone selection scrolls to the dossier; return focuses the search. Browser warning/error capture was empty.
+- Updated comparison with before/after and Warden, Infernus, and Ivy examples. Saved a phone preview. Existing build, report, and earlier V2 references remain available.
+- Local frontend study only; no backend, deployment, or remote publication changes.

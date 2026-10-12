@@ -9,6 +9,15 @@ const heroes = [
   { id: 'haze', name: 'Haze', role: 'Ambush / Weapon', icon: '◈', intro: 'By the time they notice, you’re gone.', story: 'An unseen threat in the city’s blind spots. Patience is part of the job.', strength: 'Use alternate routes to reach vulnerable targets while your team draws attention.', caution: 'Choose the moment carefully. Walking straight into a prepared group rarely ends well.' },
   { id: 'dynamo', name: 'Dynamo', role: 'Teamfight / Support', icon: '◎', intro: 'A small disturbance in the natural order.', story: 'A brilliant mind, an unusual predicament, and a talent for bringing people together.', strength: 'Coordinate with allies and turn a crowded fight into an opening for the whole team.', caution: 'Let your team know before engaging so they can make the most of the opportunity.' }
 ];
+// Art-direction notes for this study; these marks are not in-game ability icons.
+const dossierArt = {
+  warden: {label:'The last word', note:'Hold the street.', mark:'<path d="M30 17h40v30c0 21-20 36-20 36S30 68 30 47zM40 34h20M50 24v40M37 53l13 13 13-13"/>'},
+  infernus: {label:'Slow burn', note:'Leave an impression.', mark:'<path d="M50 12c-7 23-27 29-27 49a27 27 0 0 0 54 0c0-13-7-24-12-30 0 17-8 16-8 16 2-14-1-25-7-35zM49 52c-7 9-13 12-13 21a14 14 0 0 0 28 0c0-9-7-15-15-21z"/>'},
+  ivy: {label:'Good company', note:'Look after your people.', mark:'<path d="M50 84V50M50 62C13 61 15 32 13 23c30 0 40 14 37 39ZM50 48c-3-26 14-35 37-36-1 26-11 37-37 36ZM23 32l27 30M77 22L50 48"/>'},
+  seven: {label:'Storm warning', note:'Watch the sky.', mark:'<path d="M56 9L27 55h23L41 91l34-49H52zM16 30l10 4M78 68l9 4M17 72l9-7M77 23l8-6"/>'},
+  haze: {label:'Out of sight', note:'Patience has its rewards.', mark:'<path d="M8 50q42-51 84 0-42 51-84 0z"/><circle cx="50" cy="50" r="15"/><path d="M50 9v13M50 78v13M9 50h13M78 50h13M42 42l16 16M58 42L42 58"/>'},
+  dynamo: {label:'Strange attraction', note:'Bring them together.', mark:'<ellipse cx="50" cy="50" rx="39" ry="15" transform="rotate(-35 50 50)"/><ellipse cx="50" cy="50" rx="39" ry="15" transform="rotate(35 50 50)"/><ellipse cx="50" cy="50" rx="15" ry="39"/><circle cx="50" cy="50" r="6"/>'}
+};
 const storageKey = 'queuepop-deadlock-city-v1';
 let saved = { balanced:false, survival:false, support:false, phone:true, discord:false };
 let currentBuild = 'balanced';
@@ -35,19 +44,41 @@ function syncHero() {
 function header(kicker,title,intro) { return `<div class="sheet-kicker">${kicker}</div><h2 id="sheet-title">${title}</h2><p class="sheet-intro">${intro}</p>`; }
 function renderRoster(query = '') {
   const filtered = heroes.filter(hero => `${hero.name} ${hero.role}`.toLowerCase().includes(query.toLowerCase()));
-  document.querySelector('#roster').innerHTML = filtered.length ? filtered.map(hero => `<button class="hero-row" data-hero="${hero.id}" aria-pressed="${hero.id === inspectedHero}"><img src="assets/heroes/${hero.id}.webp" alt="" width="46" height="62"><span><strong>${hero.name}</strong><small>${hero.role.split(' / ')[0]}</small></span><span aria-hidden="true">↗</span></button>`).join('') : '<p class="no-results">No dossiers found. Try a hero name or support.</p>';
+  document.querySelector('#roster').innerHTML = filtered.length ? filtered.map(hero => `<button class="hero-row" data-hero="${hero.id}" aria-pressed="${hero.id === inspectedHero}"><img src="assets/heroes/${hero.id}.webp" alt="" width="46" height="62"><span><strong>${hero.name}</strong><small>${hero.role.split(' / ')[0]}</small></span><span class="roster-mark" aria-label="${hero.id === selectedHero ? 'Your chosen hero' : 'Open dossier'}">${hero.id === selectedHero ? '✓' : '↗'}</span></button>`).join('') : '<p class="no-results">No dossiers found. Try a hero name or support.</p>';
 }
 let inspectedHero = selectedHero;
 function renderHeroes() {
-  inspectedHero = selectedHero;
-  body.innerHTML = `<div class="archive-intro"><div><div class="sheet-kicker">The personnel archive</div><h2 id="sheet-title">A face you can trust.</h2></div><span class="archive-count">6 dossiers<br><small>Curated for this study</small></span></div><div class="archive-layout"><aside class="directory"><label for="hero-search" class="sr-only">Search heroes or playstyles</label><input class="search" id="hero-search" type="search" placeholder="Find a hero…"><div class="roster" id="roster"></div></aside><section class="dossier" id="dossier" aria-label="Hero dossier" aria-live="polite"></section></div>`;
+  const addressHero = location.hash.split('/')[2];
+  inspectedHero = heroes.some(hero => hero.id === addressHero) ? addressHero : selectedHero;
+  body.innerHTML = `<div class="archive-intro"><div><div class="sheet-kicker">The personnel archive</div><h2 id="sheet-title">A face you can trust.</h2></div><span class="archive-count">6 dossiers<br><small>Curated for this study</small></span></div><div class="archive-layout"><aside class="directory"><label for="hero-search" class="sr-only">Search heroes or playstyles</label><input class="search" id="hero-search" type="search" placeholder="Find a hero…"><div class="roster" id="roster"></div><p class="directory-instruction">Find your person.<br><em>Choose a hero to remember them here.</em></p></aside><section class="dossier" id="dossier" aria-label="Hero dossier" aria-live="polite"></section></div>`;
   renderRoster(); renderHero(inspectedHero); liftPageHeading();
 }
 function renderHero(id) {
   const hero = heroes.find(item => item.id === id); if(!hero) return;
   inspectedHero = id;
-  document.querySelector('#dossier').innerHTML = `<div class="dossier-feature"><div class="portrait-plate"><span class="portrait-ring" aria-hidden="true"></span><img src="assets/heroes/${hero.id}.webp" alt="${hero.name}" width="280" height="380"><span class="portrait-caption">Personnel file / ${hero.id.toUpperCase()}</span></div><div class="dossier-lede"><div class="sheet-kicker">${hero.role}</div><h3 class="hero-name">${hero.name}</h3><p class="hero-intro">${hero.intro}</p><p>${hero.story}</p><button class="action choose-hero" data-select="${hero.id}" aria-pressed="${selectedHero === id}">${selectedHero === id ? `${hero.name} selected ✓` : `Choose ${hero.name}`}</button></div></div><div class="dossier-notes"><section><h4>Your opening</h4><p>${hero.strength}</p></section><section><h4>Keep in mind</h4><p>${hero.caution}</p></section></div><div class="dossier-foot"><span>Playstyle notes · Design study</span><button class="back-link" data-hero-build="${hero.id}">Explore the build ledger ↗</button></div>`;
+  const index = heroes.indexOf(hero), art = dossierArt[id];
+  const previous = heroes[(index + heroes.length - 1) % heroes.length];
+  const next = heroes[(index + 1) % heroes.length];
+  const dossier = document.querySelector('#dossier');
+  dossier.dataset.subject = id;
+  document.title = `${hero.name} dossier · Deadlock · QueuePop`;
+  dossier.innerHTML = `<div class="file-register"><span><span class="register-dot" aria-hidden="true"></span>Personnel file <b>${String(index+1).padStart(2,'0')}</b><small>of 06</small></span><nav class="file-paging" aria-label="Browse dossiers"><button data-file-step="previous" data-file="${previous.id}" aria-label="Previous dossier: ${previous.name}" title="Previous: ${previous.name}">←</button><button data-file-step="next" data-file="${next.id}" aria-label="Next dossier: ${next.name}" title="Next: ${next.name}">→</button></nav></div>
+    <div class="dossier-feature"><div class="portrait-evidence"><div class="portrait-plate"><span class="portrait-ring" aria-hidden="true"></span><svg class="subject-sigil" viewBox="0 0 100 100" aria-hidden="true">${art.mark}</svg><img src="assets/heroes/${hero.id}.webp" alt="${hero.name}" width="280" height="380"><span class="portrait-caption">${art.label}</span></div><span class="evidence-note" aria-hidden="true">${art.note}</span></div><div class="dossier-lede"><div class="sheet-kicker">${hero.role}</div><h2 class="hero-name" tabindex="-1">${hero.name}</h2><p class="hero-intro">${hero.intro}</p><p>${hero.story}</p><div class="hero-choice"><button class="action choose-hero" data-select="${hero.id}" aria-pressed="${selectedHero === id}">${selectedHero === id ? `${hero.name} selected ✓` : `Choose ${hero.name}`}</button><span>${selectedHero === id ? 'Your person at the city desk' : 'Make this your person at the city desk'}</span></div></div></div>
+    <div class="dossier-notes"><section><span class="note-label">Field observation</span><h3>Your opening</h3><p>${hero.strength}</p></section><section><span class="note-label">A word of caution</span><h3>Keep in mind</h3><p>${hero.caution}</p></section></div>
+    <div class="dossier-foot"><span>Playstyle notes · Design study</span><button class="back-link" data-hero-build="${hero.id}">Explore the build ledger ↗</button></div><button class="directory-return" data-directory-return>↑ Back to the directory</button>`;
   for(const button of document.querySelectorAll('[data-hero]')) button.setAttribute('aria-pressed',String(button.dataset.hero === id));
+}
+function inspectHero(id, step) {
+  if(!heroes.some(hero => hero.id === id)) return;
+  const hash = '#/heroes/' + id;
+  if(location.hash !== hash) history.pushState({},'',hash);
+  renderHero(id);
+  if(step) document.querySelector(`[data-file-step="${step}"]`).focus({preventScroll:true});
+  if(matchMedia('(max-width:760px)').matches) {
+    const dossier = document.querySelector('#dossier');
+    dossier.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth'});
+    if(!step) dossier.querySelector('.hero-name').focus({preventScroll:true});
+  }
 }
 function renderGuides() { body.innerHTML = header('A newcomer’s field guide','Find your way through.','Three things to carry into your first night. Take your time; the city rewards a little curiosity.') + `<div class="guide"><details open><summary>Make your first souls count</summary><p>Focus on learning how to earn and secure souls in lane. A steady economy gives you more choices than an early, risky chase.</p></details><details><summary>Watch the streets, not just your lane</summary><p>Check the minimap between waves. Notice missing opponents, nearby allies, and which routes give you a safer way to reach a fight.</p></details><details><summary>Turn a good fight into an objective</summary><p>After winning a fight, regroup and look for something lasting. Pushing together often matters more than chasing one more elimination.</p></details></div><div class="action-row"><button class="action" data-open="heroes">Find your first hero</button></div><p>Introductory concept content, not a patch-specific strategy guide.</p>`; }
 function elapsed() { const seconds = Math.max(0,Math.floor((Date.now() - queueStarted) / 1000)); return `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`; }
@@ -102,8 +133,15 @@ function openPage(name) {
   renderPage(route);
 }
 function routeFromAddress(focus = true) {
-  const route = location.hash.replace(/^#\/?/,'');
+  const [route, subject] = location.hash.replace(/^#\/?/,'').split('/');
   if(route === 'city' || route === 'sheet-title') return;
+  if(route === 'heroes' && heroes.some(hero => hero.id === subject) && activePanel === 'heroes') {
+    if(inspectedHero !== subject) {
+      renderHero(subject);
+      if(focus) document.querySelector('.hero-name').focus({preventScroll:true});
+    }
+    return;
+  }
   renderPage(pageNames[route] ? route : '',focus);
 }
 window.addEventListener('popstate',() => routeFromAddress());
@@ -118,11 +156,17 @@ document.addEventListener('click', event => {
   if(button.dataset.open) { event.preventDefault(); openPage(button.dataset.open); }
 
   if(button.hasAttribute('data-home')) { event.preventDefault(); openPage(''); }
-  if(button.dataset.hero) renderHero(button.dataset.hero);
+  if(button.dataset.hero) inspectHero(button.dataset.hero);
+  if(button.dataset.file) inspectHero(button.dataset.file,button.dataset.fileStep);
+  if(button.hasAttribute('data-directory-return')) {
+    document.querySelector('.directory').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches ? 'instant' : 'smooth'});
+    document.querySelector('#hero-search').focus({preventScroll:true});
+  }
   if(button.dataset.select) {
     const hero = heroes.find(item => item.id === button.dataset.select);
-    selectedHero = hero.id; persist(); syncHero();
+    selectedHero = hero.id; persist(); syncHero(); renderRoster(document.querySelector('#hero-search').value);
     button.textContent = `${hero.name} selected ✓`; button.setAttribute('aria-pressed','true');
+    button.parentElement.querySelector('span').textContent = 'Your person at the city desk';
     toast(`${hero.name} selected${storageAvailable ? ' and remembered on this device' : ' for this visit'}.`);
   }
   if(button.hasAttribute('data-save-build')) { saved[currentBuild] = !saved[currentBuild]; persist(); syncBuildSaved(); button.textContent = saved[currentBuild] ? 'Saved to your ledger ✓' : 'Save this build'; button.setAttribute('aria-pressed',String(saved[currentBuild])); toast(saved[currentBuild] ? storageAvailable ? 'Saved on this device.' : 'Saved for this visit. Browser storage is unavailable.' : 'Removed from your saved ledger.'); }

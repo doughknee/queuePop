@@ -4,7 +4,7 @@ A standalone, functional frontend design study inside the QueuePop repository. T
 
 ## Preview
 
-From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the previous clean pages with the new weathered treatment and retains earlier references.
+From this directory, run `py -m http.server 4317 --bind 127.0.0.1`, then open http://127.0.0.1:4317/. No packages or build step are needed. `comparison.html` compares the previous weathered archive with the new individual hero files and retains earlier references.
 
 ## Art direction
 
@@ -58,3 +58,10 @@ Each archive page has its own city-backed heading, full-width paper surface, and
 `atmosphere.css` adds static material wear: local paper grain, edge foxing, fold marks, scratched metal/glass, and faded civic seals. The city heading includes overhead wires and a lamplit night-service sign; portrait backgrounds now show the same city. Decorative details are hidden from assistive technology and do not intercept pointer input. Phone layouts omit the sign and reduce the edge treatment. Small informational labels and keyboard focus use stronger contrast; the increased-contrast preference removes the main paper texture.
 
 The four small SVG texture/ornament files (`paper-grain.svg`, `paper-weather.svg`, `surface-wear.svg`, `city-seal.svg`) were authored for this prototype. No new external assets, dependencies, service calls, animation, or functionality changes were added. Current screenshots use `assets/weathered-*.jpg`; earlier captures remain available.
+
+
+## Individual dossier pass
+
+`dossiers.css` gives all six files distinct ink colors, city crops, decorative symbolic marks, pinned portrait glass, handwritten notes, and numbered file navigation. These authored marks are atmospheric ornaments, not in-game ability icons. The existing six static portraits are reused.
+
+Each hero can be linked directly, for example `#/heroes/infernus`. Browsing preserves the directory search and does not change the chosen hero. Previous/next buttons wrap through the archive and retain keyboard focus. On phones, opening a dossier scrolls to it; a return control focuses the search field. Reduced-motion preferences skip the smooth scroll. No new dependencies or runtime network calls.
