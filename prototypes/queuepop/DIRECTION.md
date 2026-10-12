@@ -16,6 +16,6 @@ League:  game navigation / cinematic champion + left title / plan + recent match
 TFT:     game navigation / playful landscape / composition board + strategy notes
 ```
 
-Review before implementation: a second stat dashboard would repeat the rejected first Deadlock pass. Prefer game artwork, character choice, and playable planning tools; statistics support the task. Shared brand is intentionally quiet so the game worlds can be distinct. No popup menus or modals. Deadlock remains approved and intact; a generated HTML bridge swaps only its global masthead and reuses its original local scripts/styles/assets.
+Review before implementation: a second stat dashboard would repeat the rejected first Deadlock pass. Prefer game artwork, character choice, and playable planning tools; statistics support the task. Shared brand is intentionally quiet so the game worlds can be distinct. No popup menus or modals. Deadlock remains approved and intact; a persistent isolated game view reuses its original local scripts/styles/assets under the shared masthead.
 
 Fixture data is illustrative and intentionally not represented as current patch advice. TFT formations use familiar champion portraits to demonstrate the planner, not a claimed live set roster.
