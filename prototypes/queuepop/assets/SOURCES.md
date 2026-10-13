@@ -32,3 +32,9 @@ The spirit, light and wind ornaments in `armorySigil()` are original code-native
 `convergence-pavilion.png` is original artwork generated with the built-in image-generation tool: a painted floating garden pavilion, warm lanterns, plum-wood strategy table, brass fittings and a violet cloudscape. It is inspired by a magical tabletop mood, not an official Riot arena or an exact game-location recreation. No characters, logos or UI were generated into the environment. Exact prompt and generation mode are recorded in the task output `tft-art-notes.md`.
 
 The TFT home reuses the previously sourced five-year celebration illustration as evergreen visual reference. Comp and match portraits reuse the Riot splash artwork already listed above. The cube, formation, hex and journal glyphs in `convergenceMark()` are original code-native navigation graphics.
+
+## TFT arena interaction study / 2026-10-12
+
+The stone arena, hex pieces and small feathered tactician in `tft-world.js` / `tft-world.css` are original code-native UI illustration. The tactician is not an official Little Legend asset. Champion and component icons reuse the existing Riot sources above. The generated pavilion is retained as an earlier study but is no longer rendered in TFT.
+
+Costs, trait assignments, team setups, augment selections and match events are explicitly authored sandbox fixtures, independent of a live TFT set. They demonstrate layout and interaction rather than balance recommendations.

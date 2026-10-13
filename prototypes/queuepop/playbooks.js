@@ -39,12 +39,7 @@ const formationNotes = [
 
 function tftComps(){return tftCollection();}
 
-function tftPlanner() {
-  const f=formations[state.plan], notes=formationNotes[state.plan], selected=notes[plannerLesson];
-  const ribbon=`<section class="strategy-ribbon"><div class="carry-token">${icon(f.carry)}<span>Build around<b>${units[f.carry]}</b></span></div><div><p class="eyebrow">Formation study / 0${state.plan+1}</p><h2>${f.tag}</h2><p>${f.line}</p></div><span class="ribbon-stars" aria-hidden="true">✦ <i>✧</i></span></section>`;
-  const notesMarkup=`<aside class="planner-notes strategy-lessons"><p class="eyebrow">A plan in three decisions</p><h2>Think beyond<br>the hex.</h2><div class="lesson-tabs" aria-label="Formation decisions">${f.stages.map((s,i)=>`<button data-lesson="${i}" aria-pressed="${plannerLesson===i}" aria-controls="formation-lesson"><span>0${i+1}</span>${s}<b>↗</b></button>`).join('')}</div><div class="paper-tip" id="formation-lesson" aria-live="polite"><span>✧</span><h3>${selected[0]}</h3><p>${selected[1]}</p></div><p class="sample-note">Your changes stay with this formation. These units illustrate positioning, not a live-set composition.</p></aside>`;
-  return renderTftPlannerTable(ribbon, notesMarkup);
-}
+function tftPlanner(){return tftArenaPlanner();}
 
 // Historical formations are immutable fixtures, never drawn from the editable saved board.
 function reviewBoard(plan,phase) {
@@ -55,14 +50,7 @@ function reviewBoard(plan,phase) {
   return {...board};
 }
 
-function tftHistory(id) {
-  const r=tftMatches.find(m=>m.id===id);
-  if(r) {
-    const f=formations[r.plan], phase=reviewMoment, note=formationNotes[r.plan][phase];
-    return `${subnav('tft','history')}<section class="convergence-review">${link('#/tft/history','All matches','back-link')}<header class="convergence-heading"><div><p class="eyebrow">${r.date} / Sample match</p><h1>${r.line}</h1><p>${f.name} · Final stage ${r.stage}</p></div><div class="finish-rosette"><span>FINISH</span><strong>${r.place}</strong><small>of 8 players</small></div></header><div class="board-review-layout"><section class="memory-board"><div class="memory-board-title"><p class="eyebrow">${['Finding the shape','Building the team','The final board'][phase]}</p><span>Sample snapshot · ${Object.keys(reviewBoard(r.plan,phase)).length} units</span></div><div class="board-caption">THE OPPONENT’S SIDE</div>${boardMarkup(false,reviewBoard(r.plan,phase))}<div class="board-caption bottom">YOUR BACKLINE / READ-ONLY REVIEW</div><div class="board-chapters" aria-label="Board snapshots">${['Opening','Developing','Final board'].map((n,i)=>`<button data-moment="${i}" aria-pressed="${phase===i}"><span>0${i+1}</span>${n}</button>`).join('')}</div><div class="snapshot-roster">${Object.values(reviewBoard(r.plan,phase)).map(u=>`<span>${icon(u)}${units[u]}</span>`).join('')}</div></section><aside class="review-scrapbook"><div class="review-carry">${icon(f.carry)}<div><span>At the heart of the plan</span><h2>${units[f.carry]}</h2></div></div><div class="snapshot-note" aria-live="polite"><p class="eyebrow">${['Establish','Develop','Reconsider'][phase]}</p><h2>${note[0]}</h2><p>${note[1]}</p></div><div class="paper-tip"><span>✧</span><h3>For the next carousel.</h3><p>${r.note}</p></div><button class="action" data-plan="${r.plan}">Revisit this formation <span>↗</span></button><p class="sample-note">Illustrated snapshots, not a recorded replay. Opening the planner restores your own version of this formation.</p></aside></div></section>`;
-  }
-  return `${subnav('tft','history')}${pageHead('The Convergence journal','There’s more to a game than a finish.','A clever pivot. A stubborn streak. A board worth trying again.')}<section class="convergence-journal">${tftMatches.map((r,i)=>{const f=formations[r.plan];return `<a class="tactics-memory memory-${i}" href="#/tft/history/${r.id}"><div class="memory-illustration" style="--champ-art:url('assets/${f.carry}.webp')"><div class="finish-rosette"><span>FINISH</span><strong>${r.place}</strong></div><span class="memory-date">${r.date}</span></div><div class="memory-story"><p class="eyebrow">${f.tag} / Stage ${r.stage}</p><h2>${r.line}</h2><p>${f.name}</p><div class="study-roster">${Object.values(f.board).map(u=>`<span title="${units[u]}">${icon(u)}<small>${units[u]}</small></span>`).join('')}</div><div class="memory-footer"><span>${['A position worth repeating','A decision worth revisiting','A moment worth learning from'][i]}</span><b>Open match ↗</b></div></div></a>`;}).join('')}<p class="sample-note">Three sample matches · Open a match to explore how its board took shape.</p></section>`;
-}
+function tftHistory(id){return tftArenaHistory(id);}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');
