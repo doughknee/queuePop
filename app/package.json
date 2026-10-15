@@ -4,12 +4,56 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-lcu.js"
+    "test": "node test-lcu.js && node test-notify.js",
+    "dist": "electron-builder --win nsis zip"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "ws": "8.22.0"
   },
   "devDependencies": {
-    "electron": "44.7.2"
+    "electron": "44.7.2",
+    "electron-builder": "^26.0.12"
+  },
+  "version": "1.4.7",
+  "description": "queuePop - League of Legends queue auto-accept",
+  "author": "Brandon Harris",
+  "build": {
+    "appId": "com.doughknee.queuepop",
+    "productName": "queuePop",
+    "executableName": "queuePop",
+    "files": [
+      "*.js",
+      "!test-*.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../src/webui",
+        "to": "src/webui"
+      },
+      {
+        "from": "../src/_version.py",
+        "to": "src/_version.py"
+      },
+      {
+        "from": "../assets/queuepop.ico",
+        "to": "assets/queuepop.ico"
+      }
+    ],
+    "win": {
+      "icon": "../assets/queuepop.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "artifactName": "queuePop-v${version}-${os}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "queuePop-v${version}-setup.${ext}"
+    }
   }
 }

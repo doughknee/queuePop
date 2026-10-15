@@ -4,6 +4,7 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
+const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
@@ -59,7 +60,6 @@ async function readyCheck(data) {
   }
   push(`Queue popped (queue ${queueId}), accepting…`, "danger", "queue_pop");
   log(`Ready check popped queue=${queueId}`);
-  // ponytail: Discord and desktop alerts not ported yet (later DONI issues).
   const delay = Math.min(10, Math.max(0, Number(loadConfig().accept_delay_seconds) || 0));
   if (delay) {
     push(`Accepting in ${delay}s…`, "info", "match");
@@ -106,7 +106,7 @@ ipcMain.handle("api", async (_e, name, args) => {
 app.whenReady().then(() => {
   win = new BrowserWindow({
     width: 1100, height: 820, minWidth: 620, minHeight: 700, frame: false, backgroundColor: "#010a13",
-    webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys(METHODS)] },
+    webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys(METHODS).concat(host.NAMES)] },
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
   win.webContents.on("did-finish-load", () => win.webContents.insertCSS(
@@ -115,6 +115,7 @@ app.whenReady().then(() => {
     if (e.level === "error" || e.level === "warning") log(`renderer ${e.level}:`, e.message);
   });
   win.loadFile(WEBUI);
+  host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   lcu.start();
   log("Searching for League client...");
 });
