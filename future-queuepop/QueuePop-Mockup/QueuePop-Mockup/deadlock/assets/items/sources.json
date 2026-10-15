@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Close Quarters",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_weapon/close_range.webp",
+    "file": "close-quarters.webp"
+  },
+  {
+    "name": "Extra Health",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/health.webp",
+    "file": "extra-health.webp"
+  },
+  {
+    "name": "Bullet Armor",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/bullet_armor.webp",
+    "file": "bullet-armor.webp"
+  },
+  {
+    "name": "Spirit Armor",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/tech_armor.webp",
+    "file": "spirit-armor.webp"
+  },
+  {
+    "name": "Bullet Lifesteal",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/health_stealing_bullets.webp",
+    "file": "bullet-lifesteal.webp"
+  },
+  {
+    "name": "Healing Booster",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/healing_booster.webp",
+    "file": "healing-booster.webp"
+  },
+  {
+    "name": "Sprint Boots",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/sprint_booster.webp",
+    "file": "sprint-boots.webp"
+  },
+  {
+    "name": "Enduring Speed",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/cardio_calibrator.webp",
+    "file": "enduring-speed.webp"
+  },
+  {
+    "name": "Healbane",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_tech/healbane.webp",
+    "file": "healbane.webp"
+  },
+  {
+    "name": "Rescue Beam",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_tech/medic_beam.webp",
+    "file": "rescue-beam.webp"
+  },
+  {
+    "name": "Healing Rite",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_armor/stimpak.webp",
+    "file": "healing-rite.webp"
+  },
+  {
+    "name": "Spirit Strike",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/upgrades/mods_tech/acolytes_glove.webp",
+    "file": "spirit-strike.webp"
+  }
+]

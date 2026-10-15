@@ -1,0 +1,27 @@
+QUEUEPOP — INTERACTIVE MOCKUP
+
+1. Extract the entire ZIP to a folder.
+2. On Windows, double-click START-MOCKUP.cmd.
+3. Your browser opens QueuePop. Use the top bar to switch games.
+4. Keep the launcher window open while browsing; close it when finished.
+
+Requires Python 3 with its Windows "py" launcher. No packages or build step.
+On macOS/Linux: run python3 start-mockup.py from this folder.
+If the browser doesn't open, visit http://127.0.0.1:4318/queuepop/
+If port 4318 is already in use, close the other preview first.
+Use the launcher rather than opening index.html directly: TFT uses JavaScript modules.
+
+WHAT'S INCLUDED
+- League of Legends: the existing approved concept, unchanged.
+- Deadlock: the existing approved concept, unchanged.
+- TFT: your supplied TFT Field Guide, with its comp guides, interactive
+  playground, champion/item library, and local board saving/sharing.
+- QueuePop's existing shared navigation and home page.
+
+This is a frontend mockup with sample data, not the production QueuePop app.
+All runtime artwork and code are included. No game client or accounts required.
+Nothing is installed, published or connected to live match data.
+Preferences and boards stay in the browser; the ZIP does not include personal saves.
+Use TFT's portable board codes to transfer a saved board to another browser.
+External source/documentation links still require internet access.
+Artwork belongs to its respective owners; attribution remains in the source folders.

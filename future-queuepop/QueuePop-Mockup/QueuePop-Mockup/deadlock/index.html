@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#182521">
+  <title>Deadlock · QueuePop</title>
+  <link rel="icon" href="assets/queuepop-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refinements.css">
+  <link rel="stylesheet" href="casework.css">
+  <link rel="stylesheet" href="pages.css">
+  <link rel="stylesheet" href="atmosphere.css">
+  <link rel="stylesheet" href="dossiers.css">
+  <link rel="stylesheet" href="street.css">
+  <link rel="stylesheet" href="fieldwork.css">
+  <script src="archive-data.js" defer></script>
+  <script src="casework.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#city">Skip to page content</a>
+  <div class="app-shell">
+    <header class="masthead">
+      <a class="brand" href="#/" data-home aria-label="QueuePop Deadlock home"><img src="assets/queuepop-mark.svg" alt="" width="25" height="25">QueuePop<span class="brand-star">✦</span></a>
+      <span class="edition">A companion for the other side</span>
+      <button class="profile" data-open="companion"><span class="status-dot"></span><span id="header-status">Companion ready</span><span class="profile-avatar">Q</span></button>
+    </header>
+
+      <nav class="city-nav" aria-label="Deadlock navigation">
+        <a class="nav-current" aria-current="page" href="#/" data-home><span aria-hidden="true">◈</span>The city</a>
+        <a href="#/heroes" data-open="heroes"><span aria-hidden="true">♜</span>Heroes</a>
+        <a href="#/builds" data-open="builds"><span aria-hidden="true">⌘</span>Builds</a>
+        <a href="#/history" data-open="history"><span aria-hidden="true">◷</span>Match history</a>
+        <a href="#/guides" data-open="guides"><span aria-hidden="true">✧</span>Field guide</a>
+      </nav>
+
+    <div class="world">
+      <div class="city-art" aria-hidden="true"></div>
+      <div class="scene-shade" aria-hidden="true"></div>
+      <div class="street-cast" aria-hidden="true"><div class="cast-poster cast-ivy"><img src="assets/heroes/ivy.webp" alt=""><span>GOOD COMPANY.</span></div><div class="cast-poster cast-infernus"><img src="assets/heroes/infernus.webp" alt=""><span>BAD INTENTIONS.</span></div><span class="cast-caption">Strange company. Familiar streets.</span></div>
+      <svg class="architecture" viewBox="0 0 1440 880" preserveAspectRatio="none" aria-hidden="true"><path d="M24 880V220Q24 40 240 40H1200Q1416 40 1416 220V880"/><path d="M35 880V224Q35 52 244 52H1196Q1405 52 1405 224V880"/><path d="M0 224H24M1416 224H1440M0 234H24M1416 234H1440"/><path d="M590 40L620 18H820L850 40M638 18V6H802V18"/></svg>
+
+
+      <main id="city">
+        <div class="title-lockup"><span class="wordmark">DEADLOCK</span><span class="wordmark-sub"><i></i>The midnight bureau<i></i></span></div>
+        <section class="arrival" aria-labelledby="arrival-title">
+          <p class="scene-caption"><span></span>New York, after dark</p>
+          <h1 id="arrival-title">The city<br>is calling.</h1>
+          <p class="intro">A few good allies. A little forbidden knowledge.<br>Everything you need before the next match.</p>
+          <button class="ticket" data-open="heroes"><span class="ticket-sigil" aria-hidden="true">✥</span><span>Find your hero<small>Enter the dossiers</small></span><span class="ticket-arrow" aria-hidden="true">↗</span></button>
+          <button class="underlink" data-open="guides">New to the city? Start here <span aria-hidden="true">↗</span></button>
+        </section>
+        <button class="moon-seal" data-open="guides" aria-label="Open the field guide"><span class="seal-label">The field guide</span><span class="seal-orbit"></span><span class="seal-eye">◈</span><span class="seal-line" aria-hidden="true"></span></button>
+        <div class="location-note" aria-hidden="true"><span class="location-rule"></span><span>Midtown<br><em>There’s always another way through.</em></span></div>
+
+        <section class="night-desk" aria-label="Your night in the city">
+          <button class="desk-entry dossier-entry" data-open="heroes"><span class="entry-portrait"><img src="assets/heroes/warden.webp" alt="" width="100" height="136"></span><span><small>Tonight’s person of interest</small><strong>The Warden</strong><em>Meet the city’s last line of defense</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
+          <button class="desk-entry build-entry" data-open="builds"><span class="ledger-symbol" aria-hidden="true"><i></i><i></i><i></i></span><span><small>A plan worth keeping</small><strong>Make every soul count.</strong><em>Open your build ledger</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
+          <button class="desk-entry match-entry" data-open="history"><span class="victory-seal" aria-hidden="true">V</span><span><small>Your last encounter · Sample</small><strong>A night well won.</strong><em><b>18 / 7 / 9</b> &nbsp; Warden · 32:18</em></span><span class="entry-arrow" aria-hidden="true">↗</span></button>
+        </section>
+      </main>
+      <footer class="world-footer"><span>Knowledge is a kindness. Share what you learn.</span><span class="demo-note">Design study · Fictional match data</span><a href="comparison.html">Before / after <span aria-hidden="true">↗</span></a></footer>
+    </div>
+    <main id="sheet" class="archive-page" hidden aria-labelledby="sheet-title">
+      <header class="page-heading">
+        <div class="page-breadcrumb"><a href="#/" data-home>The midnight bureau</a><span aria-hidden="true"> / </span><span id="page-location"></span></div>
+        <div id="page-title"></div>
+        <div class="night-service-sign" aria-hidden="true"><span class="sign-lamp"></span><span>Midtown</span><strong>Night service</strong><small>Keep a light in the window.</small></div>
+        <svg class="overhead-wire" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 12Q650 150 1200 36M0 21Q660 166 1200 45"/><path d="M1052 63v35"/></svg>
+        <svg class="page-orbit" viewBox="0 0 240 200" aria-hidden="true"><ellipse cx="120" cy="100" rx="94" ry="68"/><ellipse cx="120" cy="100" rx="77" ry="87" transform="rotate(-28 120 100)"/><path d="M8 100Q120 16 232 100Q120 184 8 100ZM120 14V186M26 100H214"/><circle cx="120" cy="100" r="24"/><path d="M111 75Q143 100 111 125Q128 100 111 75Z" fill="currentColor"/></svg>
+      </header>
+      <div class="page-paper"><div class="paper-edition" aria-hidden="true"><span>City records office <i>·</i> Midnight division</span><span class="edition-note">Recorded after sundown.</span></div><div class="paper-seal" aria-hidden="true"></div><div id="sheet-body"></div></div>
+      <footer class="page-colophon"><span>Knowledge is a kindness.</span><a href="comparison.html">The design so far ↗</a><span>QueuePop / Deadlock study</span></footer>
+    </main>
+    <footer class="companion-bar"><span class="companion-label"><img src="assets/queuepop-mark.svg" width="22" height="22" alt=""><span>Go live a little.<small>We’ll keep an eye on your queue.</small></span></span><span class="companion-status" id="queue-status" role="status">Local demo · Ready when you are</span><button data-open="companion">Open companion <span aria-hidden="true">↗</span></button></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
