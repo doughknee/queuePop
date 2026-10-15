@@ -13,7 +13,7 @@ window.createTftView = function (host) {
       const info = (await api().get_summoner()) || {};
       const r = info.connected && info.ranked && info.ranked.tft;
       rankEl.textContent = !info.connected ? 'TFT rank: client not connected'
-        : r ? `TFT rank: ${r.tier[0] + r.tier.slice(1).toLowerCase()} ${r.division} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
+        : r ? `TFT rank: ${r.tier[0] + r.tier.slice(1).toLowerCase()}${r.division && r.division !== 'NA' ? ' ' + r.division : ''} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
     } catch (_) { rankEl.textContent = 'TFT rank: unavailable'; }
   }
   bar.querySelector('button').addEventListener('click', async () => {
