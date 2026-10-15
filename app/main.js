@@ -94,6 +94,7 @@ const impl = {
   toggle_maximize_window: () => { win.isMaximized() ? win.unmaximize() : win.maximize(); return win.isMaximized(); },
   hide_window: () => win.close(), // ponytail: no tray yet, so close quits
 };
+Object.assign(impl, require("./champ-select").attach(lcu, impl, push, state)); // DONI-441
 
 const stubbed = new Set();
 ipcMain.handle("api", async (_e, name, args) => {
@@ -106,7 +107,7 @@ ipcMain.handle("api", async (_e, name, args) => {
 app.whenReady().then(() => {
   win = new BrowserWindow({
     width: 1100, height: 820, minWidth: 620, minHeight: 700, frame: false, backgroundColor: "#010a13",
-    webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys(METHODS).concat(host.NAMES)] },
+    webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
   win.webContents.on("did-finish-load", () => win.webContents.insertCSS(

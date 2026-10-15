@@ -4,7 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-lcu.js && node test-notify.js",
+    "test": "node test-lcu.js && node test-notify.js && node test-champ.js",
     "dist": "electron-builder --win nsis zip"
   },
   "dependencies": {
@@ -39,6 +39,16 @@
       {
         "from": "../assets/queuepop.ico",
         "to": "assets/queuepop.ico"
+      },
+      {
+        "from": "../data",
+        "to": "data",
+        "filter": [
+          "champion_flags.json",
+          "champion_flags.seed.json",
+          "counter_rules.seed.json",
+          "champion_roles.json"
+        ]
       }
     ],
     "win": {
