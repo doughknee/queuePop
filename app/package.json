@@ -4,7 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-lcu.js"
+    "test": "node test-lcu.js && node test-champ.js"
   },
   "dependencies": {
     "ws": "8.22.0"
