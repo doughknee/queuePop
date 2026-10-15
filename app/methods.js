@@ -9,6 +9,8 @@ const METHODS = {
   toggle_maximize_window: false,
   set_show_last_queue: NOT_PORTED,
   set_favorites: NOT_PORTED,
+  deadlock_overlay_status: { connected: false, version: "", configured: false },
+  launch_deadlock_overlay: NOT_PORTED,
 };
 
 module.exports = { METHODS };

@@ -79,11 +79,20 @@
   adding new bundled assets so PyInstaller and the installer pick them up.
 
 ## Electron host
-- `app/` is the Electron port in progress (plain `electron`, CommonJS, no bundler). It loads
-  `src/webui/index.html` unchanged and emulates `window.pywebview.api` over IPC.
-- Run: `cd app && npm install && npm start`. Check: `npm test` (lockfile parser).
-- Ported so far: LCU connection and ready-check auto-accept (`app/lcu.js`, `app/main.js`).
-  Every other bridge method is a stub in `app/methods.js`; it logs `stub: <name>` once.
+- `app/` is the Electron host (plain `electron`, CommonJS, no bundler). It loads `src/webui/index.html`
+  unchanged and emulates `window.pywebview.api` over IPC (`preload.js` gets the method names from main).
+- Run: `cd app && npm install && npm start`. Check: `npm test` (lockfile, notifications, champ select,
+  overlay). Package: `npm run dist` (NSIS + zip, named `queuePop-electron-*` so it can't pass for the Python build).
+- What implements the bridge: `main.js` (LCU connection, ready-check auto-accept, status/events, window);
+  `lcu.js` (lockfile + LCU client); `champ-select*.js` (auto pick/ban, runes, ARAM bench, trades, config);
+  `host.js` wires `tray.js`, `notifications.js` (Discord + desktop), `companion.js` (phone), `updater.js`,
+  `account.js`; `config.js` shares `src/config.json` with the Python app; `overlay.js` probes and launches the
+  Deadlock overlay app. `methods.js` lists every bridge method with its stub value; the few still unported
+  log `stub: <name>` once.
+- Deadlock: the host's Deadlock tab (`src/webui/deadlock-view.js`) reads public data from deadlock-api and
+  probes the separate Overwolf overlay app on `http://127.0.0.1:47821/health`; config key
+  `deadlock_overlay_exe` (default empty) enables its "Launch overlay" button. The host never contains game
+  hooks, and the overlay app never contains League code.
 
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
