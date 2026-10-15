@@ -15,13 +15,13 @@
     "electron": "44.7.2",
     "electron-builder": "^26.0.12"
   },
-  "version": "1.4.7",
+  "version": "2.0.0-alpha.1",
   "description": "queuePop - League of Legends queue auto-accept",
   "author": "Brandon Harris",
   "build": {
     "appId": "com.doughknee.queuepop",
-    "productName": "queuePop",
-    "executableName": "queuePop",
+    "productName": "queuePop (Electron)",
+    "executableName": "queuePop-electron",
     "files": [
       "*.js",
       "!test-*.js",
@@ -47,13 +47,13 @@
         "nsis",
         "zip"
       ],
-      "artifactName": "queuePop-v${version}-${os}.${ext}"
+      "artifactName": "queuePop-electron-v${version}-${os}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "queuePop-v${version}-setup.${ext}"
+      "artifactName": "queuePop-electron-v${version}-setup.${ext}"
     }
   }
 }
