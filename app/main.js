@@ -95,6 +95,7 @@ const impl = {
   hide_window: () => win.close(), // ponytail: no tray yet, so close quits
 };
 Object.assign(impl, require("./champ-select").attach(lcu, impl, push, state)); // DONI-441
+Object.assign(impl, require("./overlay")); // DONI-446: Deadlock overlay probe + launch
 
 const stubbed = new Set();
 ipcMain.handle("api", async (_e, name, args) => {
