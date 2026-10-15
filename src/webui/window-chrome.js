@@ -6,9 +6,9 @@
   const api = () => (window.pywebview && window.pywebview.api) || null;
   const $ = (id) => document.getElementById(id);
 
-  // Keep in sync with main.py min_size / web_api.py MIN_WINDOW_SIZE.
-  const MIN_W = 620;
-  const MIN_H = 700;
+  // Keep in sync with app/main.js minWidth / minHeight.
+  const MIN_W = 1280;
+  const MIN_H = 720;
 
   const ICON_MAXIMIZE =
     '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2">' +

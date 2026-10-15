@@ -1,0 +1,4 @@
+body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:#0c1721}
+.theme-tft #qp-header{flex-shrink:0}
+#tft-view{flex:1;min-height:0;background:#0c1721}
+#tft-view iframe{display:block;width:100%;height:100%;border:0;color-scheme:dark;background:#0c1721}

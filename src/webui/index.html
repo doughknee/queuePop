@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>queuePop</title>
+  <title>QueuePop</title>
+  <meta name="theme-color" content="#141618" />
   <!--
     Precompiled Tailwind (scripts/tailwind.config.js + tailwind.src.css → styles.css)
     and locally-vendored fonts, so the bundled app works fully offline.
@@ -14,19 +15,25 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="assets/fonts/fonts.css" />
   <link rel="stylesheet" href="hextech.css" />
+  <!-- Three-worlds shell, ported from prototypes/queuepop (the spec). -->
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="worlds.css" />
+  <link rel="stylesheet" href="playbooks.css" />
+  <link rel="stylesheet" href="league-world.css" />
+  <link rel="stylesheet" href="league-interiors.css" />
+  <link rel="stylesheet" href="league-armory.css" />
+  <link rel="stylesheet" href="league-materials.css" />
+  <link rel="stylesheet" href="league-home.css" />
+  <link rel="stylesheet" href="tft-view.css" />
+  <link rel="stylesheet" href="deadlock-fonts.css" />
+  <link rel="stylesheet" href="host.css" />
 </head>
-<body class="text-grey1 antialiased h-screen overflow-hidden">
+<body class="theme-home">
   <div id="flash"></div>
-
-  <!-- Auto-save toast (bottom-right). Settings + champ-select edits persist on
-       change; showToast() in app.js flashes this instead of a Save button. -->
   <div id="toast" class="toast">
     <svg class="toast-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
     <span id="toast-msg">Saved</span>
   </div>
-
-  <!-- Update banner (bottom-left). Shown by app.js when the GitHub check finds a
-       newer release; "Update" calls pywebview.api.apply_update(). -->
   <div id="upd-banner" class="upd-banner">
     <svg class="upd-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
     <div class="upd-body">
@@ -38,143 +45,6 @@
       <button id="upd-later" class="upd-btn ghost">Not now</button>
     </div>
   </div>
-
-  <!-- Quick-queue dropdown (top-level so it isn't trapped under the navbar's
-       backdrop-blur; positioned under PLAY by app.js). -->
-  <div id="queue-menu" class="queue-menu hidden"></div>
-
-  <!-- Per-champ loadout editor (spells + rune page + skin). Opened from the
-       gear on a selected pick in the Champ Select editor; built by app.js. -->
-  <div id="loadout-modal" class="skin-modal hidden">
-    <div class="skin-backdrop" data-lo-close></div>
-    <div class="loadout-panel hextech framed">
-      <!-- Splash header -->
-      <div class="lo-hero">
-        <div id="lo-hero-bg" class="lo-hero-bg"></div>
-        <div class="lo-hero-grad"></div>
-        <button class="skin-close lo-hero-close" aria-label="Close" data-lo-close>
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
-        </button>
-        <div class="lo-hero-content">
-          <img id="lo-icon" class="lo-icon" alt="" onerror="this.style.visibility='hidden'" />
-          <span><span id="lo-name" class="lo-name"></span><span id="lo-role" class="lo-role"></span></span>
-        </div>
-      </div>
-
-      <div class="loadout-body">
-        <!-- Summoner spells: two icon slots + an inline picker -->
-        <div class="lo-section">
-          <div class="lo-label">Summoner Spells</div>
-          <div class="lo-spell-slots">
-            <button type="button" class="lo-spell-slot" id="lo-spell-slot0" data-slot="0"></button>
-            <span class="lo-spell-plus">+</span>
-            <button type="button" class="lo-spell-slot" id="lo-spell-slot1" data-slot="1"></button>
-          </div>
-          <div id="lo-spell-pop" class="lo-spell-pop hidden"></div>
-        </div>
-
-        <!-- Runes (gated by a toggle) -->
-        <div class="lo-section">
-          <div class="lo-section-head">
-            <span class="lo-label">Runes</span>
-            <label class="sw"><input id="lo-rune-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
-          </div>
-          <div id="lo-rune-body" class="lo-fold hidden">
-            <select id="lo-rune" class="hextech-input px-2 py-1.5 text-gold1 outline-none cursor-pointer w-full"></select>
-            <p id="lo-rune-hint" class="lo-hint"></p>
-          </div>
-        </div>
-
-        <!-- Skin (gated by a toggle) -->
-        <div class="lo-section">
-          <div class="lo-section-head">
-            <span class="lo-label">Skin</span>
-            <label class="sw"><input id="lo-skin-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
-          </div>
-          <div id="lo-skin-body" class="lo-fold hidden">
-            <div class="lo-modes" id="lo-skin-modes">
-              <button type="button" class="lo-mode" data-mode="pick">Pick a skin</button>
-              <button type="button" class="lo-mode" data-mode="favorite">Random favorite</button>
-            </div>
-            <p id="lo-skin-hint" class="lo-hint"></p>
-            <div id="lo-skin-grid" class="lo-skin-grid hidden"></div>
-          </div>
-        </div>
-      </div>
-      <div class="loadout-foot">
-        <button id="lo-done" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Phone-companion QR, shown in a modal from the "Show QR code" button so it
-       doesn't dominate the Settings page. -->
-  <div id="qr-modal" class="skin-modal hidden">
-    <div class="skin-backdrop" data-qr-close></div>
-    <div class="qr-panel hextech framed">
-      <div class="skin-head">
-        <h3>Open on your phone</h3>
-        <button class="skin-close" aria-label="Close" data-qr-close>
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
-        </button>
-      </div>
-      <div class="qr-body">
-        <img id="companion-qr" alt="Scan to open on your phone" class="qr-big" />
-        <p id="qr-url" class="text-sm text-gold2 break-all text-center"></p>
-        <p class="text-xs text-subText text-center" style="max-width:280px">Scan with your phone's camera, tap <span class="text-gold2">Enable Alerts</span>, and keep the tab open. Phone must be on the same Wi-Fi.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- First-run "Set me up" wizard (pages/setup.js): one screen, seeded from
-       the player's own mastery + recent matches. Reuses .skin-modal chrome. -->
-  <div id="setup-modal" class="skin-modal hidden">
-    <div class="skin-backdrop"></div>
-    <div class="setup-panel hextech framed">
-      <div class="skin-head">
-        <h3>Set me up</h3>
-        <button id="setup-skip" type="button" class="setup-skip">Skip</button>
-      </div>
-      <div class="setup-body">
-        <div class="setup-sec">
-          <div class="set-card-title">Queues to auto-accept</div>
-          <div id="setup-queues" class="queue-pills"></div>
-        </div>
-        <div class="setup-sec">
-          <div class="set-card-title">Your picks</div>
-          <p id="setup-picks-note" class="set-row-hint mb-2">From your mastery and recent games. Untick anything you don't play.</p>
-          <div id="setup-replace-row" class="set-row mb-3 hidden">
-            <span class="sw"><input id="setup_replace" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-            <label for="setup_replace" class="set-row-label">Replace my current lists</label>
-            <span class="help" data-tip="Some roles already have picks. Off: only empty roles are filled. On: the ticked champions replace every role's list.">?</span>
-          </div>
-          <div id="setup-roles" class="setup-roles"></div>
-        </div>
-        <div class="setup-sec space-y-3">
-          <div class="set-card-title">Automation</div>
-          <div class="set-row">
-            <span class="sw"><input id="setup_accept" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-            <label for="setup_accept" class="set-row-label">Auto-accept queue pops</label>
-          </div>
-          <div class="set-row">
-            <span class="sw"><input id="setup_pick" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-            <label for="setup_pick" class="set-row-label">Auto-pick and ban in champ select</label>
-          </div>
-          <div class="set-row">
-            <span class="sw"><input id="setup_discord" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
-            <label for="setup_discord" class="set-row-label">Discord ping when a queue pops</label>
-          </div>
-          <input id="setup_webhook" type="text" placeholder="Discord webhook URL (optional)"
-            class="hextech-input hidden w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
-          <p id="setup-webhook-hint" class="text-xs text-red-400 hidden"></p>
-        </div>
-      </div>
-      <div class="setup-foot">
-        <button id="setup-done" type="button" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Frameless resize grips (window edges + corners) -->
   <div class="resize-grip rg-n"  data-edge="n"></div>
   <div class="resize-grip rg-s"  data-edge="s"></div>
@@ -184,15 +54,6 @@
   <div class="resize-grip rg-nw" data-edge="nw"></div>
   <div class="resize-grip rg-se" data-edge="se"></div>
   <div class="resize-grip rg-sw" data-edge="sw"></div>
-
-  <div class="flex flex-col h-full">
-
-    <!-- Header bar, PLAY (launch / quick-queue) | route icons | summoner, with
-         the window controls floating top-right. The full-bar drag layer is the
-         only .pywebview-drag-region (a sibling behind everything) so empty space
-         drags the window while every button stays clickable. -->
-    <nav class="appbar border-t-2 border-t-gold5 border-b border-b-icon/30 backdrop-blur-2xl">
-      <div class="appbar-drag pywebview-drag-region"></div>
 
       <div class="win-controls">
         <button id="win-min" class="win-btn" title="Minimize" aria-label="Minimize">
@@ -206,8 +67,14 @@
         </button>
       </div>
 
-      <div class="nav-left">
-        <button id="play-btn" class="play-btn" title="Launch League / quick queue">
+  <a class="skip" href="#main">Skip to content</a>
+  <header id="qp-header" class="pywebview-drag-region"></header>
+  <main id="main" tabindex="-1"></main>
+
+  <!-- League client dock: PLAY (launch / queue / live) and the summoner badge.
+       worlds.js mounts it into the League navigation on every League route. -->
+  <div id="league-dock" class="league-dock" hidden>
+    <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in brand/play-button.svg). Hooks the
                app relies on: class="play-svg" (sizing), id="play-label" (state
                text swap), and the .pb-* classes (hover). -->
@@ -215,16 +82,16 @@
             <defs>
               <!-- Teal energy bloom inside the hex, faded in on hover / live. -->
               <radialGradient id="pbCoreGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.85"/>
-                <stop offset="55%" stop-color="#0AC8B9" stop-opacity="0.28"/>
-                <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0"/>
+                <stop offset="0%" stop-color="#79C9CF" stop-opacity="0.85"/>
+                <stop offset="55%" stop-color="#79C9CF" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="#79C9CF" stop-opacity="0"/>
               </radialGradient>
             </defs>
             <path fill="#0a323c" d="M410.983 218.364h36.867v46.717h-36.867z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
             <path fill="#010a13" d="M410.983 221.167h34.031v41.111h-34.031z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
             <path class="pb-frame" fill="#005a82" d="M278.643 218.364h139.903l30.249 23.358-30.249 23.359H278.643q18.905-23.36 0-46.717" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
             <path fill="#1e2328" d="M283.369 221.167h133.286l27.414 20.555-27.414 20.556H283.369q16.07-20.556 0-41.111" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
-            <text id="play-label" x="359.54" y="250.543" font-size="21" font-weight="700" fill="#f0e6d2" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
+            <text id="play-label" x="359.54" y="250.543" font-size="21" font-weight="700" fill="#F0E6D0" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
             <!-- The Queue Sigil IS the emblem now: a hex badge replacing the
                  round medallion. Its body is the SAME flat dark slate (#1e2328)
                  as the PLAY ribbon so the two halves read as one material; the
@@ -244,43 +111,7 @@
             </g>
           </svg>
         </button>
-      </div>
-
-      <div class="nav-routes">
-        <button class="nav-route active" data-tab="dashboard" title="Dashboard" aria-label="Dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" />
-            <rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" />
-          </svg>
-        </button>
-        <div class="nav-div"></div>
-        <button class="nav-route" data-tab="champ" title="Champ Select" aria-label="Champ Select">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" /><line x1="13" y1="19" x2="19" y2="13" />
-            <line x1="16" y1="16" x2="20" y2="20" /><line x1="19" y1="21" x2="21" y2="19" />
-            <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" /><line x1="5" y1="14" x2="9" y2="18" />
-            <line x1="7" y1="17" x2="4" y2="20" /><line x1="3" y1="19" x2="5" y2="21" />
-          </svg>
-        </button>
-        <div class="nav-div"></div>
-        <button class="nav-route" data-tab="alerts" title="Alerts" aria-label="Alerts">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </button>
-        <div class="nav-div"></div>
-        <button class="nav-route" data-tab="about" title="About queuePop" aria-label="About queuePop">
-          <!-- The Queue Sigil (brand mark) as a stroke icon: outer hex + core. -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="miter">
-            <polygon points="21,12 18.36,18.36 12,21 5.64,18.36 3,12 5.64,5.64 12,3 18.36,5.64" />
-            <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="nav-right">
-        <button id="summoner-btn" class="summoner offline" title="">
+    <button id="summoner-btn" class="summoner offline" title="">
           <span class="summoner-portrait">
             <span class="ph" id="summoner-ph">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -295,20 +126,19 @@
             </span>
           </span>
         </button>
-      </div>
-    </nav>
+  </div>
 
-    <!-- Content -->
-    <main class="flex-1 overflow-y-auto p-5">
-
-      <!-- LIVE CHAMP SELECT (its own route; reached via the PLAY→LIVE button) -->
+  <!-- The working League pages (routes #/league/<page> and #/companion). -->
+  <div id="host-pages" class="host-pages" hidden>
+      <section id="tab-play" class="hidden">
+        <header class="host-head"><p class="eyebrow">Queue launcher</p><h1>Choose your queue.</h1><p>Start a queue in the client. Edit the list to choose which modes appear.</p></header>
+  <div id="queue-menu" class="queue-menu hidden"></div>
+      </section>
       <section id="tab-live" class="hidden">
         <div id="champ-live" class="hextech framed p-5 space-y-4">
           <p class="text-subText text-sm">Waiting for champ select…</p>
         </div>
       </section>
-
-      <!-- ACCOUNT (routeless; reached by clicking the summoner badge) -->
       <section id="tab-account" class="hidden space-y-5">
         <div id="account-offline" class="hextech framed p-8 text-center hidden">
           <p class="font-display text-gold2 text-xl tracking-wide mb-2">Not connected</p>
@@ -363,9 +193,53 @@
           </div>
         </div>
       </section>
-
-      <!-- DASHBOARD -->
       <section id="tab-dashboard" class="space-y-5">
+  <div id="setup-modal" class="skin-modal hidden">
+    <div class="skin-backdrop"></div>
+    <div class="setup-panel hextech framed">
+      <div class="skin-head">
+        <h3>Set me up</h3>
+        <button id="setup-skip" type="button" class="setup-skip">Skip</button>
+      </div>
+      <div class="setup-body">
+        <div class="setup-sec">
+          <div class="set-card-title">Queues to auto-accept</div>
+          <div id="setup-queues" class="queue-pills"></div>
+        </div>
+        <div class="setup-sec">
+          <div class="set-card-title">Your picks</div>
+          <p id="setup-picks-note" class="set-row-hint mb-2">From your mastery and recent games. Untick anything you don't play.</p>
+          <div id="setup-replace-row" class="set-row mb-3 hidden">
+            <span class="sw"><input id="setup_replace" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_replace" class="set-row-label">Replace my current lists</label>
+            <span class="help" data-tip="Some roles already have picks. Off: only empty roles are filled. On: the ticked champions replace every role's list.">?</span>
+          </div>
+          <div id="setup-roles" class="setup-roles"></div>
+        </div>
+        <div class="setup-sec space-y-3">
+          <div class="set-card-title">Automation</div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_accept" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_accept" class="set-row-label">Auto-accept queue pops</label>
+          </div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_pick" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_pick" class="set-row-label">Auto-pick and ban in champ select</label>
+          </div>
+          <div class="set-row">
+            <span class="sw"><input id="setup_discord" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
+            <label for="setup_discord" class="set-row-label">Discord ping when a queue pops</label>
+          </div>
+          <input id="setup_webhook" type="text" placeholder="Discord webhook URL (optional)"
+            class="hextech-input hidden w-full px-3 py-2 text-sm text-gold1 placeholder:text-subText outline-none" />
+          <p id="setup-webhook-hint" class="text-xs text-red-400 hidden"></p>
+        </div>
+      </div>
+      <div class="setup-foot">
+        <button id="setup-done" type="button" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
+      </div>
+    </div>
+  </div>
 
         <!-- Hero, live state: monitoring + pause on top; what the client is
              doing right now + connection beneath. -->
@@ -454,12 +328,68 @@
           <div id="plan" class="space-y-2"></div>
         </div>
       </section>
+      <section id="tab-champ" class="hidden">
+  <div id="loadout-modal" class="skin-modal hidden">
+    <div class="skin-backdrop" data-lo-close></div>
+    <div class="loadout-panel hextech framed">
+      <!-- Splash header -->
+      <div class="lo-hero">
+        <div id="lo-hero-bg" class="lo-hero-bg"></div>
+        <div class="lo-hero-grad"></div>
+        <button class="skin-close lo-hero-close" aria-label="Close" data-lo-close>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
+        </button>
+        <div class="lo-hero-content">
+          <img id="lo-icon" class="lo-icon" alt="" onerror="this.style.visibility='hidden'" />
+          <span><span id="lo-name" class="lo-name"></span><span id="lo-role" class="lo-role"></span></span>
+        </div>
+      </div>
 
-      <!-- CHAMP SELECT: the whole feature on one page — the plan editor AND its
-           settings. Role tabs always render; the five Rift tabs gate on
-           champ_select.enabled and the ARAM tab on aram.enabled via an inline
-           enable card (no dead-ends, no trips to Settings). -->
-      <section id="tab-champ" class="hidden h-full">
+      <div class="loadout-body">
+        <!-- Summoner spells: two icon slots + an inline picker -->
+        <div class="lo-section">
+          <div class="lo-label">Summoner Spells</div>
+          <div class="lo-spell-slots">
+            <button type="button" class="lo-spell-slot" id="lo-spell-slot0" data-slot="0"></button>
+            <span class="lo-spell-plus">+</span>
+            <button type="button" class="lo-spell-slot" id="lo-spell-slot1" data-slot="1"></button>
+          </div>
+          <div id="lo-spell-pop" class="lo-spell-pop hidden"></div>
+        </div>
+
+        <!-- Runes (gated by a toggle) -->
+        <div class="lo-section">
+          <div class="lo-section-head">
+            <span class="lo-label">Runes</span>
+            <label class="sw"><input id="lo-rune-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
+          </div>
+          <div id="lo-rune-body" class="lo-fold hidden">
+            <select id="lo-rune" class="hextech-input px-2 py-1.5 text-gold1 outline-none cursor-pointer w-full"></select>
+            <p id="lo-rune-hint" class="lo-hint"></p>
+          </div>
+        </div>
+
+        <!-- Skin (gated by a toggle) -->
+        <div class="lo-section">
+          <div class="lo-section-head">
+            <span class="lo-label">Skin</span>
+            <label class="sw"><input id="lo-skin-on" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></label>
+          </div>
+          <div id="lo-skin-body" class="lo-fold hidden">
+            <div class="lo-modes" id="lo-skin-modes">
+              <button type="button" class="lo-mode" data-mode="pick">Pick a skin</button>
+              <button type="button" class="lo-mode" data-mode="favorite">Random favorite</button>
+            </div>
+            <p id="lo-skin-hint" class="lo-hint"></p>
+            <div id="lo-skin-grid" class="lo-skin-grid hidden"></div>
+          </div>
+        </div>
+      </div>
+      <div class="loadout-foot">
+        <button id="lo-done" class="hextech px-6 py-2 text-sm text-gold2 hover:text-gold1 cursor-pointer">Done</button>
+      </div>
+    </div>
+  </div>
         <div class="hextech h-full flex flex-col overflow-hidden">
 
           <!-- Live banner: only while a champ select is actually running. -->
@@ -635,10 +565,6 @@
           </details>
         </div>
       </section>
-
-      <!-- ALERTS: how queuePop reaches you when the queue pops. Three cards:
-           Desktop, the Phone Companion workflow, Discord. Every change
-           auto-saves; explanatory copy lives in the "?" tooltips. -->
       <section id="tab-alerts" class="hidden pb-2">
         <div class="page-col">
 
@@ -682,6 +608,22 @@
                phone pairs) → QR + test. Port and sound collapse into a fold. -->
           <div class="hextech p-5 set-card">
             <div class="set-card-title">Phone Companion</div>
+  <div id="qr-modal" class="skin-modal hidden">
+    <div class="skin-backdrop" data-qr-close></div>
+    <div class="qr-panel hextech framed">
+      <div class="skin-head">
+        <h3>Open on your phone</h3>
+        <button class="skin-close" aria-label="Close" data-qr-close>
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
+        </button>
+      </div>
+      <div class="qr-body">
+        <img id="companion-qr" alt="Scan to open on your phone" class="qr-big" />
+        <p id="qr-url" class="text-sm text-gold2 break-all text-center"></p>
+        <p class="text-xs text-subText text-center" style="max-width:280px">Scan with your phone's camera, tap <span class="text-gold2">Enable Alerts</span>, and keep the tab open. Phone must be on the same Wi-Fi.</p>
+      </div>
+    </div>
+  </div>
             <div class="set-row">
               <span class="sw"><input id="companion_enabled" type="checkbox" /><span class="sw-track"><span class="sw-knob"></span></span></span>
               <label for="companion_enabled" class="set-row-label">Alarm my phone when the queue pops</label>
@@ -773,9 +715,6 @@
 
         </div>
       </section>
-
-      <!-- ABOUT: brand lockup, version + self-update, links. The update
-           controls are wired by js/features/update.js. -->
       <section id="tab-about" class="hidden pb-2">
         <div class="page-col">
           <div class="hextech p-5 set-card">
@@ -785,8 +724,8 @@
                 <svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="queuePop">
                   <defs>
                     <radialGradient id="qmGlowAbout" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stop-color="#0AC8B9" stop-opacity="0.5" />
-                      <stop offset="100%" stop-color="#0AC8B9" stop-opacity="0" />
+                      <stop offset="0%" stop-color="#79C9CF" stop-opacity="0.5" />
+                      <stop offset="100%" stop-color="#79C9CF" stop-opacity="0" />
                     </radialGradient>
                   </defs>
                   <circle cx="56" cy="54" r="26" fill="url(#qmGlowAbout)" />
@@ -794,7 +733,7 @@
                            fill="none" stroke="#C8AA6E" stroke-width="8" stroke-linejoin="miter" />
                   <polygon points="80,54 72.97,70.97 56,78 39.03,70.97 32,54 39.03,37.03 56,30 72.97,37.03"
                            fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65" />
-                  <circle cx="56" cy="54" r="6.5" fill="#0AC8B9" />
+                  <circle cx="56" cy="54" r="6.5" fill="#79C9CF" />
                   <polygon points="74,71 78,99 105,85" fill="#C8AA6E" />
                 </svg>
               </span>
@@ -864,9 +803,12 @@
           </div>
         </div>
       </section>
-
-    </main>
   </div>
+
+  <div id="deadlock-view" hidden></div>
+  <div id="tft-view" hidden></div>
+  <footer class="qp-footer"><span>QueuePop <i>✦</i> A little more ready.</span><span>Live where the client connects · TFT and Deadlock are previews</span></footer>
+  <div id="notice" role="status" class="notice" hidden></div>
 
   <!-- UI modules: classic scripts sharing one global scope. Load order matters
        (core → ui/data → features → pages → boot); boot.js asserts the manifest.
@@ -892,5 +834,12 @@
   <script src="js/pages/notifications.js"></script>
   <script src="js/pages/setup.js"></script>
   <script src="js/boot.js"></script>
+  <script src="shell.js"></script>
+  <script src="deadlock-view.js"></script>
+  <script src="playbooks.js"></script>
+  <script src="league-world.js"></script>
+  <script src="league-interiors.js"></script>
+  <script src="tft-view.js"></script>
+  <script src="worlds.js"></script>
 </body>
 </html>

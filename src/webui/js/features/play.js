@@ -83,7 +83,8 @@ $("play-btn").addEventListener("click", async () => {
     closeQueueMenu();
     showLiveView();
   } else if (mode === "queue") {
-    toggleQueueMenu();
+    // The queue list is its own page in the League world (no popup menus).
+    location.hash = "/league/play";
   }
 });
 

@@ -8,8 +8,17 @@
   desktop alerts; `src/companion.py` LAN companion server (phone); `src/config.py`
   config + Rich console; `src/events.py` event constants; `src/updater.py`
   auto-update (installed vs portable); `src/_version.py` version string.
-- `src/webui/` — the web UI (HTML/CSS/JS) rendered by pywebview. Downloaded
-  League assets land under `src/webui/assets/` (gitignored; see scripts below).
+- `src/webui/` — the web UI (HTML/CSS/JS). `index.html` is the three-worlds shell
+  ported from `prototypes/queuepop/` (the design spec): `shell.*` masthead, `worlds.js`
+  (the mockup's `app.js`: hash router, home, companion) + `worlds.css` (its `styles.css`),
+  `league-*.css/js` and `playbooks.*` for the League world, `tft-view.*` + `tft-field-guide/`
+  and `deadlock-view.js` + `deadlock/assets/` for the static TFT/Deadlock arrival pages.
+  The working League pages (`js/pages/*`, hextech markup) live in `#host-pages` and mount
+  on `#/league/{play,champ,live,dashboard,account,settings}` and `#/companion`; the glue
+  (routes, real summoner/mastery/latest match) is the "Host bridge" block at the end of
+  `worlds.js`, layout/token overrides in `host.css`. No modals or popup menus: the loadout,
+  set-up and QR panels open inline. Mockup artwork sits flat in `src/webui/assets/`;
+  downloaded League assets land in its subfolders (gitignored; see scripts below).
 - `assets/queuepop.ico` — app icon, bundled into the exe by `scripts/queuePop.spec`
   and referenced at runtime via the `resource_path("assets/queuepop.ico")` pattern.
 - `brand/` — brand kit master (marks, lockups, fonts, `play-button.svg`,

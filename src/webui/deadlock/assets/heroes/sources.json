@@ -1,0 +1,26 @@
+[
+  {
+    "hero": "Infernus",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card.webp"
+  },
+  {
+    "hero": "Seven",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card.webp"
+  },
+  {
+    "hero": "Dynamo",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/sumo_card.webp"
+  },
+  {
+    "hero": "Haze",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/haze_card.webp"
+  },
+  {
+    "hero": "Ivy",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/tengu_card.webp"
+  },
+  {
+    "hero": "Warden",
+    "source": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/warden_card.webp"
+  }
+]
