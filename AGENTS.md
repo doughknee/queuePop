@@ -69,6 +69,13 @@
 - Update `scripts/queuePop.spec` (and `installer/queuePop.iss` if needed) when
   adding new bundled assets so PyInstaller and the installer pick them up.
 
+## Electron host
+- `app/` is the Electron port in progress (plain `electron`, CommonJS, no bundler). It loads
+  `src/webui/index.html` unchanged and emulates `window.pywebview.api` over IPC.
+- Run: `cd app && npm install && npm start`. Check: `npm test` (lockfile parser).
+- Ported so far: LCU connection and ready-check auto-accept (`app/lcu.js`, `app/main.js`).
+  Every other bridge method is a stub in `app/methods.js`; it logs `stub: <name>` once.
+
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
   not only the one you added. A worker merged a change that broke a sibling test once (2026-10-01).
