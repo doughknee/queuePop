@@ -106,7 +106,7 @@ ipcMain.handle("api", async (_e, name, args) => {
 
 app.whenReady().then(() => {
   win = new BrowserWindow({
-    width: 1100, height: 820, minWidth: 620, minHeight: 700, frame: false, backgroundColor: "#010a13",
+    width: 1280, height: 860, minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#010a13",
     webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.

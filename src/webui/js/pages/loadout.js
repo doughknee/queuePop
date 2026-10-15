@@ -32,6 +32,7 @@ async function openLoadout(role, champId) {
   $("lo-spell-pop").classList.add("hidden");
   buildLoadoutSkin(lo);
   $("loadout-modal").classList.remove("hidden");
+  $("loadout-modal").scrollIntoView({ block: "nearest" }); // opens inline at the top of the page
   await buildLoadoutRunes(lo); // async (live client), fine to populate after show
 }
 

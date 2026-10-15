@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+
+<polygon points="96.00,54.00 84.28,82.28 56.00,94.00 27.72,82.28 16.00,54.00 27.72,25.72 56.00,14.00 84.28,25.72" fill="none" stroke="#F0E6D2" stroke-width="8" stroke-linejoin="miter"/>
+<polygon points="80.00,54.00 72.97,70.97 56.00,78.00 39.03,70.97 32.00,54.00 39.03,37.03 56.00,30.00 72.97,37.03" fill="none" stroke="#785A28" stroke-width="1.6" stroke-linejoin="miter" opacity="0.65"/>
+<circle cx="56" cy="54" r="6.5" fill="#F0E6D2"/>
+<polygon points="74.00,71.00 78.00,99.00 105.00,85.00" fill="#F0E6D2" stroke="none" stroke-width="1"/>
+
+</svg>
