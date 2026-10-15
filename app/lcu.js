@@ -32,7 +32,7 @@ class LCU extends EventEmitter {
     this.dir = DEFAULT_DIR;
   }
 
-  get connected() { return !!this.creds; }
+  get connected() { return !!(this.ws && this.ws.opened); }
 
   start() { this._poll(); }
 
@@ -60,6 +60,7 @@ class LCU extends EventEmitter {
       { headers: { Authorization: this._auth() }, rejectUnauthorized: false });
     this.ws = ws;
     ws.on("open", () => {
+      ws.opened = true;
       ws.send(JSON.stringify([5, "OnJsonApiEvent"]));
       this.emit("connect");
     });
@@ -70,10 +71,9 @@ class LCU extends EventEmitter {
     });
     ws.on("error", () => {}); // 'close' follows and handles reconnect
     ws.on("close", () => {
-      const was = this.ws === ws;
       this.ws = null;
       this.creds = null;
-      if (was) this.emit("disconnect");
+      if (ws.opened) this.emit("disconnect"); // a socket that never opened (client still booting) was never connected
       setTimeout(() => this._poll(), 3000);
     });
   }
