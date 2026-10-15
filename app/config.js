@@ -35,26 +35,22 @@ function dump(cfg) {
 // Python's text-mode write on Windows turns every \n into \r\n.
 const write = (cfg) => fs.writeFileSync(CONFIG_FILE, dump(cfg).replace(/\n/g, "\r\n"));
 
-let cache = null;
-
-// Like load_or_create_config: a missing or corrupt file is replaced with defaults.
-function load() {
+// Like load_or_create_config: a missing or corrupt file is replaced with defaults. Read fresh every call
+// (a ~7KB file) because host.js and the Python app write it too; a cache would overwrite their keys on save.
+function get() {
   try {
-    cache = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
+    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
   } catch {
-    cache = defaultConfig();
-    try { write(cache); } catch {}
+    const cfg = defaultConfig();
+    try { write(cfg); } catch {}
+    return cfg;
   }
-  return cache;
 }
-
-function get() { return cache || load(); }
 
 // Throws on write failure so the caller can report it (save_config returns {ok: false, error}).
 function save(cfg) {
   write(cfg);
-  cache = cfg;
   return cfg;
 }
 
-module.exports = { CONFIG_FILE, defaultConfig, dump, load, get, save };
+module.exports = { CONFIG_FILE, defaultConfig, dump, get, save };
