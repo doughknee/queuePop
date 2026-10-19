@@ -213,7 +213,7 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
     ...champ.inserts(M, K),
   ].map((q) => db.prepare(q));
-  champ.ingestObjectives(db);
+  champ.ingestRaw(db);
   tx(db, () => {
     for (const patch of dirty) {
       for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);

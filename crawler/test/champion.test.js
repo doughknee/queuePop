@@ -50,7 +50,7 @@ function build() {
   const games = [["A", 100, [86, 64, 103, 222, 412], [122, 11, 1, 22, 25]], ["B", 200, [86, 64, 103, 222, 53], [266, 11, 1, 145, 412]]];
   for (const [id, winner, blue, red] of games) {
     const fb = id === "A" ? 100 : 200;
-    const info = { teams: [100, 200].map((t) => ({ teamId: t, objectives: { champion: { first: t === fb, kills: 5 }, dragon: { first: false, kills: 0 } } })) };
+    const info = { participants: [{ puuid: `${id}103`, perks: { statPerks: { offense: 5008, flex: 5008, defense: id === "A" ? 5011 : 5001 } } }], teams: [100, 200].map((t) => ({ teamId: t, objectives: { champion: { first: t === fb, kills: 5 }, dragon: { first: false, kills: 0 } } })) };
     match.run(id, zlib.gzipSync(JSON.stringify({ info })));
     for (const [team, champs] of [[100, blue], [200, red]]) champs.forEach((c, i) => lol.run(id, `${id}${c}`, team, c, roles[i], team === winner ? 1 : 0, c === 103 ? "[3078,3020,6672,3089]" : "[]"));
     // Ahri's timeline: Doran's + 2 pots, Tear early, build 3020 -> 3078 -> 6672 (3089 in A only)
@@ -63,7 +63,7 @@ function build() {
   return db;
 }
 
-test("champion depth: objectives, sides, synergies, starting, build order, skills", () => {
+test("champion depth: objectives, sides, synergies, stat mods, starting, build order, skills", () => {
   const c = lolChampion(build(), 103, { min_games: 2 });
   const fb = c.objectives.find((o) => o.objective === "first_blood");
   assert.deepStrictEqual(fb, { objective: "first_blood", games: 2, secured: 1, securedRate: 0.5, securedWinRate: 1, yielded: 1, yieldedRate: 0.5, yieldedWinRate: 0, lowSample: false });
@@ -83,5 +83,6 @@ test("champion depth: objectives, sides, synergies, starting, build order, skill
   assert.deepStrictEqual(c.buildOrder.slots[4], []);
   assert.deepStrictEqual(c.skills[6], [{ key: "QEWQQR", games: 2, winRate: 0.5, pickRate: 1, lowSample: false }]);
   assert.strictEqual(c.skills[15][0].key, "QEWQQRQQEEREEWW");
+  assert.deepStrictEqual(c.shards.map((x) => [x.key, x.games, x.winRate, x.pickRate]).sort(), [["5008,5008,5001", 1, 0, 0.5], ["5008,5008,5011", 1, 1, 0.5]]);
   assert.deepStrictEqual(c.matchups.map((m) => [m.opponent, m.delta1]), [[1, 0]]);
 });

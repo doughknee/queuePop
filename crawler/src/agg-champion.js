@@ -1,6 +1,6 @@
 // Champion page depth (DONI-507): timeline purchases and skills, objectives, synergies, counter deltas.
-// Normalised rows: lol_timeline (sampled matches, written on fetch) and lol_objectives (from raw match JSON, ingested
-// at the start of every aggregation pass, so matches still holding raw backfill themselves). Stats tables hold counts.
+// Normalised rows: lol_timeline (sampled matches, written on fetch); lol_objectives and lol_shards (stat mods) from raw
+// match JSON, ingested at the start of every aggregation pass, so matches still holding raw backfill themselves. Stats tables hold counts.
 const zlib = require("zlib");
 const { tx } = require("./db");
 const { parseTimeline } = require("./timeline");
@@ -10,13 +10,15 @@ CREATE TABLE IF NOT EXISTS lol_timeline (match_id TEXT, puuid TEXT, start TEXT, 
 CREATE INDEX IF NOT EXISTS lol_timeline_match ON lol_timeline (match_id);
 CREATE TABLE IF NOT EXISTS lol_objectives (match_id TEXT, team INT, objective TEXT, state INT);
 CREATE INDEX IF NOT EXISTS lol_objectives_match ON lol_objectives (match_id);
+CREATE TABLE IF NOT EXISTS lol_shards (match_id TEXT, puuid TEXT, shards TEXT);
 CREATE TABLE IF NOT EXISTS stats_lol_starting (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, kind TEXT, key TEXT, games INT, wins INT);
 CREATE TABLE IF NOT EXISTS stats_lol_build_order (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, slot INT, key TEXT, games INT, wins INT, secs INT);
 CREATE TABLE IF NOT EXISTS stats_lol_skills (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, levels INT, key TEXT, games INT, wins INT);
 CREATE TABLE IF NOT EXISTS stats_lol_objectives (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, objective TEXT, secured INT, secured_wins INT, yielded INT, yielded_wins INT);
+CREATE TABLE IF NOT EXISTS stats_lol_shards (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, key TEXT, games INT, wins INT);
 CREATE TABLE IF NOT EXISTS stats_lol_synergy (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, ally INT, ally_role TEXT, games INT, wins INT);
 `;
-const TABLES = ["lol_starting", "lol_build_order", "lol_skills", "lol_objectives", "lol_synergy"];
+const TABLES = ["lol_starting", "lol_build_order", "lol_skills", "lol_objectives", "lol_shards", "lol_synergy"];
 const SKILL_LEVELS = [6, 10, 15];
 
 function storeTimeline(db, id, tl) {
@@ -47,11 +49,20 @@ function objectiveRows(info) {
   return rows;
 }
 
-function ingestObjectives(db) {
+// Stat mods "offense,flex,defense" ids, e.g. "5008,5008,5011".
+const shardsOf = (p) => { const s = p.perks?.statPerks; return s ? [s.offense, s.flex, s.defense].join(",") : null; };
+
+function ingestRaw(db) {
   const todo = db.prepare(`SELECT id, raw FROM matches m WHERE game = 'lol' AND status = 'done' AND raw IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM lol_objectives o WHERE o.match_id = m.id)`).all();
-  const ins = db.prepare("INSERT INTO lol_objectives VALUES (?, ?, ?, ?)");
-  tx(db, () => { for (const r of todo) for (const x of objectiveRows(JSON.parse(zlib.gunzipSync(r.raw)).info)) ins.run(r.id, ...x); });
+  const ins = db.prepare("INSERT INTO lol_objectives VALUES (?, ?, ?, ?)"), sh = db.prepare("INSERT INTO lol_shards VALUES (?, ?, ?)");
+  tx(db, () => {
+    for (const r of todo) {
+      const info = JSON.parse(zlib.gunzipSync(r.raw)).info;
+      for (const x of objectiveRows(info)) ins.run(r.id, ...x);
+      for (const p of info.participants || []) if (shardsOf(p)) sh.run(r.id, p.puuid, shardsOf(p));
+    }
+  });
   return todo.length;
 }
 
@@ -72,6 +83,8 @@ function inserts(M, K) {
     // side as a pseudo-objective: secured = blue games, yielded = red games
     `INSERT INTO stats_lol_objectives SELECT ${K}, p.role, p.champion, 'side', sum(p.team = 100), sum(p.team = 100 AND p.win), sum(p.team = 200), sum(p.team = 200 AND p.win)
       FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5`,
+    `INSERT INTO stats_lol_shards SELECT ${K}, p.role, p.champion, x.shards, count(*), sum(p.win) FROM lol_participants p
+      JOIN lol_shards x ON x.match_id = p.match_id AND x.puuid = p.puuid ${M} GROUP BY 1, 2, 3, 4, 5, 6`,
     `INSERT INTO stats_lol_synergy SELECT ${K}, p.role, p.champion, x.champion, x.role, count(*), sum(p.win) FROM lol_participants p
       JOIN lol_participants x ON x.match_id = p.match_id AND x.team = p.team AND x.puuid <> p.puuid ${M} WHERE p.role <> '' GROUP BY 1, 2, 3, 4, 5, 6, 7`,
   ];
@@ -106,6 +119,8 @@ function depth(db, w, a, { champion, role, s, minGames, matchups }) {
 
   const ob = db.prepare(`SELECT objective, sum(secured) secured, sum(secured_wins) sw, sum(yielded) yielded, sum(yielded_wins) yw FROM stats_lol_objectives
     WHERE ${w} AND champion = ? AND role = ? GROUP BY objective`).all(...a, champion, role);
+  const sh = q("stats_lol_shards", "key"), shardGames = sh.reduce((x, r) => x + r.games, 0);
+  const shards = sh.slice(0, 6).map((r) => ({ key: r.key, ...rate(r, shardGames) }));
   const side = ob.find((r) => r.objective === "side");
   const sides = side ? { blue: { games: side.secured, winRate: side.secured ? r4(side.sw / side.secured) : 0 }, red: { games: side.yielded, winRate: side.yielded ? r4(side.yw / side.yielded) : 0 } } : null;
   const objectives = ob.filter((r) => r.objective !== "side").map((r) => ({
@@ -127,7 +142,7 @@ function depth(db, w, a, { champion, role, s, minGames, matchups }) {
     return { ally: r.ally, role: r.ally_role, ...rate(r, s.games), delta1: r4(wr - own), delta2: al == null ? null : r4(wr - (own + al - 0.5)) };
   });
 
-  return { timelineGames, starting, early, buildOrder, skills, objectives, sides, synergies };
+  return { timelineGames, starting, early, buildOrder, skills, shards, objectives, sides, synergies };
 }
 
-module.exports = { SCHEMA, TABLES, storeTimeline, objectiveRows, ingestObjectives, inserts, depth };
+module.exports = { SCHEMA, TABLES, storeTimeline, objectiveRows, ingestRaw, inserts, depth };

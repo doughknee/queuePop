@@ -84,6 +84,7 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
     `first_blood first_tower first_dragon grubs herald baron first_inhibitor atakhan soul`: secured = your team took it first,
     yielded = the enemy did (neither when nobody did); rates out of the strip's games; win rates null when 0 games. Soul = 4+ dragons.
   - `sides: { blue: { games, winRate }, red }`.
+  - `shards: [{ key, ... }]` stat mods `"offense,flex,defense"` ids (`"5008,5008,5011"`), read from raw match JSON like objectives.
   - `synergies: [{ ally, role, games, winRate, pickRate, delta1, delta2, lowSample }]`, top 60 same-team champion+role by games.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
@@ -101,8 +102,8 @@ simple; MetaTFT-style clustering is a later issue.
 **Timeline sample:** starting/early items, build order and skill orders come only from the `TIMELINE_SAMPLE` share of
 matches (10% now, so roughly one in ten of a champion's games; Home raises it with the production key). Timelines are
 not stored raw, so these fill forward from deploy: there is nothing to backfill and no `backfill-timeline` script.
-**Objectives** are read from raw match JSON at the start of each aggregation pass for every League match that has raw and
-no `lol_objectives` rows yet, so after deploy they backfill themselves for matches inside `RAW_RETENTION_DAYS`
+**Objectives and stat mods** are read from raw match JSON at the start of each aggregation pass for every League match that has raw and
+no `lol_objectives` rows yet (`lol_shards` with them), so after deploy they backfill themselves for matches inside `RAW_RETENTION_DAYS`
 (run `npm run aggregate` once to recompute every patch). Raw match JSON is kept gzipped in `matches.raw`, so new stats
 can be recomputed without refetching.
 

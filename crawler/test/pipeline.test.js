@@ -44,7 +44,7 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const [, page] = await get(`/lol/champion/${champ.champion}?role=${champ.role}`);
     assert.strictEqual(page.strip.games, champ.games);
     assert.ok(page.builds.item.length && page.builds.keystone.length && page.builds.spells.length && page.builds.skills.length);
-    assert.ok(page.starting.length && page.buildOrder.slots[0].length && page.skills[15].length && page.objectives.length && page.synergies.length, "DONI-507 depth from timelines + raw");
+    assert.ok(page.starting.length && page.buildOrder.slots[0].length && page.skills[15].length && page.objectives.length && page.synergies.length && page.shards.length, "DONI-507 depth from timelines + raw");
     assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_participants WHERE skills IS NULL").get().n, 0, "every sampled match got skill orders");
     assert.ok(tiers.champions.every((c) => c.games > 0 && c.lowSample === true), "rows kept and flagged under min_games 200");
 
