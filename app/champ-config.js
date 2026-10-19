@@ -194,6 +194,9 @@ function normalizeConfig(data) {
     last_queue_id: coerceQueueId(data.last_queue_id),
     show_last_queue: T(getd(data, "show_last_queue", true)),
     start_minimized: T(getd(data, "start_minimized", false)),
+    // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
+    deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
+    crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),
     companion: normalizeCompanion(data.companion),
     champ_select: normalizeChampSelect(data.champ_select),

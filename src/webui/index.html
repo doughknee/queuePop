@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="tft-view.css" />
   <link rel="stylesheet" href="deadlock-fonts.css" />
   <link rel="stylesheet" href="host.css" />
+  <link rel="stylesheet" href="settings.css" />
 </head>
 <body class="theme-home">
   <div id="flash"></div>
@@ -77,7 +78,7 @@
       <div class="sb-group" data-game="home"><a class="sb-item" href="#/" title="Home"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></a></div>
       <div class="sb-group" data-game="league">
         <a class="sb-item" href="#/league" title="League of Legends"><img src="assets/logos/league.svg" alt=""><span>League of Legends</span></a>
-        <div class="sb-pages"><a href="#/league">The Rift</a><a href="#/league/champions">Champions</a><a href="#/league/champ">Champ select</a><a href="#/league/dashboard">Dashboard</a><a href="#/league/settings">Settings</a></div>
+        <div class="sb-pages"><a href="#/league">The Rift</a><a href="#/league/champions">Champions</a><a href="#/league/champ">Champ select</a><a href="#/league/dashboard">Dashboard</a></div>
       </div>
       <div class="sb-group" data-game="tft">
         <a class="sb-item" href="#/tft" title="Teamfight Tactics"><img src="assets/logos/tft.png" alt=""><span>Teamfight Tactics</span></a>
@@ -104,7 +105,7 @@
             </span>
           </span>
         </button>
-      <a class="sb-gear" href="#/league/settings" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      <a class="sb-gear" href="#/settings" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
     </div>
     <span id="header-status" hidden></span>
     <div class="sb-resize" aria-hidden="true"></div>
@@ -156,6 +157,7 @@
   <button id="tft-play" class="tft-play" data-keep hidden><span class="tp-ico">&#9654;</span><span class="tp-label">Play</span></button>
   </nav>
   <main id="main" tabindex="-1"></main>
+  <div id="settings-view" hidden></div>
 
   <!-- The working League pages (routes #/league/<page> and #/companion). -->
   <div id="host-pages" class="host-pages" hidden>
@@ -869,6 +871,7 @@
   <script src="league-world.js"></script>
   <script src="league-interiors.js"></script>
   <script src="tft-view.js"></script>
+  <script src="settings.js"></script>
   <script src="worlds.js"></script>
 </body>
 </html>
