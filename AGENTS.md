@@ -147,6 +147,11 @@
   for 10 minutes. `window.leagueTierRows` is the tier banding, tested by `app/test-league.js`: win rate shrunk toward the
   list average by 100 games, score = 0.75 × win-rate percentile + 0.25 × pick-rate percentile, top 10% S, 20% A, 40% B,
   20% C, 10% D. lowSample rows are banded, greyed, and sorted below the rest in tier order.
+- Tier list (DONI-506): Lolalytics' columns rank · tier (S+ … D-) · champion · lane % · win · Δ · pick · ban · PBI · games ·
+  best on champion (win, games, avg rank; players with 20+ games, crawler `best`); lane tabs, min lane % / min pick % (client
+  filters, hide rows), min games (crawler `min_games`: greys and un-tiers rows), patch/region (from `/lol/tiers` `regions`)/rank.
+  Rule in `leagueTierRows` (stats-api.js) and crawler/README.md. Styles at the end of `league-world.css` (`.lg-table.lg-tiers2`,
+  a container query keeps it unscrolled down to ~790 px). Crawler side: `crawler/src/agg-players.js`.
 - Items come from final inventories (no purchase order): no starting-items block; "Items 4·5·6" = finished items past the
   three most built, by pick rate.
 
