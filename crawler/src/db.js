@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS stats_tft_part (patch TEXT, region TEXT, bracket TEXT
 function open(file) {
   if (file !== ":memory:") fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   const db = new DatabaseSync(file);
-  db.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
+  // auto_vacuum only takes effect on a new file (or after `npm run vacuum`); it must precede the first table.
+  db.exec("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   db.exec(SCHEMA);
   return db;
 }

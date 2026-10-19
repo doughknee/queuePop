@@ -145,31 +145,53 @@ function store(ctx, game, id, m) {
   return ok;
 }
 
-// Rebuilds every stats_* table from the normalised rows.
-// ponytail: full recompute each run; restrict to the last few patches if it gets slow.
-function aggregate(db, now = Date.now) {
-  const M = "JOIN matches m ON m.id = p.match_id";
+// Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass
+// (every patch with force, or when nothing was aggregated yet). A patch's rows are deleted and recomputed whole.
+function aggregate(db, now = Date.now, force = false) {
+  const last = getMeta(db, "aggregatedAt");
+  const all = force || last == null;
+  const dirty = db.prepare(all ? "SELECT DISTINCT patch FROM matches WHERE status = 'done'"
+    : "SELECT DISTINCT patch FROM matches WHERE status = 'done' AND coalesce(fetched_at, 0) > ?").all(...(all ? [] : [last])).map((r) => r.patch);
+  const M = "JOIN matches m ON m.id = p.match_id AND m.patch = ?";
   const K = "m.patch, m.region, m.bracket";
+  const inserts = [
+    `INSERT INTO stats_lol_matches SELECT patch, region, bracket, count(*) FROM matches WHERE game = 'lol' AND status = 'done' AND patch = ? GROUP BY 1, 2, 3`,
+    `INSERT INTO stats_lol_champ SELECT ${K}, p.role, p.champion, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5`,
+    `INSERT INTO stats_lol_bans SELECT ${K}, p.champion, count(DISTINCT p.match_id) FROM lol_bans p ${M} GROUP BY 1, 2, 3, 4`,
+    `INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'item', j.value, count(*), sum(p.win) FROM lol_participants p ${M}, json_each(p.items) j GROUP BY 1, 2, 3, 4, 5, 7`,
+    `INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'rune', j.value, count(*), sum(p.win) FROM lol_participants p ${M}, json_each(p.runes) j GROUP BY 1, 2, 3, 4, 5, 7`,
+    `INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'keystone', p.keystone, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7`,
+    `INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'spells', p.spells, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7`,
+    `INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'skills', p.skills, count(*), sum(p.win) FROM lol_participants p ${M} WHERE p.skills IS NOT NULL GROUP BY 1, 2, 3, 4, 5, 7`,
+    `INSERT INTO stats_lol_matchup SELECT ${K}, p.role, p.champion, o.champion, count(*), sum(p.win) FROM lol_participants p
+      JOIN lol_participants o ON o.match_id = p.match_id AND o.role = p.role AND o.team <> p.team ${M} WHERE p.role <> '' GROUP BY 1, 2, 3, 4, 5, 6`,
+    `INSERT INTO stats_tft_boards SELECT ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3`,
+    `INSERT INTO stats_tft_comp SELECT ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4`,
+    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6`,
+    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
+  ].map((q) => db.prepare(q));
   tx(db, () => {
-    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part"]) db.exec(`DELETE FROM stats_${t}`);
-    db.exec(`
-      INSERT INTO stats_lol_matches SELECT patch, region, bracket, count(*) FROM matches WHERE game = 'lol' AND status = 'done' GROUP BY 1, 2, 3;
-      INSERT INTO stats_lol_champ SELECT ${K}, p.role, p.champion, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5;
-      INSERT INTO stats_lol_bans SELECT ${K}, p.champion, count(DISTINCT p.match_id) FROM lol_bans p ${M} GROUP BY 1, 2, 3, 4;
-      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'item', j.value, count(*), sum(p.win) FROM lol_participants p ${M}, json_each(p.items) j GROUP BY 1, 2, 3, 4, 5, 7;
-      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'rune', j.value, count(*), sum(p.win) FROM lol_participants p ${M}, json_each(p.runes) j GROUP BY 1, 2, 3, 4, 5, 7;
-      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'keystone', p.keystone, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7;
-      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'spells', p.spells, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7;
-      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'skills', p.skills, count(*), sum(p.win) FROM lol_participants p ${M} WHERE p.skills IS NOT NULL GROUP BY 1, 2, 3, 4, 5, 7;
-      INSERT INTO stats_lol_matchup SELECT ${K}, p.role, p.champion, o.champion, count(*), sum(p.win) FROM lol_participants p
-        JOIN lol_participants o ON o.match_id = p.match_id AND o.role = p.role AND o.team <> p.team ${M} WHERE p.role <> '' GROUP BY 1, 2, 3, 4, 5, 6;
-      INSERT INTO stats_tft_boards SELECT ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3;
-      INSERT INTO stats_tft_comp SELECT ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4;
-      INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6;
-      INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6;
-    `);
+    for (const patch of dirty) {
+      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part"]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      for (const q of inserts) q.run(patch);
+    }
     setMeta(db, "aggregatedAt", now());
   });
+  return dirty.length;
 }
 
-module.exports = { TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, compOf, patchOf, skillOrder };
+// Nulls matches.raw for matches older than `days` that an aggregation pass has already counted
+// (fetched_at <= aggregatedAt). Normalised rows are never touched. Returns how many were nulled.
+// ponytail: one UPDATE + a full incremental_vacuum, both block the loop; batch them if they ever take long.
+function retain(db, days, now = Date.now) {
+  const done = getMeta(db, "aggregatedAt");
+  if (done == null) return 0;
+  const n = db.prepare("UPDATE matches SET raw = NULL WHERE raw IS NOT NULL AND started_at < ? AND fetched_at <= ?").run(now() - days * DAY, done).changes;
+  if (n) db.exec("PRAGMA incremental_vacuum");
+  return Number(n);
+}
+
+// When the next periodic aggregation is due (now if overdue or never run).
+const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
+
+module.exports = { TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

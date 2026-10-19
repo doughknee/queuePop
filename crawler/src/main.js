@@ -1,6 +1,7 @@
 // Entry point: serve the API and, when RIOT_API_KEY is set, crawl every region forever.
 //   node src/main.js             crawl + serve
-//   node src/main.js aggregate   rebuild stats_* now and exit
+//   node src/main.js aggregate   rebuild all stats_* now and exit
+//   node src/main.js vacuum      one-time VACUUM that enables auto_vacuum on an old DB, then exit
 const db_ = require("./db");
 const jobs = require("./jobs");
 const { Limiter } = require("./limiter");
@@ -17,7 +18,8 @@ const cfg = {
   dbPath: env.DB_PATH || "data/crawler.db",
   port: Number(env.PORT) || 47900,
   queues: (env.QUEUES || "420,440,1100").split(",").map(Number),
-  aggregateHour: Number(env.AGGREGATE_HOUR ?? 4),
+  aggregateEveryMin: Number(env.AGGREGATE_EVERY_MIN ?? 60),
+  retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
   adminToken: env.ADMIN_TOKEN || "",
 };
@@ -38,7 +40,7 @@ const limiter = new Limiter();
 const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
-createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateHour: cfg.aggregateHour }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
+createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
 // Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops.
 async function forever(name, step, idle) {
@@ -67,13 +69,17 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
   }
 }
 
-// Nightly aggregation at AGGREGATE_HOUR local time (set TZ in the container).
-(function nightly() {
-  const next = new Date();
-  next.setHours(cfg.aggregateHour, 0, 0, 0);
-  if (next <= new Date()) next.setDate(next.getDate() + 1);
+// Aggregate on start if due, then every AGGREGATE_EVERY_MIN; unchanged patches are skipped.
+(function periodic() {
   setTimeout(() => {
-    try { const t = Date.now(); jobs.aggregate(db); log(`aggregated in ${Date.now() - t} ms`); } catch (e) { log(`aggregate: ${e.message}`); }
-    nightly();
-  }, next - new Date());
+    try { const t = Date.now(); const n = jobs.aggregate(db); log(`aggregated ${n} patches in ${Date.now() - t} ms`); } catch (e) { log(`aggregate: ${e.message}`); }
+    periodic();
+  }, jobs.nextAggregation(db, cfg.aggregateEveryMin) - Date.now());
 })();
+
+// Raw JSON retention: a minute after start (so a pass has happened), then daily.
+function retain() {
+  try { log(`retention: nulled raw on ${jobs.retain(db, cfg.retentionDays)} matches`); } catch (e) { log(`retention: ${e.message}`); }
+}
+setTimeout(retain, 60000).unref();
+setInterval(retain, 86400000).unref();

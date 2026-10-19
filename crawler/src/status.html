@@ -18,6 +18,7 @@ button{background:#c8a85a;color:#14161a;border:0;font-weight:700}#msg.err{color:
 const $ = (id) => document.getElementById(id);
 const ago = (t) => { if (!t) return "never"; const s = Math.round((Date.now() - t) / 1000); return s < 90 ? s + " s ago" : s < 5400 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago"; };
 const sum = (o, k) => Object.values(o).reduce((n, g) => n + (g[k] || 0), 0);
+const mb = (b) => b == null ? "—" : (b / 1048576).toFixed(1) + " MB";
 const when = (t) => t ? new Date(t).toLocaleString() : "—";
 async function load() {
   try {
@@ -26,8 +27,8 @@ async function load() {
       `<div>${b} <small>${l.used}/${l.limit} per ${l.windowSec}s${v.blockedSec ? " · blocked " + v.blockedSec + "s" : ""}</small><div class="bar"><i style="width:${Math.min(100, 100 * l.used / l.limit)}%"></i></div></div>`));
     $("s").innerHTML = `<div>Players: ${Object.values(s.players).reduce((a, b) => a + b, 0)}</div>
 <div>Matches: ${sum(s.matches, "done")} done · ${sum(s.matches, "new")} new · ${sum(s.matches, "skip")} skip</div>
-<div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)}</div>
-<div>DB: ${s.dbBytes == null ? "—" : (s.dbBytes / 1048576).toFixed(1) + " MB"}</div>
+<div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)} (every ${s.aggregateEveryMin} min)</div>
+<div>DB: ${mb(s.disk.dbBytes)} + WAL ${mb(s.disk.walBytes)} · raw JSON ${mb(s.disk.rawBytes)} in ${s.disk.rawMatches} matches (kept ${s.retentionDays} d)</div>
 <div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""}</div><h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
   } catch (e) { $("s").textContent = "status failed: " + e.message; }
 }

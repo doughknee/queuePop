@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node src/main.js",
     "aggregate": "node src/main.js aggregate",
+    "vacuum": "node src/main.js vacuum",
     "mock": "node src/mock.js",
     "test": "node --test"
   }
