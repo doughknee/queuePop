@@ -94,7 +94,8 @@
   `deadlock_overlay_exe` (default empty) enables its "Launch overlay" button. The host never contains game
   hooks, and the overlay app never contains League code.
 - Deadlock landing ("The city", DONI-482) is stats-first: player card, hero tier list (rank/patch/window filters,
-  rows expand to top items + worst matchups), links; nav-row search for heroes, items, players. Styles in
+  rows expand to top items + worst matchups), links; search (heroes, items, players) at the top of the content area,
+  not the nav row. `window.DEADLOCK_PAGES` ([{hash, label}]) is the page list for the shell sidebar. Styles in
   `src/webui/deadlock/city.css` (linked into the shadow root). Account id: config key `deadlock_account_id` via bridge
   `get_deadlock_account` / `set_deadlock_account` (`app/deadlock-api.js`), localStorage fallback. All calls go from the
   renderer to `https://api.deadlock-api.com/v1`: `/analytics/hero-stats` (tier list; `min/max_average_badge` = rank
