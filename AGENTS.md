@@ -138,6 +138,18 @@
   `crawler/README.md`. Check: `cd crawler && npm test` (runs on fixtures via the mock Riot server). Runs as a container
   on Unraid; never a second key. It never imports `app/` or `src/`.
 
+## League stats (DONI-483)
+- The League world leads with crawler stats: `src/webui/league-stats.{js,css}` renders `#/league` (The Rift: search, your
+  card, tier list, links), `#/league/tiers`, `#/league/champion/{id}[/{role}]` (strip, role tabs, build sheet, matchups) and
+  `#/league/history` (bridge `get_match_history`, rows expand). Routes are the League block in `worlds.js`.
+- `src/webui/js/stats-api.js`: renderer-side fetch of the crawler (base = config `crawler_url`, default
+  `http://10.205.0.81:47900`) and Data Dragon (version from `/patches` → newest matching DDragon build), memoised in memory
+  for 10 minutes. `window.leagueTierRows` is the tier banding, tested by `app/test-league.js`: win rate shrunk toward the
+  list average by 100 games, score = 0.75 × win-rate percentile + 0.25 × pick-rate percentile, top 10% S, 20% A, 40% B,
+  20% C, 10% D. lowSample rows are banded, greyed, and sorted below the rest in tier order.
+- Items come from final inventories (no purchase order): no starting-items block; "Items 4·5·6" = finished items past the
+  three most built, by pick rate.
+
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
   not only the one you added. A worker merged a change that broke a sibling test once (2026-10-01).
