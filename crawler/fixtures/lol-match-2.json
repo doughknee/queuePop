@@ -1,0 +1,1060 @@
+{
+  "metadata": {
+    "dataVersion": "2",
+    "matchId": "NA1_520000002",
+    "participants": [
+      "lol_10_upwpu76pn-29j-91vy7gsq320xal2vbu9a-zu688c2n0dpdloloapp45bqvyfepbkzh-7vg",
+      "lol_11_p0kqlohaixyb9de1zzw9cjgnmhbft-ftxe8z190foqkfp4yz46uan-z15p3nuavatsofshu",
+      "lol_12_da3v46z25o8oobddbvzhab0-7591vxcnrttwyt1m6abz_haibqzxp6b57qmhydlzdv9a8jw",
+      "lol_13_b7xjxntp-5-7bktuewjpx5negjb81y5cx7frn3z-bf66xetq2ykddq9z5862mz21ty0wg71",
+      "lol_14_hof6in702dz4a1pgair_wxbpi-diyk9gi5p_kb5qo8x0zm71atbsn1sa-83twu05mz90250",
+      "lol_15_6dup9g2murbzcrdbgv05hcoc85u9_6h1t_j6f_psbit26ou4s_zrsnmbsno4u7ei4kwqztm",
+      "lol_16_eps2e5f8pwurvaq8r1sbrq-qoidq3k_hj7x957pjsi2yo3v_c5zxmq4_xw4hwo808i25c05",
+      "lol_17_zaevwaf6ufwyavkmnvt4g8rs9y6f-d4ohvu0d7o440w7fs60kn4tkyxwl8-h5-6gien09a6",
+      "lol_18_scbqwaoqlq0ia-409ohnb1__hrvoh42pbwij9w7b2z1am2s8fmahy5d7rlsl4knpghk-_ex",
+      "lol_19_vyxd93k4-d15qm39677mpeqca_679myw4he__4h-qsyk_iaco0l00b3hg5qgbijoz1xkkjy"
+    ]
+  },
+  "info": {
+    "endOfGameResult": "GameComplete",
+    "gameCreation": 1791307160000,
+    "gameDuration": 1576,
+    "gameEndTimestamp": 1791308776000,
+    "gameId": 5200000002,
+    "gameMode": "CLASSIC",
+    "gameName": "teambuilder-match-5200000002",
+    "gameStartTimestamp": 1791307200000,
+    "gameType": "MATCHED_GAME",
+    "gameVersion": "16.20.712.1002",
+    "mapId": 11,
+    "participants": [
+      {
+        "allInPings": 0,
+        "assists": 2,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 86,
+        "championName": "Garen",
+        "championTransform": 0,
+        "deaths": 5,
+        "goldEarned": 11008,
+        "individualPosition": "TOP",
+        "item0": 3047,
+        "item1": 3078,
+        "item2": 6672,
+        "item3": 3109,
+        "item4": 3031,
+        "item5": 3089,
+        "item6": 3340,
+        "kills": 4,
+        "lane": "TOP",
+        "participantId": 1,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8200,
+              "selections": [
+                {
+                  "perk": 8214,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8226,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8210,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8237,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8400,
+              "selections": [
+                {
+                  "perk": 8444,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8446,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_10_upwpu76pn-29j-91vy7gsq320xal2vbu9a-zu688c2n0dpdloloapp45bqvyfepbkzh-7vg",
+        "riotIdGameName": "Synthetic20",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 12,
+        "teamId": 100,
+        "teamPosition": "TOP",
+        "totalDamageDealtToChampions": 20801,
+        "totalMinionsKilled": 217,
+        "visionScore": 41,
+        "win": true
+      },
+      {
+        "allInPings": 0,
+        "assists": 11,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 22,
+        "championName": "Ashe",
+        "championTransform": 0,
+        "deaths": 6,
+        "goldEarned": 14720,
+        "individualPosition": "JUNGLE",
+        "item0": 3190,
+        "item1": 3153,
+        "item2": 0,
+        "item3": 3109,
+        "item4": 3031,
+        "item5": 3089,
+        "item6": 3340,
+        "kills": 7,
+        "lane": "JUNGLE",
+        "participantId": 2,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8200,
+              "selections": [
+                {
+                  "perk": 8229,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8226,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8210,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8237,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8400,
+              "selections": [
+                {
+                  "perk": 8444,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8446,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_11_p0kqlohaixyb9de1zzw9cjgnmhbft-ftxe8z190foqkfp4yz46uan-z15p3nuavatsofshu",
+        "riotIdGameName": "Synthetic21",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 11,
+        "teamId": 100,
+        "teamPosition": "JUNGLE",
+        "totalDamageDealtToChampions": 26962,
+        "totalMinionsKilled": 189,
+        "visionScore": 39,
+        "win": true
+      },
+      {
+        "allInPings": 0,
+        "assists": 2,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 412,
+        "championName": "Thresh",
+        "championTransform": 0,
+        "deaths": 0,
+        "goldEarned": 12268,
+        "individualPosition": "MIDDLE",
+        "item0": 0,
+        "item1": 2055,
+        "item2": 3190,
+        "item3": 3071,
+        "item4": 3074,
+        "item5": 3006,
+        "item6": 3340,
+        "kills": 5,
+        "lane": "MIDDLE",
+        "participantId": 3,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8200,
+              "selections": [
+                {
+                  "perk": 8229,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8226,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8210,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8237,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8000,
+              "selections": [
+                {
+                  "perk": 9111,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 9104,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_12_da3v46z25o8oobddbvzhab0-7591vxcnrttwyt1m6abz_haibqzxp6b57qmhydlzdv9a8jw",
+        "riotIdGameName": "Synthetic22",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 14,
+        "teamId": 100,
+        "teamPosition": "MIDDLE",
+        "totalDamageDealtToChampions": 23285,
+        "totalMinionsKilled": 223,
+        "visionScore": 26,
+        "win": true
+      },
+      {
+        "allInPings": 0,
+        "assists": 4,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 157,
+        "championName": "Yasuo",
+        "championTransform": 0,
+        "deaths": 4,
+        "goldEarned": 13871,
+        "individualPosition": "BOTTOM",
+        "item0": 6653,
+        "item1": 3153,
+        "item2": 0,
+        "item3": 3006,
+        "item4": 3071,
+        "item5": 3074,
+        "item6": 3340,
+        "kills": 6,
+        "lane": "BOTTOM",
+        "participantId": 4,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8400,
+              "selections": [
+                {
+                  "perk": 8437,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8444,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8446,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8242,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8000,
+              "selections": [
+                {
+                  "perk": 9111,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 9104,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_13_b7xjxntp-5-7bktuewjpx5negjb81y5cx7frn3z-bf66xetq2ykddq9z5862mz21ty0wg71",
+        "riotIdGameName": "Synthetic23",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 7,
+        "teamId": 100,
+        "teamPosition": "BOTTOM",
+        "totalDamageDealtToChampions": 19753,
+        "totalMinionsKilled": 186,
+        "visionScore": 41,
+        "win": true
+      },
+      {
+        "allInPings": 0,
+        "assists": 13,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 1,
+        "championName": "Annie",
+        "championTransform": 0,
+        "deaths": 7,
+        "goldEarned": 15956,
+        "individualPosition": "UTILITY",
+        "item0": 3031,
+        "item1": 0,
+        "item2": 3190,
+        "item3": 3089,
+        "item4": 2055,
+        "item5": 3153,
+        "item6": 3340,
+        "kills": 1,
+        "lane": "BOTTOM",
+        "participantId": 5,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8100,
+              "selections": [
+                {
+                  "perk": 8112,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8139,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8138,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8135,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8300,
+              "selections": [
+                {
+                  "perk": 8304,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8345,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_14_hof6in702dz4a1pgair_wxbpi-diyk9gi5p_kb5qo8x0zm71atbsn1sa-83twu05mz90250",
+        "riotIdGameName": "Synthetic24",
+        "riotIdTagline": "NA1",
+        "role": "SUPPORT",
+        "summoner1Id": 4,
+        "summoner2Id": 3,
+        "teamId": 100,
+        "teamPosition": "UTILITY",
+        "totalDamageDealtToChampions": 28586,
+        "totalMinionsKilled": 204,
+        "visionScore": 32,
+        "win": true
+      },
+      {
+        "allInPings": 0,
+        "assists": 5,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 517,
+        "championName": "Sylas",
+        "championTransform": 0,
+        "deaths": 2,
+        "goldEarned": 12321,
+        "individualPosition": "TOP",
+        "item0": 3153,
+        "item1": 3089,
+        "item2": 3006,
+        "item3": 6672,
+        "item4": 3157,
+        "item5": 0,
+        "item6": 3340,
+        "kills": 8,
+        "lane": "TOP",
+        "participantId": 6,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8400,
+              "selections": [
+                {
+                  "perk": 8437,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8444,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8446,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8242,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8300,
+              "selections": [
+                {
+                  "perk": 8304,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8345,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_15_6dup9g2murbzcrdbgv05hcoc85u9_6h1t_j6f_psbit26ou4s_zrsnmbsno4u7ei4kwqztm",
+        "riotIdGameName": "Synthetic25",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 12,
+        "teamId": 200,
+        "teamPosition": "TOP",
+        "totalDamageDealtToChampions": 16644,
+        "totalMinionsKilled": 172,
+        "visionScore": 30,
+        "win": false
+      },
+      {
+        "allInPings": 0,
+        "assists": 4,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 103,
+        "championName": "Ahri",
+        "championTransform": 0,
+        "deaths": 4,
+        "goldEarned": 15938,
+        "individualPosition": "JUNGLE",
+        "item0": 3020,
+        "item1": 3089,
+        "item2": 3109,
+        "item3": 2055,
+        "item4": 6653,
+        "item5": 3153,
+        "item6": 3340,
+        "kills": 9,
+        "lane": "JUNGLE",
+        "participantId": 7,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8200,
+              "selections": [
+                {
+                  "perk": 8229,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8226,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8210,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8237,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8000,
+              "selections": [
+                {
+                  "perk": 9111,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 9104,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_16_eps2e5f8pwurvaq8r1sbrq-qoidq3k_hj7x957pjsi2yo3v_c5zxmq4_xw4hwo808i25c05",
+        "riotIdGameName": "Synthetic26",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 11,
+        "teamId": 200,
+        "teamPosition": "JUNGLE",
+        "totalDamageDealtToChampions": 28767,
+        "totalMinionsKilled": 229,
+        "visionScore": 42,
+        "win": false
+      },
+      {
+        "allInPings": 0,
+        "assists": 5,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 64,
+        "championName": "LeeSin",
+        "championTransform": 0,
+        "deaths": 5,
+        "goldEarned": 12598,
+        "individualPosition": "MIDDLE",
+        "item0": 3047,
+        "item1": 3020,
+        "item2": 3071,
+        "item3": 3078,
+        "item4": 3006,
+        "item5": 3109,
+        "item6": 3340,
+        "kills": 7,
+        "lane": "MIDDLE",
+        "participantId": 8,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8400,
+              "selections": [
+                {
+                  "perk": 8437,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8444,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8446,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8242,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8200,
+              "selections": [
+                {
+                  "perk": 8226,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8210,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_17_zaevwaf6ufwyavkmnvt4g8rs9y6f-d4ohvu0d7o440w7fs60kn4tkyxwl8-h5-6gien09a6",
+        "riotIdGameName": "Synthetic27",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 14,
+        "teamId": 200,
+        "teamPosition": "MIDDLE",
+        "totalDamageDealtToChampions": 31064,
+        "totalMinionsKilled": 171,
+        "visionScore": 31,
+        "win": false
+      },
+      {
+        "allInPings": 0,
+        "assists": 9,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 25,
+        "championName": "Morgana",
+        "championTransform": 0,
+        "deaths": 0,
+        "goldEarned": 12877,
+        "individualPosition": "BOTTOM",
+        "item0": 3047,
+        "item1": 3071,
+        "item2": 2055,
+        "item3": 3074,
+        "item4": 3109,
+        "item5": 3020,
+        "item6": 3340,
+        "kills": 9,
+        "lane": "BOTTOM",
+        "participantId": 9,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8100,
+              "selections": [
+                {
+                  "perk": 8112,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8139,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8138,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8135,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8300,
+              "selections": [
+                {
+                  "perk": 8304,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8345,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_18_scbqwaoqlq0ia-409ohnb1__hrvoh42pbwij9w7b2z1am2s8fmahy5d7rlsl4knpghk-_ex",
+        "riotIdGameName": "Synthetic28",
+        "riotIdTagline": "NA1",
+        "role": "SOLO",
+        "summoner1Id": 4,
+        "summoner2Id": 7,
+        "teamId": 200,
+        "teamPosition": "BOTTOM",
+        "totalDamageDealtToChampions": 32437,
+        "totalMinionsKilled": 224,
+        "visionScore": 50,
+        "win": false
+      },
+      {
+        "allInPings": 0,
+        "assists": 7,
+        "champExperience": 15000,
+        "champLevel": 16,
+        "championId": 11,
+        "championName": "MasterYi",
+        "championTransform": 0,
+        "deaths": 8,
+        "goldEarned": 14294,
+        "individualPosition": "UTILITY",
+        "item0": 6653,
+        "item1": 3020,
+        "item2": 2055,
+        "item3": 3031,
+        "item4": 3089,
+        "item5": 3078,
+        "item6": 3340,
+        "kills": 3,
+        "lane": "BOTTOM",
+        "participantId": 10,
+        "perks": {
+          "statPerks": {
+            "defense": 5011,
+            "flex": 5008,
+            "offense": 5005
+          },
+          "styles": [
+            {
+              "description": "primaryStyle",
+              "style": 8000,
+              "selections": [
+                {
+                  "perk": 8010,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 9111,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 9104,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8014,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            },
+            {
+              "description": "subStyle",
+              "style": 8300,
+              "selections": [
+                {
+                  "perk": 8304,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                },
+                {
+                  "perk": 8345,
+                  "var1": 0,
+                  "var2": 0,
+                  "var3": 0
+                }
+              ]
+            }
+          ]
+        },
+        "puuid": "lol_19_vyxd93k4-d15qm39677mpeqca_679myw4he__4h-qsyk_iaco0l00b3hg5qgbijoz1xkkjy",
+        "riotIdGameName": "Synthetic29",
+        "riotIdTagline": "NA1",
+        "role": "SUPPORT",
+        "summoner1Id": 4,
+        "summoner2Id": 3,
+        "teamId": 200,
+        "teamPosition": "UTILITY",
+        "totalDamageDealtToChampions": 21493,
+        "totalMinionsKilled": 158,
+        "visionScore": 42,
+        "win": false
+      }
+    ],
+    "platformId": "NA1",
+    "queueId": 420,
+    "teams": [
+      {
+        "bans": [
+          {
+            "championId": 55,
+            "pickTurn": 1
+          },
+          {
+            "championId": 238,
+            "pickTurn": 2
+          },
+          {
+            "championId": 84,
+            "pickTurn": 3
+          },
+          {
+            "championId": 875,
+            "pickTurn": 4
+          },
+          {
+            "championId": -1,
+            "pickTurn": 5
+          }
+        ],
+        "objectives": {
+          "baron": {
+            "first": true,
+            "kills": 1
+          },
+          "champion": {
+            "first": true,
+            "kills": 20
+          },
+          "dragon": {
+            "first": false,
+            "kills": 2
+          },
+          "horde": {
+            "first": true,
+            "kills": 3
+          },
+          "inhibitor": {
+            "first": true,
+            "kills": 1
+          },
+          "riftHerald": {
+            "first": true,
+            "kills": 1
+          },
+          "tower": {
+            "first": true,
+            "kills": 8
+          }
+        },
+        "teamId": 100,
+        "win": true
+      },
+      {
+        "bans": [
+          {
+            "championId": 910,
+            "pickTurn": 6
+          },
+          {
+            "championId": 901,
+            "pickTurn": 7
+          },
+          {
+            "championId": 799,
+            "pickTurn": 8
+          },
+          {
+            "championId": 950,
+            "pickTurn": 9
+          },
+          {
+            "championId": -1,
+            "pickTurn": 10
+          }
+        ],
+        "objectives": {
+          "baron": {
+            "first": false,
+            "kills": 0
+          },
+          "champion": {
+            "first": false,
+            "kills": 20
+          },
+          "dragon": {
+            "first": true,
+            "kills": 2
+          },
+          "horde": {
+            "first": false,
+            "kills": 3
+          },
+          "inhibitor": {
+            "first": false,
+            "kills": 0
+          },
+          "riftHerald": {
+            "first": false,
+            "kills": 1
+          },
+          "tower": {
+            "first": false,
+            "kills": 3
+          }
+        },
+        "teamId": 200,
+        "win": false
+      }
+    ],
+    "tournamentCode": ""
+  }
+}

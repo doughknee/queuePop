@@ -1,0 +1,44 @@
+[
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "EMERALD",
+    "rank": "I",
+    "puuid": "lol_17_zaevwaf6ufwyavkmnvt4g8rs9y6f-d4ohvu0d7o440w7fs60kn4tkyxwl8-h5-6gien09a6",
+    "leaguePoints": 72,
+    "wins": 112,
+    "losses": 60,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "EMERALD",
+    "rank": "I",
+    "puuid": "lol_18_scbqwaoqlq0ia-409ohnb1__hrvoh42pbwij9w7b2z1am2s8fmahy5d7rlsl4knpghk-_ex",
+    "leaguePoints": 37,
+    "wins": 98,
+    "losses": 76,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "EMERALD",
+    "rank": "I",
+    "puuid": "lol_19_vyxd93k4-d15qm39677mpeqca_679myw4he__4h-qsyk_iaco0l00b3hg5qgbijoz1xkkjy",
+    "leaguePoints": 70,
+    "wins": 54,
+    "losses": 119,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  }
+]

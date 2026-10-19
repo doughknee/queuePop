@@ -1,0 +1,58 @@
+[
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "DIAMOND",
+    "rank": "I",
+    "puuid": "lol_10_upwpu76pn-29j-91vy7gsq320xal2vbu9a-zu688c2n0dpdloloapp45bqvyfepbkzh-7vg",
+    "leaguePoints": 33,
+    "wins": 114,
+    "losses": 59,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "DIAMOND",
+    "rank": "I",
+    "puuid": "lol_11_p0kqlohaixyb9de1zzw9cjgnmhbft-ftxe8z190foqkfp4yz46uan-z15p3nuavatsofshu",
+    "leaguePoints": 6,
+    "wins": 48,
+    "losses": 119,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "DIAMOND",
+    "rank": "I",
+    "puuid": "lol_12_da3v46z25o8oobddbvzhab0-7591vxcnrttwyt1m6abz_haibqzxp6b57qmhydlzdv9a8jw",
+    "leaguePoints": 94,
+    "wins": 103,
+    "losses": 90,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_SOLO_5x5",
+    "tier": "DIAMOND",
+    "rank": "I",
+    "puuid": "lol_13_b7xjxntp-5-7bktuewjpx5negjb81y5cx7frn3z-bf66xetq2ykddq9z5862mz21ty0wg71",
+    "leaguePoints": 68,
+    "wins": 41,
+    "losses": 48,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  }
+]

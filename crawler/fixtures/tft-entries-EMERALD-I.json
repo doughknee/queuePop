@@ -1,0 +1,30 @@
+[
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_TFT",
+    "tier": "EMERALD",
+    "rank": "I",
+    "puuid": "tft_11_xcwa69_102oesvniaeemp8nehxwg32r0e0dvga6oi-pqpz8863lyinr085pk1sfpejbv6pc",
+    "leaguePoints": 37,
+    "wins": 97,
+    "losses": 96,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  },
+  {
+    "leagueId": "1f2e3d4c-0000-4000-8000-000000000001",
+    "queueType": "RANKED_TFT",
+    "tier": "EMERALD",
+    "rank": "I",
+    "puuid": "tft_12_sp3500fu92wh4mkt1wwcomujw_k8kqr7k135jt2enn_22fshs7jb1sdesbik7azbcglcp1f",
+    "leaguePoints": 1,
+    "wins": 83,
+    "losses": 47,
+    "veteran": false,
+    "inactive": false,
+    "freshBlood": true,
+    "hotStreak": false
+  }
+]
