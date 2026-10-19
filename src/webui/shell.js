@@ -25,7 +25,7 @@
   // '#/', '#/deadlock/' and '' all normalise to their unslashed form; the longest matching link is the page.
   const norm = h => h.replace(/\/+$/, '') || '#';
   window.syncSidebar = function () {
-    const hash = norm(location.hash), game = hash.split('/')[1] || 'home';
+    const hash = norm(location.hash), game = hash.replace(/^#\/?/, '').split(/[\/#]/)[0] || 'home';
     let best = null;
     for (const a of bar.querySelectorAll('.sb-pages a')) {
       const href = norm(a.getAttribute('href'));
@@ -33,11 +33,12 @@
       if ((hash === href || (href !== '#' && hash.startsWith(href + '/'))) && (!best || href.length > norm(best.getAttribute('href')).length)) best = a;
     }
     best?.setAttribute('aria-current', 'page');
+    bar.querySelector('.sb-gear').toggleAttribute('aria-current', game === 'settings');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
     const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
-    const row = pages ? pages.innerHTML : '';
+    const row = game === 'settings' ? settingsView.row() : pages ? pages.innerHTML : '';
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
     if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
     const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
