@@ -1,30 +1,17 @@
 /* Electron host glue for the three-worlds shell (ported from prototypes/queuepop).
-   The mockup owns the masthead, home and League world; this file only seats the
+   The mockup owns home and League world; this file only seats the
    working pages (hextech markup, js/pages/*) inside it in the League tokens:
    obsidian #050D14, deep blue #0D1C25, aged gold #C8AA6E, ivory #F0E6D0,
    spell light #79C9CF. Cinzel names, Marcellus editorial, Segoe UI controls. */
 html { background: #141618; }
 body { min-height: 100vh; overflow-x: hidden; }
 body.theme-league, body.theme-companion { background: #050D14; }
-
-/* Frameless window: the masthead drags the window, its links stay clickable. */
-#qp-header { -webkit-app-region: drag; padding-right: 150px; }
-#qp-header > * { -webkit-app-region: no-drag; }
 .win-controls { position: fixed; z-index: 40; }
-
-/* League dock (PLAY + summoner badge), seated at the right of the League navigation. */
-.league-navigation { grid-template-columns: auto 1fr auto auto; }
-.league-dock { display: flex; align-items: center; gap: 14px; }
-.league-navigation .nav-champion img { flex-shrink: 0; }
-.league-dock .play-svg { height: 38px; }
-@media (max-width: 1700px) {
-  .league-navigation .league-menu>a { min-width: 0; padding: 10px 12px; gap: 8px; }
-  .league-navigation .nav-champion span, .league-navigation .nav-champion b { display: none; }
-}
-@media (max-width: 1440px) { .league-dock .summoner-meta { display: none; } .league-navigation { gap: 24px; } .league-dock { gap: 10px; } .league-dock .play-svg { height: 34px; } }
+/* League dock (PLAY): floats at the top right of every League page, under the window buttons. */
+.league-dock { position: fixed; top: 38px; right: 20px; z-index: 30; display: flex; }
 .league-dock[hidden] { display: none; }
 .league-dock .play-btn { height: 40px; }
-.league-dock .summoner { color: #F0E6D0; }
+.league-dock .play-svg { height: 38px; }
 
 /* Working pages: a composed reading area on the League obsidian. */
 .host-pages {
@@ -44,7 +31,8 @@ body.theme-league, body.theme-companion { background: #050D14; }
 #tab-alerts + #tab-about:not(.hidden) { margin-top: 20px; }
 
 /* The champ editor scrolls its own grid, so it gets the remaining window height. */
-#tab-champ > .hextech { height: calc(100vh - 66px - 88px - 64px); min-height: 560px; }
+.theme-league .host-pages { padding-top: 88px; }
+#tab-champ > .hextech { height: calc(100vh - 152px); min-height: 560px; }
 
 /* No modals or popup menus: the loadout editor, set-up wizard, QR code and
    queue list open inline in the page that asks for them. */

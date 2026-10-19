@@ -1,1 +1,47 @@
-#qp-header{height:66px;display:flex;align-items:center;gap:34px;padding:0 32px;background:#141618;color:#eeeae1;border-bottom:1px solid #ffffff12;font:14px/1.2 'Segoe UI',Arial,sans-serif;position:relative;z-index:20;box-sizing:border-box}#qp-header a{text-decoration:none;color:inherit}#qp-header .qp-brand{display:flex;gap:10px;align-items:center;font-size:20px;font-weight:600;letter-spacing:-.7px;white-space:nowrap}#qp-header .qp-brand span{font-size:10px;color:#d3b981;margin:0 8px}#qp-header .qp-games{display:flex;align-items:stretch;height:100%;gap:6px;flex:1}#qp-header .qp-games a{padding:0 16px;display:flex;gap:9px;align-items:center;color:#a5a6a6;border-bottom:2px solid transparent}#qp-header .qp-games a:hover{color:#fff;background:#ffffff05}#qp-header .qp-games a[aria-current]{color:#eeeae1;border-bottom-color:#d3b981;background:linear-gradient(0deg,#d3b9810c,transparent)}#qp-header .game-symbol{font:18px Georgia,serif;color:#c8b38b}#qp-header .qp-companion{display:flex;align-items:center;gap:10px;font-size:12px;white-space:nowrap}#qp-header .qp-companion b{display:grid;place-items:center;width:29px;height:29px;background:#333733;border:1px solid #ffffff15;border-radius:50%;margin-left:12px;font-weight:500}.qp-dot{width:6px;height:6px;border-radius:50%;background:#a7bcab;display:inline-block}#qp-header a:focus-visible{outline:2px solid #efca85;outline-offset:-4px}.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid #ffffff12;color:#8d9497;font:12px 'Segoe UI',Arial,sans-serif;background:#141618}.qp-footer i{color:#cab183;font-style:normal;margin:0 12px}@media(max-width:900px){#qp-header{gap:12px;padding:0 18px}#qp-header .qp-games a{padding:0 10px}.long-name{display:none}#qp-header .qp-companion>span:not(.qp-dot){display:none}}@media(max-width:570px){#qp-header{height:auto;min-height:104px;flex-wrap:wrap;padding:12px 18px 0;gap:10px}#qp-header .qp-brand{font-size:18px}#qp-header .qp-games{order:3;flex-basis:100%;height:42px;justify-content:space-between;gap:0}#qp-header .qp-games a{font-size:12px;padding:0 8px}#qp-header .game-symbol{font-size:14px}#qp-header .qp-companion{margin-left:auto}#qp-header .qp-companion b{margin-left:0}.qp-footer{flex-direction:column;padding:24px}}
+/* Sidebar: neutral QueuePop chrome (charcoal #141618, warm white #EEEAE1, muted gold #D3B981, Segoe UI), not per-world. */
+:root{--sb-w:var(--sb-open-w,248px)}
+:root.sb-collapsed{--sb-w:56px}
+body{padding-left:var(--sb-w);box-sizing:border-box}
+#qp-sidebar{position:fixed;inset:0 auto 0 0;width:var(--sb-w);z-index:35;display:flex;flex-direction:column;box-sizing:border-box;background:#141618;color:#eeeae1;border-right:1px solid #ffffff12;font:13px/1.3 'Segoe UI',Arial,sans-serif}
+#qp-sidebar a{color:inherit;text-decoration:none}
+#qp-sidebar :focus-visible{outline:2px solid #efca85;outline-offset:-2px}
+/* Frameless window: the sidebar's top row drags the window, its controls stay clickable. */
+.sb-top{display:flex;align-items:center;justify-content:space-between;gap:8px;height:52px;padding:0 10px 0 14px;-webkit-app-region:drag}
+.sb-top>*{-webkit-app-region:no-drag}
+.sb-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-.5px;white-space:nowrap}
+.sb-toggle,.sb-gear{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;border:0;border-radius:6px;background:none;color:#a5a6a6;cursor:pointer}
+.sb-toggle:hover,.sb-gear:hover{background:#ffffff0d;color:#eeeae1}
+.sb-toggle svg,.sb-gear svg{width:18px;height:18px}
+.sb-scroll{flex:1;min-height:0;overflow:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:2px}
+.sb-group{margin-top:8px}
+.sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;border-radius:6px;color:#c9c6bd;white-space:nowrap;overflow:hidden}
+.sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;display:grid;place-items:center;font-size:19px;line-height:1;color:#d3b981}
+.sb-item>span:last-child{overflow:hidden;text-overflow:ellipsis}
+.sb-item:hover,.sb-pages a:hover{background:#ffffff0a;color:#eeeae1}
+.sb-group.open>.sb-item{color:#eeeae1;font-weight:600}
+.sb-pages{display:none;flex-direction:column;gap:1px;margin:2px 0 4px 18px;padding-left:10px;border-left:1px solid #ffffff14}
+.sb-group.open>.sb-pages{display:flex}
+.sb-pages a{padding:6px 8px;border-radius:6px;color:#a5a6a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#qp-sidebar [aria-current="page"]{background:#d3b9811a;color:#eeeae1;box-shadow:inset 2px 0 #d3b981}
+.sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid #ffffff12}
+.sb-user .summoner{right:auto;flex:1;min-width:0;padding:4px;border-radius:6px;gap:10px;color:#eeeae1}
+.sb-user .summoner:hover{background:#ffffff0a}
+.sb-user .summoner-portrait{width:32px;height:32px}
+.sb-user .summoner-portrait img,.sb-user .summoner-portrait .ph{border-color:#141618}
+.sb-user .summoner-meta{top:0;min-width:0}
+.sb-user .summoner-name{font:600 13px 'Segoe UI',Arial,sans-serif;color:#eeeae1;max-width:100%}
+.sb-resize{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize}
+.sb-resize:hover,.sb-dragging .sb-resize{background:#d3b98155}
+.sb-dragging,.sb-dragging *{cursor:col-resize!important;user-select:none}
+.sb-dragging iframe{pointer-events:none}
+/* Icon rail: logos only; titles give the tooltips. */
+.sb-collapsed .sb-top{flex-direction:column;justify-content:center;height:auto;padding:12px 0 6px}
+.sb-collapsed .sb-brand span,.sb-collapsed .sb-item>span:last-child,.sb-collapsed .sb-group>.sb-pages,.sb-collapsed .summoner-meta,.sb-collapsed .sb-resize{display:none}
+.sb-collapsed .sb-scroll{padding:4px 6px}
+.sb-collapsed .sb-item{justify-content:center;padding:0}
+.sb-collapsed .sb-group.open>.sb-item{background:#d3b9811a;box-shadow:inset 2px 0 #d3b981}
+.sb-collapsed .sb-user{flex-direction:column;padding:8px 4px}
+.sb-collapsed .sb-user .summoner{flex:none;justify-content:center}
+.qp-dot{width:6px;height:6px;border-radius:50%;background:#a7bcab;display:inline-block}
+.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid #ffffff12;color:#8d9497;font:12px 'Segoe UI',Arial,sans-serif;background:#141618}.qp-footer i{color:#cab183;font-style:normal;margin:0 12px}
+.sb-scroll::-webkit-scrollbar{width:4px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:#ffffff1f}

@@ -1,8 +1,7 @@
 body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:#0c1721}
-.theme-tft #qp-header{flex-shrink:0}
 #tft-view{flex:1;min-height:0;background:#0c1721;display:flex;flex-direction:column}
 #tft-view[hidden]{display:none}
-.tft-live{display:flex;align-items:center;gap:14px;padding:6px 18px;background:#211D36;color:#B9A0ED;font:700 13px Trebuchet MS,sans-serif}
+.tft-live{display:flex;align-items:center;gap:14px;padding:6px 140px 6px 18px;background:#211D36;color:#B9A0ED;font:700 13px Trebuchet MS,sans-serif}
 .tft-live-msg{flex:1;color:#9BD6C0}
 .tft-live-queue{background:#F5CD74;color:#211D36;border:0;border-radius:999px;padding:6px 16px;font:inherit;cursor:pointer}
 #tft-view iframe{display:block;width:100%;flex:1;min-height:0;border:0;color-scheme:dark;background:#0c1721}
