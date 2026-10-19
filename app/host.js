@@ -19,7 +19,7 @@ const START = Date.now();
 // Bridge methods implemented here. The preload builds window.pywebview.api from METHODS plus these.
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
-  "launch_league", "get_champion_mastery", "get_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
+  "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
   "minimize_window", "resize_window"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
@@ -114,7 +114,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     apply_update: () => updater.apply(),
     get_summoner: account.getSummoner, get_queue_map: account.getQueueMap, get_quick_queues: account.getQuickQueues,
     start_queue: account.startQueue, cancel_queue: account.cancelQueue, launch_league: account.launchLeague,
-    get_champion_mastery: account.getChampionMastery, get_match_history: account.getMatchHistory,
+    get_champion_mastery: account.getChampionMastery, get_match_history: account.getMatchHistory, get_tft_match_history: account.getTftMatchHistory,
     open_external: (url) => { if (!/^https?:\/\//i.test(String(url))) return false; shell.openExternal(String(url)); return true; },
     open_config_folder: async () => {
       const err = await shell.openPath(path.dirname(configFile));

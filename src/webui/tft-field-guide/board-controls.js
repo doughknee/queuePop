@@ -11,19 +11,21 @@ export function setupBoardControls({model,root,render,hideTip,status,clearSelect
   toolbar.querySelector('#boardContext').textContent=currentName;
   function setName(name){currentName=name;toolbar.querySelector('#boardContext').textContent=name;try{sessionStorage.setItem('tft-board-name',name);}catch{}}
   root.addEventListener('click',e=>{if(e.target.closest('button')?.id==='arenaReset'){setName('My practice board');previous=null;toolbar.querySelector('#boardUndo').hidden=true;}});
-  const modal=document.createElement('dialog');modal.className='board-dialog';modal.setAttribute('aria-labelledby','boardDialogTitle');
-  modal.innerHTML='<div class="board-dialog-head"><h2 id="boardDialogTitle">Your boards</h2><button id="boardDialogClose" aria-label="Close board dialog">×</button></div><div id="boardDialogBody"></div><p id="boardDialogStatus" role="status" aria-live="polite"></p>';
-  document.body.append(modal);
+  // An inline panel under the toolbar (DONI-451: no dialogs in the TFT world).
+  const modal=document.createElement('section');modal.className='board-dialog';modal.hidden=true;modal.setAttribute('aria-labelledby','boardDialogTitle');
+  modal.innerHTML='<div class="board-dialog-head"><h2 id="boardDialogTitle">Your boards</h2><button id="boardDialogClose" aria-label="Close board panel">×</button></div><div id="boardDialogBody"></div><p id="boardDialogStatus" role="status" aria-live="polite"></p>';
+  toolbar.after(modal);
+  const close=()=>{modal.hidden=true;};
   const body=modal.querySelector('#boardDialogBody'),feedback=modal.querySelector('#boardDialogStatus');
-  modal.querySelector('#boardDialogClose').onclick=()=>modal.close();
-  function open(title,content){hideTip();feedback.textContent='';modal.querySelector('h2').textContent=title;body.innerHTML=content;if(!modal.open)modal.showModal();}
+  modal.querySelector('#boardDialogClose').onclick=close;
+  function open(title,content){hideTip();feedback.textContent='';modal.querySelector('h2').textContent=title;body.innerHTML=content;modal.hidden=false;modal.scrollIntoView({block:'nearest'});modal.querySelector('input,textarea,button:not(#boardDialogClose)')?.focus({preventScroll:true});}
   function readLibrary(){const raw=localStorage.getItem(key);if(!raw)return [];const saved=JSON.parse(raw);if(!Array.isArray(saved))throw new Error('Your saved library could not be read. No saves were changed.');return saved.map(validateBoard);}
   function load(record){
     const clean=validateBoard(record);
     previous={version:1,name:currentName,state:model.snapshot()};
     model.restore(clean.state);setName(clean.name);clearSelection();hideTip();render();
     toolbar.querySelector('#boardContext').textContent=currentName;toolbar.querySelector('#boardUndo').hidden=false;
-    modal.close();location.hash='playground';requestAnimationFrame(()=>{root.scrollIntoView({block:'start',behavior:'instant'});root.focus({preventScroll:true});});status(`${currentName} loaded. Your previous board is available with Undo load.`);
+    close();location.hash='playground';requestAnimationFrame(()=>{root.scrollIntoView({block:'start',behavior:'instant'});root.focus({preventScroll:true});});status(`${currentName} loaded. Your previous board is available with Undo load.`);
   }
   function library(){
     let saved;try{saved=readLibrary();}catch{open('Your boards','<p>Saved boards could not be read. Browser storage may be unavailable or damaged. Nothing has been overwritten.</p>');return;}
@@ -45,7 +47,7 @@ export function setupBoardControls({model,root,render,hideTip,status,clearSelect
     e.preventDefault();
     if(e.target.id==='saveBoardForm'){
       const name=modal.querySelector('#savedBoardName').value.trim();
-      try{const record=validateBoard({version:1,name,state:model.snapshot()}),saved=readLibrary();if(saved.some(b=>b.name.toLowerCase()===name.toLowerCase())){feedback.textContent='That name is already saved. Choose a different name to keep both versions.';return;}localStorage.setItem(key,JSON.stringify([...saved,record]));setName(name);modal.close();status(`Saved “${name}” to My boards.`);}
+      try{const record=validateBoard({version:1,name,state:model.snapshot()}),saved=readLibrary();if(saved.some(b=>b.name.toLowerCase()===name.toLowerCase())){feedback.textContent='That name is already saved. Choose a different name to keep both versions.';return;}localStorage.setItem(key,JSON.stringify([...saved,record]));setName(name);close();status(`Saved “${name}” to My boards.`);}
       catch{feedback.textContent='Could not save. Use a name of 1–60 characters and allow browser storage, or copy a board code as a backup.';}
     }
     if(e.target.id==='importBoardForm'){try{preview(decodeBoard(modal.querySelector('#importBoardCode').value));}catch(error){feedback.textContent=error.message;}}

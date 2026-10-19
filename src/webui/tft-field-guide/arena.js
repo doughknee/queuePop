@@ -153,7 +153,7 @@ root.addEventListener('keydown',e=>{
 });
 
 const dialog=document.querySelector('#fieldLibrary');let libraryMode='champions';
-function openCatalog(mode){libraryMode=mode;document.querySelector('#libraryTitle').textContent=mode==='items'?'Item armory':mode==='help'?'Make the board yours':'Champion field guide';document.querySelector('#librarySearch').value='';document.querySelector('#librarySearch').hidden=mode==='help';renderCatalog();dialog.showModal();}
+function openCatalog(mode){libraryMode=mode;document.querySelector('#libraryTitle').textContent=mode==='items'?'Item armory':mode==='help'?'Make the board yours':'Champion field guide';document.querySelector('#librarySearch').value='';document.querySelector('#librarySearch').hidden=mode==='help';renderCatalog();dialog.hidden=false;dialog.scrollIntoView({block:'start'});document.querySelector(mode==='help'?'#libraryClose':'#librarySearch').focus({preventScroll:true});}
 function renderCatalog(){
  const q=document.querySelector('#librarySearch').value.toLowerCase(),body=document.querySelector('#libraryBody');
  if(libraryMode==='help'){body.innerHTML='<div class="arena-help"><h3>A little planning playground.</h3><p>Hover or focus a champion for their ability, traits, base stats and equipped items.</p><p><b>Move:</b> drag a champion between board and bench. Or select one, then click a destination. Occupied slots swap. Your level limits deployed units.</p><p><b>Shop:</b> click to buy, or drag a shop champion into an empty board or bench slot. Reroll costs 2 gold; Buy XP costs 4 gold. Three matching copies combine into the next star level. Lock keeps the shop from rerolling.</p><p><b>Items:</b> drag an armory item onto a champion, or click the item then its holder. Three items maximum. Select a champion and choose Unequip to return their items.</p><p><b>Sell:</b> select a champion and choose Sell, or drag onto the shop to sell. This sandbox refunds the full copy cost. Items return to the armory.</p><p><b>Keyboard:</b> Tab to a slot; Enter or Space selects it. Tab to a destination and press Enter or Space to move. D rerolls, F buys XP, E sells while focus is inside the sandbox. Escape clears a selection.</p><p class="help-note">A curated Set 13 roster with a simplified, equally weighted shop and a level 9 cap. No shared pool, combat, economy rounds or live match connection. Your setup is saved for this tab. Reset restores the starting board.</p></div>';return;}
@@ -162,8 +162,7 @@ function renderCatalog(){
 }
 document.querySelectorAll('[data-library]').forEach(b=>b.addEventListener('click',()=>openCatalog(b.dataset.library)));
 document.querySelector('#librarySearch').addEventListener('input',renderCatalog);
-document.querySelector('#libraryClose').addEventListener('click',()=>dialog.close());
-dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
+document.querySelector('#libraryClose').addEventListener('click',()=>{dialog.hidden=true;});
 document.querySelector('.hero').dataset.arenaTheme=theme;
 const sellDrop=document.createElement('div');sellDrop.id='arenaSellDrop';sellDrop.className='shop-sell-target';sellDrop.setAttribute('data-sell-target','');root.querySelector('.shop-console').append(sellDrop);
 render();

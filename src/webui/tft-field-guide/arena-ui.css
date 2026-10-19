@@ -135,3 +135,16 @@
 @media(max-width:650px){.board-toolbar{margin:0 4px 16px}.board-toolbar button{min-height:40px;flex:1;padding:8px;font-size:11px}.board-toolbar strong{font-size:14px}.board-dialog-head,.board-dialog #boardDialogBody{padding:18px}.board-dialog h2{font-size:20px}.featured-grid{grid-template-columns:1fr}.featured-card{min-height:84px}.featured-card strong{font-size:15px}.featured-card>div{min-width:0}.comp-row{grid-template-columns:minmax(0,1fr) auto;gap:10px}.comp-row .lineup{grid-column:1/-1;grid-row:2;justify-content:flex-start}.comp-row .performance{display:none}.comp-button{font-size:9px}.identity-copy{min-width:0}.identity-copy strong{font-size:14px}.expanded{padding:16px}.expand-head{gap:12px;flex-wrap:wrap}.expand-head h3{font-size:15px}.expand-grid{gap:16px}.expand-panel p{font-size:12px}.board-tabs button{flex:1;padding:6px;font-size:10px}.meta-row{grid-template-columns:26px minmax(0,1fr) auto;gap:10px}.meta-row .small-units,.meta-row .meta-stat{display:none}.meta-name strong{font-size:13px}.meta-action{font-size:9px}.filter-controls .select-wrap{flex:1;min-width:120px}.comp-stats-row strong{font-size:18px}}
 
 @media(max-width:650px){.board-toolbar>div{flex-basis:100%}}
+/* DONI-451: the library and the board save/load/share panel are inline sections in the TFT colours, not dialogs. */
+#fieldLibrary,.board-dialog{position:static;display:block;width:auto;max-height:none;padding:0;background:#211D36;color:#efe6ff;border:1px solid #B9A0ED;border-radius:18px;box-shadow:0 4px 0 #120f20;overflow:hidden}
+#fieldLibrary{width:min(1000px,calc(100% - 40px));margin:20px auto}
+.board-dialog{margin:0 8px 18px}
+#fieldLibrary[hidden],.board-dialog[hidden]{display:none}
+.library-header,.board-dialog-head{background:#2c2545;border-bottom:1px solid #38304d}
+.library-header h2,.board-dialog h2{font:800 24px 'Trebuchet MS',sans-serif;letter-spacing:-.5px;color:#F5CD74}
+.library-header small{color:#B9A0ED}
+.library-header button,.board-dialog-head button{color:#B9A0ED;background:transparent;border:1px solid #38304d;border-radius:9px}
+.library-header button:hover,.board-dialog-head button:hover{border-color:#B9A0ED;color:#efe6ff}
+#librarySearch{background:#17152a;border:1px solid #38304d;border-radius:10px;color:#efe6ff}
+.library-card{border-bottom-color:#38304d}.library-card h3{color:#F5CD74}.library-card>img{border-color:#B9A0ED;border-radius:12px}
+.board-dialog input,.board-dialog textarea{background:#17152a;border-color:#38304d;border-radius:10px;color:#efe6ff}

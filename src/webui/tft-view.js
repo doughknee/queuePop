@@ -1,19 +1,30 @@
-// Keep the supplied Field Guide's styles, modules and saved-board behavior isolated.
+// TFT world. Stats pages (DONI-484) render here on crawler data: #/tft (your card + comps tier list), #/tft/comp/{id},
+// #/tft/history. The supplied Field Guide keeps its styles, modules and saved boards isolated in an iframe for
+// #/tft/{comps,planner,champions,items}.
 window.createTftView = function (host) {
+  const S = window.tftStats;
   const source = new URL('tft-field-guide/index.html', location.href).href;
   let frame;
   const bar = document.createElement('div');
   bar.className = 'tft-live';
   bar.innerHTML = '<span class="tft-live-rank" role="status">TFT rank: client not connected</span><span class="tft-live-msg" role="status"></span>';
-  host.append(bar);
+  const search = document.createElement('div');
+  search.className = 'ts-search';
+  search.innerHTML = '<input type="search" placeholder="Search units, traits or comps" aria-label="Search TFT units, traits and comps" autocomplete="off"><div class="ts-results" hidden></div>';
+  const page = document.createElement('div');
+  page.className = 'ts-page';
+  page.tabIndex = -1;
+  host.append(bar, search, page);
   const rankEl = bar.querySelector('.tft-live-rank'), msgEl = bar.querySelector('.tft-live-msg');
+  const input = search.querySelector('input'), results = search.querySelector('.ts-results');
   const api = () => window.pywebview && window.pywebview.api;
+  const rankText = (r) => `${r.tier[0] + r.tier.slice(1).toLowerCase()}${r.division && r.division !== 'NA' ? ' ' + r.division : ''}`;
   async function refreshRank() {
     try {
       const info = (await api().get_summoner()) || {};
       const r = info.connected && info.ranked && info.ranked.tft;
       rankEl.textContent = !info.connected ? 'TFT rank: client not connected'
-        : r ? `TFT rank: ${r.tier[0] + r.tier.slice(1).toLowerCase()}${r.division && r.division !== 'NA' ? ' ' + r.division : ''} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
+        : r ? `TFT rank: ${rankText(r)} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
     } catch (_) { rankEl.textContent = 'TFT rank: unavailable'; }
   }
   // Play lives in the page row (#tft-play, index.html): start the ranked TFT queue (1100), click again to cancel.
@@ -29,41 +40,290 @@ window.createTftView = function (host) {
     play.classList.toggle('queued', queued);
     playLabel.textContent = queued ? 'In queue · Cancel' : 'Play';
   });
-  function route() {
-    const page = location.hash.replace(/^#\/tft\/?/, '');
-    return page === 'planner' ? 'playground' : ['history', 'champions', 'items'].includes(page) ? 'home' : page || 'home';
-  }
-  // The sidebar's Champions / Items open the guide's own library dialog.
+
+  // --- Field Guide frame ---------------------------------------------------
+  const GUIDE = { comps: 'comps', planner: 'playground', champions: 'home', items: 'home' };
+  const parse = () => { const [p = '', id = ''] = location.hash.replace(/^#\/tft\/?/, '').split('/'); return { p, id: decodeURIComponent(id) }; };
+  // The sidebar's Champions / Items open the guide's own library panel.
   function openLibrary() {
-    const page = location.hash.replace(/^#\/tft\/?/, '');
-    if (page === 'champions' || page === 'items') frame.contentDocument?.querySelector(`[data-library="${page}"]`)?.click();
+    const { p } = parse();
+    if (p === 'champions' || p === 'items') frame.contentDocument?.querySelector(`[data-library="${p}"]`)?.click();
   }
+  function showGuide(p, focus) {
+    document.title = 'TFT Field Guide · QueuePop';
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.title = 'TFT Field Guide — guides and interactive playground';
+      frame.src = source + '#' + GUIDE[p];
+      frame.addEventListener('load', () => {
+        // The sidebar is the navigation: hide the guide's own nav row.
+        frame.contentDocument.head.append(Object.assign(frame.contentDocument.createElement('style'), { textContent: '.main-header.field-nav{display:none}' }));
+        openLibrary();
+        frame.contentWindow.addEventListener('hashchange', () => {
+          if (frame.hidden) return;
+          const hash = frame.contentWindow.location.hash.slice(1);
+          history.replaceState(null, '', '#/tft/' + (hash === 'comps' || hash.startsWith('comp-') ? 'comps' : 'planner'));
+          window.syncSidebar?.();
+        });
+      });
+      host.append(frame);
+    } else if (frame.contentWindow.location.hash !== '#' + GUIDE[p]) {
+      frame.contentWindow.location.replace(source + '#' + GUIDE[p]);
+    }
+    if (frame.contentDocument?.readyState === 'complete') openLibrary();
+    if (focus) frame.focus();
+  }
+
+  // --- Stats pages -----------------------------------------------------------
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pct = (x) => (x * 100).toFixed(1) + '%';
+  const enc = encodeURIComponent;
+  const name = (key) => S.info(key).name;
+  // Icon with a lettered fallback when Community Dragon has no art (or it fails to load).
+  const icon = (key, cls = '') => {
+    const i = S.info(key), letters = i.name.replace(/\W/g, '').slice(0, 2);
+    return i.icon ? `<img class="ts-ico ${cls}" src="${esc(i.icon)}" alt="" title="${esc(i.name)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;ts-ico ts-ico-x ${cls}&quot;>${letters}</span>'">`
+      : `<span class="ts-ico ts-ico-x ${cls}" title="${esc(i.name)}">${letters}</span>`;
+  };
+  const compName = (id) => id.split(',').map(name).join(' · ');
+  const traitsMarkup = (id) => id.split(',').map((t) => `<span class="ts-trait">${icon(t, 'ts-ico-trait')}${esc(name(t))}</span>`).join('');
+  const tierBadge = (t) => `<span class="ts-tier t-${t}" title="Tier ${t}: average placement with a pick-rate bonus">${t}</span>`;
+  const games = (n) => `<span class="ts-games">${n.toLocaleString()} games</span>`;
+
+  const filters = { patch: '', region: 'all', bracket: 'all' };
+  let rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false;
+  const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}`;
+  const detail = (id) => S.get(`/tft/comp/${enc(id)}?${qs()}`);
+  const known = new Map(); // comp id → its loaded unit keys (search matches unit names through these)
+
+  async function loadComps() {
+    offline = false;
+    try {
+      if (!patches) patches = ((await S.get('/patches')).tft) || [];
+      if (!filters.patch) filters.patch = patches[0] || '';
+      rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}`)) : [];
+    } catch (_) { offline = true; rows = []; }
+  }
+  // Fill unit icons for rows on screen, six requests at a time (the crawler is on the LAN).
+  async function fillUnits(ids) {
+    for (let i = 0; i < ids.length; i += 6) {
+      await Promise.allSettled(ids.slice(i, i + 6).map(async (id) => {
+        const d = await detail(id);
+        known.set(id, d.units.map((u) => u.key));
+        const el = page.querySelector(`[data-units="${CSS.escape(id)}"]`);
+        if (el) el.innerHTML = d.units.slice(0, 9).map((u) => icon(u.key)).join('');
+      }));
+    }
+  }
+  const matches = (r) => !query || (compName(r.id) + ' ' + (known.get(r.id) || []).map(name).join(' ')).toLowerCase().includes(query);
+
+  function card() {
+    return `<section class="ts-card" aria-label="Your TFT"><div class="ts-rank"><small>Your TFT</small><strong>Client not connected</strong></div><div class="ts-form"></div></section>`;
+  }
+  async function loadCard() {
+    const el = page.querySelector('.ts-card');
+    let info = {}, list = [];
+    try { info = (await api().get_summoner()) || {}; } catch (_) { /* rank only */ }
+    try { list = ((await api().get_tft_match_history(10)) || []).slice(0, 10); } catch (_) { /* bridge without TFT history */ }
+    if (!el.isConnected) return;
+    const r = info.connected && info.ranked && info.ranked.tft;
+    el.querySelector('.ts-rank').innerHTML = `<small>Your TFT${info.connected && info.name ? ' · ' + esc(info.name) : ''}</small>`
+      + (!info.connected ? '<strong>Client not connected</strong>' : r ? `<strong>${rankText(r)}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>');
+    if (!list.length) return;
+    const avg = list.reduce((s, g) => s + g.placement, 0) / list.length, top4 = list.filter((g) => g.placement <= 4).length;
+    el.querySelector('.ts-form').innerHTML = `<small>Last ${list.length} · avg ${avg.toFixed(2)} · ${top4} top 4</small><div class="ts-places">${list.map((g) => `<a class="ts-place p${g.placement <= 1 ? 1 : g.placement <= 4 ? 4 : 8}" href="#/tft/history" title="${esc(QUEUES[g.queueId] || 'TFT')}">${g.placement}</a>`).join('')}</div>`;
+  }
+
+  function filterStrip() {
+    const opt = (v, l, cur) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${l}</option>`;
+    return `<div class="ts-filters"><label>Patch <select data-f="patch">${(patches || []).map((p) => opt(p, p, filters.patch)).join('') || '<option value="">None yet</option>'}</select></label>
+      <div class="ts-seg" role="group" aria-label="Region">${[['all', 'All regions'], ['na1', 'NA'], ['kr', 'KR']].map(([v, l]) => `<button data-region="${v}" aria-pressed="${filters.region === v}">${l}</button>`).join('')}</div>
+      <label>Rank <select data-f="bracket">${[['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+']].map(([v, l]) => opt(v, l, filters.bracket)).join('')}</select></label></div>`;
+  }
+  function stateLine() {
+    if (offline) return 'Stats offline: the queuePop crawler did not answer.';
+    if (!filters.patch) return 'No TFT stats yet. The crawler aggregates every hour.';
+    if (!rows.length) return 'No comps for these filters yet.';
+    return '';
+  }
+  function compDetail(d) {
+    const table = (list, label) => list.length ? `<table class="ts-table"><thead><tr><th>${label}</th><th>Played</th><th>Avg place</th><th>Top 4</th><th>Games</th></tr></thead><tbody>${list.map((u) => `<tr class="${u.lowSample ? 'low' : ''}"><td>${icon(u.key)}${esc(name(u.key))}</td><td>${pct(u.frequency)}</td><td>${u.avgPlacement.toFixed(2)}</td><td>${pct(u.top4Rate)}</td><td>${u.games.toLocaleString()}</td></tr>`).join('')}</tbody></table>` : `<p class="ts-quiet">No ${label.toLowerCase()} recorded.</p>`;
+    return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${table(d.augments, 'Augment')}</div></div>`;
+  }
+  function renderList() {
+    const list = page.querySelector('.ts-list');
+    if (!list) return;
+    page.querySelector('.ts-state').textContent = stateLine();
+    const vis = rows.filter(matches), slice = vis.slice(0, shown);
+    list.innerHTML = !vis.length ? (rows.length ? `<p class="ts-quiet">No comps match “${esc(query)}”.</p>` : '') :
+      `<div class="ts-head" aria-hidden="true"><span>Tier</span><span>Comp</span><span>Units</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Pick</span><span>Games</span></div>`
+      + slice.map((r) => `<div class="ts-row ${r.lowSample ? 'low' : ''} ${open === r.id ? 'open' : ''}" data-row="${esc(r.id)}"${r.lowSample ? ' title="Low sample: under ' + r.games + ' games is not enough to trust"' : ''}>
+        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}</span>
+        <span class="ts-units" data-units="${esc(r.id)}"></span><span class="ts-num">${r.avgPlacement.toFixed(2)}</span><span class="ts-num">${pct(r.top4Rate)}</span>
+        <span class="ts-num">${pct(r.winRate)}</span><span class="ts-num">${pct(r.pickRate)}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
+        ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')
+      + (vis.length > shown ? `<button class="ts-more" data-more>Show ${Math.min(30, vis.length - shown)} more of ${vis.length - shown}</button>` : '');
+    fillUnits(slice.map((r) => r.id));
+    if (open && slice.some((r) => r.id === open)) {
+      const id = open;
+      detail(id).then((d) => {
+        const el = page.querySelector(`[data-detail="${CSS.escape(id)}"]`);
+        if (el) el.innerHTML = compDetail(d) + `<a class="ts-link" href="#/tft/comp/${enc(id)}">Open the comp page ↗</a>`;
+      }).catch(() => {
+        const el = page.querySelector(`[data-detail="${CSS.escape(id)}"]`);
+        if (el) el.innerHTML = '<p class="ts-quiet">Stats offline: could not load this comp.</p>';
+      });
+    }
+  }
+  async function landing() {
+    document.title = 'Teamfight Tactics · QueuePop';
+    page.innerHTML = `<div class="ts-wrap">${card()}<div class="ts-filter-slot"></div><p class="ts-state" role="status">Loading comps…</p><div class="ts-list"></div>
+      <nav class="ts-links" aria-label="More TFT"><a href="#/tft/history">Match history</a><a href="#/tft/comps">Team comps</a><a href="#/tft/champions">Champions</a><a href="#/tft/items">Items</a><a href="#/tft/planner">Planner</a></nav></div>`;
+    loadCard();
+    await loadComps();
+    if (parse().p !== '') return;
+    page.querySelector('.ts-filter-slot').innerHTML = filterStrip();
+    renderList();
+  }
+
+  // Comp page: the expanded view as a page, with its most-played units placed on a read-only board.
+  // ponytail: the Field Guide's planner (ArenaModel) only accepts its Set 13 sample roster, so live units get this
+  // static board (melee front, ranged back); an editable live-set planner is its own issue.
+  function boardFor(units) {
+    const cells = Array(28).fill(null), order = [3, 2, 4, 1, 5, 0, 6];
+    const place = (key, rowsTry) => { for (const r of rowsTry) for (const c of order) if (!cells[r * 7 + c]) { cells[r * 7 + c] = key; return; } };
+    units.filter((u) => u.frequency >= 0.3).slice(0, 9).forEach((u) => {
+      const range = S.info(u.key).range;
+      place(u.key, range > 2 ? [3, 2, 1, 0] : [0, 1, 2, 3]);
+    });
+    return `<div class="ts-board" aria-label="Suggested board">${[0, 1, 2, 3].map((r) => `<div class="ts-hexrow">${cells.slice(r * 7, r * 7 + 7).map((k) => `<span class="ts-hex ${k ? 'on' : ''}">${k ? icon(k) + `<small>${esc(name(k))}</small>` : ''}</span>`).join('')}</div>`).join('')}</div>`;
+  }
+  async function compPage(id) {
+    document.title = compName(id) + ' · TFT · QueuePop';
+    page.innerHTML = '<div class="ts-wrap"><a class="ts-back" href="#/tft">← All comps</a><p class="ts-state" role="status">Loading comp…</p></div>';
+    if (!patches) await loadComps();
+    let d;
+    try { d = await detail(id); } catch (e) {
+      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this comp with these filters.' : 'Stats offline: the queuePop crawler did not answer.';
+      return;
+    }
+    if (parse().id !== id) return;
+    page.querySelector('.ts-wrap').innerHTML = `<a class="ts-back" href="#/tft">← All comps</a>
+      <header class="ts-comp-head ${d.lowSample ? 'low' : ''}">${tierBadge(S.compTier(d))}<div><h1>${esc(compName(id))}</h1><div class="ts-name">${traitsMarkup(id)}</div></div></header>
+      <div class="ts-stats">${[['Avg place', d.avgPlacement.toFixed(2)], ['Top 4', pct(d.top4Rate)], ['Win', pct(d.winRate)], ['Pick', pct(d.pickRate)]].map(([l, v]) => `<div><small>${l}</small><strong>${v}</strong></div>`).join('')}<div><small>Sample</small><strong>${d.games.toLocaleString()}</strong>${d.lowSample ? `<span class="ts-quiet">under ${d.minGames} games</span>` : ''}</div></div>
+      <p class="ts-quiet">Patch ${esc(d.patch)} · ${d.region === 'all' ? 'all regions' : esc(d.region.toUpperCase())} · ${d.bracket === 'all' ? 'all ranks' : esc(d.bracket) + '+'}</p>
+      <section class="ts-comp-board"><h3>Board</h3>${boardFor(d.units)}<p class="ts-quiet">Units played in at least 30% of these boards; melee in front, ranged behind. <a href="#/tft/planner">Open the planner ↗</a></p></section>
+      ${compDetail(d)}`;
+  }
+
+  // Match history: your recent TFT games from the client (bridge get_tft_match_history).
+  const QUEUES = { 1090: 'Normal', 1100: 'Ranked', 1130: 'Hyper Roll', 1160: 'Double Up', 1210: 'Choncc’s Treasure', 1220: 'Revival' };
+  let played = [], openGame = null;
+  const ago = (ts) => { const m = Math.round((Date.now() / 1000 - ts) / 60); return m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`; };
+  const stars = (n) => `<i class="ts-stars s${n}">${'★'.repeat(n)}</i>`;
+  function renderHistory() {
+    const list = page.querySelector('.ts-hist');
+    if (!list) return;
+    list.innerHTML = played.map((g, i) => {
+      const traits = [...g.traits].sort((a, b) => b.style - a.style || b.units - a.units);
+      return `<div class="ts-game ${openGame === i ? 'open' : ''}"><button class="ts-game-main" data-game="${i}" aria-expanded="${openGame === i}">
+        <span class="ts-place p${g.placement <= 1 ? 1 : g.placement <= 4 ? 4 : 8}">${g.placement}</span>
+        <span class="ts-game-meta"><strong>${esc(QUEUES[g.queueId] || 'TFT')}</strong><small>${ago(g.ts)} · level ${g.level} · ${Math.round(g.length / 60)} min</small></span>
+        <span class="ts-game-traits">${traits.slice(0, 6).map((t) => `<span class="ts-trait st${t.style}">${icon(t.key, 'ts-ico-trait')}${t.units}</span>`).join('')}</span>
+        <span class="ts-units">${g.units.map((u) => icon(u.key)).join('')}</span></button>
+        ${openGame === i ? `<div class="ts-detail ts-detail-grid"><div><h3>Final board</h3>${g.units.map((u) => `<div class="ts-unit-line">${icon(u.key)}<span>${esc(name(u.key))} ${stars(u.stars)}</span><span class="ts-items">${u.items.map((k) => icon(k, 'ts-ico-item')).join('')}</span></div>`).join('') || '<p class="ts-quiet">No units.</p>'}</div>
+          <div><h3>Traits</h3><div class="ts-trait-list">${traits.map((t) => `<span class="ts-trait st${t.style}">${icon(t.key, 'ts-ico-trait')}${esc(name(t.key))} ${t.units}</span>`).join('')}</div>
+          <h3>Augments</h3>${g.augments.length ? `<div class="ts-trait-list">${g.augments.map((a) => `<span class="ts-trait">${icon(a, 'ts-ico-item')}${esc(name(a))}</span>`).join('')}</div>` : '<p class="ts-quiet">The client’s copy of this game has no augments.</p>'}</div></div>` : ''}</div>`;
+    }).join('');
+  }
+  async function historyPage() {
+    document.title = 'TFT match history · QueuePop';
+    page.innerHTML = '<div class="ts-wrap"><h1 class="ts-h1">Match history</h1><p class="ts-state" role="status">Loading your games…</p><div class="ts-hist"></div></div>';
+    let err = '';
+    try { played = (await api().get_tft_match_history(20)) || []; } catch (_) { played = []; err = 'Match history is not available in this build.'; }
+    if (parse().p !== 'history') return;
+    page.querySelector('.ts-state').textContent = err || (played.length ? `Your last ${played.length} TFT games.` : 'No TFT games found. Is the League client open?');
+    renderHistory();
+  }
+
+  // --- Search: filters the comps list as you type; results jump to a comp or narrow to a unit/trait. ----------
+  function renderResults() {
+    if (!query) { results.hidden = true; return; }
+    const units = new Set([...known.values()].flat()), traits = new Set(rows.flatMap((r) => r.id.split(',')));
+    const hit = (k) => name(k).toLowerCase().includes(query);
+    const u = [...units].filter(hit).slice(0, 8), t = [...traits].filter(hit).slice(0, 8);
+    const c = rows.filter(matches).slice(0, 5);
+    results.hidden = false;
+    results.innerHTML = (u.length ? `<div><small>Units</small>${u.map((k) => `<button data-pick="${esc(name(k))}">${icon(k)}${esc(name(k))}</button>`).join('')}</div>` : '')
+      + (t.length ? `<div><small>Traits</small>${t.map((k) => `<button data-pick="${esc(name(k))}">${icon(k, 'ts-ico-trait')}${esc(name(k))}</button>`).join('')}</div>` : '')
+      + (c.length ? `<div><small>Comps</small>${c.map((r) => `<a href="#/tft/comp/${enc(r.id)}">${tierBadge(r.tier)}${esc(compName(r.id))}</a>`).join('')}</div>` : '')
+      || `<div><small>${offline ? 'Stats offline' : rows.length ? 'No matches' : 'No comps loaded yet'}</small></div>`;
+  }
+  let searchedAll = false;
+  input.addEventListener('input', async () => {
+    query = input.value.trim().toLowerCase();
+    if (!query) { renderResults(); renderList(); return; }
+    if (!rows.length && !offline) await loadComps();
+    renderResults(); renderList();
+    // Unit names match through each comp's loaded units; load the rest once.
+    // ponytail: one request per comp (<= 200, cached); add units to /tft/comps if that gets slow.
+    if (!searchedAll) { searchedAll = true; await fillUnits(rows.map((r) => r.id).filter((id) => !known.has(id))); renderResults(); renderList(); }
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { input.value = ''; input.dispatchEvent(new Event('input')); }
+    if (e.key === 'Enter') results.querySelector('a,button')?.click();
+  });
+  results.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pick]');
+    if (!b) return;
+    input.value = b.dataset.pick;
+    query = b.dataset.pick.toLowerCase();
+    results.hidden = true;
+    if (parse().p !== '') location.hash = '/tft'; else renderList();
+  });
+  search.addEventListener('click', (e) => { if (e.target.closest('a')) results.hidden = true; });
+
+  page.addEventListener('click', (e) => {
+    const o = e.target.closest('[data-open]');
+    if (o) { open = open === o.dataset.open ? null : o.dataset.open; renderList(); page.querySelector(`[data-open="${CSS.escape(o.dataset.open)}"]`)?.focus(); return; }
+    const r = e.target.closest('[data-region]');
+    if (r) { filters.region = r.dataset.region; refilter(); return; }
+    if (e.target.closest('[data-more]')) { shown += 30; renderList(); return; }
+    const g = e.target.closest('[data-game]');
+    if (g) { openGame = openGame === +g.dataset.game ? null : +g.dataset.game; renderHistory(); page.querySelector(`[data-game="${g.dataset.game}"]`)?.focus(); }
+  });
+  page.addEventListener('change', (e) => { if (e.target.dataset.f) { filters[e.target.dataset.f] = e.target.value; refilter(); } });
+  async function refilter() {
+    open = null; shown = 30; known.clear(); searchedAll = false;
+    page.querySelector('.ts-state').textContent = 'Loading comps…';
+    await loadComps();
+    page.querySelector('.ts-filter-slot').innerHTML = filterStrip();
+    renderList();
+  }
+
+  function showStats(p, id) {
+    if (!dragonAsked) { dragonAsked = true; S.loadDragon().then(() => { if (!page.hidden) render(); }); }
+    render();
+    function render() {
+      const cur = parse();
+      if (cur.p === 'comp') compPage(cur.id);
+      else if (cur.p === 'history') historyPage();
+      else landing();
+    }
+  }
+
   return {
     show(focus = true) {
-      document.title = 'TFT Field Guide · QueuePop';
+      const { p, id } = parse();
+      const stats = !GUIDE[p];
+      page.hidden = stats ? false : true;
+      if (frame) frame.hidden = stats;
+      rankEl.hidden = stats;
+      results.hidden = true;
       refreshRank();
-      if (!frame) {
-        frame = document.createElement('iframe');
-        frame.title = 'TFT Field Guide — guides and interactive playground';
-        frame.src = source + '#' + route();
-        frame.addEventListener('load', () => {
-          // The sidebar is the navigation: hide the guide's own nav row.
-          frame.contentDocument.head.append(Object.assign(frame.contentDocument.createElement('style'), { textContent: '.main-header.field-nav{display:none}' }));
-          openLibrary();
-          frame.contentWindow.addEventListener('hashchange', () => {
-            if (host.hidden) return;
-            const hash = frame.contentWindow.location.hash.slice(1);
-            history.replaceState(null, '', '#/tft' + (hash === 'home' ? '' : '/' + hash));
-            window.syncSidebar?.();
-          });
-        });
-        host.append(frame);
-      } else if (frame.contentWindow.location.hash !== '#' + route()) {
-        frame.contentWindow.location.replace(source + '#' + route());
-      }
-      if (frame.contentDocument?.readyState === 'complete') openLibrary();
-      if (focus) frame.focus();
+      if (stats) { showStats(p, id); if (focus) page.focus({ preventScroll: true }); page.scrollTop = 0; }
+      else showGuide(p, focus);
     },
-    focus() { frame?.focus(); }
+    focus() { (page.hidden ? frame : page)?.focus(); }
   };
 };
