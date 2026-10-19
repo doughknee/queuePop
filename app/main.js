@@ -97,6 +97,8 @@ const impl = {
 Object.assign(impl, require("./champ-select").attach(lcu, impl, push, state)); // DONI-441
 Object.assign(impl, require("./overlay")); // DONI-446: Deadlock overlay probe + launch
 Object.assign(impl, require("./deadlock-api")); // DONI-482: Deadlock account id
+const assets = require("./assets").create(log); // DONI-504: icon packs download themselves
+Object.assign(impl, assets.methods(impl));
 
 const stubbed = new Set();
 ipcMain.handle("api", async (_e, name, args) => {
@@ -119,6 +121,7 @@ app.whenReady().then(() => {
   });
   win.loadFile(WEBUI);
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
+  assets.check(); // never awaited: icons fill in as they land
   lcu.start();
   log("Searching for League client...");
 });
