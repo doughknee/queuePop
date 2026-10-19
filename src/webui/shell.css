@@ -53,3 +53,4 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #world-nav>[data-keep]{-webkit-app-region:no-drag;flex:none;margin-right:10px}
 .theme-deadlock #world-nav{display:none}
 .win-controls,.resize-grip,.league-dock{-webkit-app-region:no-drag}
+.sb-gear[aria-current]{background:#ffffff14;color:#eeeae1}

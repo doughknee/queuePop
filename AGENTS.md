@@ -110,6 +110,14 @@
   `/players/steam-search`, `/matches/{id}/metadata` (items bought), `/assets/ranks`, `/patches`. Tier = win-rate
   percentile; `app/test-deadlock.js` checks the row builder (`window.deadlockTierRows`).
 
+## Settings
+- `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the
+  sidebar gear; sections (account, league, alerts, companion, crawler, about) are cards with jump links in the page row
+  (`settingsView.row()`, used by `shell.js`). It reads `QP.store.config` and writes `QP.store.set(...)` with the Python-era keys, plus
+  `deadlock_account_id` and `crawler_url` (both now pass through `normalizeConfig` in `app/champ-config.js`, otherwise save_config drops them).
+  The crawler card fetches `{crawler_url}/status` and posts `/admin/key` from the renderer. `#/league/settings` and `#/companion` redirect here;
+  the old `#tab-alerts`/`#tab-about` markup stays hidden because `notifications.js`/`update.js` bind to its ids.
+
 ## Stats crawler
 - `crawler/` is a standalone Node 24 service (own `package.json`, no deps, `node:sqlite`): one Riot personal key crawls
   ranked League/TFT matches per region, aggregates per-patch stats into `stats_*`, and serves them on port 47900
