@@ -52,11 +52,20 @@
     return scored;
   }
 
+  /* DONI-507 items 4·5·6: per build slot 4..6, the most-bought options that are not already in the core build, so each
+     slot reads "this OR that OR that". buildOrder = /lol/champion's { core, slots }; returns [[option, ...] × 3]. */
+  function leagueSlotAlternatives(buildOrder, n = 3) {
+    const core = new Set(String(buildOrder?.core?.[0]?.key || '').split(',').filter(Boolean));
+    return [3, 4, 5].map(i => (buildOrder?.slots?.[i] || []).filter(o => !core.has(String(o.key))).slice(0, n));
+  }
+
   window.leagueTierRows = leagueTierRows;
+  window.leagueSlotAlternatives = leagueSlotAlternatives;
   window.statsApi = {
     patches: () => crawler('/patches'),
     tiers: p => crawler('/lol/tiers', p),
     champion: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}`, p),
+    championPlayers: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}/players`, p), // DONI-506's endpoint; 404 until deployed
     status: () => crawler('/status'),
     ddVersion,
     items: patch => ddData(patch, 'item.json'),

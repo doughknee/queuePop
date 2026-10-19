@@ -147,8 +147,12 @@
   for 10 minutes. `window.leagueTierRows` is the tier banding, tested by `app/test-league.js`: win rate shrunk toward the
   list average by 100 games, score = 0.75 × win-rate percentile + 0.25 × pick-rate percentile, top 10% S, 20% A, 40% B,
   20% C, 10% D. lowSample rows are banded, greyed, and sorted below the rest in tier order.
-- Items come from final inventories (no purchase order): no starting-items block; "Items 4·5·6" = finished items past the
-  three most built, by pick rate.
+- Champion page (DONI-507) lives in `src/webui/league-champion.{js,css}`, Lolalytics' section order: strip (win, delta, game
+  avg, pick, ban, tier, rank, games) · role tabs · skills (priority + order grid, 6/10/15 toggle) · spells, runes, stat mods ·
+  starting, early, core build, items 4·5·6 (`window.leagueSlotAlternatives`, tested in `app/test-league.js`) · objectives ·
+  counters (delta 1/2) · synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
+  Crawler side: `crawler/src/timeline.js` (purchase/skill parse) + `crawler/src/agg-champion.js` (tables, aggregate, the extra
+  `/lol/champion/{id}` fields). Timeline blocks come from the TIMELINE_SAMPLE share of games and fill forward from deploy.
 
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),

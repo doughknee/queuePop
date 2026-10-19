@@ -25,4 +25,11 @@ assert.strictEqual(rows.filter((r) => r.tier === "B").length, 4);
 assert.ok(rows.every((r) => r.score >= 0 && r.score <= 1));
 assert.strictEqual(ctx.window.leagueTierRows([]).length, 0);
 assert.strictEqual(ctx.window.leagueTierRows([row(1, 10, 5, 0.1)])[0].tier, "S");
+
+// DONI-507: items 4·5·6 alternatives skip what the core build already has
+const opt = (key, games) => ({ key, games, winRate: 0.5, pickRate: 0.1 });
+const alts = ctx.window.leagueSlotAlternatives({ core: [opt("3020,3078,6672", 50)], slots: [[], [], [],
+  [opt("3078", 9), opt("3053", 8), opt("3071", 7), opt("6333", 6)], [opt("3053", 5)], []] });
+assert.strictEqual(JSON.stringify(alts.map((s) => s.map((o) => o.key))), JSON.stringify([["3053", "3071", "6333"], ["3053"], []]));
+assert.strictEqual(JSON.stringify(ctx.window.leagueSlotAlternatives(undefined)), "[[],[],[]]");
 console.log("ok test-league");
