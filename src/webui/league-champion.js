@@ -129,7 +129,7 @@ function lgSynergies(d) {
 async function lgFillPlayers(token, id) {
   const el = () => token === lg.token && document.getElementById('lg-best');
   let data = null;
-  try { data = await statsApi.championPlayers(id, lgParams(lgRoleOf(lgChampData?.role))); } catch {}
+  try { data = await statsApi.players(id, lgParams(lgRoleOf(lgChampData?.role))); } catch {}
   if (!el()) return;
   const ps = data?.players || [];
   if (!data) { el().innerHTML = '<p class="lg-wait">Coming soon: the stats crawler does not rank players on a champion yet.</p>'; return; }

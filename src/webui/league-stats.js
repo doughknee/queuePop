@@ -30,7 +30,8 @@ function lgIcon(id, cls = 'lg-icon') {
   return `<img class="${cls}" src="${champBase}/${c.id}.png" alt="" loading="lazy" onerror="this.onerror=null;${dd ? `this.src='${dd}'` : `this.style.visibility='hidden'`}">`;
 }
 const lgImg = (src, title = '', cls = 'lg-ico') => `<img class="${cls}" src="${src}" alt="" title="${lgEsc(title)}" loading="lazy" onerror="this.style.visibility='hidden'">`;
-const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/positions/${r}.svg" alt="" title="${LG_ROLE[r]}">` : '';
+// Position icons are downloaded assets (gitignored); a missing file falls back to the text label.
+const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/positions/${r}.svg" alt="${LG_ROLE[r]}" title="${LG_ROLE[r]}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lg-role-txt',textContent:this.title}))">` : '';
 async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
@@ -99,11 +100,20 @@ function lgHistory(n) {
   return lgHistCache.p.then(g => (g || []).slice(0, n));
 }
 
-// --- Filter strip + tier list ---
+// --- Filter strip + tier list (DONI-506: Lolalytics' columns and filters) ---
+const LG_TKEY = 'queuepop-league-tiers-v1';
+const lgt = { minLane: 5, minPick: 0, minGames: 200, regions: [] }; // min lane % and min pick % in percent
+try { const s = JSON.parse(localStorage.getItem(LG_TKEY) || '{}'); for (const k of ['minLane', 'minPick', 'minGames']) if (Number.isFinite(s[k]) && s[k] >= 0) lgt[k] = s[k]; if (Array.isArray(s.regions)) lgt.regions = s.regions.filter(r => typeof r === 'string'); } catch {}
+const lgtSave = () => { try { localStorage.setItem(LG_TKEY, JSON.stringify(lgt)); } catch {} };
+const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+'], ['grandmaster', 'Grandmaster+'], ['challenger', 'Challenger']];
+// Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
+const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
 function lgFilters(withRole = true) {
   const sel = (key, opts) => `<label><span>${{ patch: 'Patch', region: 'Region', bracket: 'Rank' }[key]}</span><select data-lg-filter="${key}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
-  return `<div class="lg-filters">${sel('patch', [[lg.patch, lg.patch || 'Newest']])}${sel('region', [['all', 'All regions'], ['na1', 'NA'], ['kr', 'KR']])}${sel('bracket', [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+']])}
-    ${withRole ? `<div class="lg-roles" role="group" aria-label="Role">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All roles'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : ''}<span class="lg-meta" id="lg-meta"></span></div>`;
+  const num = (key, label, step, max) => `<label class="lg-num"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}"></label>`;
+  return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}">${r === 'all' ? '' : lgRoleIcon(r)}<span>${LG_ROLE[r] || 'All'}</span></button>`).join('')}</div>` : ''}
+    ${sel('patch', [[lg.patch, lg.patch || 'Newest']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}
+    ${withRole ? `${num('minLane', 'Min lane %', 1, 100)}${num('minGames', 'Min games', 50, 100000)}${num('minPick', 'Min pick %', 0.1, 100)}` : ''}<span class="lg-meta" id="lg-meta"></span></div>`;
 }
 async function lgFillPatches(token) {
   try {
@@ -112,38 +122,78 @@ async function lgFillPatches(token) {
     if (sel) sel.innerHTML = (p.lol || []).map(v => `<option value="${v}" ${(lg.patch || p.lol[0]) === v ? 'selected' : ''}>${v}</option>`).join('');
   } catch {}
 }
-const LG_COLS = [['score', 'Tier'], ['name', 'Champion'], ['role', 'Role'], ['winRate', 'Win rate'], ['pickRate', 'Pick rate'], ['banRate', 'Ban rate'], ['games', 'Games']];
+// [sort key, header, title]; keys starting "best." read r.best.*
+const LG_COLS = [['score', 'Tier', 'S+ to D-: the rule is under the table'], ['name', 'Champion', ''], ['laneShare', 'Lane', "Share of this champion's games played in this lane"],
+  ['winRate', 'Win', ''], ['delta', 'Δ', 'Win rate minus the average win rate for these filters, in points'], ['pickRate', 'Pick', ''], ['banRate', 'Ban', ''],
+  ['pbi', 'PBI', 'Pick-ban influence: Δ × ban rate ÷ (1 − pick rate). High = banning it takes away a lot of win rate'], ['games', 'Games', 'Sample size'],
+  ['best.winRate', 'Win', 'Pooled win rate of players with 20+ games on the champion'], ['best.games', 'Games', 'Their games · how many players'], ['best.avgTier', 'Rank', 'Their average rank']];
+// Used by the champion page's matchups.
 function lgSortRows(rows, key, dir, name) {
   const v = r => key === 'name' ? name(r) : key === 'role' ? LG_ROLES.indexOf(lgRoleOf(r.role)) : r[key];
   // Tier order keeps low-sample rows below the rest; every other column sorts them in place.
   return [...rows].sort((a, b) => { const x = v(a), y = v(b); return (key === 'score' && a.lowSample !== b.lowSample ? (a.lowSample ? 1 : -1) : 0) || (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || b.games - a.games; });
 }
+const lgVal = (r, k) => k === 'name' ? lgChamp(r.champion).name : k.startsWith('best.') ? r.best?.[k.slice(5)] : r[k];
+function lgTierSort(rows) {
+  const k = lg.sort, d = lg.dir, cmp = (x, y) => (typeof x === 'string' ? x.localeCompare(y) : x - y) * d;
+  // Low-sample rows (not tiered), then rows without the value, stay below the rest whatever the column.
+  return [...rows].sort((a, b) => {
+    const x = lgVal(a, k), y = lgVal(b, k);
+    return (a.lowSample - b.lowSample) || ((x == null) - (y == null)) || (x == null ? 0 : cmp(x, y)) || b.games - a.games;
+  });
+}
+const LG_TIER_SHORT = ['I', 'B', 'S', 'G', 'P', 'E', 'D', 'M', 'GM', 'C'];
+// best.avgTier is a tier index (Iron 0 .. Challenger 9) plus the division (IV 0, III .25, II .5, I .75): 6.5 -> D2.
+const lgRankLabel = n => n == null ? '–' : n >= 7 ? LG_TIER_SHORT[Math.min(9, Math.floor(n))] : `${LG_TIER_SHORT[Math.floor(n)]}${4 - Math.floor((n % 1) * 4 + 1e-9)}`;
 const lgBar = wr => `<i class="lg-bar ${wr >= 0.5 ? 'up' : 'down'}" style="--v:${Math.max(0.04, Math.min(1, Math.abs(wr - 0.5) / 0.1))}"></i>`;
-const lgTier = (t, low) => `<b class="lg-tier t-${t}${low ? ' low' : ''}" title="Tier ${t}${low ? ' (low sample)' : ''}">${t}</b>`;
+const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
+const lgSigned = (x, d = 1) => x == null ? '–' : `<span class="${x > 0 ? 'up' : x < 0 ? 'down' : ''}">${x > 0 ? '+' : ''}${x.toFixed(d)}</span>`;
 function lgTierTable(data) {
-  const rows = lgSortRows(leagueTierRows(data.champions), lg.sort, lg.dir, r => lgChamp(r.champion).name);
-  if (!rows.length) return '<p class="lg-wait">No games for these filters yet.</p>';
-  const th = ([k, t]) => `<th aria-sort="${lg.sort === k ? (lg.dir < 0 ? 'descending' : 'ascending') : 'none'}"><button data-lg-sort="${k}">${t}${lg.sort === k ? (lg.dir < 0 ? ' ▾' : ' ▴') : ''}</button></th>`;
-  return `<table class="lg-table lg-tiers"><thead><tr><th class="num">#</th>${LG_COLS.map(th).join('')}</tr></thead><tbody>${rows.map((r, i) => {
-    const c = lgChamp(r.champion), role = lgRoleOf(r.role), href = `#/league/champion/${r.champion}/${role}`;
-    return `<tr class="${r.lowSample ? 'low' : ''}" data-lg-go="${href}"><td class="num">${i + 1}</td><td>${lgTier(r.tier, r.lowSample)}</td><td class="lg-name"><a href="${href}">${lgIcon(r.champion)}<span>${lgEsc(c.name)}</span></a></td><td>${lgRoleIcon(role)}</td><td class="num">${lgBar(r.winRate)}${lgPct(r.winRate)}</td><td class="num">${lgPct(r.pickRate)}</td><td class="num">${lgPct(r.banRate)}</td><td class="num">${lgN(r.games)}</td></tr>`;
-  }).join('')}</tbody></table>`;
+  const banded = leagueTierRows(data.champions);
+  const shown = banded.filter(r => (r.laneShare == null || r.laneShare * 100 >= lgt.minLane) && r.pickRate * 100 >= lgt.minPick);
+  const rows = lgTierSort(shown), hidden = banded.length - shown.length;
+  const note = hidden ? `<p class="lg-wait">${hidden} rows under min lane % / min pick % are filtered out.</p>` : '';
+  if (!rows.length) return note || '<p class="lg-wait">No games for these filters yet.</p>';
+  const th = ([k, t, title], i) => `<th class="${i > 1 ? 'num' : ''}${i === 9 ? ' lg-best-first' : ''}" aria-sort="${lg.sort === k ? (lg.dir < 0 ? 'descending' : 'ascending') : 'none'}"${title ? ` title="${lgEsc(title)}"` : ''}><button data-lg-sort="${k}">${t}${lg.sort === k ? (lg.dir < 0 ? ' ▾' : ' ▴') : ''}</button></th>`;
+  return `<table class="lg-table lg-tiers lg-tiers2"><thead><tr class="lg-group"><th colspan="10"></th><th colspan="3" class="lg-best-first" title="Players with 20+ games on the champion this patch, any lane">Best on champion</th></tr>
+    <tr><th class="num">#</th>${LG_COLS.map(th).join('')}</tr></thead><tbody>${rows.map((r, i) => {
+    const c = lgChamp(r.champion), role = lgRoleOf(r.role), href = `#/league/champion/${r.champion}/${role}`, b = r.best;
+    return `<tr class="${r.lowSample ? 'low' : ''}" data-lg-go="${href}"><td class="num">${i + 1}</td><td>${lgTier(r.tier, r.lowSample)}</td>
+      <td class="lg-name"><a href="${href}">${lgIcon(r.champion)}<span>${lgEsc(c.name)}</span>${lg.role === 'all' ? lgRoleIcon(role) : ''}</a></td>
+      <td class="num">${r.laneShare == null ? '–' : lgPct(r.laneShare)}</td><td class="num">${lgBar(r.winRate)}${lgPct(r.winRate)}</td><td class="num">${r.delta == null ? '–' : lgSigned(r.delta * 100)}</td>
+      <td class="num">${lgPct(r.pickRate)}</td><td class="num">${lgPct(r.banRate)}</td><td class="num">${r.pbi == null ? '–' : lgSigned(r.pbi, 2)}</td><td class="num">${lgN(r.games)}</td>
+      <td class="num lg-best-first">${b ? lgPct(b.winRate) : '–'}</td><td class="num">${b ? `${lgN(b.games)}<small> · ${b.players}p</small>` : '–'}</td><td class="num" title="${b?.avgTier ?? ''}">${b ? lgRankLabel(b.avgTier) : '–'}</td></tr>`;
+  }).join('')}</tbody></table>${note}`;
 }
 let lgTierData = null;
 async function lgFillTiers(token) {
   const box = () => token === lg.token && document.getElementById('lg-tiers');
   try {
-    const [data] = await Promise.all([statsApi.tiers(lgParams()), lgNames(lg.patch)]);
+    const [data] = await Promise.all([statsApi.tiers({ ...lgParams(), min_games: String(lgt.minGames) }), lgNames(lg.patch)]);
     if (!box()) return;
     lgTierData = data;
+    if (Array.isArray(data.regions) && data.regions.join() !== lgt.regions.join()) {
+      lgt.regions = data.regions; lgtSave();
+      const sel = document.querySelector('[data-lg-filter=region]');
+      if (sel) sel.innerHTML = lgRegionOpts().map(([v, t]) => `<option value="${v}" ${lg.region === v ? 'selected' : ''}>${t}</option>`).join('');
+    }
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
-    document.getElementById('lg-meta').innerHTML = `Patch ${lgEsc(data.patch)} · ${lgN(data.matches)} matches · ${data.champions.length} rows${low ? `, ${low} under ${lgN(data.minGames)} games (greyed)` : ''}`;
+    document.getElementById('lg-meta').innerHTML = `Patch ${lgEsc(data.patch)} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · avg win ${lgPct(data.avgWinRate)}` : ''} · ${data.champions.length} rows${low ? `, ${low} under ${lgN(data.minGames)} games (greyed, not tiered)` : ''}`;
   } catch {
     if (box()) { box().innerHTML = lgOffline('the stats crawler did not answer.'); document.getElementById('lg-meta').textContent = ''; }
   }
 }
-const lgTierRule = `<p class="lg-rule">Tier: win rate shrunk toward the list average by 100 games, then 75% win-rate percentile + 25% pick-rate percentile; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D. Greyed rows are under the crawler's minimum sample.</p>`;
+// Min lane % / min pick % re-filter the loaded rows; min games is the crawler's low-sample line, so it refetches.
+document.addEventListener('change', e => {
+  const k = e.target.dataset?.lgNum;
+  if (!k) return;
+  const v = Number(e.target.value);
+  if (e.target.value === '' || !(v >= 0)) { e.target.value = lgt[k]; return; }
+  lgt[k] = v; lgtSave();
+  if (k === 'minGames') lgFillTiers(++lg.token); else if (lgTierData) document.getElementById('lg-tiers').innerHTML = lgTierTable(lgTierData);
+});
+const lgTierRule = `<p class="lg-rule">Tier: win rate shrunk toward the list average by 100 games (55%), PBI (20%), and the win rate (15%) and average rank (10%) of players with 20+ games on the champion, each as a percentile of the list; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D, each split into +, plain and −. Greyed rows are under min games: shown, never tiered. Lane = share of the champion's games in this lane; Δ = win rate minus the average for these filters; PBI = Δ × ban rate ÷ (1 − pick rate).</p>`;
 function lgTierSection(title) {
   return `<section class="lg-section"><header class="lg-head"><h2>${title}</h2></header>${lgFilters()}<div id="lg-tiers"><p class="lg-wait">Loading the tier list…</p></div>${lgTierRule}</section>`;
 }

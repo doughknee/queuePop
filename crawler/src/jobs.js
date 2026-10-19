@@ -154,6 +154,7 @@ function store(ctx, game, id, m) {
       }
       const ban = db.prepare("INSERT INTO lol_bans VALUES (?, ?, ?)");
       for (const t of info.teams) for (const b of t.bans) if (b.championId > 0) ban.run(id, t.teamId, b.championId);
+      require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
     } else {
       const ins = db.prepare("INSERT INTO tft_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
       for (const p of info.participants) {
@@ -218,6 +219,7 @@ function aggregate(db, now = Date.now, force = false) {
     for (const patch of dirty) {
       for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
+      require("./agg-players").aggregatePatch(db, patch);
     }
     setMeta(db, "aggregatedAt", now());
   });

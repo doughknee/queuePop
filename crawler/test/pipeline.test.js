@@ -31,6 +31,7 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const raw = db.prepare("SELECT raw FROM matches WHERE id = 'NA1_520000001'").get().raw;
     assert.strictEqual(JSON.parse(zlib.gunzipSync(raw)).metadata.matchId, "NA1_520000001");
 
+    assert.ok(db.prepare("SELECT count(*) n FROM lol_names WHERE riot_id LIKE '%#%'").get().n >= 10, "riot ids stored for new matches");
     jobs.aggregate(db);
     await new Promise((r) => api.listen(0, "127.0.0.1", r));
     const get = async (p) => { const r = await fetch(`http://127.0.0.1:${api.address().port}${p}`); return [r.status, await r.json(), r.headers]; };

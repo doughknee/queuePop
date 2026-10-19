@@ -1,4 +1,4 @@
-// Checks the League tier banding (src/webui/js/stats-api.js) on a trimmed /lol/tiers response.
+// Checks the League tier banding (src/webui/js/stats-api.js, DONI-506 rule) on a trimmed /lol/tiers response.
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
@@ -6,25 +6,36 @@ const vm = require("vm");
 
 const ctx = { window: {}, URLSearchParams, AbortSignal, fetch: () => Promise.reject(new Error("offline")) };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "src", "webui", "js", "stats-api.js"), "utf8"), ctx);
+const tiers = ctx.window.leagueTierRows;
 
-const row = (champion, games, wins, pickRate, lowSample = false) =>
-  ({ champion, role: "MIDDLE", games, wins, winRate: wins / games, pickRate, banRate: 0, lowSample });
-const fixture = { patch: "16.20", minGames: 200, matches: 5000, champions: [
-  row(1, 1000, 560, 0.20), row(2, 900, 500, 0.18), row(3, 800, 430, 0.16), row(4, 700, 360, 0.14),
-  row(5, 600, 300, 0.12), row(6, 500, 250, 0.10), row(7, 400, 195, 0.08), row(8, 300, 140, 0.06),
-  row(9, 250, 110, 0.05), row(10, 2, 2, 0.0004, true), // 2-game 100%: shrunk toward average, not S
-] };
-const rows = ctx.window.leagueTierRows(fixture.champions);
-assert.strictEqual(rows.length, 10);
+const row = (champion, games, wins, pickRate, extra = {}) =>
+  ({ champion, role: "MIDDLE", games, wins, winRate: wins / games, pickRate, banRate: 0, lowSample: games < 200, ...extra });
+// 30 banded rows, win rate falling with the id, plus two low-sample rows.
+const champions = Array.from({ length: 30 }, (_, i) => row(i + 1, 1000, 560 - i * 4, 0.1));
+champions.push(row(99, 20, 20, 0.004), row(98, 150, 120, 0.03));
+const rows = tiers(champions);
 const tier = Object.fromEntries(rows.map((r) => [r.champion, r.tier]));
-assert.strictEqual(tier[1], "S");
-assert.deepStrictEqual([2, 3].map((c) => tier[c]), ["A", "A"]);
-assert.strictEqual(tier[9], "D");
-assert.notStrictEqual(tier[10], "S");
-assert.strictEqual(rows.filter((r) => r.tier === "B").length, 4);
-assert.ok(rows.every((r) => r.score >= 0 && r.score <= 1));
-assert.strictEqual(ctx.window.leagueTierRows([]).length, 0);
-assert.strictEqual(ctx.window.leagueTierRows([row(1, 10, 5, 0.1)])[0].tier, "S");
+assert.strictEqual(rows.length, 32);
+// 10% S, 20% A, 40% B, 20% C, 10% D, each split in thirds: of 30 rows S+ S S- are one each, D- is the last
+assert.deepStrictEqual([1, 2, 3].map((c) => tier[c]), ["S+", "S", "S-"]);
+assert.deepStrictEqual([4, 5, 6, 7, 8, 9].map((c) => tier[c]), ["A+", "A+", "A", "A", "A-", "A-"]);
+assert.strictEqual(tier[30], "D-");
+assert.strictEqual(rows.filter((r) => r.tier?.[0] === "B").length, 12);
+// low-sample rows: no tier, score -1, after the banded ones
+assert.strictEqual(tier[99], null);
+assert.strictEqual(tier[98], null);
+assert.strictEqual(rows.slice(-2).map((r) => r.score).join(), "-1,-1");
+assert.ok(rows.slice(0, 30).every((r) => r.score >= 0 && r.score <= 1));
+
+// PBI and the best-player block move a row: equal win rates, the one with better PBI/best players ranks higher
+const even = [row(1, 1000, 500, 0.1, { pbi: 2, best: { winRate: 0.6, avgTier: 8 } }), row(2, 1000, 500, 0.1, { pbi: -1, best: { winRate: 0.5, avgTier: 6 } }),
+  row(3, 1000, 500, 0.1)]; // no pbi/best: neutral 0.5
+const ev = tiers(even), score = (c) => ev.find((r) => r.champion === c).score;
+assert.ok(score(1) > score(3) && score(3) > score(2));
+
+assert.strictEqual(tiers([]).length, 0);
+assert.strictEqual(tiers([row(1, 1000, 500, 0.1)])[0].tier, "S+");
+assert.strictEqual(tiers([row(1, 10, 5, 0.1)])[0].tier, null);
 
 // DONI-507: items 4·5·6 alternatives skip what the core build already has
 const opt = (key, games) => ({ key, games, winRate: 0.5, pickRate: 0.1 });
