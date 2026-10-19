@@ -10,9 +10,10 @@ const load = (f) => JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8"));
 
 function startMock(port = 0, { fail429Once = false } = {}) {
   const matches = {};
-  for (const f of fs.readdirSync(DIR).filter((f) => /^(lol|tft)-match-\d+\.json$/.test(f))) {
+  const timelines = {};
+  for (const f of fs.readdirSync(DIR).filter((f) => /^(lol|tft)-(match|timeline)-\d+\.json$/.test(f))) {
     const m = load(f);
-    matches[m.metadata.matchId || m.metadata.match_id] = m;
+    (f.includes("timeline") ? timelines : matches)[m.metadata.matchId || m.metadata.match_id] = m;
   }
   const stats = { requests: 0, served429: 0 };
   const server = http.createServer((req, res) => {
@@ -37,6 +38,7 @@ function startMock(port = 0, { fail429Once = false } = {}) {
       return u.searchParams.get("page") === "1" ? file(`${p.startsWith("/lol") ? "lol" : "tft"}-entries-${m[1]}-${m[2]}.json`) : send(200, []);
     }
     if ((m = /^\/(lol|tft)\/match\/v[15]\/matches\/by-puuid\/([^/]+)\/ids$/.exec(p))) return idsFor(m[1], m[2]);
+    if ((m = /^\/lol\/match\/v5\/matches\/([^/]+)\/timeline$/.exec(p))) return timelines[m[1]] ? send(200, timelines[m[1]]) : send(404, { status: { message: "Data not found", status_code: 404 } });
     if ((m = /^\/(?:lol|tft)\/match\/v[15]\/matches\/([^/]+)$/.exec(p))) {
       return matches[m[1]] ? send(200, matches[m[1]]) : send(404, { status: { message: "Data not found - match file not found", status_code: 404 } });
     }

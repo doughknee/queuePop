@@ -79,8 +79,29 @@ async function fetchOne(ctx, game, region) {
   const path = game === "lol" ? `/lol/match/v5/matches/${row.id}` : `/tft/match/v1/matches/${row.id}`;
   const m = await riot.get(ROUTING[region], path, `${game} match`);
   if (!m) db.prepare("UPDATE matches SET status = 'missing', fetched_at = ? WHERE id = ?").run((ctx.now || Date.now)(), row.id);
-  else store(ctx, game, row.id, m);
+  else if (store(ctx, game, row.id, m) && game === "lol" && Math.random() < (ctx.timelineSample ?? 0)) {
+    // Timelines cost a second request per match, so only a sample get one (skill order).
+    const tl = await riot.get(ROUTING[region], `/lol/match/v5/matches/${row.id}/timeline`, "lol timeline");
+    if (tl) storeSkills(db, row.id, tl);
+  }
   return true;
+}
+
+// Skill max order, e.g. "QEW": basic skills in the order they reach 5 points (unfinished ones by points).
+function skillOrder(slots) {
+  const n = { 1: 0, 2: 0, 3: 0 }, done = [];
+  for (const s of slots) if (s in n && ++n[s] === 5) done.push(s);
+  const rest = [1, 2, 3].filter((s) => !done.includes(s)).sort((a, b) => n[b] - n[a]);
+  return [...done, ...rest].map((s) => "QWE"[s - 1]).join("");
+}
+
+function storeSkills(db, id, tl) {
+  const slots = {};
+  for (const f of tl.info.frames) for (const e of f.events) {
+    if (e.type === "SKILL_LEVEL_UP" && e.levelUpType === "NORMAL") (slots[e.participantId] ??= []).push(e.skillSlot);
+  }
+  const up = db.prepare("UPDATE lol_participants SET skills = ? WHERE match_id = ? AND puuid = ?");
+  tx(db, () => { for (const p of tl.info.participants) if (slots[p.participantId]) up.run(skillOrder(slots[p.participantId]), id, p.puuid); });
 }
 
 const patchOf = (v) => { const x = /(\d+)\.(\d+)/.exec(v || ""); return x ? `${x[1]}.${x[2]}` : "?"; };
@@ -103,7 +124,7 @@ function store(ctx, game, id, m) {
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, id);
     if (!ok) return;
     if (game === "lol") {
-      const ins = db.prepare("INSERT INTO lol_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      const ins = db.prepare("INSERT INTO lol_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)");
       for (const p of info.participants) {
         const items = [...new Set([0, 1, 2, 3, 4, 5, 6].map((k) => p["item" + k]).filter((x) => x && !TRINKETS.has(x)))];
         const runes = (p.perks?.styles || []).flatMap((s) => s.selections.map((x) => x.perk));
@@ -121,6 +142,7 @@ function store(ctx, game, id, m) {
       }
     }
   });
+  return ok;
 }
 
 // Rebuilds every stats_* table from the normalised rows.
@@ -138,6 +160,7 @@ function aggregate(db, now = Date.now) {
       INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'rune', j.value, count(*), sum(p.win) FROM lol_participants p ${M}, json_each(p.runes) j GROUP BY 1, 2, 3, 4, 5, 7;
       INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'keystone', p.keystone, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7;
       INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'spells', p.spells, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 7;
+      INSERT INTO stats_lol_build SELECT ${K}, p.role, p.champion, 'skills', p.skills, count(*), sum(p.win) FROM lol_participants p ${M} WHERE p.skills IS NOT NULL GROUP BY 1, 2, 3, 4, 5, 7;
       INSERT INTO stats_lol_matchup SELECT ${K}, p.role, p.champion, o.champion, count(*), sum(p.win) FROM lol_participants p
         JOIN lol_participants o ON o.match_id = p.match_id AND o.role = p.role AND o.team <> p.team ${M} WHERE p.role <> '' GROUP BY 1, 2, 3, 4, 5, 6;
       INSERT INTO stats_tft_boards SELECT ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3;
@@ -149,4 +172,4 @@ function aggregate(db, now = Date.now) {
   });
 }
 
-module.exports = { TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, compOf, patchOf };
+module.exports = { TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, compOf, patchOf, skillOrder };

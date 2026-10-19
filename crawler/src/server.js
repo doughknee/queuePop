@@ -25,9 +25,12 @@ function where(q, patch) {
   return [w.join(" AND "), a];
 }
 
+// Rows under min_games (default 200) stay in the response, flagged lowSample so the UI can grey them.
 function head(db, q, game) {
   const patch = q.patch || patches(db)[game][0] || null;
-  return { patch, region: q.region || "all", bracket: q.bracket || "all" };
+  const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
+  if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
+  return { patch, region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
@@ -40,7 +43,7 @@ function lolTiers(db, q = {}) {
     GROUP BY champion, role ORDER BY games DESC`).all(...a, ...(q.role ? [q.role.toUpperCase()] : []));
   return { ...h, role: q.role || "all", matches, champions: rows.map((r) => ({
     champion: r.champion, role: r.role, games: r.games, wins: r.wins,
-    winRate: r4(r.wins / r.games), pickRate: r4(r.games / matches), banRate: r4((bans.get(r.champion) || 0) / matches),
+    winRate: r4(r.wins / r.games), pickRate: r4(r.games / matches), banRate: r4((bans.get(r.champion) || 0) / matches), lowSample: r.games < h.minGames,
   })) };
 }
 
@@ -52,20 +55,24 @@ function lolChampion(db, champion, q = {}) {
   const role = q.role ? q.role.toUpperCase() : roles[0]?.role;
   const s = roles.find((r) => r.role === role) || { games: 0, wins: 0 };
   const bans = db.prepare(`SELECT sum(bans) n FROM stats_lol_bans WHERE ${w} AND champion = ?`).get(...a, champion).n || 0;
-  const builds = { item: [], keystone: [], rune: [], spells: [] };
-  for (const b of db.prepare(`SELECT kind, key, sum(games) games, sum(wins) wins FROM stats_lol_build WHERE ${w} AND champion = ? AND role = ?
-    GROUP BY kind, key ORDER BY games DESC`).all(...a, champion, role ?? "")) {
-    if (builds[b.kind].length < 30) builds[b.kind].push({ key: b.key, games: b.games, winRate: r4(b.wins / b.games), pickRate: r4(b.games / s.games) });
+  const builds = { item: [], keystone: [], rune: [], spells: [], skills: [] };
+  const rows = db.prepare(`SELECT kind, key, sum(games) games, sum(wins) wins FROM stats_lol_build WHERE ${w} AND champion = ? AND role = ?
+    GROUP BY kind, key ORDER BY games DESC`).all(...a, champion, role ?? "");
+  // Skill orders come from a timeline sample, so their pick rate is out of the sampled games.
+  const skillGames = rows.filter((b) => b.kind === "skills").reduce((n, b) => n + b.games, 0);
+  for (const b of rows) {
+    if (builds[b.kind].length < 30) builds[b.kind].push({ key: b.key, games: b.games, winRate: r4(b.wins / b.games),
+      pickRate: r4(b.games / (b.kind === "skills" ? skillGames : s.games)), lowSample: b.games < h.minGames });
   }
   const matchups = db.prepare(`SELECT opponent, sum(games) games, sum(wins) wins FROM stats_lol_matchup WHERE ${w} AND champion = ? AND role = ?
-    GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games) }));
+    GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games), lowSample: r.games < h.minGames }));
   return { ...h, champion, role: role ?? null, roles: roles.map((r) => ({ role: r.role, games: r.games })),
-    strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches },
+    strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames },
     builds, matchups };
 }
 
-const comp = (r, boards) => ({ id: r.comp, traits: r.comp === "none" ? [] : r.comp.split(","), games: r.games,
-  avgPlacement: r4(r.ps / r.games), top4Rate: r4(r.top4 / r.games), winRate: r4(r.wins / r.games), pickRate: r4(r.games / boards) });
+const comp = (r, boards, minGames) => ({ id: r.comp, traits: r.comp === "none" ? [] : r.comp.split(","), games: r.games,
+  avgPlacement: r4(r.ps / r.games), top4Rate: r4(r.top4 / r.games), winRate: r4(r.wins / r.games), pickRate: r4(r.games / boards), lowSample: r.games < minGames });
 
 function tftComps(db, q = {}) {
   const h = head(db, q, "tft");
@@ -73,7 +80,7 @@ function tftComps(db, q = {}) {
   const boards = db.prepare(`SELECT sum(boards) n FROM stats_tft_boards WHERE ${w}`).get(...a).n || 0;
   const rows = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM stats_tft_comp WHERE ${w}
     GROUP BY comp ORDER BY games DESC LIMIT 200`).all(...a);
-  return { ...h, boards, comps: rows.map((r) => comp(r, boards)) };
+  return { ...h, boards, comps: rows.map((r) => comp(r, boards, h.minGames)) };
 }
 
 function tftComp(db, id, q = {}) {
@@ -85,9 +92,9 @@ function tftComp(db, id, q = {}) {
   const parts = { unit: [], augment: [] };
   for (const p of db.prepare(`SELECT kind, key, sum(games) games, sum(placement_sum) ps, sum(top4) top4 FROM stats_tft_part WHERE ${w} AND comp = ?
     GROUP BY kind, key ORDER BY games DESC`).all(...a, id)) {
-    if (parts[p.kind].length < 30) parts[p.kind].push({ key: p.key, games: p.games, frequency: r4(p.games / r.games), avgPlacement: r4(p.ps / p.games), top4Rate: r4(p.top4 / p.games) });
+    if (parts[p.kind].length < 30) parts[p.kind].push({ key: p.key, games: p.games, frequency: r4(p.games / r.games), avgPlacement: r4(p.ps / p.games), top4Rate: r4(p.top4 / p.games), lowSample: p.games < h.minGames });
   }
-  return { ...h, ...comp(r, boards), units: parts.unit, augments: parts.augment };
+  return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment };
 }
 
 function status(db, limiter) {
