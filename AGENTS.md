@@ -12,8 +12,10 @@
   ported from `prototypes/queuepop/` (the design spec): `shell.*` the left sidebar (DONI-488: the only
   navigation; static markup in `index.html` `#qp-sidebar`, one group per game with its official logo from
   `assets/logos/` (sources in `SOURCES.md`), collapses to an icon rail, drag-resizes 200-400 px, both kept in
-  localStorage `queuepop-sidebar-v1`; worlds keep no nav rows; `worlds.js` fills Deadlock's pages from `DEADLOCK_PAGES`
-  and hides its nav row with a style in its shadow root), `worlds.js`
+  localStorage `queuepop-sidebar-v1`. DONI-493: `#world-nav` is the current world's sticky page row, filled by
+  `shell.js` from the sidebar's `.sb-pages` and themed in `league-world.css` / `tft-view.css`; empty on home/companion it is
+  the window's 32 px drag strip. Deadlock keeps its own `.city-nav` row (`worlds.js` makes it drag the window and fills the
+  sidebar from `DEADLOCK_PAGES`). Drag areas: `.sb-top`, `#world-nav`, `.city-nav`; their links are `no-drag`), `worlds.js`
   (the mockup's `app.js`: hash router, home, companion) + `worlds.css` (its `styles.css`),
   `league-*.css/js` and `playbooks.*` for the League world, `tft-view.*` + `tft-field-guide/`
   and `deadlock-view.js` + `deadlock/assets/` for the static TFT/Deadlock arrival pages.

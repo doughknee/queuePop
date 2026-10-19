@@ -2,7 +2,7 @@
    highlights the current game and page, collapses it to an icon rail and
    resizes it by its right edge; width and collapse persist in localStorage. */
 (function () {
-  const root = document.documentElement, bar = document.querySelector('#qp-sidebar');
+  const root = document.documentElement, bar = document.querySelector('#qp-sidebar'), nav = document.querySelector('#world-nav');
   const toggle = bar.querySelector('.sb-toggle'), grip = bar.querySelector('.sb-resize');
   const KEY = 'queuepop-sidebar-v1';
   const s = { w: 248, collapsed: false };
@@ -27,13 +27,18 @@
   window.syncSidebar = function () {
     const hash = norm(location.hash), game = hash.split('/')[1] || 'home';
     let best = null;
-    for (const a of bar.querySelectorAll('.sb-pages a, .sb-item[data-game="home"]')) {
+    for (const a of bar.querySelectorAll('.sb-pages a')) {
       const href = norm(a.getAttribute('href'));
       a.removeAttribute('aria-current');
       if ((hash === href || (href !== '#' && hash.startsWith(href + '/'))) && (!best || href.length > norm(best.getAttribute('href')).length)) best = a;
     }
     best?.setAttribute('aria-current', 'page');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
+    // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
+    // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
+    const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
+    const row = pages ? pages.innerHTML : '';
+    if (nav.innerHTML !== row) nav.innerHTML = row;
   };
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);

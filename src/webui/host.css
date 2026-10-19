@@ -7,8 +7,8 @@ html { background: #141618; }
 body { min-height: 100vh; overflow-x: hidden; }
 body.theme-league, body.theme-companion { background: #050D14; }
 .win-controls { position: fixed; z-index: 40; }
-/* League dock (PLAY): floats at the top right of every League page, under the window buttons. */
-.league-dock { position: fixed; top: 38px; right: 20px; z-index: 30; display: flex; }
+/* League dock (PLAY): sits at the right end of the League page row, left of the window buttons. */
+.league-dock { position: fixed; top: 8px; right: 136px; z-index: 31; display: flex; }
 .league-dock[hidden] { display: none; }
 .league-dock .play-btn { height: 40px; }
 .league-dock .play-svg { height: 38px; }
@@ -31,8 +31,7 @@ body.theme-league, body.theme-companion { background: #050D14; }
 #tab-alerts + #tab-about:not(.hidden) { margin-top: 20px; }
 
 /* The champ editor scrolls its own grid, so it gets the remaining window height. */
-.theme-league .host-pages { padding-top: 88px; }
-#tab-champ > .hextech { height: calc(100vh - 152px); min-height: 560px; }
+#tab-champ > .hextech { height: calc(100vh - 56px - 96px); min-height: 560px; }
 
 /* No modals or popup menus: the loadout editor, set-up wizard, QR code and
    queue list open inline in the page that asks for them. */
