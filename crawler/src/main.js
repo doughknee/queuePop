@@ -1,6 +1,7 @@
 // Entry point: serve the API and, when RIOT_API_KEY is set, crawl every region forever.
 //   node src/main.js             crawl + serve
 //   node src/main.js aggregate   rebuild all stats_* now and exit
+//   node src/main.js backfill-patch  re-parse patch/set from stored raw for '?' rows, drop stale '?' stats, exit
 //   node src/main.js vacuum      one-time VACUUM that enables auto_vacuum on an old DB, then exit
 const db_ = require("./db");
 const jobs = require("./jobs");
@@ -33,6 +34,10 @@ const db = db_.open(cfg.dbPath);
 if (process.argv[2] === "aggregate") {
   jobs.aggregate(db, Date.now, true);
   log("aggregated");
+  process.exit(0);
+}
+if (process.argv[2] === "backfill-patch") {
+  log("backfill-patch", JSON.stringify(jobs.backfillPatch(db)), "- now run: npm run aggregate");
   process.exit(0);
 }
 if (process.argv[2] === "vacuum") {

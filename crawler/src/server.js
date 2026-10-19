@@ -35,11 +35,14 @@ function where(q, patch) {
 }
 
 // Rows under min_games (default 200) stay in the response, flagged lowSample so the UI can grey them.
+// ?set (TFT set number) picks the newest patch that has matches of that set; it doesn't filter within a patch
+// (ponytail: stats_* aren't keyed by set; a patch spanning two sets is rare, add a column if it ever matters).
 function head(db, q, game) {
-  const patch = q.patch || patches(db)[game][0] || null;
+  const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
+  const patch = q.patch || patches(db)[game].find((p) => !bySet || bySet.has(p)) || null;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
-  return { patch, region: q.region || "all", bracket: q.bracket || "all", minGames };
+  return { patch, ...(bySet && { set: Number(q.set) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
