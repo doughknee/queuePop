@@ -58,6 +58,7 @@
         <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div>`) +
       card('about', 'Updates &amp; about', `
         <div class="st-row"><span class="st-lbl">Version<small id="st-upd-msg"></small></span><span class="st-act"><span id="st-ver" class="st-val"></span><button class="st-btn" data-do="check-update">Check for updates</button></span></div>
+        <div class="st-row"><span class="st-lbl">Icon packs<small id="st-assets-msg"></small></span><span class="st-act"><button class="st-btn" data-do="refresh-assets">Refresh assets</button></span></div>
         <div class="st-row"><span class="st-lbl">Config folder<small>config.json and your stats live here.</small></span><span class="st-act"><button class="st-btn" data-do="open-config">Open folder</button><span class="st-msg" data-msg="open-config"></span></span></div>
         <div class="st-sub">Release notes</div><div id="st-notes" class="st-notes">Loading…</div>`) + `</div>`;
     root.addEventListener('input', onInput);
@@ -115,6 +116,7 @@
       else if (d === 'crawler-open') a.open_external(base() + '/');
       else if (d === 'crawler-key') await postKey();
       else if (d === 'check-update') { const s = await a.check_for_update(); renderUpdate(s); }
+      else if (d === 'refresh-assets') { loadAssets(); a.refresh_assets().then(loadAssets); setTimeout(loadAssets, 1500); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }
     } catch (err) { say(d, String(err.message || err), false); }
   }
@@ -170,7 +172,16 @@
     root.querySelector('#st-ver').textContent = s.current ? 'v' + s.current : '';
     root.querySelector('#st-upd-msg').textContent = s.available && s.latest ? `Version v${s.latest} is available.` : s.error ? "Couldn't reach the update server." : s.checked ? "You're up to date." : 'Not checked yet.';
   }
+  async function loadAssets() {
+    const el = root.querySelector('#st-assets-msg'); if (!el) return;
+    try {
+      const s = await bridge().get_asset_status(), n = (k) => `${s[k].have}/${s[k].want}`;
+      el.textContent = (s.busy ? 'Downloading: ' : '') + `champions ${n('champions')}, spells ${n('spells')}, positions ${n('positions')}` + (s.lastError ? `. Last error: ${s.lastError}` : '');
+      if (s.busy) setTimeout(loadAssets, 1500);
+    } catch {}
+  }
   async function loadAbout() {
+    loadAssets();
     try { renderUpdate(await bridge().get_update_status()); } catch {}
     const box = root.querySelector('#st-notes');
     try {

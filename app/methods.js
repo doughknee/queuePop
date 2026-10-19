@@ -5,7 +5,8 @@ const NOT_PORTED = { ok: false, error: "Not available in the Electron host yet" 
 const METHODS = {
   get_events: { latest: 0, events: [] },
   set_paused: false,
-  refresh_assets: NOT_PORTED,
+  refresh_assets: NOT_PORTED, // app/assets.js
+  get_asset_status: { champions: { have: 0, want: 0 }, spells: { have: 0, want: 0 }, positions: { have: 0, want: 0 }, skins: { have: 0, want: 0 }, busy: false, lastError: "" },
   toggle_maximize_window: false,
   set_show_last_queue: NOT_PORTED,
   set_favorites: NOT_PORTED,

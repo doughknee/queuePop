@@ -123,6 +123,9 @@
 - Your games: bridge `get_tft_match_history(count)` (`app/account.js`) reads
   `/lol-match-history/v1/products/tft/{puuid}/matches`; the LCU copy usually has no augments.
 
+## Asset packs
+- `app/assets.js` (DONI-504) downloads the gitignored `src/webui/assets/{champions,spells,positions}` from Data Dragon / Community Dragon after the window opens (never awaited); skins (`skins/manifest.json` + per-champion tiles) lazily on the first `get_champion_skins`. Bridge: `get_asset_status`, `refresh_assets` (force re-download when the patch changed); shown in Settings > Updates & about. `ASSETS_LIVE=1 node app/test-assets.js` runs the real download into a temp dir.
+
 ## Settings
 - `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the
   sidebar gear; sections (account, league, alerts, companion, crawler, about) are cards with jump links in the page row
