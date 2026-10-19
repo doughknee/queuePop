@@ -15,7 +15,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-scroll{flex:1;min-height:0;overflow:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:2px}
 .sb-group{margin-top:8px}
 .sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;border-radius:6px;color:#c9c6bd;white-space:nowrap;overflow:hidden}
-.sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;display:grid;place-items:center;font-size:19px;line-height:1;color:#d3b981}
+.sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;color:#d3b981}
 .sb-item>span:last-child{overflow:hidden;text-overflow:ellipsis}
 .sb-item:hover,.sb-pages a:hover{background:#ffffff0a;color:#eeeae1}
 .sb-group.open>.sb-item{color:#eeeae1;font-weight:600}
@@ -45,3 +45,10 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .qp-dot{width:6px;height:6px;border-radius:50%;background:#a7bcab;display:inline-block}
 .qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid #ffffff12;color:#8d9497;font:12px 'Segoe UI',Arial,sans-serif;background:#141618}.qp-footer i{color:#cab183;font-style:normal;margin:0 12px}
 .sb-scroll::-webkit-scrollbar{width:4px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:#ffffff1f}
+/* World page row (#world-nav): sticky over the content, the window's drag strip (32 px when empty);
+   links click, the window buttons keep the top right. Each world themes it (league-world.css, tft-view.css). */
+#world-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:4px;min-height:32px;padding:0 136px 0 24px;background:var(--ink,#141618);-webkit-app-region:drag}
+#world-nav a{-webkit-app-region:no-drag;text-decoration:none;white-space:nowrap}
+#world-nav:empty{background:none}
+.theme-deadlock #world-nav{display:none}
+.win-controls,.resize-grip,.league-dock{-webkit-app-region:no-drag}

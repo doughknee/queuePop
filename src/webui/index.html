@@ -74,7 +74,7 @@
       <button class="sb-toggle" type="button" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M8 3.5v13"/></svg></button>
     </div>
     <div class="sb-scroll">
-      <a class="sb-item" data-game="home" href="#/" title="Home"><span class="sb-ico" aria-hidden="true">&#8962;</span><span>Home</span></a>
+      <div class="sb-group" data-game="home"><a class="sb-item" href="#/" title="Home"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></a></div>
       <div class="sb-group" data-game="league">
         <a class="sb-item" href="#/league" title="League of Legends"><img src="assets/logos/league.svg" alt=""><span>League of Legends</span></a>
         <div class="sb-pages"><a href="#/league">The Rift</a><a href="#/league/champions">Champions</a><a href="#/league/champ">Champ select</a><a href="#/league/dashboard">Dashboard</a><a href="#/league/settings">Settings</a></div>
@@ -109,6 +109,8 @@
     <span id="header-status" hidden></span>
     <div class="sb-resize" aria-hidden="true"></div>
   </nav>
+  <!-- The current world's pages, sticky at the top of its content (shell.js fills it from the sidebar); empty, it is the window's drag strip. -->
+  <nav id="world-nav" aria-label="Pages"></nav>
   <main id="main" tabindex="-1"></main>
 
   <!-- League client dock: PLAY (launch / queue / live), shown on every League route. -->
