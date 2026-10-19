@@ -31,8 +31,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const db = db_.open(cfg.dbPath);
 
 if (process.argv[2] === "aggregate") {
-  jobs.aggregate(db);
+  jobs.aggregate(db, Date.now, true);
   log("aggregated");
+  process.exit(0);
+}
+if (process.argv[2] === "vacuum") {
+  db.exec("PRAGMA auto_vacuum = INCREMENTAL; VACUUM");
+  log("vacuumed");
   process.exit(0);
 }
 
