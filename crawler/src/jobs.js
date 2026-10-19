@@ -3,6 +3,7 @@
 const zlib = require("zlib");
 const { tx, getMeta, setMeta } = require("./db");
 const { ROUTING } = require("./riot");
+const champ = require("./agg-champion");
 
 const TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
 const DAY = 86400000;
@@ -82,7 +83,7 @@ async function fetchOne(ctx, game, region) {
   else if (store(ctx, game, row.id, m) && game === "lol" && Math.random() < (ctx.timelineSample ?? 0)) {
     // Timelines cost a second request per match, so only a sample get one (skill order).
     const tl = await riot.get(ROUTING[region], `/lol/match/v5/matches/${row.id}/timeline`, "lol timeline");
-    if (tl) storeSkills(db, row.id, tl);
+    if (tl) { storeSkills(db, row.id, tl); champ.storeTimeline(db, row.id, tl); }
   }
   return true;
 }
@@ -182,7 +183,7 @@ function backfillPatch(db) {
       up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
       fixed++;
     }
-    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part"]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
+    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
   });
   return { scanned: rows.length, fixed, unparsed, sample };
 }
@@ -211,10 +212,12 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_tft_comp SELECT ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4`,
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6`,
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
+    ...champ.inserts(M, K),
   ].map((q) => db.prepare(q));
+  champ.ingestRaw(db);
   tx(db, () => {
     for (const patch of dirty) {
-      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part"]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
     }

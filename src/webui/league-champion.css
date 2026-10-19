@@ -1,0 +1,64 @@
+/* DONI-507: League champion page depth (league-champion.js). Same tokens as league-stats.css (DIRECTION.md League):
+   gold structure, ivory text, spell light for wins, muted defeat; Marcellus headings, Segoe UI data; CSS bars only. */
+.lg-champ-page .lg-strip{grid-template-columns:repeat(8,minmax(0,1fr));margin-bottom:12px}
+.lg-champ-page .lg-strip>div{padding:10px 12px}
+.lg-champ-page .lg-strip dd:not(.lg-sub){font-size:22px}
+.lg-champ-page .lg-tabs{margin-bottom:22px}
+.lg-champ-page .lg-section{margin-bottom:26px}
+.lg-champ-page .lg-head h2{font-size:21px}
+.lg-pick-label .lg-min{display:block}
+
+/* Skills */
+.lg-sheet-skills{grid-template-columns:minmax(260px,1fr) minmax(0,2.4fr)}
+.lg-skill-order>header .lg-msort{margin-left:auto}
+.lg-sk-grid{display:grid;gap:2px;margin:6px 0 10px;overflow-x:auto}
+.lg-sk-row{display:grid;grid-template-columns:26px repeat(var(--n),minmax(18px,1fr));gap:2px}
+.lg-sk-row kbd{display:grid;place-items:center;height:22px;font:700 12px 'Segoe UI',sans-serif;background:var(--lg-deep);border:1px solid var(--lg-gold);color:var(--lg-ivory)}
+.lg-sk-row span{height:22px;display:grid;place-items:center;background:#ffffff08;font:600 11px 'Segoe UI',sans-serif;color:var(--lg-obsidian);font-variant-numeric:tabular-nums}
+.lg-sk-row span.on{background:var(--lg-spell)}
+.lg-sk-row:last-child span.on{background:var(--lg-gold)}
+.lg-sk-key{font:600 12px/1 Consolas,'Segoe UI',monospace;letter-spacing:1px;color:var(--lg-ivory)}
+
+/* Items */
+.lg-stack{position:relative;display:inline-flex}
+.lg-stack i{position:absolute;right:-2px;bottom:-3px;font:700 10px 'Segoe UI',sans-serif;font-style:normal;color:var(--lg-ivory);background:var(--lg-obsidian);padding:0 2px}
+.lg-arrow{color:var(--lg-muted);font-style:normal;align-self:center;margin:0 1px}
+.lg-wide{grid-column:span 1}
+.lg-alts{margin-top:12px}
+.lg-alt-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 18px}
+.lg-alt .lg-kicker{margin:4px 0 2px}
+.lg-or{display:block;font:600 9px 'Segoe UI',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--lg-muted);text-align:center;margin:-1px 0}
+
+/* Objectives */
+.lg-sides{display:flex;gap:0;margin:0 0 10px;border:1px solid var(--lg-line);width:max-content;max-width:100%}
+.lg-sides>div{padding:8px 16px;border-right:1px solid var(--lg-line)}
+.lg-sides>div:last-child{border-right:0}
+.lg-sides dt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--lg-gold)}
+.lg-sides dd{margin:0;font:20px Marcellus,serif}
+.lg-champ-page .lg-table th.num{text-align:right;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase}
+.lg-champ-page .lg-table th.num:first-child{text-align:left}
+.lg-obj td:first-child{font:15px Marcellus,serif}
+.lg-obj tbody tr{cursor:default}
+.lg-obj td:nth-child(5){border-left:1px solid var(--lg-line)}
+
+/* Counters */
+.lg-mu-table th.num button{text-align:right}
+.lg-mu-table td:first-child{width:40%}
+
+/* Synergies */
+.lg-syn-head,.lg-syn{display:grid;grid-template-columns:minmax(0,1fr) 50px 44px 44px;align-items:center;gap:8px}
+.lg-syn{grid-template-columns:auto minmax(0,1fr) 50px 44px 44px;padding:4px 0;border-bottom:1px solid #ffffff08;font-variant-numeric:tabular-nums}
+.lg-syn-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted);padding-bottom:2px;border-bottom:1px solid #ffffff0d}
+.lg-syn-head span:nth-child(n+2),.lg-syn>b,.lg-syn>span:nth-child(4),.lg-syn>small{text-align:right}
+.lg-syn>span:nth-child(2){font:14px Marcellus,serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-champ-page .lg-syn>span small{display:block;font-family:'Segoe UI',sans-serif}
+.lg-syn b{font-weight:600}
+.lg-syn:hover>span:nth-child(2){color:var(--lg-gold)}
+
+@media(min-width:1100px){.lg-syn-sheet{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Best players */
+.lg-best tbody tr{cursor:default}
+
+@media(max-width:1100px){.lg-champ-page .lg-strip{grid-template-columns:repeat(4,minmax(0,1fr))}.lg-champ-page .lg-strip>div:nth-child(3){border-right:1px solid var(--lg-line)}.lg-sheet-skills{grid-template-columns:1fr}}
+@media(max-width:700px){.lg-alt-cols{grid-template-columns:1fr}.lg-champ-page .lg-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}

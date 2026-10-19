@@ -25,6 +25,186 @@
             "realTimestamp": 1791310800000,
             "timestamp": 0,
             "type": "PAUSE_END"
+          },
+          {
+            "itemId": 1055,
+            "participantId": 1,
+            "timestamp": 10000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1056,
+            "participantId": 2,
+            "timestamp": 10001,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1055,
+            "participantId": 3,
+            "timestamp": 10002,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1056,
+            "participantId": 4,
+            "timestamp": 10003,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1055,
+            "participantId": 5,
+            "timestamp": 10004,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1056,
+            "participantId": 6,
+            "timestamp": 10005,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1055,
+            "participantId": 7,
+            "timestamp": 10006,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1056,
+            "participantId": 8,
+            "timestamp": 10007,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1055,
+            "participantId": 9,
+            "timestamp": 10008,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 1056,
+            "participantId": 10,
+            "timestamp": 10009,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 1,
+            "timestamp": 11000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 2,
+            "timestamp": 11001,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 3,
+            "timestamp": 11002,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 4,
+            "timestamp": 11003,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 5,
+            "timestamp": 11004,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 6,
+            "timestamp": 11005,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 7,
+            "timestamp": 11006,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 8,
+            "timestamp": 11007,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 9,
+            "timestamp": 11008,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 10,
+            "timestamp": 11009,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 1,
+            "timestamp": 12000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 2,
+            "timestamp": 12001,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 3,
+            "timestamp": 12002,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 4,
+            "timestamp": 12003,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 5,
+            "timestamp": 12004,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 6,
+            "timestamp": 12005,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 7,
+            "timestamp": 12006,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 8,
+            "timestamp": 12007,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 9,
+            "timestamp": 12008,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2003,
+            "participantId": 10,
+            "timestamp": 12009,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {
@@ -495,6 +675,66 @@
             "skillSlot": 2,
             "timestamp": 179009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3047,
+            "participantId": 1,
+            "timestamp": 180000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 2,
+            "timestamp": 181000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3020,
+            "participantId": 3,
+            "timestamp": 182000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 4,
+            "timestamp": 183000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3020,
+            "participantId": 5,
+            "timestamp": 184000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3006,
+            "participantId": 6,
+            "timestamp": 185000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3047,
+            "participantId": 7,
+            "timestamp": 186000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3031,
+            "participantId": 8,
+            "timestamp": 187000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 9,
+            "timestamp": 188000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3074,
+            "participantId": 10,
+            "timestamp": 189000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -586,6 +826,12 @@
             "type": "SKILL_LEVEL_UP"
           },
           {
+            "itemId": 1055,
+            "participantId": 1,
+            "timestamp": 299000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
             "levelUpType": "NORMAL",
             "participantId": 2,
             "skillSlot": 1,
@@ -647,12 +893,6 @@
             "skillSlot": 3,
             "timestamp": 299009,
             "type": "SKILL_LEVEL_UP"
-          },
-          {
-            "itemId": 1055,
-            "participantId": 1,
-            "timestamp": 299000,
-            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -729,6 +969,126 @@
             "skillSlot": 4,
             "timestamp": 359009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3031,
+            "participantId": 1,
+            "timestamp": 360000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 2,
+            "timestamp": 361000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3031,
+            "participantId": 3,
+            "timestamp": 362000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3078,
+            "participantId": 4,
+            "timestamp": 363000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 5,
+            "timestamp": 364000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3078,
+            "participantId": 6,
+            "timestamp": 365000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6672,
+            "participantId": 7,
+            "timestamp": 366000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3190,
+            "participantId": 8,
+            "timestamp": 367000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3153,
+            "participantId": 9,
+            "timestamp": 368000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 10,
+            "timestamp": 369000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 1,
+            "timestamp": 400000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 2,
+            "timestamp": 401000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 3,
+            "timestamp": 402000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 4,
+            "timestamp": 403000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 5,
+            "timestamp": 404000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 6,
+            "timestamp": 405000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 7,
+            "timestamp": 406000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 8,
+            "timestamp": 407000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 9,
+            "timestamp": 408000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 2055,
+            "participantId": 10,
+            "timestamp": 409000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -957,6 +1317,66 @@
             "skillSlot": 1,
             "timestamp": 539009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3190,
+            "participantId": 1,
+            "timestamp": 540000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3020,
+            "participantId": 2,
+            "timestamp": 541000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3157,
+            "participantId": 3,
+            "timestamp": 542000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3089,
+            "participantId": 4,
+            "timestamp": 543000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3031,
+            "participantId": 5,
+            "timestamp": 544000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3190,
+            "participantId": 6,
+            "timestamp": 545000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3074,
+            "participantId": 7,
+            "timestamp": 546000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3047,
+            "participantId": 8,
+            "timestamp": 547000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 9,
+            "timestamp": 548000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6672,
+            "participantId": 10,
+            "timestamp": 549000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -1185,6 +1605,66 @@
             "skillSlot": 1,
             "timestamp": 719009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3074,
+            "participantId": 1,
+            "timestamp": 720000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3031,
+            "participantId": 2,
+            "timestamp": 721000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3074,
+            "participantId": 3,
+            "timestamp": 722000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3153,
+            "participantId": 4,
+            "timestamp": 723000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6672,
+            "participantId": 5,
+            "timestamp": 724000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3153,
+            "participantId": 6,
+            "timestamp": 725000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 7,
+            "timestamp": 726000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3020,
+            "participantId": 8,
+            "timestamp": 727000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3157,
+            "participantId": 9,
+            "timestamp": 728000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 10,
+            "timestamp": 729000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -1413,6 +1893,54 @@
             "skillSlot": 2,
             "timestamp": 899009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 1,
+            "timestamp": 900000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3047,
+            "participantId": 2,
+            "timestamp": 901000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3089,
+            "participantId": 3,
+            "timestamp": 902000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6672,
+            "participantId": 6,
+            "timestamp": 905000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3157,
+            "participantId": 7,
+            "timestamp": 906000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3109,
+            "participantId": 8,
+            "timestamp": 907000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6653,
+            "participantId": 9,
+            "timestamp": 908000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 6653,
+            "participantId": 10,
+            "timestamp": 909000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},
@@ -1641,6 +2169,30 @@
             "skillSlot": 2,
             "timestamp": 1079009,
             "type": "SKILL_LEVEL_UP"
+          },
+          {
+            "itemId": 3020,
+            "participantId": 1,
+            "timestamp": 1080000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3153,
+            "participantId": 2,
+            "timestamp": 1081000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3006,
+            "participantId": 3,
+            "timestamp": 1082000,
+            "type": "ITEM_PURCHASED"
+          },
+          {
+            "itemId": 3071,
+            "participantId": 7,
+            "timestamp": 1086000,
+            "type": "ITEM_PURCHASED"
           }
         ],
         "participantFrames": {},

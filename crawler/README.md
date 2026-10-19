@@ -9,7 +9,7 @@ seed   league-v4 / tft-league-v1 ladders, MIN_TIER and up, top down  -> players
 ids    match-v5 / tft-match-v1 by-puuid ids, newest first            -> matches (status new; the match id
        is the primary key, so a match seen by ten players is fetched once)
 fetch  one match per request: raw JSON gzipped + normalised rows     -> matches.raw, *_participants
-       + a timeline for TIMELINE_SAMPLE of League matches             -> lol_participants.skills
+       + a timeline for TIMELINE_SAMPLE of League matches             -> lol_participants.skills, lol_timeline
 agg    every AGGREGATE_EVERY_MIN (changed patches only) or `npm run aggregate` -> stats_* (counts)
 prune  daily: raw JSON older than RAW_RETENTION_DAYS and already aggregated -> matches.raw = NULL
 api    GET endpoints below; rates computed from the counts at read time
@@ -30,7 +30,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `QUEUES` | `420,440,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
 | `DB_PATH` | `data/crawler.db` | `/data/crawler.db` in the image |
 | `PORT` | `47900` | |
-| `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order); each costs one more request |
+| `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order, starting/early items, build order); each costs one more request |
 | `AGGREGATE_EVERY_MIN` | `60` | minutes between aggregation passes; one runs on start if the last is older. Only patches with new matches are recomputed |
 | `RAW_RETENTION_DAYS` | `7` | see Retention |
 | `RIOT_BASE_URL` | Riot | point at the mock server instead |
@@ -80,6 +80,23 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   builds: { item, keystone, rune, spells, skills: [{ key, games, winRate, pickRate, lowSample }] }, matchups: [{ opponent, games, winRate, lowSample }] }`.
   `spells` keys are `"4,14"` (sorted ids). `skills` keys are the max order, e.g. `"QEW"`; they come from the
   timeline sample, so their `pickRate` is out of the sampled games. Matchups are the enemy in the same role.
+  Champion depth (DONI-507, `src/agg-champion.js`), same response:
+  - `timelineGames`: this champion+role's games with a sampled timeline, the denominator of the four timeline blocks.
+  - `starting: [{ key, games, winRate, pickRate, lowSample }]` key = items bought before 1:30, sorted ids with repeats (`"1055,2003,2003"`).
+  - `early: [...]` key = one item first bought 1:30–10:00 (consumables and trinkets left out); a game counts once per item.
+  - `buildOrder: { core: [...], slots: [[...] × 6] }`, each `{ key, games, winRate, pickRate, avgMinute, lowSample }`. A build is
+    the final-inventory items in first-purchase order (bought after 1:30, no consumables); `slots[n]` = what was item n+1
+    (pickRate out of games that reached that slot), `core` key = the first three in order (`"3020,3078,6672"`), timed at the third.
+  - `skills: { 6, 10, 15: [{ key, ... }] }` key = the first N skill points (`"QEWQQR"`); games shorter than N levels drop out.
+  - `objectives: [{ objective, games, secured, securedRate, securedWinRate, yielded, yieldedRate, yieldedWinRate, lowSample }]` for
+    `first_blood first_tower first_dragon grubs herald baron first_inhibitor atakhan soul`: secured = your team took it first,
+    yielded = the enemy did (neither when nobody did); rates out of the strip's games; win rates null when 0 games. Soul = 4+ dragons.
+  - `sides: { blue: { games, winRate }, red }`.
+  - `shards: [{ key, ... }]` stat mods `"offense,flex,defense"` ids (`"5008,5008,5011"`), read from raw match JSON like objectives.
+  - `synergies: [{ ally, role, games, winRate, pickRate, delta1, delta2, lowSample }]`, top 60 same-team champion+role by games.
+  - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
+    `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
+    Synergy `delta2` = win rate together − (your average + their average − 0.5).
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units` and `augments`: `[{ key, games, frequency, avgPlacement, top4Rate, lowSample }]`; 404 when unknown
@@ -100,8 +117,13 @@ Tier/LP are the player's latest ladder entry, not the rank at each game.
 
 **Brackets:** a match's bracket is the ladder tier of the seeded player whose history surfaced it.
 
-**Not collected:** item build order (needs a timeline for every match, halving throughput). Raw match JSON is kept gzipped in `matches.raw`, so new stats can be
-recomputed without refetching.
+**Timeline sample:** starting/early items, build order and skill orders come only from the `TIMELINE_SAMPLE` share of
+matches (10% now, so roughly one in ten of a champion's games; Home raises it with the production key). Timelines are
+not stored raw, so these fill forward from deploy: there is nothing to backfill and no `backfill-timeline` script.
+**Objectives and stat mods** are read from raw match JSON at the start of each aggregation pass for every League match that has raw and
+no `lol_objectives` rows yet (`lol_shards` with them), so after deploy they backfill themselves for matches inside `RAW_RETENTION_DAYS`
+(run `npm run aggregate` once to recompute every patch). Raw match JSON is kept gzipped in `matches.raw`, so new stats
+can be recomputed without refetching.
 
 ## Retention
 
@@ -131,7 +153,7 @@ npm run aggregate        # rebuild all stats now (every patch) (in Docker: docke
 ```
 
 `fixtures/` holds schema-faithful responses (Riot DTO shapes, synthetic values): 3 ladder lists,
-3 entries pages, 3 id lists and 3 matches each for League and TFT, plus 3 League timelines.
+3 entries pages, 3 id lists and 3 matches each for League and TFT, plus 3 League timelines (with item purchase, undo and sell events consistent with the matches' final items).
 
 ## Get a personal API key
 

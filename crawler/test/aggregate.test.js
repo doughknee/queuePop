@@ -76,9 +76,9 @@ test("League champion page: strip, builds, matchups", () => {
   assert.deepStrictEqual(c.builds.item, [{ key: "3089", games: 2, winRate: 1, pickRate: 1, lowSample: false }, { key: "3020", games: 1, winRate: 1, pickRate: 0.5, lowSample: true }]);
   assert.deepStrictEqual(c.builds.spells, [{ key: "4,14", games: 2, winRate: 1, pickRate: 1, lowSample: false }]);
   assert.deepStrictEqual(c.builds.skills, [{ key: "QEW", games: 1, winRate: 1, pickRate: 1, lowSample: true }]);
-  assert.deepStrictEqual(c.matchups, [{ opponent: 1, games: 2, winRate: 1, lowSample: false }]);
+  assert.deepStrictEqual(c.matchups, [{ opponent: 1, games: 2, winRate: 1, lowSample: false, pickRate: 1, delta1: 0, delta2: -0.5 }]);
   const garen = lolChampion(build(), 86);
-  assert.deepStrictEqual(garen.matchups.sort((a, b) => a.opponent - b.opponent), [{ opponent: 122, games: 1, winRate: 1, lowSample: true }, { opponent: 266, games: 1, winRate: 0, lowSample: true }]);
+  assert.deepStrictEqual(garen.matchups.sort((a, b) => a.opponent - b.opponent), [{ opponent: 122, games: 1, winRate: 1, lowSample: true, pickRate: 0.5, delta1: 0.5, delta2: 0 }, { opponent: 266, games: 1, winRate: 0, lowSample: true, pickRate: 0.5, delta1: -0.5, delta2: 0 }]);
 });
 
 test("skill max order from SKILL_LEVEL_UP slots", () => {

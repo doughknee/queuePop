@@ -155,8 +155,12 @@
   filters, hide rows), min games (crawler `min_games`: greys and un-tiers rows), patch/region (from `/lol/tiers` `regions`)/rank.
   Rule in `leagueTierRows` (stats-api.js) and crawler/README.md. Styles at the end of `league-world.css` (`.lg-table.lg-tiers2`,
   a container query keeps it unscrolled down to ~790 px). Crawler side: `crawler/src/agg-players.js`.
-- Items come from final inventories (no purchase order): no starting-items block; "Items 4·5·6" = finished items past the
-  three most built, by pick rate.
+- Champion page (DONI-507) lives in `src/webui/league-champion.{js,css}`, Lolalytics' section order: strip (win, delta, game
+  avg, pick, ban, tier, rank, games) · role tabs · skills (priority + order grid, 6/10/15 toggle) · spells, runes, stat mods ·
+  starting, early, core build, items 4·5·6 (`window.leagueSlotAlternatives`, tested in `app/test-league.js`) · objectives ·
+  counters (delta 1/2) · synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
+  Crawler side: `crawler/src/timeline.js` (purchase/skill parse) + `crawler/src/agg-champion.js` (tables, aggregate, the extra
+  `/lol/champion/{id}` fields). Timeline blocks come from the TIMELINE_SAMPLE share of games and fill forward from deploy.
 
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
