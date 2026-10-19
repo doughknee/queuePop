@@ -68,11 +68,50 @@
       </div>
 
   <a class="skip" href="#main">Skip to content</a>
-  <header id="qp-header" class="pywebview-drag-region"></header>
+  <nav id="qp-sidebar" aria-label="QueuePop">
+    <div class="sb-top">
+      <a class="sb-brand" href="#/" title="QueuePop home"><img src="assets/queuepop.svg" alt="" width="24" height="24"><span>QueuePop</span></a>
+      <button class="sb-toggle" type="button" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M8 3.5v13"/></svg></button>
+    </div>
+    <div class="sb-scroll">
+      <a class="sb-item" data-game="home" href="#/" title="Home"><span class="sb-ico" aria-hidden="true">&#8962;</span><span>Home</span></a>
+      <div class="sb-group" data-game="league">
+        <a class="sb-item" href="#/league" title="League of Legends"><img src="assets/logos/league.svg" alt=""><span>League of Legends</span></a>
+        <div class="sb-pages"><a href="#/league">The Rift</a><a href="#/league/champions">Champions</a><a href="#/league/champ">Champ select</a><a href="#/league/dashboard">Dashboard</a><a href="#/league/settings">Settings</a></div>
+      </div>
+      <div class="sb-group" data-game="tft">
+        <a class="sb-item" href="#/tft" title="Teamfight Tactics"><img src="assets/logos/tft.png" alt=""><span>Teamfight Tactics</span></a>
+        <div class="sb-pages"><a href="#/tft">Overview</a><a href="#/tft/comps">Team comps</a><a href="#/tft/champions">Champions</a><a href="#/tft/items">Items</a></div>
+      </div>
+      <div class="sb-group" data-game="deadlock">
+        <a class="sb-item" href="#/deadlock" title="Deadlock"><img src="assets/logos/deadlock.png" alt=""><span>Deadlock</span></a>
+        <div class="sb-pages"><a href="#/deadlock">The city</a><a href="#/deadlock/heroes">Heroes</a><a href="#/deadlock/builds">Builds</a><a href="#/deadlock/history">Match history</a><a href="#/deadlock/guides">Field guide</a></div>
+      </div>
+    </div>
+    <div class="sb-user">
+      <button id="summoner-btn" class="summoner offline" title="">
+          <span class="summoner-portrait">
+            <span class="ph" id="summoner-ph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+            </span>
+            <img id="summoner-icon" class="hidden" alt="" />
+          </span>
+          <span class="summoner-meta">
+            <span class="summoner-name" id="summoner-name">Offline</span>
+            <span class="summoner-sub">
+              <span class="summoner-level" id="summoner-level"></span>
+              <span class="summoner-rank" id="summoner-rank"></span>
+            </span>
+          </span>
+        </button>
+      <a class="sb-gear" href="#/league/settings" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+    </div>
+    <span id="header-status" hidden></span>
+    <div class="sb-resize" aria-hidden="true"></div>
+  </nav>
   <main id="main" tabindex="-1"></main>
 
-  <!-- League client dock: PLAY (launch / queue / live) and the summoner badge.
-       worlds.js mounts it into the League navigation on every League route. -->
+  <!-- League client dock: PLAY (launch / queue / live), shown on every League route. -->
   <div id="league-dock" class="league-dock" hidden>
     <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in brand/play-button.svg). Hooks the
@@ -111,21 +150,7 @@
             </g>
           </svg>
         </button>
-    <button id="summoner-btn" class="summoner offline" title="">
-          <span class="summoner-portrait">
-            <span class="ph" id="summoner-ph">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-            </span>
-            <img id="summoner-icon" class="hidden" alt="" />
-          </span>
-          <span class="summoner-meta">
-            <span class="summoner-name" id="summoner-name">Offline</span>
-            <span class="summoner-sub">
-              <span class="summoner-level" id="summoner-level"></span>
-              <span class="summoner-rank" id="summoner-rank"></span>
-            </span>
-          </span>
-        </button>
+
   </div>
 
   <!-- The working League pages (routes #/league/<page> and #/companion). -->
