@@ -1,7 +1,16 @@
 // Read-only JSON API over the stats_* tables. No auth, CORS open: meant for loopback/LAN.
+// The one write is POST /admin/key (Bearer ADMIN_TOKEN); it and the status page at / answer loopback/private-LAN only.
+const fs = require("fs");
 const http = require("http");
+const path = require("path");
+const crypto = require("crypto");
 const { TIERS } = require("./jobs");
-const { getMeta } = require("./db");
+const { getMeta, setMeta, riotKey } = require("./db");
+
+const PAGE = fs.readFileSync(path.join(__dirname, "status.html"));
+const KEY_RE = /^RGAPI-[0-9a-f-]{36}$/;
+const sha = (s) => crypto.createHash("sha256").update(s).digest();
+const lan = (a = "") => /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(a.replace(/^::ffff:/, "")) || a === "::1";
 
 const r4 = (x) => Math.round(x * 10000) / 10000;
 const byVersion = (a, b) => { const [x, y] = [a, b].map((v) => v.split(".").map(Number)); return y[0] - x[0] || y[1] - x[1]; };
@@ -97,7 +106,13 @@ function tftComp(db, id, q = {}) {
   return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment };
 }
 
-function status(db, limiter) {
+function status(db, limiter, { envKey, dbPath, aggregateHour } = {}) {
+  const k = riotKey(db, envKey);
+  const next = new Date();
+  next.setHours(aggregateHour ?? 4, 0, 0, 0);
+  if (next <= new Date()) next.setDate(next.getDate() + 1);
+  let dbBytes = null;
+  try { if (dbPath && dbPath !== ":memory:") dbBytes = fs.statSync(dbPath).size; } catch {}
   const matches = {};
   for (const r of db.prepare("SELECT game, status, count(*) n FROM matches GROUP BY 1, 2").all()) (matches[r.game] ??= {})[r.status] = r.n;
   return {
@@ -107,24 +122,44 @@ function status(db, limiter) {
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
     rateLimits: limiter ? limiter.state() : {},
+    nextAggregation: next.getTime(),
+    dbBytes,
+    key: { source: k.source, set_at: k.set_at }, // never the key itself
   };
 }
 
-function createServer({ db, limiter, version }) {
+function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateHour }) {
   return http.createServer((req, res) => {
     const send = (code, body) => {
       res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "*" });
       res.end(code === 204 ? undefined : JSON.stringify(body));
     };
     if (req.method === "OPTIONS") return send(204);
-    if (req.method !== "GET") return send(405, { error: "read-only" });
     const u = new URL(req.url, "http://x");
     const q = Object.fromEntries(u.searchParams);
     const p = u.pathname.replace(/\/+$/, "");
+    if ((p === "" || p.startsWith("/admin")) && !lan(req.socket.remoteAddress)) return send(403, { error: "LAN only" });
+    if (req.method === "POST" && p === "/admin/key") {
+      if (!adminToken) return send(503, { error: "ADMIN_TOKEN is not set" });
+      const given = /^Bearer (.+)$/.exec(req.headers.authorization || "")?.[1] || "";
+      if (!crypto.timingSafeEqual(sha(given), sha(adminToken))) return send(401, { error: "bad token" });
+      let body = "";
+      req.on("data", (c) => { if ((body += c).length > 4096) req.destroy(); });
+      return req.on("end", () => {
+        let key;
+        try { key = JSON.parse(body).key; } catch {}
+        if (typeof key !== "string" || !KEY_RE.test(key)) return send(400, { error: "key must look like RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" });
+        const set_at = Date.now();
+        setMeta(db, "riotKey", { key, set_at });
+        send(200, { ok: true, source: "meta", set_at });
+      });
+    }
+    if (req.method !== "GET") return send(405, { error: "read-only" });
+    if (p === "") { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); return res.end(PAGE); }
     let m;
     try {
       if (p === "/health") return send(200, { ok: true, version });
-      if (p === "/status") return send(200, status(db, limiter));
+      if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateHour }));
       if (p === "/patches") return send(200, patches(db));
       if (p === "/lol/tiers") return send(200, lolTiers(db, q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));

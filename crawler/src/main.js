@@ -19,6 +19,7 @@ const cfg = {
   queues: (env.QUEUES || "420,440,1100").split(",").map(Number),
   aggregateHour: Number(env.AGGREGATE_HOUR ?? 4),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
+  adminToken: env.ADMIN_TOKEN || "",
 };
 for (const r of cfg.regions) if (!ROUTING[r]) throw new Error(`unknown region ${r}; use platform ids like na1, euw1, kr`);
 if (!jobs.TIERS.includes(cfg.minTier)) throw new Error(`MIN_TIER must be one of ${jobs.TIERS.join(", ")}`);
@@ -34,20 +35,23 @@ if (process.argv[2] === "aggregate") {
 }
 
 const limiter = new Limiter();
-const ctx = { db, riot: createClient({ key: cfg.key, base: cfg.base, limiter, log }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
+const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
-createServer({ db, limiter, version }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
+createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateHour: cfg.aggregateHour }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
 // Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops.
 async function forever(name, step, idle) {
   for (;;) {
-    try { if (!(await step())) await sleep(idle); } catch (e) { log(`${name}: ${e.message}`); await sleep(10000); }
+    try {
+      if (!db_.riotKey(db, cfg.key).key) { await sleep(10000); continue; } // waiting for a key via POST /admin/key
+      if (!(await step())) await sleep(idle);
+    } catch (e) { log(`${name}: ${e.message}`); await sleep(10000); }
   }
 }
 
-if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB only");
-else {
+if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is posted to /admin/key");
+{
   for (const region of cfg.regions) {
     forever(`seed ${region}`, async () => {
       let did = false;

@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>queuePop crawler</title>
+<style>
+body{margin:0 auto;max-width:560px;padding:16px;background:#14161a;color:#e6e1d3;font:18px/1.5 system-ui,sans-serif}
+h1{color:#c8a85a;font-size:24px}h2{color:#c8a85a;font-size:16px;margin:20px 0 4px}
+.bar{background:#2a2d33;height:10px;border-radius:5px}.bar i{display:block;height:10px;border-radius:5px;background:#c8a85a}
+input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font-size:18px;border-radius:6px;border:1px solid #3a3d44;background:#1d2025;color:inherit}
+button{background:#c8a85a;color:#14161a;border:0;font-weight:700}#msg.err{color:#e5736a}#msg.ok{color:#7fcf8a}
+</style>
+<h1>queuePop crawler</h1>
+<div id="s">loading…</div>
+<h2>Replace Riot key</h2>
+<form id="f"><input id="k" type="password" placeholder="RGAPI-…" autocomplete="off" required>
+<input id="t" type="password" placeholder="admin token" autocomplete="off" required><button>Save key</button></form>
+<div id="msg"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const ago = (t) => { if (!t) return "never"; const s = Math.round((Date.now() - t) / 1000); return s < 90 ? s + " s ago" : s < 5400 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago"; };
+const sum = (o, k) => Object.values(o).reduce((n, g) => n + (g[k] || 0), 0);
+const when = (t) => t ? new Date(t).toLocaleString() : "—";
+async function load() {
+  try {
+    const s = await (await fetch("/status")).json();
+    const bars = Object.entries(s.rateLimits).flatMap(([b, v]) => v.limits.filter((l) => l.windowSec >= 120).map((l) =>
+      `<div>${b} <small>${l.used}/${l.limit} per ${l.windowSec}s${v.blockedSec ? " · blocked " + v.blockedSec + "s" : ""}</small><div class="bar"><i style="width:${Math.min(100, 100 * l.used / l.limit)}%"></i></div></div>`));
+    $("s").innerHTML = `<div>Players: ${Object.values(s.players).reduce((a, b) => a + b, 0)}</div>
+<div>Matches: ${sum(s.matches, "done")} done · ${sum(s.matches, "new")} new · ${sum(s.matches, "skip")} skip</div>
+<div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)}</div>
+<div>DB: ${s.dbBytes == null ? "—" : (s.dbBytes / 1048576).toFixed(1) + " MB"}</div>
+<div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""}</div><h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
+  } catch (e) { $("s").textContent = "status failed: " + e.message; }
+}
+$("f").onsubmit = async (e) => {
+  e.preventDefault();
+  const m = $("msg");
+  try {
+    const r = await fetch("/admin/key", { method: "POST", headers: { authorization: "Bearer " + $("t").value, "content-type": "application/json" }, body: JSON.stringify({ key: $("k").value.trim() }) });
+    const j = await r.json();
+    m.className = r.ok ? "ok" : "err";
+    m.textContent = r.ok ? "Key saved. Crawler uses it from the next request." : j.error;
+    if (r.ok) { $("k").value = ""; load(); }
+  } catch (x) { m.className = "err"; m.textContent = x.message; }
+};
+load(); setInterval(load, 10000);
+</script>

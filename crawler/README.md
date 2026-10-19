@@ -22,7 +22,8 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 
 | var | default | |
 |---|---|---|
-| `RIOT_API_KEY` | none | personal key. Without it the service only serves the existing DB |
+| `RIOT_API_KEY` | none | personal key. Without it (and without one posted to `/admin/key`) the service only serves the existing DB |
+| `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
 | `QUEUES` | `420,440,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
@@ -43,7 +44,7 @@ fetches a day per regional host (`euw1` and `eun1` share `europe`).
 
 ## Endpoints
 
-All `GET`, JSON, CORS `*`, no auth (loopback/LAN only). Common query params:
+All `GET` except the admin key POST below, JSON, CORS `*`, no auth (loopback/LAN only). Common query params:
 `patch` (default newest, e.g. `16.20`), `region` (`na1`… or `all`, default all),
 `bracket` (minimum tier: `emerald` = Emerald and above; default `all`), `min_games` (default 200).
 Rates are 0..1, 4 decimals. Every row carries `games` (its sample size) and `lowSample: games < min_games`:
@@ -51,7 +52,14 @@ low-sample rows are kept and flagged so the UI greys them, never dropped. Respon
 Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 
 - `GET /health` → `{ ok, version }`
-- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, seed, rateLimits }`
+- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, dbBytes, key, seed, rateLimits }`
+- `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
+  and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
+- `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
+  The Riot client reads it (meta first, `RIOT_API_KEY` second) on every request, so no restart. 401 bad/missing token,
+  400 malformed key, 503 no `ADMIN_TOKEN` configured. The key is never logged or returned; `/status` shows
+  `key: { source: "meta"|"env"|"none", set_at }`. `/` and `/admin/*` answer only loopback and private-LAN
+  sources (10/8, 172.16/12, 192.168/16); others get 403.
 - `GET /patches` → `{ lol: ["16.20", ...], tft: [...] }` newest first
 - `GET /lol/tiers?patch&region&bracket&role` (role `top|jungle|middle|bottom|utility`) →
   `{ patch, region, bracket, minGames, role, matches, champions: [{ champion, role, games, wins, winRate, pickRate, banRate, lowSample }] }`
@@ -106,4 +114,4 @@ docker compose logs -f
 
 Once the League and TFT pages visibly work, Register Product → Production API Key on the developer
 portal with a description, screenshots, and a working prototype; Riot reviews it (weeks) and grants
-much higher limits. Swap `RIOT_API_KEY`; the limiter picks up the new limits from the response headers.
+much higher limits. Swap the key (status page or `POST /admin/key`, or `RIOT_API_KEY`); the limiter picks up the new limits from the response headers.

@@ -18,6 +18,7 @@ function startMock(port = 0, { fail429Once = false } = {}) {
   const stats = { requests: 0, served429: 0 };
   const server = http.createServer((req, res) => {
     stats.requests++;
+    stats.lastKey = req.headers["x-riot-token"];
     const send = (code, body, extra = {}) => {
       res.writeHead(code, { "content-type": "application/json", "x-app-rate-limit": "20:1,100:120", ...extra });
       res.end(JSON.stringify(body));

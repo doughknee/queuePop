@@ -50,4 +50,11 @@ function tx(db, fn) {
 const getMeta = (db, k) => { const r = db.prepare("SELECT v FROM meta WHERE k = ?").get(k); return r ? JSON.parse(r.v) : null; };
 const setMeta = (db, k, v) => db.prepare("INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v").run(k, JSON.stringify(v));
 
-module.exports = { open, tx, getMeta, setMeta };
+// The Riot key: one pasted via POST /admin/key (meta) wins over RIOT_API_KEY (env).
+function riotKey(db, envKey) {
+  const m = getMeta(db, "riotKey");
+  if (m?.key) return { key: m.key, source: "meta", set_at: m.set_at };
+  return envKey ? { key: envKey, source: "env", set_at: null } : { key: "", source: "none", set_at: null };
+}
+
+module.exports = { open, tx, getMeta, setMeta, riotKey };

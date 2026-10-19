@@ -8,6 +8,7 @@ const ROUTING = {
   oc1: "sea", ph2: "sea", sg2: "sea", th2: "sea", tw2: "sea", vn2: "sea",
 };
 
+// key is a string, or a function called per request so a rotated key applies without a restart.
 function createClient({ key, base, limiter, log = () => {} }) {
   // Returns parsed JSON, or null on 404.
   async function get(host, path, method) {
@@ -16,7 +17,7 @@ function createClient({ key, base, limiter, log = () => {} }) {
       let res;
       try {
         res = await fetch((base || `https://${host}.api.riotgames.com`) + path, {
-          headers: { "X-Riot-Token": key }, signal: AbortSignal.timeout(30000),
+          headers: { "X-Riot-Token": typeof key === "function" ? key() : key }, signal: AbortSignal.timeout(30000),
         });
       } catch (e) {
         if (attempt >= 3) throw e;
