@@ -41,4 +41,12 @@ function launch_deadlock_overlay() {
   }
 }
 
-module.exports = { deadlock_overlay_status, launch_deadlock_overlay, probe };
+// Deadlock Play: start the overlay when one is configured (skipped silently otherwise), then the game via Steam.
+// open_external only passes http(s), so the steam:// link opens here.
+function launch_deadlock() {
+  if (exe()) launch_deadlock_overlay();
+  require("electron").shell.openExternal("steam://rungameid/1422450");
+  return { ok: true };
+}
+
+module.exports = { deadlock_overlay_status, launch_deadlock_overlay, launch_deadlock, probe };

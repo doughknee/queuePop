@@ -11,6 +11,7 @@ const METHODS = {
   set_favorites: NOT_PORTED,
   deadlock_overlay_status: { connected: false, version: "", configured: false },
   launch_deadlock_overlay: NOT_PORTED,
+  launch_deadlock: NOT_PORTED,
   get_deadlock_account: "",
   set_deadlock_account: NOT_PORTED,
 };

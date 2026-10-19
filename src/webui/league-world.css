@@ -114,7 +114,7 @@
   .arrival-name h2 { font-size: 25px; }
 }
 /* League page row (#world-nav, filled by shell.js): obsidian and deep blue, aged-gold Cinzel tabs with the clipped-corner frame. */
-.theme-league #world-nav{min-height:56px;gap:6px;padding-right:310px;background:linear-gradient(180deg,#0c1b24,#071219 88%);border-bottom:1px solid #b69b5e50;box-shadow:0 6px 28px #0004}
+.theme-league #world-nav{min-height:56px;gap:6px;background:linear-gradient(180deg,#0c1b24,#071219 88%);border-bottom:1px solid #b69b5e50;box-shadow:0 6px 28px #0004}
 .theme-league #world-nav a{position:relative;display:flex;align-items:center;min-height:38px;padding:0 16px;color:#a6b1b2;font:600 13px Cinzel,serif;letter-spacing:.2px;isolation:isolate}
 .theme-league #world-nav a:before{content:'';position:absolute;inset:0;z-index:-1;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
 .theme-league #world-nav a:hover{color:#f8e9c7}.theme-league #world-nav a:hover:before{background:#c8aa6e14}
@@ -122,3 +122,5 @@
 .theme-league #world-nav a[aria-current]:before{background:linear-gradient(115deg,#b9974838,#b9974815);box-shadow:inset 0 0 0 1px #bd9d5caa,inset 0 0 18px #e3c8900b}
 .theme-league #world-nav a[aria-current]:after{content:'';position:absolute;bottom:-4px;left:calc(50% - 3px);width:6px;height:6px;transform:rotate(45deg);background:#d5b979;box-shadow:0 0 12px #d5b97955}
 .theme-league #world-nav a:focus-visible{outline:2px solid #b7dfe1;outline-offset:2px}
+
+.theme-league #world-nav .league-dock{position:static}
