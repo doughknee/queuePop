@@ -12,6 +12,7 @@ function defaultConfig() {
     alert_events: { queue_pop: true, champ_select: false, game_start: false, disconnect: false, locked_pick: false },
     allowed_queue_ids: [], accept_delay_seconds: 0, favorite_queue_ids: [], last_queue_id: null,
     show_last_queue: true, start_minimized: false, setup_done: false,
+    deadlock_account_id: "",
     companion: { enabled: false, port: 8420, sound: "chime", sound_file: "" },
     champ_select: {
       enabled: false, instant_lock: true, lock_in_at_seconds: 1, spot_priority: [], pick_spot: "off",

@@ -93,6 +93,15 @@
   probes the separate Overwolf overlay app on `http://127.0.0.1:47821/health`; config key
   `deadlock_overlay_exe` (default empty) enables its "Launch overlay" button. The host never contains game
   hooks, and the overlay app never contains League code.
+- Deadlock landing ("The city", DONI-482) is stats-first: player card, hero tier list (rank/patch/window filters,
+  rows expand to top items + worst matchups), links; nav-row search for heroes, items, players. Styles in
+  `src/webui/deadlock/city.css` (linked into the shadow root). Account id: config key `deadlock_account_id` via bridge
+  `get_deadlock_account` / `set_deadlock_account` (`app/deadlock-api.js`), localStorage fallback. All calls go from the
+  renderer to `https://api.deadlock-api.com/v1`: `/analytics/hero-stats` (tier list; `min/max_average_badge` = rank
+  tier*10..tier*10+6, `min/max_unix_timestamp` from patch title dates), `/analytics/item-stats`,
+  `/analytics/hero-counter-stats`, `/players/{id}/match-history`, `/players/mmr`, `/players/steam`,
+  `/players/steam-search`, `/matches/{id}/metadata` (items bought), `/assets/ranks`, `/patches`. Tier = win-rate
+  percentile; `app/test-deadlock.js` checks the row builder (`window.deadlockTierRows`).
 
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
