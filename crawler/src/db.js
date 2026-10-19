@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
 CREATE TABLE IF NOT EXISTS lol_participants (
   match_id TEXT, puuid TEXT, team INT, champion INT, role TEXT, win INT, tier TEXT,
-  items TEXT, keystone INT, runes TEXT, spells TEXT);
+  items TEXT, keystone INT, runes TEXT, spells TEXT, skills TEXT);
 CREATE INDEX IF NOT EXISTS lol_participants_match ON lol_participants (match_id);
 CREATE TABLE IF NOT EXISTS lol_bans (match_id TEXT, team INT, champion INT);
 CREATE TABLE IF NOT EXISTS tft_participants (

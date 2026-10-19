@@ -13,7 +13,7 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
   const mock = await startMock(0, { fail429Once: true });
   const db = open(":memory:");
   const limiter = new Limiter();
-  const ctx = { db, riot: createClient({ key: "test", base: mock.url, limiter }), minTier: "EMERALD", queues: [420, 440, 1100] };
+  const ctx = { db, riot: createClient({ key: "test", base: mock.url, limiter }), minTier: "EMERALD", queues: [420, 440, 1100], timelineSample: 1 };
   const api = createServer({ db, limiter, version: "test" });
   try {
     for (const g of ["lol", "tft"]) {
@@ -43,7 +43,9 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const champ = tiers.champions[0];
     const [, page] = await get(`/lol/champion/${champ.champion}?role=${champ.role}`);
     assert.strictEqual(page.strip.games, champ.games);
-    assert.ok(page.builds.item.length && page.builds.keystone.length && page.builds.spells.length);
+    assert.ok(page.builds.item.length && page.builds.keystone.length && page.builds.spells.length && page.builds.skills.length);
+    assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_participants WHERE skills IS NULL").get().n, 0, "every sampled match got skill orders");
+    assert.ok(tiers.champions.every((c) => c.games > 0 && c.lowSample === true), "rows kept and flagged under min_games 200");
 
     const [, comps] = await get("/tft/comps");
     assert.strictEqual(comps.boards, 16);
