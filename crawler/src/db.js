@@ -40,6 +40,7 @@ function open(file) {
   // auto_vacuum only takes effect on a new file (or after `npm run vacuum`); it must precede the first table.
   db.exec("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
   db.exec(SCHEMA);
+  db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables
   // Migration: TFT set number (nullable), for DBs created before it existed.
   if (!db.prepare("PRAGMA table_info(matches)").all().some((c) => c.name === "set")) db.exec('ALTER TABLE matches ADD COLUMN "set" INT');
   return db;

@@ -6,6 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { TIERS, nextAggregation } = require("./jobs");
 const { getMeta, setMeta, riotKey } = require("./db");
+const champ = require("./agg-champion");
 
 const PAGE = fs.readFileSync(path.join(__dirname, "status.html"));
 const KEY_RE = /^RGAPI-[0-9a-f-]{36}$/;
@@ -80,7 +81,7 @@ function lolChampion(db, champion, q = {}) {
     GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games), lowSample: r.games < h.minGames }));
   return { ...h, champion, role: role ?? null, roles: roles.map((r) => ({ role: r.role, games: r.games })),
     strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames },
-    builds, matchups };
+    builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }) };
 }
 
 const comp = (r, boards, minGames) => ({ id: r.comp, traits: r.comp === "none" ? [] : r.comp.split(","), games: r.games,
