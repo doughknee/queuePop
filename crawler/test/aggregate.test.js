@@ -1,8 +1,8 @@
 // Aggregation math on a hand-built set: 2 League matches (20 participants) and 1 TFT lobby (8 boards).
 const test = require("node:test");
 const assert = require("node:assert");
-const { open } = require("../src/db");
-const { aggregate, skillOrder } = require("../src/jobs");
+const { open, setMeta } = require("../src/db");
+const { aggregate, retain, skillOrder } = require("../src/jobs");
 const { lolTiers, lolChampion, tftComps, tftComp } = require("../src/server");
 
 function build() {
@@ -99,4 +99,21 @@ test("TFT comps: avg placement, top-4, pick rate", () => {
   assert.deepStrictEqual(d.units.find((u) => u.key === "X"), { key: "X", games: 3, frequency: 1, avgPlacement: 3.3333, top4Rate: 0.6667, lowSample: true });
   assert.strictEqual(tftComps(db, { min_games: 3 }).comps.find((x) => x.id === "A,B").lowSample, false);
   assert.strictEqual(tftComp(db, "nope"), null);
+});
+
+test("retention nulls raw only for old, aggregated matches and keeps rows", () => {
+  const db = open(":memory:");
+  const DAY = 86400000, now = 100 * DAY;
+  const ins = db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, started_at, fetched_at, raw) VALUES (?, 'lol', 'na1', 'DIAMOND', 'done', '16.20', ?, ?, x'01')");
+  ins.run("old", now - 10 * DAY, now - 9 * DAY);   // old + aggregated -> nulled
+  ins.run("new", now - 1 * DAY, now - 1 * DAY);    // recent -> kept
+  ins.run("unagg", now - 10 * DAY, now - 1000);    // old but fetched after the pass -> kept
+  db.prepare("INSERT INTO lol_participants (match_id, puuid) VALUES ('old', 'p')").run();
+  assert.strictEqual(retain(db, 7, () => now), 0); // nothing aggregated yet
+  setMeta(db, "aggregatedAt", now - 2000);
+  assert.strictEqual(retain(db, 7, () => now), 1);
+  const raws = Object.fromEntries(db.prepare("SELECT id, raw IS NOT NULL k FROM matches").all().map((r) => [r.id, r.k]));
+  assert.deepStrictEqual(raws, { old: 0, new: 1, unagg: 1 });
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM matches").get().n, 3);
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_participants").get().n, 1);
 });

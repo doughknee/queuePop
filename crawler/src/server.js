@@ -4,7 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
-const { TIERS } = require("./jobs");
+const { TIERS, nextAggregation } = require("./jobs");
 const { getMeta, setMeta, riotKey } = require("./db");
 
 const PAGE = fs.readFileSync(path.join(__dirname, "status.html"));
@@ -106,13 +106,10 @@ function tftComp(db, id, q = {}) {
   return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment };
 }
 
-function status(db, limiter, { envKey, dbPath, aggregateHour } = {}) {
+function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
   const k = riotKey(db, envKey);
-  const next = new Date();
-  next.setHours(aggregateHour ?? 4, 0, 0, 0);
-  if (next <= new Date()) next.setDate(next.getDate() + 1);
-  let dbBytes = null;
-  try { if (dbPath && dbPath !== ":memory:") dbBytes = fs.statSync(dbPath).size; } catch {}
+  const size = (f) => { try { return dbPath && dbPath !== ":memory:" ? fs.statSync(f).size : null; } catch { return null; } };
+  const raw = db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get();
   const matches = {};
   for (const r of db.prepare("SELECT game, status, count(*) n FROM matches GROUP BY 1, 2").all()) (matches[r.game] ??= {})[r.status] = r.n;
   return {
@@ -122,13 +119,15 @@ function status(db, limiter, { envKey, dbPath, aggregateHour } = {}) {
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
     rateLimits: limiter ? limiter.state() : {},
-    nextAggregation: next.getTime(),
-    dbBytes,
+    nextAggregation: nextAggregation(db, aggregateEveryMin),
+    aggregateEveryMin,
+    retentionDays,
+    disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
     key: { source: k.source, set_at: k.set_at }, // never the key itself
   };
 }
 
-function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateHour }) {
+function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays }) {
   return http.createServer((req, res) => {
     const send = (code, body) => {
       res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "*" });
@@ -159,7 +158,7 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
     let m;
     try {
       if (p === "/health") return send(200, { ok: true, version });
-      if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateHour }));
+      if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateEveryMin, retentionDays }));
       if (p === "/patches") return send(200, patches(db));
       if (p === "/lol/tiers") return send(200, lolTiers(db, q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));

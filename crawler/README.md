@@ -10,7 +10,8 @@ ids    match-v5 / tft-match-v1 by-puuid ids, newest first            -> matches 
        is the primary key, so a match seen by ten players is fetched once)
 fetch  one match per request: raw JSON gzipped + normalised rows     -> matches.raw, *_participants
        + a timeline for TIMELINE_SAMPLE of League matches             -> lol_participants.skills
-agg    nightly (AGGREGATE_HOUR) or `npm run aggregate`              -> stats_* (counts)
+agg    every AGGREGATE_EVERY_MIN (changed patches only) or `npm run aggregate` -> stats_* (counts)
+prune  daily: raw JSON older than RAW_RETENTION_DAYS and already aggregated -> matches.raw = NULL
 api    GET endpoints below; rates computed from the counts at read time
 ```
 
@@ -30,7 +31,8 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `DB_PATH` | `data/crawler.db` | `/data/crawler.db` in the image |
 | `PORT` | `47900` | |
 | `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order); each costs one more request |
-| `AGGREGATE_HOUR` | `4` | local hour (set `TZ`) |
+| `AGGREGATE_EVERY_MIN` | `60` | minutes between aggregation passes; one runs on start if the last is older. Only patches with new matches are recomputed |
+| `RAW_RETENTION_DAYS` | `7` | see Retention |
 | `RIOT_BASE_URL` | Riot | point at the mock server instead |
 
 ## Rate limits
@@ -52,7 +54,7 @@ low-sample rows are kept and flagged so the UI greys them, never dropped. Respon
 Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 
 - `GET /health` → `{ ok, version }`
-- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, dbBytes, key, seed, rateLimits }`
+- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits }`
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
@@ -82,13 +84,26 @@ simple; MetaTFT-style clustering is a later issue.
 **Not collected:** item build order (needs a timeline for every match, halving throughput). Raw match JSON is kept gzipped in `matches.raw`, so new stats can be
 recomputed without refetching.
 
+## Retention
+
+The gzipped raw match JSON is ~50 KB/match and dominates the file. A minute after start and then daily, the crawler
+sets `matches.raw = NULL` for matches whose game started more than `RAW_RETENTION_DAYS` ago **and** that an
+aggregation pass has already counted, then runs `PRAGMA incremental_vacuum` to give the pages back. Normalised rows
+(`*_participants`, `lol_bans`) and `stats_*` are never deleted. The raw window only matters for recomputing after a
+schema change, so do that within it.
+
+New databases get `auto_vacuum=INCREMENTAL`. A database created before that needs a one-time `VACUUM`
+(`npm run vacuum`; in Docker `docker exec queuepop-crawler node src/main.js vacuum`). It rewrites the file, so it
+needs free disk about the size of the DB and blocks the crawler's writes while it runs (they retry). `/status`
+`disk` shows `dbBytes`, `walBytes`, `rawBytes` and `rawMatches`.
+
 ## Run and test
 
 ```bash
 npm test                 # rate limiter, pipeline on fixtures, aggregation math
 npm run mock             # mock Riot API on :47901 serving fixtures/
 RIOT_API_KEY=x RIOT_BASE_URL=http://127.0.0.1:47901 REGIONS=na1 npm start
-npm run aggregate        # rebuild stats now (in Docker: docker exec queuepop-crawler node src/main.js aggregate)
+npm run aggregate        # rebuild all stats now (every patch) (in Docker: docker exec queuepop-crawler node src/main.js aggregate)
 ```
 
 `fixtures/` holds schema-faithful responses (Riot DTO shapes, synthetic values): 3 ladder lists,
