@@ -106,6 +106,24 @@ function storeSkills(db, id, tl) {
 
 // match-v5 says gameVersion ("16.20.712.1001"), tft-match-v1 says game_version ("Linux Version 16.20.717.3345 (...) [PUBLIC]").
 const patchOf = (info) => { const x = /(\d+)\.(\d+)/.exec(info?.gameVersion ?? info?.game_version ?? ""); return x ? `${x[1]}.${x[2]}` : "?"; };
+// Riot now sends a placeholder game_version ("TFT Unreal Version ?.?.?.?") for tft-match-v1, so a TFT game's patch is
+// the League patch whose first game started latest at or before it (league windows[]: [[firstStart, patch]] ascending).
+// Fallbacks: the newest League patch, then `set<N>`. ponytail: a TFT game right after a patch change, before the first
+// League game of that patch is crawled, lands on the previous patch; the next backfill-patch/aggregate pass doesn't re-derive it.
+const leagueWindows = (db) => db.prepare("SELECT min(started_at) t, patch FROM matches WHERE game = 'lol' AND status = 'done' AND patch <> '?' AND started_at IS NOT NULL GROUP BY patch ORDER BY t").all().map((r) => [r.t, r.patch]);
+const windowsCache = new WeakMap(); // db -> { at, w }; only non-empty tables are cached, 5 min
+function tftPatch(info, windows) {
+  const t = info?.game_datetime;
+  const hit = t != null && windows.filter(([from]) => from <= t).pop();
+  return hit ? hit[1] : windows.length ? windows[windows.length - 1][1] : info?.tft_set_number != null ? `set${info.tft_set_number}` : "?";
+}
+const windowsFor = (db, now = Date.now) => {
+  const c = windowsCache.get(db);
+  if (c && now() - c.at < 300000) return c.w;
+  const w = leagueWindows(db);
+  if (w.length) windowsCache.set(db, { at: now(), w });
+  return w;
+};
 const setOf = (info) => info?.tft_set_number ?? null;
 
 // TFT comp rule: the sorted set of traits at their 2nd breakpoint or higher (tier_current >= 2).
@@ -122,7 +140,7 @@ function store(ctx, game, id, m) {
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
     db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ? WHERE id = ?`).run(
-      ok ? "done" : "skip", queue, patchOf(info), game === "lol" ? null : setOf(info),
+      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info), game === "lol" ? null : setOf(info),
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, id);
     if (!ok) return;
     if (game === "lol") {
@@ -147,16 +165,18 @@ function store(ctx, game, id, m) {
   return ok;
 }
 
-// Re-parses patch (and TFT set) from the stored raw JSON for rows stuck on '?' or null, then deletes the stale '?'
+// Re-derives patch (and TFT set) from the stored raw JSON for rows stuck on '?' or null, then deletes the stale '?'
 // rows in stats_*. Idempotent; rows whose raw has no parseable version stay '?'. Run `aggregate` after it.
 function backfillPatch(db) {
   const rows = db.prepare("SELECT id, game, raw FROM matches WHERE (patch = '?' OR patch IS NULL) AND raw IS NOT NULL").all();
   const up = db.prepare('UPDATE matches SET patch = ?, "set" = ? WHERE id = ?');
+  const windows = leagueWindows(db);
   let fixed = 0, unparsed = 0, sample = null;
   tx(db, () => {
     for (const r of rows) {
       const info = JSON.parse(zlib.gunzipSync(r.raw)).info;
-      const patch = patchOf(info);
+      let patch = patchOf(info);
+      if (patch === "?" && r.game === "tft") patch = tftPatch(info, windows);
       if (patch === "?") { unparsed++; sample ??= info?.gameVersion ?? info?.game_version ?? null; continue; }
       up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
       fixed++;
