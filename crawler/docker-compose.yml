@@ -1,0 +1,11 @@
+services:
+  crawler:
+    build: .
+    image: queuepop-crawler
+    container_name: queuepop-crawler
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "47900:47900"
+    volumes:
+      - ./data:/data

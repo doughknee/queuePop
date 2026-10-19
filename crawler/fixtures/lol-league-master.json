@@ -1,0 +1,52 @@
+{
+  "tier": "MASTER",
+  "leagueId": "6a1b2c3d-0000-4000-8000-000000000006",
+  "queue": "RANKED_SOLO_5x5",
+  "name": "Synthetic Wardens",
+  "entries": [
+    {
+      "puuid": "lol_6_p84a_hyqbg22j64mrlj77zs6542-0k1m6g6z5r45bihav4x664hvrou2tosj03ljxu9vmwvy",
+      "leaguePoints": 1161,
+      "rank": "I",
+      "wins": 166,
+      "losses": 179,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    },
+    {
+      "puuid": "lol_7_vghemy7yonpefcsodyprd5klehqhxv23s60ex17w-l_bdl681uju3h4zw-lb1tx0zb0_6zvi",
+      "leaguePoints": 1124,
+      "rank": "I",
+      "wins": 248,
+      "losses": 137,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": true,
+      "hotStreak": false
+    },
+    {
+      "puuid": "lol_8_xvqa6y_l29vxhjqqbv35dlxqmlcoqytuqx89r5_ypxckb5ejzikf2lx2a583-cgb_skt504a",
+      "leaguePoints": 770,
+      "rank": "I",
+      "wins": 295,
+      "losses": 91,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    },
+    {
+      "puuid": "lol_9_ex2dkp3zxf9_x1g7gn0qr_ruzdgh5m_uestau5qicyqe5a817zz5kzraedcteinyjj12z6gk",
+      "leaguePoints": 409,
+      "rank": "I",
+      "wins": 168,
+      "losses": 209,
+      "veteran": true,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    }
+  ]
+}

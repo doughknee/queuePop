@@ -1,0 +1,30 @@
+{
+  "tier": "CHALLENGER",
+  "leagueId": "6a1b2c3d-0000-4000-8000-000000000010",
+  "queue": "RANKED_TFT",
+  "name": "Synthetic Wardens",
+  "entries": [
+    {
+      "puuid": "tft_0_48kia1_hsl0fxyfx1uwq6f1mb2ledaktulkz3nvp8ig6wyutqtav0kh41g_ou3ehpdbngwv1",
+      "leaguePoints": 525,
+      "rank": "I",
+      "wins": 221,
+      "losses": 233,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    },
+    {
+      "puuid": "tft_1_u4nktjr--rk6vlt0c_0rcaqjiyvuxvzfbj0p5nbxj47kb70tom_hdta3eolxd3l_iwy38hkx",
+      "leaguePoints": 628,
+      "rank": "I",
+      "wins": 162,
+      "losses": 196,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "queuepop-crawler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Crawls ranked League and TFT matches with a Riot personal API key, aggregates per-patch stats, serves them as JSON.",
+  "main": "src/main.js",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node src/main.js",
+    "aggregate": "node src/main.js aggregate",
+    "mock": "node src/mock.js",
+    "test": "node --test"
+  }
+}
