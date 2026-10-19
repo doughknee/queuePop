@@ -16,3 +16,98 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .theme-tft .tft-play:hover{background:#f6dca0}.theme-tft .tft-play:active{transform:translateY(2px);box-shadow:0 1px 0 #8a663c}
 .theme-tft .tft-play.queued{background:#2c2545;color:#efd18c;box-shadow:0 3px 0 #1a1530,inset 0 0 0 2px #B9A0ED}
 .theme-tft .tft-play:focus-visible{outline:2px solid #B9A0ED;outline-offset:2px}
+#tft-view iframe[hidden],.tft-live-rank[hidden]{display:none}
+/* Stats pages (DONI-484): plum table, violet labels, honey highlights, seafoam for good numbers, heavy Trebuchet. */
+#tft-view{--plum:#211D36;--plum2:#2c2545;--line:#38304d;--violet:#B9A0ED;--honey:#F5CD74;--sea:#9BD6C0;--ink:#efe6ff;--dim:#8f84ad}
+.ts-search{position:relative;padding:10px 24px;background:#191a2b;border-bottom:1px solid var(--line)}
+.ts-search input{width:100%;max-width:640px;box-sizing:border-box;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--plum);color:var(--ink);font:600 14px 'Trebuchet MS',sans-serif;outline:none}
+.ts-search input:focus{border-color:var(--violet)}
+.ts-results{display:flex;flex-wrap:wrap;gap:6px 18px;max-width:1440px;padding:10px 0 2px}
+.ts-results[hidden]{display:none}
+.ts-results>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.ts-results small{color:var(--dim);font:800 11px 'Trebuchet MS',sans-serif;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
+.ts-results button,.ts-results a{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:10px;background:var(--plum);color:var(--ink);font:700 13px 'Trebuchet MS',sans-serif;text-decoration:none;cursor:pointer}
+.ts-results button:hover,.ts-results a:hover{border-color:var(--violet)}
+.ts-results .ts-tier{width:24px;height:24px;font-size:13px;border-radius:7px}
+.ts-page{flex:1;min-height:0;overflow:auto;background:#17152a;color:var(--ink);font:14px 'Trebuchet MS',sans-serif;outline:none}
+.ts-page[hidden]{display:none}
+.ts-wrap{max-width:1440px;padding:20px 24px 40px;box-sizing:border-box}
+.ts-page h1,.ts-page h3{font-family:'Trebuchet MS',sans-serif;font-weight:800;letter-spacing:-.4px;margin:0}
+.ts-h1{font-size:28px;color:var(--honey);margin-bottom:6px!important}
+.ts-page h3{font-size:15px;color:var(--violet);margin:14px 0 8px}
+.ts-quiet,.ts-state{color:var(--dim);margin:8px 0}
+.ts-state:empty{display:none}
+.ts-card{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:center;padding:18px 22px;border-radius:18px;background:var(--plum);border:1px solid var(--line);box-shadow:0 4px 0 #120f20}
+.ts-rank small,.ts-form small{display:block;color:var(--dim);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.ts-rank strong{display:block;font-size:26px;font-weight:800;color:var(--honey);letter-spacing:-.5px}
+.ts-rank span{color:var(--violet);font-weight:700}
+.ts-places{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ts-place{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;font-weight:800;text-decoration:none;flex-shrink:0;background:var(--plum2);color:var(--dim)}
+.ts-page a.ts-place{color:var(--dim)}
+.ts-place.p1,.ts-page a.ts-place.p1{background:var(--honey);color:#352939}.ts-place.p4,.ts-page a.ts-place.p4{background:#2b4a45;color:var(--sea)}
+.ts-filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:18px 0 6px}
+.ts-filters label{color:var(--dim);font-weight:800;font-size:12px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.ts-filters select{padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:var(--plum);color:var(--ink);font:700 13px 'Trebuchet MS',sans-serif}
+.ts-seg{display:flex;gap:4px;padding:3px;border-radius:11px;background:var(--plum)}
+.ts-seg button{padding:5px 12px;border:0;border-radius:8px;background:none;color:var(--violet);font:800 13px 'Trebuchet MS',sans-serif;cursor:pointer}
+.ts-seg button[aria-pressed=true]{background:var(--honey);color:#352939}
+.ts-head,.ts-main{display:grid;grid-template-columns:38px minmax(140px,1.3fr) minmax(0,2fr) repeat(5,minmax(52px,64px));gap:10px;align-items:center}
+.ts-head{padding:8px 12px;color:var(--dim);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.ts-head span:nth-child(n+4){text-align:right}
+.ts-row{border-radius:14px;background:var(--plum);margin-bottom:6px;border:1px solid transparent}
+.ts-row.open{border-color:var(--violet)}
+.ts-row.low>.ts-main,.ts-table tr.low,.ts-comp-head.low{opacity:.5}
+.ts-main{width:100%;padding:8px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:14px}
+.ts-main:hover{background:var(--plum2)}
+.ts-main:focus-visible,.ts-game-main:focus-visible{outline:2px solid var(--honey);outline-offset:1px}
+.ts-tier{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:10px;font:800 17px 'Trebuchet MS',sans-serif;flex-shrink:0}
+.t-S{background:var(--honey);color:#352939}.t-A{background:var(--violet);color:#211D36}.t-B{background:var(--sea);color:#183530}.t-C{background:#4a4263;color:var(--ink)}
+.ts-name{display:flex;flex-wrap:wrap;gap:4px 10px;min-width:0;font-weight:800}
+.ts-trait{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.ts-units{display:flex;gap:3px;min-width:0;overflow:hidden}
+.ts-num{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.ts-ico{width:30px;height:30px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--plum2)}
+.ts-ico-x{display:inline-grid;place-items:center;font-size:11px;font-weight:800;color:var(--violet)}
+.ts-ico-trait{width:18px;height:18px;border-radius:0;background:none;object-fit:contain}
+.ts-ico-item{width:22px;height:22px;border-radius:5px}
+.ts-detail{padding:4px 14px 14px}
+.ts-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:4px 24px}
+.ts-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.ts-table th{color:var(--dim);font-size:11px;text-transform:uppercase;text-align:right;padding:4px 6px}
+.ts-table th:first-child,.ts-table td:first-child{text-align:left}
+.ts-table td{padding:3px 6px;text-align:right;border-top:1px solid var(--line);font-weight:700}
+.ts-table td:first-child{display:flex;align-items:center;gap:8px}
+.ts-table .ts-ico{width:24px;height:24px}
+.ts-page a{color:var(--honey);font-weight:800}
+.ts-more{display:block;margin:10px auto;padding:8px 18px;border:1px solid var(--line);border-radius:11px;background:var(--plum);color:var(--violet);font:800 13px 'Trebuchet MS',sans-serif;cursor:pointer}
+.ts-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.ts-page .ts-links a{padding:8px 16px;border-radius:7px 7px 12px 12px;background:var(--plum);color:var(--violet);text-decoration:none}
+.ts-page .ts-links a:hover{background:var(--plum2);color:var(--ink)}
+.ts-back{display:inline-block;margin-bottom:12px;text-decoration:none}
+.ts-comp-head{display:flex;gap:14px;align-items:center}
+.ts-comp-head h1{font-size:26px;color:var(--honey)}
+.ts-comp-head .ts-tier{width:46px;height:46px;font-size:24px;border-radius:14px}
+.ts-stats{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 4px}
+.ts-stats>div{min-width:110px;padding:10px 14px;border-radius:14px;background:var(--plum)}
+.ts-stats small{display:block;color:var(--dim);font-weight:800;font-size:11px;text-transform:uppercase}
+.ts-stats strong{font-size:22px;font-weight:800;color:var(--sea)}
+.ts-stats .ts-quiet{display:block;margin:0;font-size:12px}
+/* Read-only hex board: violet tokens on a plum table, even rows offset like the planner. */
+.ts-board{display:inline-flex;flex-direction:column;gap:2px;padding:16px 18px 18px;border-radius:18px;background:var(--plum);max-width:100%;box-sizing:border-box;overflow:hidden}
+.ts-hexrow{display:flex;gap:4px}.ts-hexrow:nth-child(even){margin-left:33px}
+.ts-hex{position:relative;width:62px;height:70px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:#3a3158;display:grid;place-items:center;flex-shrink:0}
+.ts-hex.on{background:var(--violet)}
+.ts-hex .ts-ico{width:48px;height:48px;border-radius:50%}
+.ts-hex small{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:9px;font-weight:800;color:#211D36;background:#B9A0EDdd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px}
+.ts-hist{display:flex;flex-direction:column;gap:6px}
+.ts-game{border-radius:14px;background:var(--plum);border:1px solid transparent}.ts-game.open{border-color:var(--violet)}
+.ts-game-main{width:100%;display:grid;grid-template-columns:34px minmax(120px,170px) minmax(0,1fr) minmax(0,1.6fr);gap:12px;align-items:center;padding:8px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:14px}
+.ts-game-main:hover{background:var(--plum2)}
+.ts-game-meta strong{display:block;font-weight:800}.ts-game-meta small{color:var(--dim)}
+.ts-game-traits{display:flex;flex-wrap:wrap;gap:4px 8px;min-width:0;font-weight:800;color:var(--violet)}
+.ts-trait.st3,.ts-trait.st4{color:var(--honey)}.ts-trait.st2{color:var(--ink)}.ts-trait.st1{color:#c99a6b}
+.ts-trait-list{display:flex;flex-wrap:wrap;gap:6px 14px;font-weight:700}
+.ts-unit-line{display:flex;align-items:center;gap:8px;padding:3px 0;border-top:1px solid var(--line);font-weight:700}
+.ts-unit-line .ts-items{display:flex;gap:3px;margin-left:auto}
+.ts-stars{font-style:normal;font-size:11px;color:#c9c0e0}.ts-stars.s2{color:#d8dde6}.ts-stars.s3{color:var(--honey)}
+@media (max-width:820px){.ts-head,.ts-main{grid-template-columns:34px minmax(120px,1fr) repeat(5,minmax(44px,56px))}.ts-head span:nth-child(3),.ts-main .ts-units{display:none}.ts-game-main{grid-template-columns:34px minmax(110px,1fr) minmax(0,1.4fr)}.ts-game-main .ts-game-traits{display:none}}

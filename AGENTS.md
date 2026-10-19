@@ -110,6 +110,19 @@
   `/players/steam-search`, `/matches/{id}/metadata` (items bought), `/assets/ranks`, `/patches`. Tier = win-rate
   percentile; `app/test-deadlock.js` checks the row builder (`window.deadlockTierRows`).
 
+## TFT world
+- Stats-first (DONI-484): `src/webui/tft-view.js` renders `#/tft` (your card: rank + last-10 placements, filter strip
+  patch/region/bracket, comps tier list from crawler `/tft/comps`, rows expand to `/tft/comp/{id}` units + augments),
+  `#/tft/comp/{id}` (same as a page plus a read-only board) and `#/tft/history`; the search box above the content filters
+  the list and jumps to comps. `#/tft/{comps,planner,champions,items}` still show the Field Guide iframe; its library and
+  board save/load/share are inline panels (no dialogs). Styles at the end of `tft-view.css`.
+- Data: `src/webui/js/tft-stats-api.js` (`window.tftStats`): crawler base from config `crawler_url` (default
+  `http://10.205.0.81:47900`), per-URL memo; names/icons from Community Dragon `en_us.json` (24 MB, once per session),
+  falling back to the key without its prefix. Tier banding: score = avg placement − 5 × min(pick rate, 0.10);
+  S ≤ 3.5, A ≤ 4.0, B ≤ 4.5, else C; low-sample rows sort after full-sample ones and are greyed. `app/test-tft.js` checks it.
+- Your games: bridge `get_tft_match_history(count)` (`app/account.js`) reads
+  `/lol-match-history/v1/products/tft/{puuid}/matches`; the LCU copy usually has no augments.
+
 ## Stats crawler
 - `crawler/` is a standalone Node 24 service (own `package.json`, no deps, `node:sqlite`): one Riot personal key crawls
   ranked League/TFT matches per region, aggregates per-patch stats into `stats_*`, and serves them on port 47900

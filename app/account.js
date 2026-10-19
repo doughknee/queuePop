@@ -206,6 +206,27 @@ function createAccount(ctx) {
     return out;
   }
 
+  // TFT games live under their own product: /lol-match-history/v1/products/tft/{puuid}/matches (checked on the live client
+  // 2026-10-19). Returns our board per game; augments are often absent from the client's copy.
+  async function getTftMatchHistory(count = 10) {
+    count = Math.max(1, Math.min(parseInt(count, 10) || 10, 20));
+    const me = await get("/lol-summoner/v1/current-summoner");
+    const puuid = me && me.status === 200 ? me.data.puuid : null;
+    if (!puuid) return [];
+    const r = await get(`/lol-match-history/v1/products/tft/${puuid}/matches?begin=0&count=${count}`);
+    if (!r || r.status !== 200) return [];
+    const out = [];
+    for (const g of (r.data && r.data.games) || []) {
+      const j = g.json || {}, p = (j.participants || []).find((x) => x.puuid === puuid);
+      if (!p) continue;
+      out.push({ id: j.gameId || j.game_id, ts: (j.game_datetime || 0) / 1000, queueId: j.queue_id ?? j.queueId, set: j.tft_set_number,
+        length: j.game_length || 0, placement: p.placement, level: p.level, augments: p.augments || [],
+        traits: (p.traits || []).filter((t) => t.tier_current > 0).map((t) => ({ key: t.name, units: t.num_units, style: t.style, tier: t.tier_current })),
+        units: (p.units || []).map((u) => ({ key: u.character_id, stars: u.tier, items: u.itemNames || [] })) });
+    }
+    return out;
+  }
+
   async function getSummoner() {
     const r = await get("/lol-summoner/v1/current-summoner");
     if (!r || r.status !== 200) return { connected: false };
@@ -247,7 +268,7 @@ function createAccount(ctx) {
       opgg: (links.find((l) => l.name === "OP.GG") || {}).url || "", links, ranked, mastery };
   }
 
-  return { getQueueMap, getQuickQueues, startQueue, cancelQueue, launchLeague, getChampionMastery, getMatchHistory, getSummoner };
+  return { getQueueMap, getQuickQueues, startQueue, cancelQueue, launchLeague, getChampionMastery, getMatchHistory, getTftMatchHistory, getSummoner };
 }
 
 module.exports = { createAccount, enrichLiveQueues, matchPosition, QUEUE_ID_MAP };
