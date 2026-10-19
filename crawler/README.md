@@ -98,13 +98,17 @@ New databases get `auto_vacuum=INCREMENTAL`. A database created before that need
 needs free disk about the size of the DB and blocks the crawler's writes while it runs (they retry). `/status`
 `disk` shows `dbBytes`, `walBytes`, `rawBytes` and `rawMatches`.
 
+TFT patch: Riot's tft-match-v1 now sends a placeholder `game_version` (`TFT Unreal Version ?.?.?.?`), so when it
+has no number the patch is the League patch whose first crawled game started latest at or before the TFT game's
+`game_datetime` (fallbacks: newest League patch, then `set<N>`). `backfill-patch` applies the same rule to old rows.
+
 ## Run and test
 
 ```bash
 npm test                 # rate limiter, pipeline on fixtures, aggregation math
 npm run mock             # mock Riot API on :47901 serving fixtures/
 RIOT_API_KEY=x RIOT_BASE_URL=http://127.0.0.1:47901 REGIONS=na1 npm start
-npm run backfill-patch   # one-off: re-parse patch/set from stored raw for '?' rows, drop stale '?' stats; then run aggregate (Docker: node src/main.js backfill-patch)
+npm run backfill-patch   # one-off (stop the service first; db busy_timeout is 5 s): re-derive patch/set from stored raw for '?' rows, drop stale '?' stats; then run aggregate (Docker: node src/main.js backfill-patch)
 npm run aggregate        # rebuild all stats now (every patch) (in Docker: docker exec queuepop-crawler node src/main.js aggregate)
 ```
 

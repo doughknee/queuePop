@@ -85,3 +85,17 @@ test("TFT game_version parses to patch + set, and backfill-patch repairs '?' row
   assert.strictEqual(db.prepare("SELECT count(*) n FROM stats_tft_boards").get().n, 0, "stale ? stats dropped");
   assert.strictEqual(jobs.backfillPatch(db).scanned, 0, "idempotent");
 });
+
+test("TFT placeholder game_version: patch comes from the League patch window containing game_datetime", () => {
+  const db = open(":memory:");
+  const lol = (id, patch, t) => db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, started_at) VALUES (?, 'lol', 'na1', 'EMERALD', 'done', ?, ?)").run(id, patch, t);
+  lol("L1", "16.19", 1000); lol("L2", "16.19", 5000); lol("L3", "16.20", 9000); lol("L4", "16.20", 12000);
+  const info = (t) => ({ game_version: "TFT Unreal Version ?.?.?.?", game_datetime: t, tft_set_number: 16 });
+  const tft = (id, t) => db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, raw) VALUES (?, 'tft', 'na1', 'EMERALD', 'done', '?', ?)").run(id, zlib.gzipSync(JSON.stringify({ info: info(t) })));
+  tft("T1", 6000); tft("T2", 10000); tft("T3", 500);
+  assert.strictEqual(jobs.patchOf(info(1)), "?");
+  assert.strictEqual(jobs.backfillPatch(db).fixed, 3);
+  const got = Object.fromEntries(db.prepare("SELECT id, patch FROM matches WHERE game = 'tft'").all().map((r) => [r.id, r.patch]));
+  assert.deepStrictEqual(got, { T1: "16.19", T2: "16.20", T3: "16.20" }, "before every window -> newest League patch");
+  assert.strictEqual(jobs.backfillPatch(db).scanned, 0);
+});
