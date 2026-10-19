@@ -1,0 +1,154 @@
+/* DONI-483: League stats pages (league-stats.js). Tokens from prototypes/queuepop/DIRECTION.md: obsidian, deep blue,
+   aged gold as structure, ivory text, spell light for wins, muted defeat; Cinzel names, Marcellus headings, Segoe UI data. */
+.lg-page{--lg-obsidian:#050d14;--lg-deep:#0d1c25;--lg-gold:#c8aa6e;--lg-ivory:#f0e6d0;--lg-spell:#79c9cf;--lg-defeat:#9f6058;--lg-line:#c8aa6e2e;--lg-muted:#93a5ad;
+  max-width:1400px;margin:0 auto;padding:18px clamp(16px,3vw,40px) 56px;color:var(--lg-ivory);font:14px/1.45 'Segoe UI',Arial,sans-serif;min-width:0}
+.lg-page *{min-width:0}
+.lg-page a{color:inherit}
+.lg-page h1,.lg-page h2,.lg-page h3{letter-spacing:0}
+.lg-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.lg-kicker{display:block;font:600 10px/1.4 'Segoe UI',sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:var(--lg-gold);margin-bottom:6px}
+.lg-wait{color:var(--lg-muted);font-size:13px;margin:0}
+.lg-offline{color:var(--lg-muted);font-size:13px;margin:6px 0;padding:12px 14px;border-left:2px solid var(--lg-line)}
+.lg-page .low{opacity:.5}
+.lg-page small{display:inline;font-size:11px;color:var(--lg-muted);font-weight:400}
+
+/* Search */
+.lg-search{margin-bottom:16px}
+.lg-search input{width:100%;max-width:520px;min-height:40px;padding:8px 14px;background:var(--lg-deep);color:var(--lg-ivory);border:1px solid #c8aa6e55;font:14px 'Segoe UI',sans-serif}
+.lg-search input:focus-visible{outline:0;border-color:var(--lg-gold);box-shadow:0 0 0 1px var(--lg-gold)}
+.lg-results{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:10px;padding:12px 14px;background:#0d1c25cc;border-bottom:1px solid var(--lg-line)}
+.lg-results[hidden]{display:none}
+.lg-hits{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.lg-hits .lg-kicker{width:100%;margin:0}
+.lg-hit{display:flex;align-items:center;gap:8px;min-height:36px;padding:3px 10px 3px 3px;background:var(--lg-obsidian);border:1px solid #c8aa6e30;color:var(--lg-ivory);font:13px 'Segoe UI',sans-serif;text-align:left}
+.lg-hit:hover,.lg-hit:focus-visible{border-color:var(--lg-gold)}
+.lg-icon{width:28px;height:28px;object-fit:cover;border:1px solid #c8aa6e66;flex:none}
+
+/* Your card: the top champion's splash as the scene, data on the left */
+.lg-card{position:relative;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr);gap:18px 28px;align-items:start;padding:24px 26px;margin-bottom:28px;border-top:1px solid var(--lg-gold);
+  background-image:linear-gradient(90deg,#050d14f2 0%,#050d14d9 55%,#050d1499 100%),var(--champ-art);background-size:cover;background-position:var(--portrait-position,center 20%)}
+.lg-card-empty{grid-template-columns:1fr;min-height:150px}
+.lg-card-empty p{color:var(--lg-muted);margin-top:6px}
+.lg-card-who{display:flex;gap:14px;align-items:center}
+.lg-card h2{font:500 30px/1.1 Cinzel,serif;overflow-wrap:anywhere}
+.lg-card h2 small{font:400 15px "Segoe UI",sans-serif;margin-left:4px;white-space:nowrap}
+.lg-card-who p{font-size:12px;color:var(--lg-muted);margin-top:6px}
+.lg-card-who a{color:var(--lg-gold)}
+.lg-avatar{width:64px;height:64px;border:2px solid var(--lg-gold);border-radius:50%;flex:none}
+.lg-card-ranks{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0}
+.lg-card-ranks dt,.lg-strip dt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--lg-gold);margin-bottom:4px}
+.lg-card-ranks dd{margin:0;font:19px/1.25 Marcellus,serif}
+.lg-card-ranks dd small{font:12px "Segoe UI",sans-serif;white-space:nowrap}
+.lg-page .lg-sub{font:12px 'Segoe UI',sans-serif;color:var(--lg-muted);margin-top:2px}
+.lg-card-mastery{display:flex;flex-direction:column;gap:6px}
+.lg-card-mastery a{display:flex;align-items:center;gap:8px;font:15px Marcellus,serif}
+.lg-card-mastery a:hover span{color:var(--lg-gold)}
+.lg-card-mastery small{font-family:'Segoe UI',sans-serif}
+.lg-card-form p{font-size:12px;color:var(--lg-muted);margin-top:8px}
+.lg-chips{display:flex;flex-wrap:wrap;gap:3px}
+.lg-chips b{width:21px;height:21px;display:grid;place-items:center;font:700 11px 'Segoe UI',sans-serif;color:var(--lg-obsidian)}
+.lg-chips .w{background:var(--lg-spell)}
+.lg-chips .l{background:var(--lg-defeat);color:var(--lg-ivory)}
+
+/* Sections, filters */
+.lg-section{margin-bottom:30px}
+.lg-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;border-bottom:1px solid var(--lg-line);padding-bottom:8px;margin-bottom:12px}
+.lg-head h2{font:400 24px/1.2 Marcellus,serif}
+.lg-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 14px;margin-bottom:12px}
+.lg-filters label{display:flex;flex-direction:column;gap:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted)}
+.lg-filters select{min-height:34px;background:var(--lg-deep);color:var(--lg-ivory);border:1px solid #c8aa6e44;padding:5px 26px 5px 9px;font:13px 'Segoe UI',sans-serif}
+.lg-roles{display:flex;border:1px solid #c8aa6e44}
+.lg-roles button{min-width:40px;min-height:34px;display:grid;place-items:center;background:var(--lg-deep);border:0;border-right:1px solid #c8aa6e22;color:var(--lg-muted);font:12px 'Segoe UI',sans-serif;padding:0 8px}
+.lg-roles button:last-child{border-right:0}
+.lg-roles button[aria-pressed=true]{background:#c8aa6e22;color:var(--lg-ivory);box-shadow:inset 0 -2px var(--lg-gold)}
+.lg-role-ico{width:20px;height:20px;vertical-align:middle}
+.lg-meta{margin-left:auto;font-size:12px;color:var(--lg-muted);align-self:center}
+.lg-rule{font-size:11px;color:var(--lg-muted);margin-top:10px;max-width:none}
+
+/* Tier table */
+.lg-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.lg-table th{text-align:left;border-bottom:1px solid var(--lg-line);padding:0}
+.lg-table th button{width:100%;text-align:inherit;background:none;border:0;padding:7px 8px;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--lg-muted);white-space:nowrap}
+.lg-table th[aria-sort=ascending] button,.lg-table th[aria-sort=descending] button{color:var(--lg-gold)}
+.lg-table th.num{padding:7px 8px;font:600 10px 'Segoe UI',sans-serif;color:var(--lg-muted)}
+.lg-table td{padding:4px 8px;border-bottom:1px solid #ffffff0d;white-space:nowrap}
+.lg-table .num{text-align:right}
+.lg-table th:nth-child(n+6) button{text-align:right}
+.lg-table tbody tr{cursor:pointer}
+.lg-table tbody tr:hover{background:#c8aa6e12}
+.lg-table tbody tr:nth-child(even){background-color:#ffffff05}
+.lg-name a{display:flex;align-items:center;gap:9px;font:500 15px Cinzel,serif}
+.lg-name a:hover span{color:var(--lg-gold)}
+.lg-tiers td:first-child{color:var(--lg-muted);font-size:12px;width:36px}
+.lg-tier{display:inline-grid;place-items:center;width:26px;height:22px;font:700 12px Cinzel,serif;color:var(--lg-obsidian);background:var(--lg-muted);clip-path:polygon(15% 0,85% 0,100% 50%,85% 100%,15% 100%,0 50%)}
+.lg-tier.t-S{background:#e8c77f}.lg-tier.t-A{background:var(--lg-spell)}.lg-tier.t-B{background:#9fb5b8}.lg-tier.t-C{background:#b08a7e}.lg-tier.t-D{background:var(--lg-defeat);color:var(--lg-ivory)}
+.lg-bar{display:inline-block;width:34px;height:4px;margin-right:8px;vertical-align:middle;background:linear-gradient(90deg,currentColor calc(var(--v)*100%),#ffffff14 0)}
+.lg-bar.up{color:var(--lg-spell)}.lg-bar.down{color:var(--lg-defeat)}
+.lg-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.lg-links a{display:flex;flex-direction:column;padding:14px 16px;border:1px solid var(--lg-line);background:#0d1c2588;font:17px Marcellus,serif}
+.lg-links a:hover{border-color:var(--lg-gold)}
+
+/* Champion page */
+.lg-champ-head{display:flex;align-items:center;gap:20px;padding:26px;margin-bottom:16px;border-top:1px solid var(--lg-gold);background-image:linear-gradient(90deg,#050d14f5 20%,#050d14b3 60%,#050d1466),var(--champ-art);background-size:cover;background-position:center 22%}
+.lg-portrait{width:84px;height:84px;object-fit:cover;border:2px solid var(--lg-gold)}
+.lg-champ-head h1{font:500 44px/1.05 Cinzel,serif;letter-spacing:0}
+.lg-champ-head p{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;font-size:12px}
+.lg-champ-head p a{color:var(--lg-gold)}
+.lg-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.lg-tabs button{display:flex;align-items:center;gap:7px;min-height:36px;padding:4px 12px;background:var(--lg-deep);border:1px solid #c8aa6e33;color:var(--lg-muted);font:13px 'Segoe UI',sans-serif}
+.lg-tabs button[aria-pressed=true]{color:var(--lg-ivory);border-color:var(--lg-gold);background:#c8aa6e1c}
+.lg-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0 0 26px;border:1px solid var(--lg-line);background:#0d1c2599}
+.lg-strip>div{padding:12px 14px;border-right:1px solid var(--lg-line)}
+.lg-strip>div:last-child{border-right:0}
+.lg-strip dd{margin:0;font:400 24px/1.2 Marcellus,serif;font-variant-numeric:tabular-nums}
+.lg-strip dd small{font:12px 'Segoe UI',sans-serif}
+.lg-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.lg-block{border:1px solid #c8aa6e24;background:#0d1c2566;padding:10px 12px}
+.lg-block>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-bottom:4px}
+.lg-block h3{font:400 16px Marcellus,serif;color:var(--lg-ivory)}
+.lg-block-head,.lg-pick{display:grid;grid-template-columns:auto minmax(0,1fr) 52px 86px;align-items:center;gap:8px}
+.lg-block-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted);padding-bottom:2px;border-bottom:1px solid #ffffff0d}
+.lg-block-head span:nth-child(n+3){text-align:right}
+.lg-pick{padding:4px 0;border-bottom:1px solid #ffffff08;font-variant-numeric:tabular-nums}
+.lg-pick b{text-align:right;font-weight:600}
+.lg-pick>small{text-align:right}
+.lg-pick-icons{display:flex;gap:3px}
+.lg-pick-label{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-ico{width:28px;height:28px;object-fit:cover;border:1px solid #c8aa6e44;background:var(--lg-obsidian)}
+.lg-keys{display:flex;align-items:center;gap:3px}
+.lg-keys kbd{display:grid;place-items:center;width:24px;height:24px;font:700 12px 'Segoe UI',sans-serif;background:var(--lg-deep);border:1px solid var(--lg-gold);color:var(--lg-ivory)}
+.lg-keys i{color:var(--lg-muted);font-style:normal}
+.lg-sep{height:1px;background:var(--lg-line);margin:4px 0}
+.lg-msort{margin-left:auto;display:flex;gap:4px;align-items:center;font-size:11px;color:var(--lg-muted)}
+.lg-msort button{background:none;border:1px solid #c8aa6e33;color:var(--lg-muted);padding:3px 9px;font:12px 'Segoe UI',sans-serif}
+.lg-msort button[aria-pressed=true]{color:var(--lg-ivory);border-color:var(--lg-gold)}
+.lg-matchups{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 18px}
+.lg-mu{display:grid;grid-template-columns:auto minmax(0,1fr) 54px 44px;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #ffffff0d;font-variant-numeric:tabular-nums}
+.lg-mu span{font:14px Marcellus,serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-mu b{text-align:right;font-weight:600}
+.lg-mu small{text-align:right}
+.lg-mu:hover span{color:var(--lg-gold)}
+.lg-page .up{color:var(--lg-spell)}.lg-page .down{color:#d08c80}
+
+/* Match history */
+.lg-match{border-bottom:1px solid #ffffff0d;border-left:3px solid var(--lg-spell)}
+.lg-match.loss{border-left-color:var(--lg-defeat)}
+.lg-match-row{width:100%;display:grid;grid-template-columns:72px auto minmax(0,1fr) 30px 120px 80px 18px;align-items:center;gap:12px;padding:7px 12px;background:none;border:0;color:var(--lg-ivory);text-align:left;font:13px 'Segoe UI',sans-serif}
+.lg-match-row:hover{background:#c8aa6e10}
+.lg-match-row .lg-icon{width:36px;height:36px}
+.lg-result{font:600 11px 'Segoe UI',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--lg-spell)}
+.loss .lg-result{color:#d08c80}
+.lg-match-name{font:16px Cinzel,serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-page .lg-match-name small,.lg-page .lg-kda small,.lg-page .lg-hit small,.lg-page .lg-card-mastery small,.lg-page .lg-links small{display:block}
+.lg-kda{font-variant-numeric:tabular-nums}
+.lg-ago{color:var(--lg-muted);font-size:12px;text-align:right}
+.lg-match-row[aria-expanded=true] i{transform:rotate(180deg)}
+.lg-match-row i{font-style:normal;color:var(--lg-muted)}
+.lg-match-more{padding:6px 14px 14px 96px;font-size:13px}
+.lg-match-more dl{display:flex;flex-wrap:wrap;gap:8px 32px;margin:0 0 8px}
+.lg-match-more dt{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-gold)}
+.lg-match-more dd{margin:2px 0 0;display:flex;align-items:center;gap:6px}
+.lg-match-more a{color:var(--lg-gold)}
+
+@media(max-width:1100px){.lg-card{grid-template-columns:1fr 1fr}.lg-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.lg-strip>div:nth-child(3){border-right:0}.lg-links{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.lg-card{grid-template-columns:1fr}.lg-match-row{grid-template-columns:60px auto minmax(0,1fr) 90px 18px}.lg-match-row>span:nth-child(4),.lg-ago{display:none}.lg-match-more{padding-left:14px}.lg-table td:nth-child(4),.lg-table th:nth-child(4),.lg-table td:nth-child(7),.lg-table th:nth-child(7){display:none}}
