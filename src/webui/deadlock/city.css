@@ -1,7 +1,8 @@
 /* DONI-482: stats-first city. Loaded inside the Deadlock shadow root after the ported street-poster styles; reuses their tokens. */
-.city-search input{width:220px;color:#eee1c7;background:#111815;border:1px solid #5c6c5e;padding:9px 12px;font:13px Arial,sans-serif;min-height:40px}
+.city-searchbar{display:flex;justify-content:flex-end;padding:14px 42px 0}
+.city-search input{width:280px;color:#eee1c7;background:#111815;border:1px solid #5c6c5e;padding:9px 12px;font:13px Arial,sans-serif;min-height:40px}
 .city-search input:focus-visible{outline:0;border-color:var(--spectral)}
-.search-results{position:sticky;top:72px;z-index:19;max-height:60vh;overflow:auto;background:#172a21;border-bottom:1px solid #a59a6a40;padding:10px 24px 16px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:flex-start}
+.search-results{position:relative;z-index:19;margin:10px 42px 0;background:#172a21;border-bottom:1px solid #a59a6a40;padding:10px 24px 16px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:flex-start}
 .search-results[hidden]{display:none}
 .search-group{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
 .search-group .ledger-label{margin:0 6px 0 0;width:100%}
@@ -54,4 +55,4 @@
 .city-links a:hover{background:#a8996520;color:#fff0c9}
 .report-items{margin-top:18px}
 @media (max-width:1100px){.city-card{grid-template-columns:1fr}.tier-expand{grid-template-columns:1fr}.city-search input{width:160px}}
-@media (max-width:760px){.card-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.city-search{display:none}}
+@media (max-width:760px){.card-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.city-searchbar{padding:12px 18px 0}.city-search,.city-search input{width:100%}.search-results{margin:10px 18px 0}}
