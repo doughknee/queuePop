@@ -49,6 +49,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
    links click, the window buttons keep the top right. Each world themes it (league-world.css, tft-view.css). */
 #world-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:4px;min-height:32px;padding:0 136px 0 24px;background:var(--ink,#141618);-webkit-app-region:drag}
 #world-nav a{-webkit-app-region:no-drag;text-decoration:none;white-space:nowrap}
-#world-nav:empty{background:none}
+#world-nav:not(:has(a)){background:none}
+#world-nav>[data-keep]{-webkit-app-region:no-drag;flex:none;margin-right:10px}
 .theme-deadlock #world-nav{display:none}
 .win-controls,.resize-grip,.league-dock{-webkit-app-region:no-drag}

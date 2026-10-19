@@ -4,7 +4,7 @@ window.createTftView = function (host) {
   let frame;
   const bar = document.createElement('div');
   bar.className = 'tft-live';
-  bar.innerHTML = '<span class="tft-live-rank" role="status">TFT rank: client not connected</span><span class="tft-live-msg" role="status"></span><button type="button" class="tft-live-queue">TFT queue</button>';
+  bar.innerHTML = '<span class="tft-live-rank" role="status">TFT rank: client not connected</span><span class="tft-live-msg" role="status"></span>';
   host.append(bar);
   const rankEl = bar.querySelector('.tft-live-rank'), msgEl = bar.querySelector('.tft-live-msg');
   const api = () => window.pywebview && window.pywebview.api;
@@ -16,10 +16,18 @@ window.createTftView = function (host) {
         : r ? `TFT rank: ${r.tier[0] + r.tier.slice(1).toLowerCase()}${r.division && r.division !== 'NA' ? ' ' + r.division : ''} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
     } catch (_) { rankEl.textContent = 'TFT rank: unavailable'; }
   }
-  bar.querySelector('button').addEventListener('click', async () => {
-    msgEl.textContent = 'Starting…';
-    try { const r = await api().start_queue(1090); msgEl.textContent = r.ok ? 'Queue started.' : r.error; }
-    catch (_) { msgEl.textContent = 'Queue unavailable.'; }
+  // Play lives in the page row (#tft-play, index.html): start the ranked TFT queue (1100), click again to cancel.
+  const play = document.getElementById('tft-play'), playLabel = play.querySelector('.tp-label');
+  let queued = false;
+  play.addEventListener('click', async () => {
+    msgEl.textContent = '';
+    try {
+      const r = queued ? await api().cancel_queue() : await api().start_queue(1100);
+      if (!r.ok) msgEl.textContent = r.error || 'Queue unavailable.';
+      else queued = !queued;
+    } catch (_) { msgEl.textContent = 'Queue unavailable.'; }
+    play.classList.toggle('queued', queued);
+    playLabel.textContent = queued ? 'In queue · Cancel' : 'Play';
   });
   function route() {
     const page = location.hash.replace(/^#\/tft\/?/, '');

@@ -110,11 +110,9 @@
     <div class="sb-resize" aria-hidden="true"></div>
   </nav>
   <!-- The current world's pages, sticky at the top of its content (shell.js fills it from the sidebar); empty, it is the window's drag strip. -->
-  <nav id="world-nav" aria-label="Pages"></nav>
-  <main id="main" tabindex="-1"></main>
-
+  <nav id="world-nav" aria-label="Pages">
   <!-- League client dock: PLAY (launch / queue / live), shown on every League route. -->
-  <div id="league-dock" class="league-dock" hidden>
+  <div id="league-dock" class="league-dock" data-keep hidden>
     <button id="play-btn" class="play-btn" title="Launch League / quick queue">
           <!-- PLAY button artwork (edited in brand/play-button.svg). Hooks the
                app relies on: class="play-svg" (sizing), id="play-label" (state
@@ -154,6 +152,10 @@
         </button>
 
   </div>
+
+  <button id="tft-play" class="tft-play" data-keep hidden><span class="tp-ico">&#9654;</span><span class="tp-label">Play</span></button>
+  </nav>
+  <main id="main" tabindex="-1"></main>
 
   <!-- The working League pages (routes #/league/<page> and #/companion). -->
   <div id="host-pages" class="host-pages" hidden>

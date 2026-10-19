@@ -3,7 +3,6 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 #tft-view[hidden]{display:none}
 .tft-live{display:flex;align-items:center;gap:14px;padding:6px 18px;background:#211D36;color:#B9A0ED;font:700 13px Trebuchet MS,sans-serif}
 .tft-live-msg{flex:1;color:#9BD6C0}
-.tft-live-queue{background:#F5CD74;color:#211D36;border:0;border-radius:999px;padding:6px 16px;font:inherit;cursor:pointer}
 #tft-view iframe{display:block;width:100%;flex:1;min-height:0;border:0;color-scheme:dark;background:#0c1721}
 /* TFT page row (#world-nav, filled by shell.js): plum table, violet tabs, honey for the current page, heavy Trebuchet. */
 .theme-tft #world-nav{flex-shrink:0;min-height:48px;gap:6px;background:#191a2b;border-bottom:1px solid #38304d}
@@ -11,3 +10,9 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .theme-tft #world-nav a:hover{background:#2c2545;color:#efe6ff}
 .theme-tft #world-nav a[aria-current]{background:#efd18c;color:#352939;box-shadow:0 3px 0 #8a663c}
 .theme-tft #world-nav a:focus-visible{outline:2px solid #efd18c;outline-offset:2px}
+/* Play in the TFT row: honey slab like the current tab, plum while queued. */
+.theme-tft .tft-play{display:flex;align-items:center;gap:8px;padding:7px 18px;border:0;border-radius:7px 7px 12px 12px;background:#efd18c;color:#352939;box-shadow:0 3px 0 #8a663c;font:800 14px 'Trebuchet MS',sans-serif;letter-spacing:-.3px;cursor:pointer}
+.theme-tft .tft-play[hidden]{display:none}
+.theme-tft .tft-play:hover{background:#f6dca0}.theme-tft .tft-play:active{transform:translateY(2px);box-shadow:0 1px 0 #8a663c}
+.theme-tft .tft-play.queued{background:#2c2545;color:#efd18c;box-shadow:0 3px 0 #1a1530,inset 0 0 0 2px #B9A0ED}
+.theme-tft .tft-play:focus-visible{outline:2px solid #B9A0ED;outline-offset:2px}

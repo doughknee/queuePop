@@ -56,3 +56,11 @@
 .report-items{margin-top:18px}
 @media (max-width:1100px){.city-card{grid-template-columns:1fr}.tier-expand{grid-template-columns:1fr}.city-search input{width:160px}}
 @media (max-width:760px){.card-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.city-searchbar{padding:12px 18px 0}.city-search,.city-search input{width:100%}.search-results{margin:10px 18px 0}}
+
+/* Play (DONI-495): dirty cream label on a black title strip with chipped corners, rust triangle, turquoise edge. */
+.city-nav{justify-content:flex-start}
+.city-nav .dl-play{flex:none;margin-right:10px;transform:rotate(-1deg);display:flex;align-items:center;gap:10px;min-height:44px;padding:0 20px 0 14px;background:#070909 url('assets/surface-wear.svg') center/600px;color:#e5dcc3;border:0;border-left:4px solid #b4553a;border-bottom:2px solid var(--spectral);clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);font:700 17px/1 var(--label);text-transform:uppercase;letter-spacing:.8px;cursor:pointer}
+.city-nav .dl-play b{color:#b4553a;font-size:14px}
+.city-nav .dl-play:hover:not(:disabled){background-color:#e5dcc3;color:#151817}
+.city-nav .dl-play:disabled{cursor:default;opacity:.8}
+.city-nav .dl-play:focus-visible{outline:3px solid var(--spectral);outline-offset:3px}

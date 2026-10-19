@@ -38,7 +38,9 @@
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
     const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
     const row = pages ? pages.innerHTML : '';
-    if (nav.innerHTML !== row) nav.innerHTML = row;
+    // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
+    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
+    const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
   };
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
