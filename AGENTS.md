@@ -104,6 +104,13 @@
   `/players/steam-search`, `/matches/{id}/metadata` (items bought), `/assets/ranks`, `/patches`. Tier = win-rate
   percentile; `app/test-deadlock.js` checks the row builder (`window.deadlockTierRows`).
 
+## Stats crawler
+- `crawler/` is a standalone Node 24 service (own `package.json`, no deps, `node:sqlite`): one Riot personal key crawls
+  ranked League/TFT matches per region, aggregates per-patch stats into `stats_*`, and serves them on port 47900
+  (`/lol/tiers`, `/lol/champion/{id}`, `/tft/comps`, `/tft/comp/{id}`, `/patches`, `/status`). JSON shapes are in
+  `crawler/README.md`. Check: `cd crawler && npm test` (runs on fixtures via the mock Riot server). Runs as a container
+  on Unraid; never a second key. It never imports `app/` or `src/`.
+
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),
   not only the one you added. A worker merged a change that broke a sibling test once (2026-10-01).

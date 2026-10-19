@@ -1,0 +1,41 @@
+{
+  "tier": "GRANDMASTER",
+  "leagueId": "6a1b2c3d-0000-4000-8000-000000000011",
+  "queue": "RANKED_SOLO_5x5",
+  "name": "Synthetic Wardens",
+  "entries": [
+    {
+      "puuid": "lol_3_w9hfhzjr_qz3ppci4_f9tehwgckyvs_cplaapdi933q6-4zvnpssv1zy176_qs-_ndn702-3",
+      "leaguePoints": 684,
+      "rank": "I",
+      "wins": 172,
+      "losses": 172,
+      "veteran": true,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    },
+    {
+      "puuid": "lol_4_hj4d84y1uq7v7k0qphwi85mz7el8afpa08gi90gexa4w2em1-uw301wdbxiwjixx4j8c0p4z",
+      "leaguePoints": 128,
+      "rank": "I",
+      "wins": 178,
+      "losses": 184,
+      "veteran": true,
+      "inactive": false,
+      "freshBlood": true,
+      "hotStreak": false
+    },
+    {
+      "puuid": "lol_5_4d8t5q64186h1fe--ccj97-khbrvfmsicbdxr41t0ox-3-1w4gc1yquosecdnnhyeba57b3m",
+      "leaguePoints": 276,
+      "rank": "I",
+      "wins": 157,
+      "losses": 91,
+      "veteran": false,
+      "inactive": false,
+      "freshBlood": false,
+      "hotStreak": false
+    }
+  ]
+}

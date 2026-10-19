@@ -34,3 +34,6 @@ data/coverage_report.json
 data/spotlight_report.json
 data/recommend_pct.json
 data/stuck_champs.json
+
+# Stats crawler database
+crawler/data/
