@@ -104,7 +104,9 @@ function storeSkills(db, id, tl) {
   tx(db, () => { for (const p of tl.info.participants) if (slots[p.participantId]) up.run(skillOrder(slots[p.participantId]), id, p.puuid); });
 }
 
-const patchOf = (v) => { const x = /(\d+)\.(\d+)/.exec(v || ""); return x ? `${x[1]}.${x[2]}` : "?"; };
+// match-v5 says gameVersion ("16.20.712.1001"), tft-match-v1 says game_version ("Linux Version 16.20.717.3345 (...) [PUBLIC]").
+const patchOf = (info) => { const x = /(\d+)\.(\d+)/.exec(info?.gameVersion ?? info?.game_version ?? ""); return x ? `${x[1]}.${x[2]}` : "?"; };
+const setOf = (info) => info?.tft_set_number ?? null;
 
 // TFT comp rule: the sorted set of traits at their 2nd breakpoint or higher (tier_current >= 2).
 // Deliberately simple; clustering boards into named comps MetaTFT-style is a later issue.
@@ -119,8 +121,8 @@ function store(ctx, game, id, m) {
   // Remakes (< 5 min) and unconfigured queues are kept as ids only.
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
-    db.prepare("UPDATE matches SET status = ?, queue = ?, patch = ?, started_at = ?, fetched_at = ?, raw = ? WHERE id = ?").run(
-      ok ? "done" : "skip", queue, patchOf(game === "lol" ? info.gameVersion : info.game_version),
+    db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ? WHERE id = ?`).run(
+      ok ? "done" : "skip", queue, patchOf(info), game === "lol" ? null : setOf(info),
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, id);
     if (!ok) return;
     if (game === "lol") {
@@ -143,6 +145,25 @@ function store(ctx, game, id, m) {
     }
   });
   return ok;
+}
+
+// Re-parses patch (and TFT set) from the stored raw JSON for rows stuck on '?' or null, then deletes the stale '?'
+// rows in stats_*. Idempotent; rows whose raw has no parseable version stay '?'. Run `aggregate` after it.
+function backfillPatch(db) {
+  const rows = db.prepare("SELECT id, game, raw FROM matches WHERE (patch = '?' OR patch IS NULL) AND raw IS NOT NULL").all();
+  const up = db.prepare('UPDATE matches SET patch = ?, "set" = ? WHERE id = ?');
+  let fixed = 0, unparsed = 0, sample = null;
+  tx(db, () => {
+    for (const r of rows) {
+      const info = JSON.parse(zlib.gunzipSync(r.raw)).info;
+      const patch = patchOf(info);
+      if (patch === "?") { unparsed++; sample ??= info?.gameVersion ?? info?.game_version ?? null; continue; }
+      up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
+      fixed++;
+    }
+    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part"]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
+  });
+  return { scanned: rows.length, fixed, unparsed, sample };
 }
 
 // Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass
@@ -194,4 +215,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

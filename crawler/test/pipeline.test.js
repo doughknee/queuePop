@@ -53,6 +53,10 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const [, comp] = await get(`/tft/comp/${encodeURIComponent(comps.comps[0].id)}`);
     assert.ok(comp.units.length > 0);
 
+    const [, bySet] = await get("/tft/comps?set=16");
+    assert.strictEqual(bySet.patch, "16.20");
+    assert.strictEqual(bySet.set, 16);
+    assert.strictEqual((await get("/tft/comps?set=99"))[1].patch, null, "no patch has that set");
     assert.deepStrictEqual((await get("/patches"))[1], { lol: ["16.20"], tft: ["16.20"] });
     const [, status] = await get("/status");
     assert.strictEqual(status.matches.lol.done, 3);
@@ -64,4 +68,20 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     api.close();
     mock.server.close();
   }
+});
+
+test("TFT game_version parses to patch + set, and backfill-patch repairs '?' rows", () => {
+  const info = { game_version: "Linux Version 16.20.717.3345 (Oct 14 2026/14:02:41) [PUBLIC]", tft_set_number: 16 };
+  assert.strictEqual(jobs.patchOf(info), "16.20");
+  assert.strictEqual(jobs.patchOf({ gameVersion: "16.19.1.2" }), "16.19");
+  assert.strictEqual(jobs.setOf(info), 16);
+  const db = open(":memory:");
+  db.exec("INSERT INTO matches (id, game, region, bracket, status, patch, raw) VALUES ('A', 'tft', 'na1', 'DIAMOND', 'done', '?', NULL)");
+  db.prepare("UPDATE matches SET raw = ? WHERE id = 'A'").run(zlib.gzipSync(JSON.stringify({ info })));
+  db.exec("INSERT INTO matches (id, game, region, bracket, status, patch) VALUES ('B', 'tft', 'na1', 'DIAMOND', 'done', '?')"); // raw already nulled
+  db.exec("INSERT INTO stats_tft_boards VALUES ('?', 'na1', 'DIAMOND', 5)");
+  assert.deepStrictEqual({ ...jobs.backfillPatch(db) }, { scanned: 1, fixed: 1, unparsed: 0, sample: null });
+  assert.deepStrictEqual({ ...db.prepare(`SELECT patch, "set" FROM matches WHERE id = 'A'`).get() }, { patch: "16.20", set: 16 });
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM stats_tft_boards").get().n, 0, "stale ? stats dropped");
+  assert.strictEqual(jobs.backfillPatch(db).scanned, 0, "idempotent");
 });

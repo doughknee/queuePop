@@ -48,6 +48,7 @@ fetches a day per regional host (`euw1` and `eun1` share `europe`).
 
 All `GET` except the admin key POST below, JSON, CORS `*`, no auth (loopback/LAN only). Common query params:
 `patch` (default newest, e.g. `16.20`), `region` (`na1`… or `all`, default all),
+`set` (TFT only: newest patch with that set number, echoed back; `matches.set` comes from `tft_set_number`),
 `bracket` (minimum tier: `emerald` = Emerald and above; default `all`), `min_games` (default 200).
 Rates are 0..1, 4 decimals. Every row carries `games` (its sample size) and `lowSample: games < min_games`:
 low-sample rows are kept and flagged so the UI greys them, never dropped. Responses echo `minGames`.
@@ -103,6 +104,7 @@ needs free disk about the size of the DB and blocks the crawler's writes while i
 npm test                 # rate limiter, pipeline on fixtures, aggregation math
 npm run mock             # mock Riot API on :47901 serving fixtures/
 RIOT_API_KEY=x RIOT_BASE_URL=http://127.0.0.1:47901 REGIONS=na1 npm start
+npm run backfill-patch   # one-off: re-parse patch/set from stored raw for '?' rows, drop stale '?' stats; then run aggregate (Docker: node src/main.js backfill-patch)
 npm run aggregate        # rebuild all stats now (every patch) (in Docker: docker exec queuepop-crawler node src/main.js aggregate)
 ```
 
