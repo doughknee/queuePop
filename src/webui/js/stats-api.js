@@ -24,13 +24,16 @@
     .then(v => v.find(x => patch && x.startsWith(patch + '.')) || v[0]);
   const ddData = (patch, file) => ddVersion(patch).then(v => once(`dd${v}${file}`, () => json(`${DD}/cdn/${v}/data/en_US/${file}`), 3600000).then(d => ({ v, d })));
 
-  /* Tier banding (Lolalytics-style percentile bands), over the rows of one /lol/tiers response:
+  /* Tier banding (DONI-506, Lolalytics-style S+ .. D-), over the rows of one /lol/tiers response:
      1. win rate is shrunk toward the list's average by 100 prior games: (wins + 100*avg) / (games + 100),
-        so a 2-game 100% row lands near average instead of S;
-     2. score = 0.75 * percentile(shrunk win rate) + 0.25 * percentile(pick rate), percentiles 0..1 within the list;
-     3. ranked by score: top 10% S, next 20% A, middle 40% B, next 20% C, bottom 10% D.
-     lowSample rows are banded too but render greyed. */
-  const PRIOR = 100;
+        so a 20-game 70% row lands near average instead of S;
+     2. score = 0.55 * pct(shrunk win rate) + 0.20 * pct(PBI) + 0.15 * pct(best-player win rate)
+              + 0.10 * pct(best-player avg rank), percentiles 0..1 among the banded rows; a row with no best block
+        (or an older crawler without pbi) gets the neutral 0.5 for that part;
+     3. ranked by score: top 10% S, next 20% A, middle 40% B, next 20% C, bottom 10% D, each band split in thirds
+        into +, plain and - (S+ S S- A+ ... D-).
+     lowSample rows are not banded: tier null, score -1, so they sort last and render greyed without a badge. */
+  const PRIOR = 100, BANDS = [['S', 0.1], ['A', 0.3], ['B', 0.7], ['C', 0.9], ['D', 1]];
   function pct(values) {
     const sorted = [...values].sort((a, b) => a - b), n = values.length;
     return values.map(v => {
@@ -39,17 +42,28 @@
       return (lo + hi) / 2 / (n - 1); // ties share their average rank
     });
   }
+  // Percentiles of f(row) where it is defined, 0.5 where it is not.
+  function pctOr(rows, f) {
+    const have = rows.map(f), idx = have.map((v, i) => v == null ? -1 : i).filter(i => i >= 0), p = pct(idx.map(i => have[i])), out = rows.map(() => 0.5);
+    idx.forEach((i, k) => { out[i] = p[k]; });
+    return out;
+  }
+  function bandOf(p) {
+    let lo = 0;
+    for (const [t, hi] of BANDS) { if (p < hi) return t + ['+', '', '-'][Math.min(2, Math.floor(3 * (p - lo) / (hi - lo) + 1e-9))]; lo = hi; }
+    return 'D-';
+  }
   function leagueTierRows(champions) {
-    const rows = (champions || []).filter(c => c && c.games > 0);
-    if (!rows.length) return [];
+    const all = (champions || []).filter(c => c && c.games > 0);
+    const rows = all.filter(c => !c.lowSample);
+    const out = all.filter(c => c.lowSample).map(c => ({ ...c, score: -1, tier: null }));
+    if (!rows.length) return out;
     const games = rows.reduce((s, c) => s + c.games, 0), avg = rows.reduce((s, c) => s + c.wins, 0) / games;
-    const wr = pct(rows.map(c => (c.wins + PRIOR * avg) / (c.games + PRIOR))), pr = pct(rows.map(c => c.pickRate));
-    const scored = rows.map((c, i) => ({ ...c, score: 0.75 * wr[i] + 0.25 * pr[i] }));
-    [...scored].sort((a, b) => b.score - a.score).forEach((c, i) => {
-      const p = i / scored.length;
-      c.tier = p < 0.1 ? 'S' : p < 0.3 ? 'A' : p < 0.7 ? 'B' : p < 0.9 ? 'C' : 'D';
-    });
-    return scored;
+    const wr = pct(rows.map(c => (c.wins + PRIOR * avg) / (c.games + PRIOR))), pbi = pctOr(rows, c => c.pbi);
+    const bw = pctOr(rows, c => c.best?.winRate), bt = pctOr(rows, c => c.best?.avgTier);
+    const scored = rows.map((c, i) => ({ ...c, score: 0.55 * wr[i] + 0.2 * pbi[i] + 0.15 * bw[i] + 0.1 * bt[i] }));
+    [...scored].sort((a, b) => b.score - a.score).forEach((c, i) => { c.tier = bandOf(i / scored.length); });
+    return [...scored, ...out];
   }
 
   window.leagueTierRows = leagueTierRows;
@@ -57,6 +71,7 @@
     patches: () => crawler('/patches'),
     tiers: p => crawler('/lol/tiers', p),
     champion: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}`, p),
+    players: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}/players`, p), // DONI-506: top 50 on a champion
     status: () => crawler('/status'),
     ddVersion,
     items: patch => ddData(patch, 'item.json'),

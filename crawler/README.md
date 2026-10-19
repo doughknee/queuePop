@@ -65,8 +65,16 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   sources (10/8, 172.16/12, 192.168/16); others get 403.
 - `GET /patches` → `{ lol: ["16.20", ...], tft: [...] }` newest first
 - `GET /lol/tiers?patch&region&bracket&role` (role `top|jungle|middle|bottom|utility`) →
-  `{ patch, region, bracket, minGames, role, matches, champions: [{ champion, role, games, wins, winRate, pickRate, banRate, lowSample }] }`
-  sorted by games. One row per champion × role.
+  `{ patch, region, bracket, minGames, role, matches, avgWinRate, regions: ["euw1", ...], champions: [{ champion, role, games, wins, winRate,
+  pickRate, banRate, lowSample, laneShare, delta, pbi, best: { players, games, winRate, delta, avgTier } | null }] }`
+  sorted by games. One row per champion × role. `regions` = every crawled region (for the app's filter).
+  `laneShare` = the row's games / the champion's games in all roles; `delta` = winRate − `avgWinRate` (wins / games over every
+  row under the same patch/region/bracket); `pbi` (pick-ban influence) = delta × 100 × banRate / (1 − pickRate), 2 decimals.
+  `best` = players with >= 20 games on the champion (any role) in the patch under the filter, pooled: `games`, `winRate`,
+  `delta` = their win rate − the row's, `avgTier` = mean rank as a tier index (Iron 0 … Challenger 9) plus division
+  (IV 0, III .25, II .5, I .75); null when nobody qualifies. For `best`, `bracket` filters the players' own seeded tier.
+- `GET /lol/champion/{id}/players?patch&region&bracket&role` → `{ ..., champion, role, minPlayerGames: 20, players: [{ riotId,
+  region, tier, division, lp, rank, games, wins, winRate }] }`: the top 50 by win rate (ties: more games), >= 20 games each.
 - `GET /lol/champion/{id}?patch&region&bracket&role` (role defaults to the most played) →
   `{ champion, role, roles: [{role, games}], strip: { games, wins, winRate, pickRate, banRate, matches, lowSample },
   builds: { item, keystone, rune, spells, skills: [{ key, games, winRate, pickRate, lowSample }] }, matchups: [{ opponent, games, winRate, lowSample }] }`.
@@ -79,6 +87,16 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 **TFT comp rule:** a comp is the sorted, comma-joined set of traits at their second breakpoint or higher
 (`tier_current >= 2`), e.g. `TFT16_Bastion,TFT16_Sorcerer`; `none` when there is none. Deliberately
 simple; MetaTFT-style clustering is a later issue.
+
+**Players (DONI-506, `src/agg-players.js`):** `lol_names` (puuid → latest Riot id `name#tag`, region) is written for every
+stored League match; `npm run backfill-players` fills it from the raw JSON still inside the retention window, then run
+`npm run aggregate`. `stats_lol_player_champ` (patch, region, bracket = the player's seeded tier, puuid, role, champion,
+games, wins, division, lp, rank_n) is rebuilt per patch with the other stats; rows under 3 games are not stored.
+Tier/LP are the player's latest ladder entry, not the rank at each game.
+
+**Tier rule (app, `src/webui/js/stats-api.js`):** 0.55 × percentile(win rate shrunk by 100 games) + 0.20 × percentile(PBI)
++ 0.15 × percentile(best.winRate) + 0.10 × percentile(best.avgTier) (missing parts: 0.5); top 10% S, 20% A, 40% B, 20% C,
+10% D, each in thirds (S+ S S- … D-). `lowSample` rows are not tiered and sort last.
 
 **Brackets:** a match's bracket is the ladder tier of the seeded player whose history surfaced it.
 

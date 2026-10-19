@@ -124,3 +124,30 @@
 .theme-league #world-nav a:focus-visible{outline:2px solid #b7dfe1;outline-offset:2px}
 
 .theme-league #world-nav .league-dock{position:static}
+/* DONI-506: tier list with Lolalytics' columns (league-stats.css holds the base table). Selectors carry .lg-table.lg-tiers2 so they win over it. */
+.lg-filters .lg-num input{width:84px;min-height:34px;background:var(--lg-deep);color:var(--lg-ivory);border:1px solid #c8aa6e44;padding:5px 8px;font:13px 'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
+.lg-lanes button{display:flex;gap:6px;align-items:center}
+.lg-lanes button span{font-size:12px}
+.lg-role-txt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:.5px;text-transform:uppercase;color:var(--lg-muted)}
+.lg-lanes .lg-role-txt{display:none} /* the tab already shows its label */
+.lg-table.lg-tiers2{font-size:13px}
+.lg-table.lg-tiers2 td,.lg-table.lg-tiers2 th.num{padding:4px 6px}
+.lg-table.lg-tiers2 th button{padding:7px 6px}
+.lg-table.lg-tiers2 th.num button{text-align:right}
+.lg-table.lg-tiers2 .lg-name{max-width:180px}
+.lg-table.lg-tiers2 .lg-name a{display:flex;align-items:center;gap:8px;min-width:0}
+.lg-table.lg-tiers2 .lg-name a span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lg-table.lg-tiers2 .lg-name .lg-role-ico{width:16px;height:16px;flex:none;opacity:.8}.lg-table.lg-tiers2 .lg-name .lg-role-txt{flex:none}
+.lg-table.lg-tiers2 .lg-bar{width:22px;margin-right:6px}
+.lg-table.lg-tiers2 .up{color:var(--lg-spell)}.lg-table.lg-tiers2 .down{color:var(--lg-defeat)}
+.lg-table.lg-tiers2 small{color:var(--lg-muted);font-size:11px}
+.lg-table.lg-tiers2 .lg-best-first{border-left:1px solid var(--lg-line)}
+.lg-table.lg-tiers2 .lg-group th{border-bottom:0;padding:6px 6px 0;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--lg-gold);text-align:center}
+.lg-table.lg-tiers2 .lg-tier{width:30px}
+.lg-tier-none{display:inline-block;width:30px;text-align:center;color:var(--lg-muted)}
+/* Narrow content (1280 px window with a 400 px sidebar): drop the bars and tighten, never scroll sideways. */
+#lg-tiers{container-type:inline-size}
+@container (max-width:900px){.lg-table.lg-tiers2 th button{letter-spacing:.3px;font-size:9.5px}.lg-table.lg-tiers2 td,.lg-table.lg-tiers2 th.num,.lg-table.lg-tiers2 th button{padding-left:4px;padding-right:4px}.lg-table.lg-tiers2 .lg-bar{display:none}.lg-table.lg-tiers2 .lg-name{max-width:130px}.lg-table.lg-tiers2 .lg-name a{font-size:13px}.lg-table.lg-tiers2 small{display:none}}
+/* Page row at 1280 px with a wide sidebar: tighter tabs, and it scrolls inside itself rather than widening the page. */
+@media(max-width:1500px){.theme-league #world-nav a{padding:0 11px}}
+.theme-league #world-nav{overflow-x:auto;scrollbar-width:none}

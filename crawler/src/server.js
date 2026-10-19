@@ -163,7 +163,8 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if (p === "/health") return send(200, { ok: true, version });
       if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateEveryMin, retentionDays }));
       if (p === "/patches") return send(200, patches(db));
-      if (p === "/lol/tiers") return send(200, lolTiers(db, q));
+      if (p === "/lol/tiers") return send(200, require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q));
+      if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, require("./agg-players").championPlayers(db, head, where, Number(m[1]), q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));
       if (p === "/tft/comps") return send(200, tftComps(db, q));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
