@@ -40,17 +40,25 @@
       + (list.length > 1 ? `<span class="sl-more">+${list.length - 1} more</span>` : '')
       + `<button type="button" class="sl-x" data-act="hide" data-id="${E(top.id)}" aria-label="Hide this message" title="Hide">✕</button>`;
   }
+  // The crawler is slow, not down, for ~10 s after an aggregation or deploy (W, 2026-10-20). So: /status gets 12 s; if it
+  // doesn't answer, the light /patches decides; and it only reads as offline after two misses in a row (one on Retry).
+  let misses = 0;
   async function checkCrawler(force) {
     if (!['league', 'tft', 'home'].includes(game()) || (!force && Date.now() - crawlerAt < 60000)) return;
     crawlerAt = Date.now();
     const c = (window.QP && QP.store && QP.store.config) || {};
     const base = String(c.crawler_url || 'http://10.205.0.81:47900').replace(/\/+$/, '');
+    const get = (path, ms) => fetch(base + path, { signal: AbortSignal.timeout(ms), cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
     try {
-      const r = await fetch(base + '/status', { signal: AbortSignal.timeout(5000), cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const d = await r.json();
-      facts.crawler = 'ok'; facts.key = d && d.key;
-    } catch (err) { facts.crawler = 'down'; facts.key = undefined; console.warn('status line: crawler', base, err && err.message || err); }
+      const d = await get('/status', 12000);
+      facts.crawler = 'ok'; facts.key = d && d.key; misses = 0;
+    } catch (err) {
+      try { await get('/patches', 8000); facts.crawler = 'ok'; misses = 0; return; } catch {}
+      misses++;
+      console.warn('status line: crawler', base, misses, err && err.message || err);
+      if (force || misses >= 2) { facts.crawler = 'down'; facts.key = undefined; }
+      else setTimeout(() => refresh(true), 15000); // check again soon instead of waiting a minute
+    }
   }
   async function checkUpdate() {
     if (Date.now() - updateAt < 600000 || !api()) return;
