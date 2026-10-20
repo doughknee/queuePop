@@ -267,3 +267,19 @@ window.homeTicker = (() => {
     },
   };
 })();
+
+// Hover prefetch (Q queue 5): resting on a champion link for 120 ms asks for its page's main answer, with the same filters the
+// page will use (league-stats.js lgParams), so the click lands on a warm memo. TFT comp rows already load their detail up
+// front; TFT units and Deadlock heroes keep their params inside their views, so they are not prefetched.
+(() => {
+  if (!document.getElementById('qp-sidebar')) return;
+  const done = new Set(); let t = 0;
+  document.addEventListener('pointerover', e => {
+    const a = e.target.closest && e.target.closest('a[href^="#/league/champion/"]'); clearTimeout(t); if (!a) return;
+    const m = /^#\/league\/champion\/(\d+)(?:\/(\w+))?\/?$/.exec(a.getAttribute('href')), k = m && m[0]; if (!m || done.has(k)) return;
+    t = setTimeout(() => {
+      if (!window.statsApi || typeof lgParams !== 'function') return; // the League view isn't loaded
+      done.add(k); statsApi.champion(m[1], lgParams(LG_ROLES.includes(m[2]) ? m[2] : '')).catch(() => done.delete(k)); // as lgFillChampion does
+    }, 120);
+  }, { passive: true });
+})();

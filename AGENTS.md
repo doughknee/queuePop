@@ -171,8 +171,8 @@
 - Global search (DONI-537): `src/webui/palette.js` (loaded by `shell.js`, styles at the end of `shell.css`) opens one sheet under the
   page row on Ctrl+K, `/`, or the sidebar's Search entry. Sources: sidebar pages, `settingsView.sections` + `settingsView.index()`
   (every Settings control; Enter focuses it), a few commands, League champions (`statsApi.ddChampions`), TFT comps/traits
-  (`tftStats` crawler `/tft/comps`), TFT units only when searching from `#/tft` (Community Dragon is 24 MB), Deadlock heroes
-  (deadlock-api `/assets/heroes`). Ranking `window.qpRank` / `qpFuzzy`, tested by `app/test-palette.js`; recent picks in
+  (`tftStats` crawler `/tft/comps`), TFT units from crawler `/tft/meta` (`qpUnitItems`, opens `#/tft/unit/{key}`), Deadlock heroes
+  (deadlock-api `/assets/heroes`), the Recordings page and each recording (`qpRecordingItems`, reloaded on every open). Ranking `window.qpRank` / `qpFuzzy`, tested by `app/test-palette.js`; recent picks in
   localStorage `queuepop-palette-recent-v1`. `#qp-search` is in theme.css's token-redeclare list.
 - Keyboard (DONI-538): `src/webui/keys.js` (loaded by `shell.js`): Ctrl+1/2/3 worlds, Alt+Home home, Ctrl+, Settings, Alt+←/→ and mouse
   back/forward history, Ctrl+B sidebar, ? shortcuts sheet (`#qp-keys`, same look as the search sheet). `QP_SHORTCUTS` is the one list

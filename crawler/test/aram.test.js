@@ -37,9 +37,19 @@ test("ARAM discovery stops at the configured share of the region's League fetche
   db.prepare("INSERT INTO players (puuid, game, region, tier, tier_n) VALUES ('p', 'lol', 'na1', 'DIAMOND', 6), ('q', 'lol', 'na1', 'GOLD', 3)").run();
   const m = db.prepare("INSERT INTO matches (id, game, region, status, queue, fetched_at) VALUES (?, 'lol', 'na1', 'done', ?, ?)");
   for (let i = 0; i < 18; i++) m.run("R" + i, 420, 1e12 - 1000);
-  assert.strictEqual(await aramIds(ctx, "na1"), true, "0 of 18 is under 10%");
+  assert.strictEqual(await aramIds({ ...ctx, aramEvery: 0 }, "na1"), true, "0 of 18 is under 10%");
   assert.deepStrictEqual(db.prepare("SELECT id, queue, status FROM matches WHERE queue = 450 ORDER BY id").all().map((r) => [r.id, r.queue, r.status]), [["NA1_A1", 450, "new"], ["NA1_A2", 450, "new"]]);
-  assert.strictEqual(await aramIds(ctx, "na1"), false, "2 waiting of 20 reaches 10%");
+  assert.strictEqual(await aramIds({ ...ctx, aramEvery: 0 }, "na1"), false, "2 waiting of 20 reaches 10%");
   assert.strictEqual(calls, 1);
   assert.strictEqual(await aramIds({ ...ctx, queues: [420] }, "na1"), false, "off without queue 450");
+  // request gate: one ARAM ids call per region per minute, even under the share
+  db.prepare("DELETE FROM matches WHERE queue = 450").run();
+  const t = { v: 2e12 }, gated = { ...ctx, now: () => t.v };
+  assert.strictEqual(await aramIds(gated, "oc1"), false, "no oc1 players");
+  db.prepare("UPDATE players SET region = 'oc1', aram_at = NULL").run();
+  assert.strictEqual(await aramIds(gated, "oc1"), true);
+  db.prepare("DELETE FROM matches WHERE queue = 450").run();
+  assert.strictEqual(await aramIds(gated, "oc1"), false, "gated within the minute");
+  t.v += 60001;
+  assert.strictEqual(await aramIds(gated, "oc1"), true, "allowed again after a minute");
 });

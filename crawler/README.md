@@ -28,7 +28,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `BACKUP_DIR` | `/backups` (image) | nightly `VACUUM INTO` target (compose mounts `./backups`, inside appdata so the server backup copies it); empty = off. `npm run -s backup` runs one now |
 | `BACKUP_KEEP` | 3 | newest `crawler-YYYYMMDD-HHMM.db` files kept; only files with that name are ever deleted |
 | `BACKUP_HOUR_UTC` | 10 | hour of the nightly backup (03:00 PT); waits while an aggregation pass runs; `/status` `backup` = `{ at, file, bytes, ms, removed }` |
-| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), so ranked keeps ~90% of the quota |
+| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), and at most one ARAM ids call per region per minute (~2% of the request budget), so ranked keeps the quota |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
@@ -372,6 +372,11 @@ Executioner Azir 3.01 vs Flora Fatalis Azir 5.03 against MetaTFT's 4.10; one com
 the most items on boards that lasted long, so for those carries the label still encodes the outcome. MetaTFT clusters whole
 boards by composition, which our deterministic rule can't match; follow-up issue DONI-577 (composition clustering). Until then
 read the avg place of a 5-cost-carry comp as optimistic.
+
+**Update 10:25Z (DONI-577 live, #160 + #170):** comps are now clustered by board composition. Avg place vs MetaTFT: Azir 4.30 vs
+4.17, Alistar 4.27 vs 4.24, Malphite 4.71 vs 4.60, Ahri 4.53 vs 4.46, Aphelios 4.43 vs 4.31, Elder Dragon 4.18 vs 4.50 (was 3.55),
+Alune 3.88 vs 4.29 (was 3.25); the remaining 0.3–0.4 on the 5-cost comps is mostly tier mix (16.20 is Master+-heavy here,
+MetaTFT is Platinum+). League `region=all` rates are now population-weighted (#158; euw1 42%, kr 38%, na1 18%, oc1 2%).
 
 ## Deploy to Unraid
 
