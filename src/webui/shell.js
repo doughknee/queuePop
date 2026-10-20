@@ -23,6 +23,7 @@
   }
   apply();
   toggle.addEventListener('click', () => { s.collapsed = !s.collapsed; apply(); save(); });
+  window.qpSidebarWidth = w => { s.w = w; apply(); save(); }; // keys.js: the grip by keyboard
   grip.addEventListener('pointerdown', e => { grip.setPointerCapture(e.pointerId); root.classList.add('sb-dragging'); });
   grip.addEventListener('pointermove', e => { if (grip.hasPointerCapture(e.pointerId)) { s.w = e.clientX; apply(); } });
   grip.addEventListener('lostpointercapture', () => { root.classList.remove('sb-dragging'); save(); });
@@ -54,7 +55,9 @@
   addEventListener('popstate', window.syncSidebar);
   addEventListener('click', () => setTimeout(window.syncSidebar));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
-  document.body.append(Object.assign(document.createElement('script'), { src: 'palette.js' }));
+  for (const src of ['palette.js', 'keys.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
+  // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
+  document.getElementById('settings-view')?.setAttribute('tabindex', '-1');
 })();
 
 /* Home's paged bar (DONI-527) on scrollr's Pages model (myscrollr docs/CHIP_SPEC.md §P): a 192 px band with the game's

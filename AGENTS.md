@@ -162,6 +162,10 @@
   (`tftStats` crawler `/tft/comps`), TFT units only when searching from `#/tft` (Community Dragon is 24 MB), Deadlock heroes
   (deadlock-api `/assets/heroes`). Ranking `window.qpRank` / `qpFuzzy`, tested by `app/test-palette.js`; recent picks in
   localStorage `queuepop-palette-recent-v1`. `#qp-search` is in theme.css's token-redeclare list.
+- Keyboard (DONI-538): `src/webui/keys.js` (loaded by `shell.js`): Ctrl+1/2/3 worlds, Alt+Home home, Ctrl+, Settings, Alt+←/→ and mouse
+  back/forward history, Ctrl+B sidebar, ? shortcuts sheet (`#qp-keys`, same look as the search sheet). `QP_SHORTCUTS` is the one list
+  (sheet + handler), `qpKeyLabel` maps events (`app/test-keys.js`). The sidebar grip is a focusable separator (← → Home End, via
+  `window.qpSidebarWidth`). Ctrl+=/-/0 stay in app/main.js. One lime `:focus-visible` ring on shell surfaces; skip link lands on Settings too.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
