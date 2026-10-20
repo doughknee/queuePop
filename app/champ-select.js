@@ -213,6 +213,18 @@ class ChampSelect {
     if (isAram) pri = await this.combinedPriority(aramCfg, aramToggle, aramAvoid);
     else if (T(roleCfg)) pri = await this.combinedPriority(roleCfg);
     else pri = this.priorityIds(activePicks);
+    // DONI-348 (opt-in): your own list, best draft score first. Cached; never waits on the network.
+    if (!isAram && T(roleCfg) && T(cs.smart_pick) && this.draftOrder && pri.length > 1) {
+      const ids = (team) => arr(team).map((p) => p.championId).filter((x) => x > 0);
+      const q = new URLSearchParams({ role: position, enemies: ids(session.theirTeam).join(","),
+        allies: ids(myTeam.filter((p) => p.cellId !== localCell)).join(","), bans: [...unavailable].join(","), pool: pri.join(",") }).toString();
+      const ordered = this.draftOrder.order(pri, q);
+      if (ordered[0] !== pri[0] && this.smartSaid !== q) {
+        this.smartSaid = q;
+        this.push(`Smart pick: ${this.name(ordered[0])} goes before ${this.name(pri[0])} against this draft`, "info", "pick");
+      }
+      pri = ordered;
+    }
 
     // === Time-critical: BAN + PICK before any cosmetic handler ===
     if (T(roleCfg)) {
@@ -815,6 +827,7 @@ function resolveManifest() {
 function attach(lcu, impl, push, state) {
   const cs = new ChampSelect(lcu, push, () => !!state.paused);
   cs.overlay = (s) => (state.away ? require("./stepping-away").applyAway(s) : s); // DONI-424
+  cs.draftOrder = require("./draft-order").createDraftOrder({ getConfig: () => config.get(), log }); // DONI-348
   let skinsCatalog = null;
 
   lcu.on("connect", () => { if (ChampSelect.anyAutomation(cs.settings())) cs.loadChampionData(); });

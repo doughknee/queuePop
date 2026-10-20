@@ -34,6 +34,7 @@
         ${sw('champ_select.trades.enabled', 'Champion trades', 'Asks teammates to swap when they have a champion you ranked higher.')}
         ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
         ${num('champ_select.aram.bench_delay', 'Bench grab delay', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3)}
+        ${sw('champ_select.smart_pick', 'Smart pick from my list', 'Auto pick still picks only from your list for the role, but tries first the one that scores best against this draft (from the stats crawler). Off picks in the order you wrote.')}
         ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer. Drag it anywhere; it remembers.')}
         ${sw('champ_select.auto_runes', 'Auto runes', 'Applies the recommended rune page when you lock in.')}`) +
       card('alerts', 'Alerts', `
