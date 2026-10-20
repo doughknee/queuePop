@@ -42,3 +42,12 @@ assert.ok(isNewer("v1.5.0", "1.4.7") && !isNewer("1.4.7", "1.4.7") && !isNewer("
   comp.stop();
   console.log("test-notify ok");
 })().catch((e) => { console.error(e); process.exit(1); });
+
+// DONI-534: alerts only ever post to a Discord webhook.
+const { isWebhook } = require("./notifications");
+assert.ok(isWebhook("https://discord.com/api/webhooks/123456/abc-DEF_9"));
+assert.ok(isWebhook("https://ptb.discordapp.com/api/webhooks/1/x/"));
+assert.ok(!isWebhook("https://evil.example/api/webhooks/1/x"));
+assert.ok(!isWebhook("http://discord.com/api/webhooks/1/x"));
+assert.ok(!isWebhook("https://discord.com.evil.example/api/webhooks/1/x"));
+console.log("test-notify webhook ok");

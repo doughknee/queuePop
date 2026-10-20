@@ -14,6 +14,11 @@ const KINDS = {
 const DDRAGON = "https://ddragon.leagueoflegends.com";
 const dd = { version: null, byId: {}, byName: {} };
 
+// A Discord webhook address (discord.com, discordapp.com, canary./ptb.), so alerts never post anywhere else (DONI-534).
+const WEBHOOK = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+\/?$/;
+const isWebhook = (url) => WEBHOOK.test(String(url || "").trim());
+const NOT_WEBHOOK = "That isn't a Discord webhook address (https://discord.com/api/webhooks/…)";
+
 // Webhook JSON: the @mention alone in `content` (so the phone push fires) plus one embed.
 function buildDiscordPayload(kind, text, { queue, champion, championId, mention } = {}) {
   const content = mention ? `<@${mention}>` : "";
@@ -87,6 +92,7 @@ function createNotifier(ctx) {
   async function discord(kind, text, opts = {}, what = "alert") {
     const cfg = ctx.getConfig();
     if (!cfg.webhook_url) return;
+    if (!isWebhook(cfg.webhook_url)) return fail("discord", what, NOT_WEBHOOK);
     try { await post(cfg.webhook_url, kind, text, { mention: cfg.user_id, ...opts }); mark("discord", what); }
     catch (e) { fail("discord", what, e); }
   }
@@ -94,6 +100,7 @@ function createNotifier(ctx) {
   // -> {ok, error}
   async function testDiscord(url, userId) {
     if (!url) return { ok: false, error: "No webhook URL configured." };
+    if (!isWebhook(url)) return { ok: false, error: NOT_WEBHOOK };
     try {
       await post(url, "test", "Your Discord webhook is working. You'll get a ping like this when your queue pops.", { mention: userId }, true);
       mark("discord", "Test message");
@@ -113,4 +120,4 @@ function createNotifier(ctx) {
   return { lastSent, desktop, discord, testDiscord, alert };
 }
 
-module.exports = { buildDiscordPayload, createNotifier };
+module.exports = { buildDiscordPayload, createNotifier, isWebhook };
