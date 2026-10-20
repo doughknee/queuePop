@@ -8,16 +8,16 @@ const { ROUTING } = require("./riot");
 const { TIERS } = require("./jobs");
 
 const r4 = (x) => Math.round(x * 10000) / 10000;
-const DIV = "CASE division WHEN 'I' THEN 4 WHEN 'II' THEN 3 WHEN 'III' THEN 2 ELSE 1 END";
 const err = (status, msg, extra) => Object.assign(new Error(msg), { status, ...extra });
 
 // Ladder: highest tier, division, LP first. TFT rows also carry what we crawled for that player (all stored boards).
 function leaderboard(db, game, q = {}) {
   const limit = Math.min(500, Math.max(1, Number(q.limit) || 100));
   const region = q.region && q.region !== "all" ? q.region : null;
-  const rows = db.prepare(`SELECT p.puuid, n.riot_id riotId, p.region, p.tier, p.division, p.lp, p.wins, p.losses, p.seeded_at FROM players p
-    LEFT JOIN lol_names n ON n.puuid = p.puuid WHERE p.game = ?${region ? " AND p.region = ?" : ""}
-    ORDER BY p.tier_n DESC, ${DIV.replace("division", "p.division")} DESC, p.lp DESC LIMIT ${limit}`).all(game, ...(region ? [region] : []));
+  // Top N straight off the players_ladder(_region) index, names joined after the LIMIT (joining first sorted ~1M rows: 33 s).
+  const rows = db.prepare(`SELECT p.*, n.riot_id riotId FROM (SELECT puuid, region, tier, tier_n, division, lp, wins, losses, seeded_at FROM players
+    WHERE game = ?${region ? " AND region = ?" : ""} ORDER BY tier_n DESC, division, lp DESC LIMIT ${limit}) p LEFT JOIN lol_names n ON n.puuid = p.puuid
+    ORDER BY p.tier_n DESC, p.division, p.lp DESC`).all(game, ...(region ? [region] : []));
   let crawled = new Map();
   if (game === "tft" && rows.length) {
     crawled = new Map(db.prepare(`SELECT puuid, count(*) games, sum(placement) ps, sum(placement <= 4) top4 FROM tft_participants
