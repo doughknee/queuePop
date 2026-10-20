@@ -137,8 +137,15 @@
   `#world-nav`, `.win-controls`, `.qp-footer`, `#settings-view`, because worlds.css sets its own `--accent`/`--muted` per world.
 - `shell.css` loads last and owns: the sidebar, window buttons, the one page-row style (`#world-nav` and Deadlock's `.city-nav`, which gets
   `shell.css` linked into its shadow root by `worlds.js`; logo where the row starts, Play as a lime plate, lime underline on the current
-  page), and home (the lime marquee `.qp-ticker` filled by `homeLine()` in `worlds.js` from `get_summoner` / `get_match_history` /
-  `get_tft_match_history`, one fact per item; the game cards). Its row rules use doubled selectors (`#world-nav#world-nav`) to outrank
+  page), and home (the game cards).
+- Sidebar pages (DONI-527): the static `.sb-pages` lists in `index.html` are sources only (hidden); `shell.js` copies the current
+  game's into one `.sb-block` below the games list, so switching games never moves the games. The wordmark is QUEUE `--fg`, POP `--accent`.
+- Home bar (DONI-527): `homeTicker` in `shell.js` (mounted by `home()` in `worlds.js`) follows scrollr's Pages model (myscrollr
+  `docs/CHIP_SPEC.md` §P): 64 px, a 192 px band (logo, name, one pill per game), then one page per game in equal columns, shown whole.
+  `window.homePages(data)` is the pure facts → columns builder (`app/test-home.js`): League solo/flex/last 10/win rate, TFT rank/last
+  10/avg place (bridge), Deadlock matches/win rate/last 10 (deadlock-api, when `deadlock_account_id` is set; else a line pointing to
+  Settings). Not loaded = dashes. The lit pill's 6 s fill animation is the clock (`animationend` turns), so `:hover`/`:focus-within`
+  pause it in CSS; reduced motion cuts. Narrow columns (container query) stack LP / W-L under the figure. Its row rules use doubled selectors (`#world-nav#world-nav`) to outrank
   the world files' row CSS; world content (`league-*`, `tft-*`, `deadlock/**`) is not themed yet.
 
 ## Settings
