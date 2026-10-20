@@ -114,12 +114,17 @@
 - Stats-first (DONI-484): `src/webui/tft-view.js` renders `#/tft` (your card: rank + last-10 placements, filter strip
   patch/region/bracket, comps tier list from crawler `/tft/comps`, rows expand to `/tft/comp/{id}` units + augments),
   `#/tft/comp/{id}` (same as a page plus a read-only board) and `#/tft/history`; the search box above the content filters
-  the list and jumps to comps. `#/tft/{comps,planner,champions,items}` still show the Field Guide iframe; its library and
-  board save/load/share are inline panels (no dialogs). Styles at the end of `tft-view.css`.
+  the list and jumps to comps. `#/tft/{planner,champions,items}` show the Field Guide iframe; its library and
+  board save/load/share are inline panels (no dialogs). DONI-531 (2026-10-20): the row's first page is "Tier list" (`#/tft`);
+  `#/tft/comps` redirects there and the guide's Set 13 practice comps live only inside the Planner; do not bring back a
+  separate comps entry. Look: lime tokens like League (tft-view.css; the field guide loads `../theme.css` and its own
+  colours map to tokens, unit costs to grey/green/blue/purple/amber); value cells tint green/red against a lobby average
+  (4.5 place, 50 % top 4, 12.5 % win) by sample, pick purple.
 - Data: `src/webui/js/tft-stats-api.js` (`window.tftStats`): crawler base from config `crawler_url` (default
   `http://10.205.0.81:47900`), per-URL memo; names/icons from Community Dragon `en_us.json` (24 MB, once per session),
   falling back to the key without its prefix. Tier banding: score = avg placement − 5 × min(pick rate, 0.10);
-  S ≤ 3.5, A ≤ 4.0, B ≤ 4.5, else C; low-sample rows sort after full-sample ones and are greyed. `app/test-tft.js` checks it.
+  S ≤ 3.5, A ≤ 4.0, B ≤ 4.5, else C; low-sample rows get no tier (a dash), sort after full-sample ones and are greyed (DONI-505).
+  Regions: `tftStats.regions()` reads the crawler's `/status` seed keys (`tft:*`). `app/test-tft.js` checks it.
 - Your games: bridge `get_tft_match_history(count)` (`app/account.js`) reads
   `/lol-match-history/v1/products/tft/{puuid}/matches`; the LCU copy usually has no augments.
 
