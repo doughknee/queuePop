@@ -225,6 +225,12 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if (p === "/patches") return send(200, patches(db));
       if (p === "/lol/tiers") return send(200, memo(req.url, () => require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q)));
       if ((m = /^\/lol\/(items|runes|spells)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-rollups").lolRollup(db, head, where, m[1], q)));
+      if (p === "/lol/draft") return send(200, memo(req.url, () => require("./draft").draft(db, head, where, q)));
+      if ((m = /^\/lol\/plan\/(\d+)$/.exec(p))) {
+        const page = memo(`/lol/champion/${m[1]}?${new URLSearchParams({ ...q, enemies: "" })}`, () => lolChampion(db, Number(m[1]), q));
+        const [w, a] = where(q, page.patch);
+        return send(200, memo(req.url, () => require("./draft").plan(Number(m[1]), page, db, w, a, q.enemies)));
+      }
       if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, memo(req.url, () => require("./agg-players").championPlayers(db, head, where, Number(m[1]), q)));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, memo(req.url, () => lolChampion(db, Number(m[1]), q)));
       if (p === "/tft/comps") return send(200, memo(req.url, () => tftComps(db, q)));

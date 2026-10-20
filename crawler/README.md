@@ -113,6 +113,17 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `matches.duration`, `to: null` = 45 min and longer) and `depth: { players, gamesPerPlayer }`; `/lol/tiers` rows add `players` and
   `gamesPerPlayer` (distinct puuids per champion+role; with bracket=all a player seen in two brackets counts twice). Matches stored
   before the column existed get `duration` from `npm run -s backfill-length` (raw retention window only), then `aggregate`.
+- `GET /lol/draft?role=MIDDLE&allies=7,64&enemies=9,8:TOP&bans=1,2&patch&region&bracket&limit` (D8, champ select) →
+  `{ patch, region, bracket, role, lane, allies, enemies, bans, candidates: [{ champion, score, games, winRate, lowSample, components: {
+  base: { value, games }, lane: { champion, value, games } | null, enemies: [{ champion, value, games }], allies: [{ champion, value, games }] } }] }`,
+  best first (default 30, max 100). Ids may carry `:ROLE`. `score` is in win-rate points: `base` (role win rate − 0.5, shrunk by
+  n/(n+200)) + `lane` (matchup delta2 vs the enemy in our role, n/(n+100)) + 0.5 × mean of the other enemies (win rate vs them − own,
+  from `stats_lol_vs`, n/(n+100)) + 0.5 × mean of the allies' synergy delta2 (n/(n+100)). Each component's `value` is the raw delta and
+  `games` its sample. Lane enemy: the one given as `id:<role>`, else the enemy whose most-played role is ours. Banned and picked
+  champions are not candidates; candidates need 50 games in the role. 400 on a bad role or id.
+- `GET /lol/plan/{champion}?role&enemies=9,8&patch&region&bracket` (D8) → `{ champion, role, games, winRate, core, starting, skillOrder,
+  skills15, keystone, spells, shards, threats: [{ champion, games, winRate, delta }] (the two worst among the enemies), objectives, sides }`
+  (each build field is the most-picked row of the champion page, or null).
 - `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
   items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
   by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −
