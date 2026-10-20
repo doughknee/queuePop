@@ -52,7 +52,8 @@ if (process.argv[2] === "vacuum") {
 }
 
 const limiter = new Limiter();
-const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
+const onAuthFail = (status, msg) => { if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`); db_.markKeyBad(db, cfg.key, `${status} ${msg}`); };
+const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
 createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
@@ -61,9 +62,10 @@ createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key
 async function forever(name, step, idle) {
   for (;;) {
     try {
-      if (!db_.riotKey(db, cfg.key).key) { await sleep(10000); continue; } // waiting for a key via POST /admin/key
+      // No key, or Riot rejected this one (401/403): wait for a key via POST /admin/key instead of hammering Riot.
+      if (!db_.keyHealth(db, cfg.key).valid) { await sleep(10000); continue; }
       if (!(await step())) await sleep(idle);
-    } catch (e) { log(`${name}: ${e.message}`); await sleep(10000); }
+    } catch (e) { if (!e.auth) log(`${name}: ${e.message}`); await sleep(10000); }
   }
 }
 

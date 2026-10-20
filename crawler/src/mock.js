@@ -8,7 +8,8 @@ const http = require("http");
 const DIR = path.join(__dirname, "..", "fixtures");
 const load = (f) => JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8"));
 
-function startMock(port = 0, { fail429Once = false } = {}) {
+// rejectKey: requests carrying that key get 403 Forbidden, like an expired development key.
+function startMock(port = 0, { fail429Once = false, rejectKey = null } = {}) {
   const matches = {};
   const timelines = {};
   for (const f of fs.readdirSync(DIR).filter((f) => /^(lol|tft)-(match|timeline)-\d+\.json$/.test(f))) {
@@ -23,6 +24,7 @@ function startMock(port = 0, { fail429Once = false } = {}) {
       res.writeHead(code, { "content-type": "application/json", "x-app-rate-limit": "20:1,100:120", ...extra });
       res.end(JSON.stringify(body));
     };
+    if (rejectKey && req.headers["x-riot-token"] === rejectKey) return send(403, { status: { message: "Forbidden", status_code: 403 } });
     if (fail429Once && !stats.served429) {
       stats.served429++;
       return send(429, { status: { message: "Rate limit exceeded", status_code: 429 } }, { "retry-after": "1", "x-rate-limit-type": "application" });

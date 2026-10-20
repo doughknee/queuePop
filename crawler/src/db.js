@@ -62,4 +62,19 @@ function riotKey(db, envKey) {
   return envKey ? { key: envKey, source: "env", set_at: null } : { key: "", source: "none", set_at: null };
 }
 
-module.exports = { open, tx, getMeta, setMeta, riotKey };
+// Key health (D2): meta keyBad = { hash, reason, since } is written when Riot answers 401/403. The key is bad while the
+// current key hashes the same; posting a new key changes the hash, so health (and the crawl) comes back on its own.
+const keyHash = (k) => require("crypto").createHash("sha256").update(k).digest("hex").slice(0, 16);
+function keyHealth(db, envKey) {
+  const k = riotKey(db, envKey), bad = getMeta(db, "keyBad");
+  if (!k.key) return { valid: false, reason: "no key set", since: null };
+  return bad && bad.hash === keyHash(k.key) ? { valid: false, reason: bad.reason, since: bad.since } : { valid: true, reason: null, since: null };
+}
+function markKeyBad(db, envKey, reason, now = Date.now()) {
+  const k = riotKey(db, envKey);
+  if (!k.key) return;
+  const h = keyHash(k.key), bad = getMeta(db, "keyBad");
+  if (bad?.hash !== h) setMeta(db, "keyBad", { hash: h, reason, since: now });
+}
+
+module.exports = { open, tx, getMeta, setMeta, riotKey, keyHealth, markKeyBad };
