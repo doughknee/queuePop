@@ -93,3 +93,11 @@
 .lg-champ-id p.lg-verdict{display:block;max-width:62ch;margin:4px 0 2px;font-size:12px;line-height:1.5;color:var(--fg)}
 .lg-champ-id p.lg-verdict a{color:var(--fg);text-decoration:underline;text-decoration-color:var(--edge);text-underline-offset:2px}
 .lg-champ-id p.lg-verdict a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+.lg-croles button:not([aria-pressed=true])>span{display:none}
+.lg-croles button{gap:4px;padding:0 6px}
+/* Morning pass: the strip is an aligned grid (4 across), not a ragged wrap */
+.lg-strip{display:grid;grid-template-columns:repeat(4,minmax(84px,auto));justify-content:end;row-gap:6px}
+.lg-strip>div:nth-child(4n+1){border-left:0}
+.lg-strip dd.lg-sub{white-space:nowrap}
+.lg-strip dd.lg-sub{font-size:10px}
+.lg-strip>div{padding:0 10px}

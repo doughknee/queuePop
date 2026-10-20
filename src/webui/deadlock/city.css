@@ -110,3 +110,11 @@
 .hn-read{margin:10px 0 0;font:12px/1.6 var(--mono);color:var(--fg)}
 .hn-read .hero-vs{font:inherit;padding:0;color:var(--fg);text-decoration:underline;text-decoration-color:var(--edge);text-underline-offset:2px;background:none;border:0;min-height:0;text-transform:none;letter-spacing:0}
 .hn-read .hero-vs:hover{color:var(--accent)}
+/* Morning pass: the hero tier list reads like League's and TFT's: heat-tinted win (green above 50 %, red below), pick in
+   purple by size, muted small-caps headers, 28 px rows. */
+.tier-table td.dl-heat{background:color-mix(in srgb,var(--vc) calc(var(--k) * 60%),transparent);color:var(--fg);font-weight:700}
+.tier-table td.dl-mag{--vc:var(--purple);font-weight:400;background:color-mix(in srgb,var(--vc) calc(var(--k) * 40%),transparent)}
+.tier-table thead button,.tier-table thead th{color:var(--muted)!important;font:10px var(--mono)!important;letter-spacing:.1em;text-transform:uppercase}
+.tier-table tbody tr{border-bottom:1px solid var(--line)}
+.tier-table tbody tr:hover{background:var(--wash)}
+.ledger-controls label{color:var(--muted)}
