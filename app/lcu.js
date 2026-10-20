@@ -63,6 +63,7 @@ class LCU extends EventEmitter {
     this.ws = ws;
     ws.on("open", () => {
       ws.opened = true;
+      this._watch(ws);
       ws.send(JSON.stringify([5, "OnJsonApiEvent"]));
       this.emit("connect");
     });
@@ -73,12 +74,30 @@ class LCU extends EventEmitter {
     });
     ws.on("error", () => {}); // 'close' follows and handles reconnect
     ws.on("close", () => {
+      clearInterval(ws.probe);
       this.ws = null;
       this.creds = null;
       if (ws.opened) this.emit("disconnect"); // a socket that never opened (client still booting) was never connected
       setTimeout(() => this._poll(), 3000);
     });
   }
+
+  // DONI-532: after sleep/resume a socket can stay "open" with nothing behind it, so auto-accept goes quiet. Every 60 s (and
+  // on demand, e.g. on resume) a cheap REST call checks the client; two failures in a row drop the socket, and the close
+  // handler reconnects. REST, not WebSocket pings: a busy client can be slow to pong, but a closed one refuses at once.
+  _watch(ws) {
+    let fails = 0;
+    ws.check = async () => {
+      if (ws !== this.ws) return;
+      const ok = await this.request("get", "/lol-gameflow/v1/gameflow-phase").then((r) => r.status < 500, () => false);
+      fails = ok ? 0 : fails + 1;
+      if (fails >= 2 && ws === this.ws) ws.terminate();
+    };
+    ws.probe = setInterval(ws.check, 60000);
+    ws.probe.unref?.();
+  }
+  // Check now, twice 5 s apart (two failures drop a dead socket). Called on system resume.
+  recheck() { const ws = this.ws; if (ws && ws.check) { ws.check(); setTimeout(() => ws.check(), 5000); } }
 
   // Resolves {status, data}; data is parsed JSON or null. Rejects when not connected.
   request(method, uri, body) {
