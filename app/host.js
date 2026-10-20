@@ -146,7 +146,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];
       if (cfg.desktop_notifications) channels.push("Windows");
-      if (cfg.webhook_url && (cfg.discord_enabled ?? true)) channels.push("Discord");
+      if (cfg.webhook_url && (cfg.discord_enabled ?? true) && require("./notifications").isWebhook(cfg.webhook_url)) channels.push("Discord");
       if (companion.isRunning()) { channels.push("your phone"); push("Test queue pop", "danger", "queue_pop"); }
       await notifier.alert("queue_pop", "Queue Popped! (test)", "This is what a queue pop looks like. Nothing was accepted.", "Test queue pop", { test: true, queue: "Test" });
       return { ok: channels.length > 0, channels };

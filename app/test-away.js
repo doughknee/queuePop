@@ -17,4 +17,8 @@ assert.strictEqual(log.length, 1);
 assert.strictEqual(a.set(false).on, false);
 assert.strictEqual(state.paused, true);
 assert.strictEqual(log.length, 2);
+// A pause chosen while away wins over the one from before.
+const st2 = { paused: false }, b = createAway(st2, () => {});
+b.set(true); st2.paused = true; b.set(false);
+assert.strictEqual(st2.paused, true);
 console.log("test-away ok");

@@ -171,7 +171,7 @@
   const typing = el => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') { e.preventDefault(); sheet.hidden ? open() : close(); }
-    else if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey && !typing(document.activeElement) && sheet.hidden) { e.preventDefault(); open(); }
+    else if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey && !typing(e.composedPath()[0]) && sheet.hidden) { e.preventDefault(); open(); }
   });
 
   // A Search entry at the top of the sidebar, so the sheet is findable without the shortcut.

@@ -40,6 +40,7 @@ function attachTimeline(ctx) {
     if (e.uri === "/lol-gameflow/v1/gameflow-phase") {
       if (["None", "Lobby", "EndOfGame"].includes(e.data)) { sent = new Set(); now = null; }
       if (e.data === "InProgress") now = null;
+      if (e.data === "Matchmaking" && sent.has("accepted")) { sent = new Set(); now = null; } // dodged: a fresh queue
       if (e.data === "Matchmaking" && !sent.has("queue")) {
         const r = await ctx.lcu.request("get", "/lol-matchmaking/v1/search").catch(() => null);
         const d = (r && r.data) || {};

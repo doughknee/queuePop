@@ -116,7 +116,7 @@ function applyGames() {
   if (QP_GAMES.includes(game) && !on.includes(game)) location.replace('#/');
   else if (window.homeSetup) { homeSetup.refresh(); window.homeTicker && homeTicker.rerender(); }
 }
-if (window.QP && QP.bus) { QP.bus.on('config:loaded', applyGames); QP.bus.on('config:changed', ({ path }) => { if (path === 'games_enabled' || path === 'deadlock_account_id' || path === 'crawler_url') applyGames(); }); }
+if (window.QP && QP.bus) { QP.bus.on('config:loaded', applyGames); QP.bus.on('config:changed', ({ path }) => { if (path === 'games_enabled' || path === 'deadlock_account_id' || path === 'crawler_url') applyGames(); if (path === 'deadlock_account_id' && window.homeTicker) homeTicker.reload(); }); }
 
 // First-run "set up" strip on home (Q5; an offline crawler is the status line's, statusline.js). Each item links to the Settings field that fixes it and goes away once done or
 // dismissed (per item, or the whole strip). Pure; app/test-home.js checks it.
@@ -249,6 +249,7 @@ window.homeTicker = (() => {
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#home-pages .hp-pill'); if (b) turn(+b.dataset.i); });
   return {
     rerender: () => { const b = el(); if (b) { cur = 0; b.outerHTML = window.homeTicker.html(); } },
+    reload: () => { at = 0; data.dl = undefined; window.homeTicker.load(); },
     html: () => { const pages = shownPages(); return `<div class="qp-pages" id="home-pages" role="region" aria-label="Your games"><div class="hp-band">${band(pages)}</div><div class="hp-block">${page(pages[cur])}</div></div>`; },
     async load() {
       const a = window.pywebview && window.pywebview.api; if (!a || Date.now() - at < 60000) return; at = Date.now();

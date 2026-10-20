@@ -12,6 +12,7 @@
 const $ = (id) => document.getElementById(id);
 // DONI-328: the QR link's ?t=<token> (the server also set a cookie, which covers a home-screen launch without it).
 const TOKEN = new URLSearchParams(location.search).get("t") || "";
+if (TOKEN) document.querySelector('link[rel="manifest"]')?.setAttribute("href", "manifest.json?t=" + encodeURIComponent(TOKEN));
 const withToken = (u) => (TOKEN ? u + (u.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(TOKEN) : u);
 
 let lastId = 0; // highest event id seen (also the SSE resume cursor)
