@@ -124,6 +124,15 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 - `GET /lol/plan/{champion}?role&enemies=9,8&patch&region&bracket` (D8) → `{ champion, role, games, winRate, core, starting, skillOrder,
   skills15, keystone, spells, shards, threats: [{ champion, games, winRate, delta }] (the two worst among the enemies), objectives, sides }`
   (each build field is the most-picked row of the champion page, or null).
+- `GET /lol/match/{id}` (D9, id like `NA1_5663691820`) → `{ source, id, queueId, patch, startedAt, duration, teams: [{ team, win, bans,
+  objectives: { baron: { first, kills }, ... } }], participants: [{ puuid, riotId, team, champion, role, win, level, kills, deaths, assists, cs, gold,
+  damage, damageTaken, vision, items, trinket, spells, keystone, runes: [{ style, perks }], shards }], timeline }`. `source`: `raw` (stored JSON,
+  within raw retention: everything), `rows` (after retention: champions, roles, wins, items, runes, spells, bans, first-objective flags; the
+  numbers are null), `riot` (never crawled: fetched on demand through the lookup cap, 429 + Retry-After beyond it, cached 10 min).
+  `timeline` = `{ puuid: { start, build: [[item, second]], skills } }` for matches in the timeline sample, else null.
+- `GET /tft/match/{id}` (D9) → `{ source, id, queueId, set, startedAt, length, participants: [{ puuid, riotId, placement, level, lastRound, goldLeft,
+  damage, eliminated, timeEliminated, traits: [[name, tier, units]], units: [[unit, star, [items]]], augments }] }`, by placement; same sources
+  (`rows` adds `comp`, numbers null, traits are `[name, tier]`). 404 unknown, 400 malformed id.
 - `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
   items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
   by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −

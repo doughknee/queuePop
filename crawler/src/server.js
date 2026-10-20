@@ -250,6 +250,12 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
           send(e.status || 502, { error: e.message });
         });
       }
+      if ((m = /^\/(lol|tft)\/match\/([^/]+)$/.exec(p))) {
+        return require("./match").matchDetail(db, lookup, m[1], decodeURIComponent(m[2])).then((r) => send(200, r), (e) => {
+          if (e.retryAfter) res.setHeader("retry-after", String(e.retryAfter));
+          send(e.status || 502, { error: e.message });
+        });
+      }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
         const c = memo(req.url, () => tftComp(db, decodeURIComponent(m[1]), q));
