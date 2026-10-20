@@ -270,7 +270,7 @@
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
     if (bridge()) { loadAccount(); loadCompanion(); loadCrawler(); loadAbout(); }
-    clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 15000); // stops once you leave Settings
+    clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 60000); // /status is the crawler's slow admin view: once a minute while Settings shows // stops once you leave Settings
     if (section) requestAnimationFrame(() => document.getElementById('st-' + section)?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);
   }
