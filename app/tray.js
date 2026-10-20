@@ -6,7 +6,7 @@ const WORLDS = [["league", "League of Legends", "#/league"], ["tft", "Teamfight 
 const QUEUES = { league: [420, 440, 400, 450], tft: [1090, 1100] };
 
 // Facts → menu rows: {label, act, arg, enabled, checked, type, submenu}. Pure; app/test-tray.js checks it.
-// f = { games, connected, paused, lastQueue, names: {queueId: name} }
+// f = { games, connected, paused, away, lastQueue, names: {queueId: name} }
 function trayItems(f) {
   const name = (id) => f.names[id] || `Queue ${id}`;
   const queues = [...(f.games.includes("league") ? QUEUES.league : []), ...(f.games.includes("tft") ? QUEUES.tft : [])];
@@ -20,7 +20,8 @@ function trayItems(f) {
       items.push({ label: "Start a queue", submenu: queues.map((id) => ({ label: name(id), act: "queue", arg: id })) });
     }
   }
-  items.push({ type: "separator" }, { label: "Auto-accept paused", act: "pause", type: "checkbox", checked: !!f.paused }, { type: "separator" }, { label: "Quit queuePop", act: "quit" });
+  items.push({ type: "separator" }, { label: "I'm stepping away", act: "away", type: "checkbox", checked: !!f.away },
+    { label: "Auto-accept paused", act: "pause", type: "checkbox", checked: !!f.paused, enabled: !f.away }, { type: "separator" }, { label: "Quit queuePop", act: "quit" });
   return items;
 }
 
@@ -42,6 +43,7 @@ function createTray(ctx) {
       ctx.state.paused = !ctx.state.paused;
       ctx.push(ctx.state.paused ? "Auto-accept paused" : "Auto-accept resumed", ctx.state.paused ? "warning" : "success");
     },
+    away: () => ctx.setAway && ctx.setAway(!ctx.state.away),
     quit: ctx.quit,
   };
   const toMenu = (rows) => rows.map((r) => r.type === "separator" ? r : {
@@ -51,7 +53,7 @@ function createTray(ctx) {
   const facts = () => {
     const cfg = ctx.getConfig();
     const games = Array.isArray(cfg.games_enabled) && cfg.games_enabled.length ? cfg.games_enabled : WORLDS.map((w) => w[0]);
-    return { games, connected: ctx.lcu.connected, paused: ctx.state.paused, lastQueue: Number(cfg.last_queue_id) || null, names: ctx.names };
+    return { games, connected: ctx.lcu.connected, paused: ctx.state.paused, away: !!ctx.state.away, lastQueue: Number(cfg.last_queue_id) || null, names: ctx.names };
   };
   const tip = () => `queuePop · ${ctx.lcu.connected ? "League client connected" : "League client not running"}${ctx.state.paused ? " · auto-accept paused" : ""}`;
   tray.setToolTip("queuePop");
