@@ -8,6 +8,7 @@ const { createCompanion, lanIp, DEFAULT_PORT } = require("./companion");
 const { createUpdater } = require("./updater");
 const { createAccount, QUEUE_ID_MAP } = require("./account");
 const { createTray } = require("./tray");
+const { attachTimeline } = require("./timeline");
 const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
@@ -39,9 +40,10 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   if (app.getLoginItemSettings().openAtLogin !== !!loadConfig().launch_at_login) loginItem(loadConfig().launch_at_login);
 
   const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
+  const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused,
+    status: () => ({ connected: lcu.connected, paused: state.paused, timeline: timeline.status(),
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
     // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
     decline: async () => {

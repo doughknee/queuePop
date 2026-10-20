@@ -200,6 +200,10 @@
   calls `win.close()` and the close handler decides). Bridge `test_alert` sends a test queue pop through every channel that is on.
 - Accessibility (DONI-545): shell text is never under 12 px; `--dim`/`--line` are never text (2.7:1 / 1.4:1); `app/test-contrast.js`
   checks every text token at AA on `--bg` and `--bg` on lime. Reduced motion stops the home bar's clock (pills still turn it).
+- Phone companion (DONI-328/337/423): `/api/*` needs the QR link's token (`config.companion.token`, `?t=` or `qp_t` cookie);
+  `POST /api/decline` declines the ready check; `app/timeline.js` pushes at most three lines per queue (ETA in queue, "game starts
+  in about M min" = champ select left + `timeline_load_seconds`, "90 seconds: come back") to the feed and `notifier.alert("timeline")`
+  (alert event `timeline`, off by default for Windows/Discord), and `/api/status.timeline` drives the phone's countdown.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

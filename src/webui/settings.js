@@ -4,7 +4,7 @@
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
   const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
-  const EVENTS = [['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
+  const EVENTS = [['timeline', 'Queue timeline (ETA, game start, come back)'], ['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const bridge = () => window.pywebview && window.pywebview.api;
@@ -39,6 +39,7 @@
         <div class="st-row"><span class="st-lbl">Test a queue pop<small>Sends exactly what a real queue pop sends, through every channel that is on. Nothing is accepted.</small></span><span class="st-act"><button class="st-btn st-gold" data-do="test-alert">Test a queue pop</button><span class="st-msg" data-msg="test-alert"></span></span></div>
         <div class="st-sub">Tell me when</div>
         <div class="st-events">${EVENTS.map(([k, l]) => `<label class="st-chip"><input type="checkbox" data-k="alert_events.${k}"><span>${l}</span></label>`).join('')}</div>
+        ${num('timeline_load_seconds', 'Loading screen allowance', 'Seconds the timeline adds for the loading screen when it says when your game starts.', 0, 300)}
         ${sw('desktop_notifications', 'Windows notifications', 'A Windows notification for the events ticked above.')}
         <div class="st-row"><span class="st-lbl">Test a notification</span><span class="st-act"><button class="st-btn" data-do="test-desktop">Send a test notification</button><span class="st-msg" data-msg="test-desktop"></span></span></div>
         ${sw('discord_enabled', 'Discord', 'Posts to a Discord webhook, so Discord pushes it to your phone.')}
