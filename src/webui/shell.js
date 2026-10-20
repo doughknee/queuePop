@@ -124,7 +124,7 @@ if (window.QP && QP.bus) { QP.bus.on('config:loaded', applyGames); QP.bus.on('co
 // dismissed (per item, or the whole strip). Pure; app/test-home.js checks it.
 window.homeSetupItems = function ({ games, dlId, crawler, dismissed = [] }) {
   const items = [];
-  if (games.includes('deadlock') && dlId === '') items.push({ id: 'deadlock', text: 'Add your Deadlock account to see your own matches.', action: 'Add it', short: 'Add your Deadlock account', href: '#/settings#account', focus: 'deadlock_account_id' });
+  if (games.includes('deadlock') && dlId === '') items.push({ id: 'deadlock', text: 'Add your Deadlock account to see your own matches.', action: 'Add it', short: 'Add your Deadlock account', href: '#/settings#deadlock', focus: 'deadlock_account_id' });
   if (games.length === QP_GAMES.length) items.push({ id: 'games', text: 'Only play some of these? Hide the others.', action: 'Choose games', short: 'Choose your games', href: '#/settings#games', focus: 'games_enabled.league' });
   return items.filter(i => !dismissed.includes(i.id));
 };
@@ -218,7 +218,7 @@ window.homePages = function (d) {
     { game: 'tft', name: 'TFT', logo: 'assets/logos/tft.png', href: '#/tft', cols: closed(tft) || [
       { label: 'Rank', ...rank(rk && rk.tft) }, { label: 'Last 10', strip: last10(tft, g => String(g.placement)) },
       { label: 'Avg place', value: tft && tft.length ? (tft.reduce((n, g) => n + g.placement, 0) / tft.length).toFixed(1) : undefined }] },
-    d.dlId === '' ? { game: 'deadlock', name: 'Deadlock', logo: 'assets/logos/deadlock.png', href: '#/settings#account', cols: [{ note: 'Set your Deadlock account in Settings' }] }
+    d.dlId === '' ? { game: 'deadlock', name: 'Deadlock', logo: 'assets/logos/deadlock.png', href: '#/settings#deadlock', cols: [{ note: 'Set your Deadlock account in Settings' }] }
       : { game: 'deadlock', name: 'Deadlock', logo: 'assets/logos/deadlock.png', href: '#/deadlock', cols: [
         { label: 'Matches', value: d.dl && d.dl.length.toLocaleString('en-US') }, { label: 'Win rate', ...rate(d.dl, dlWon) },
         { label: 'Last 10', strip: last10(d.dl, m => dlWon(m) ? 'W' : 'L') }] },

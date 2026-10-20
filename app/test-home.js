@@ -33,7 +33,7 @@ assert.strictEqual(full[2].href, "#/deadlock");
 // No Deadlock account: one quiet line that opens Settings.
 const unset = homePages({ dlId: "" })[2];
 assert.deepStrictEqual(vals(unset), ["Set your Deadlock account in Settings"]);
-assert.strictEqual(unset.href, "#/settings#account");
+assert.strictEqual(unset.href, "#/settings#deadlock");
 // Loaded but no games: the strip says so instead of dashes.
 assert.deepStrictEqual(vals(homePages({ info: { ranked: {} }, lol: [] })[0]), ["Solo=Unranked", "Flex=Unranked", "Last 10=", "Win rate=—"]);
 // DONI-539: where you are → what the app remembers (last route, per world, last League champion).

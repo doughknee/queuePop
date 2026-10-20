@@ -21,4 +21,12 @@ assert.strictEqual(L(null, true), "Couldn’t check.");
 assert.ok(L({ found: false }, true).startsWith("ffmpeg not found"));
 assert.strictEqual(L({ found: true, version: "9.0.1", encoder: "h264_nvenc" }, true), "Found ffmpeg 9.0.1, encoding with your NVIDIA card.");
 assert.ok(L({ found: true, encoder: "libx264" }, false).endsWith("Turn on Record game events to record video."));
+// DONI-590: which games each card serves, and when it folds.
+const F = ctx.window.ST_FOR, off = ctx.window.stCardOff, cov = (g) => [...ctx.window.stCovers(g)];
+assert.deepStrictEqual(cov("deadlock"), ["deadlock"]);
+assert.ok(cov("tft").includes("queue") && !cov("tft").includes("champselect")); // TFT queues through the League client; no champ select
+assert.ok(cov("league").includes("champselect"));
+assert.strictEqual(off(F.champselect, ["tft", "deadlock"]), true); // League off: champ select folds
+assert.strictEqual(off(F.queue, ["tft"]), false); // League off, TFT on: queue still matters
+assert.strictEqual(off(undefined, []), false); // app-wide cards never fold
 console.log("test-settings ok");
