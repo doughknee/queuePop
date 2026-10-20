@@ -44,7 +44,7 @@ test("League tier list: win, pick and ban rates", () => {
   assert.strictEqual(t.patch, "16.20");
   assert.strictEqual(t.matches, 2);
   const row = (c, r) => t.champions.find((x) => x.champion === c && x.role === r);
-  assert.deepStrictEqual(row(103, "MIDDLE"), { champion: 103, role: "MIDDLE", games: 2, wins: 2, winRate: 1, pickRate: 1, banRate: 0, lowSample: true });
+  assert.deepStrictEqual(row(103, "MIDDLE"), { champion: 103, role: "MIDDLE", games: 2, wins: 2, winRate: 1, pickRate: 1, banRate: 0, lowSample: true, players: 2, gamesPerPlayer: 1 });
   assert.strictEqual(t.minGames, 200);
   // min_games greys, never drops
   const t2 = lolTiers(db, { min_games: "2" });

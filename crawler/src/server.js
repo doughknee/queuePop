@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const { TIERS, nextAggregation } = require("./jobs");
 const { getMeta, setMeta, riotKey, keyHealth } = require("./db");
 const champ = require("./agg-champion");
+const win = require("./agg-window");
 
 const PAGE = fs.readFileSync(path.join(__dirname, "status.html"));
 const KEY_RE = /^RGAPI-[0-9a-f-]{36}$/;
@@ -43,31 +44,40 @@ function head(db, q, game) {
   const patch = q.patch || patches(db)[game].find((p) => !bySet || bySet.has(p)) || null;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
-  return { patch, ...(bySet && { set: Number(q.set) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
+  const days = win.days(q);
+  return { patch, ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
   const h = head(db, q, "lol");
   const [w, a] = where(q, h.patch);
-  const matches = db.prepare(`SELECT sum(matches) n FROM stats_lol_matches WHERE ${w}`).get(...a).n || 0;
-  const bans = new Map(db.prepare(`SELECT champion, sum(bans) n FROM stats_lol_bans WHERE ${w} GROUP BY champion`).all(...a).map((r) => [r.champion, r.n]));
+  const M = win.src(q, "lol_matches"), B = win.src(q, "lol_bans"), C = win.src(q, "lol_champ");
+  const matches = db.prepare(`SELECT sum(matches) n FROM ${M.t} WHERE ${w}${M.d}`).get(...a, ...M.da).n || 0;
+  const bans = new Map(db.prepare(`SELECT champion, sum(bans) n FROM ${B.t} WHERE ${w}${B.d} GROUP BY champion`).all(...a, ...B.da).map((r) => [r.champion, r.n]));
   const roleW = q.role ? " AND role = ?" : "";
-  const rows = db.prepare(`SELECT champion, role, sum(games) games, sum(wins) wins FROM stats_lol_champ WHERE ${w}${roleW}
-    GROUP BY champion, role ORDER BY games DESC`).all(...a, ...(q.role ? [q.role.toUpperCase()] : []));
-  return { ...h, role: q.role || "all", matches, champions: rows.map((r) => ({
-    champion: r.champion, role: r.role, games: r.games, wins: r.wins,
-    winRate: r4(r.wins / r.games), pickRate: r4(r.games / matches), banRate: r4((bans.get(r.champion) || 0) / matches), lowSample: r.games < h.minGames,
-  })) };
+  const rows = db.prepare(`SELECT champion, role, sum(games) games, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d}${roleW}
+    GROUP BY champion, role ORDER BY games DESC`).all(...a, ...C.da, ...(q.role ? [q.role.toUpperCase()] : []));
+  // players / gamesPerPlayer (depth) are per patch even with ?days; trend=1 adds the per-day series.
+  const depth = win.depthMap(db, w, a), series = q.trend ? win.daily(db, w, a, q, "lol_champ", "champion, role", "sum(games) games, sum(wins) wins") : null;
+  return { ...h, role: q.role || "all", matches, champions: rows.map((r) => {
+    const players = depth.get(`${r.champion}|${r.role}`) || null;
+    return { champion: r.champion, role: r.role, games: r.games, wins: r.wins,
+      winRate: r4(r.wins / r.games), pickRate: r4(r.games / matches), banRate: r4((bans.get(r.champion) || 0) / matches), lowSample: r.games < h.minGames,
+      players, gamesPerPlayer: players ? r4(r.games / players) : null,
+      ...(series && { daily: (series.get(`${r.champion}|${r.role}`) || []).map((d) => ({ day: d.day, games: d.games, winRate: r4(d.wins / d.games) })) }) };
+  }) };
 }
 
 function lolChampion(db, champion, q = {}) {
   const h = head(db, q, "lol");
   const [w, a] = where(q, h.patch);
-  const matches = db.prepare(`SELECT sum(matches) n FROM stats_lol_matches WHERE ${w}`).get(...a).n || 0;
-  const roles = db.prepare(`SELECT role, sum(games) games, sum(wins) wins FROM stats_lol_champ WHERE ${w} AND champion = ? GROUP BY role ORDER BY games DESC`).all(...a, champion);
+  // ?days windows the strip and roles; builds, matchups and the depth blocks stay per patch.
+  const M = win.src(q, "lol_matches"), C = win.src(q, "lol_champ"), B = win.src(q, "lol_bans");
+  const matches = db.prepare(`SELECT sum(matches) n FROM ${M.t} WHERE ${w}${M.d}`).get(...a, ...M.da).n || 0;
+  const roles = db.prepare(`SELECT role, sum(games) games, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d} AND champion = ? GROUP BY role ORDER BY games DESC`).all(...a, ...C.da, champion);
   const role = q.role ? q.role.toUpperCase() : roles[0]?.role;
   const s = roles.find((r) => r.role === role) || { games: 0, wins: 0 };
-  const bans = db.prepare(`SELECT sum(bans) n FROM stats_lol_bans WHERE ${w} AND champion = ?`).get(...a, champion).n || 0;
+  const bans = db.prepare(`SELECT sum(bans) n FROM ${B.t} WHERE ${w}${B.d} AND champion = ?`).get(...a, ...B.da, champion).n || 0;
   const builds = { item: [], keystone: [], rune: [], spells: [], skills: [] };
   const rows = db.prepare(`SELECT kind, key, sum(games) games, sum(wins) wins FROM stats_lol_build WHERE ${w} AND champion = ? AND role = ?
     GROUP BY kind, key ORDER BY games DESC`).all(...a, champion, role ?? "");
@@ -81,7 +91,7 @@ function lolChampion(db, champion, q = {}) {
     GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games), lowSample: r.games < h.minGames }));
   return { ...h, champion, role: role ?? null, roles: roles.map((r) => ({ role: r.role, games: r.games })),
     strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames },
-    builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }) };
+    builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }), ...win.champion(db, w, a, champion, role ?? "") };
 }
 
 // id "<trait>,<carry>" (DONI-502). ponytail: an id left from the old rule (boards whose raw was gone at backfill-comps) reads as
@@ -93,17 +103,22 @@ const comp = (r, boards, minGames) => ({ id: r.comp, ...compKey(r.comp), games: 
 function tftComps(db, q = {}) {
   const h = head(db, q, "tft");
   const [w, a] = where(q, h.patch);
-  const boards = db.prepare(`SELECT sum(boards) n FROM stats_tft_boards WHERE ${w}`).get(...a).n || 0;
-  const rows = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM stats_tft_comp WHERE ${w}
-    GROUP BY comp ORDER BY games DESC LIMIT 200`).all(...a);
-  return { ...h, boards, comps: rows.map((r) => comp(r, boards, h.minGames)) };
+  const Bd = win.src(q, "tft_boards"), C = win.src(q, "tft_comp");
+  const boards = db.prepare(`SELECT sum(boards) n FROM ${Bd.t} WHERE ${w}${Bd.d}`).get(...a, ...Bd.da).n || 0;
+  const rows = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d}
+    GROUP BY comp ORDER BY games DESC LIMIT 200`).all(...a, ...C.da);
+  const series = q.trend ? win.daily(db, w, a, q, "tft_comp", "comp", "sum(games) games, sum(placement_sum) ps") : null;
+  return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames),
+    ...(series && { daily: (series.get(r.comp) || []).map((d) => ({ day: d.day, games: d.games, avgPlacement: r4(d.ps / d.games) })) }) })) };
 }
 
 function tftComp(db, id, q = {}) {
   const h = head(db, q, "tft");
   const [w, a] = where(q, h.patch);
-  const boards = db.prepare(`SELECT sum(boards) n FROM stats_tft_boards WHERE ${w}`).get(...a).n || 0;
-  const r = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM stats_tft_comp WHERE ${w} AND comp = ? GROUP BY comp`).get(...a, id);
+  // ?days windows the comp row; units, augments and traits stay per patch.
+  const Bd = win.src(q, "tft_boards"), C = win.src(q, "tft_comp");
+  const boards = db.prepare(`SELECT sum(boards) n FROM ${Bd.t} WHERE ${w}${Bd.d}`).get(...a, ...Bd.da).n || 0;
+  const r = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d} AND comp = ? GROUP BY comp`).get(...a, ...C.da, id);
   if (!r) return null;
   const parts = { unit: [], augment: [], trait: [] };
   for (const p of db.prepare(`SELECT kind, key, sum(games) games, sum(placement_sum) ps, sum(top4) top4 FROM stats_tft_part WHERE ${w} AND comp = ?
