@@ -19,9 +19,11 @@
 /* Value colour: inside tables the cell is tinted (a heat map); elsewhere the text is. */
 .lg-v{--vc:var(--lg-spell);color:color-mix(in oklab,var(--vc) calc(var(--k) * 100%),var(--lg-ivory));font-weight:600}
 .lg-v.vb{--vc:var(--lg-bad)}.lg-v.vn{--vc:var(--lg-gold)}
-.lg-table .lg-v{display:block;margin:-1px -6px;padding:1px 6px;color:var(--lg-ivory);background:color-mix(in oklab,var(--vc) calc(var(--k) * 55%),transparent)}
+.lg-table .lg-v{display:block;margin:0 -6px;padding:0 6px;color:var(--lg-ivory);background:color-mix(in oklab,var(--vc) calc(var(--k) * 55%),transparent)}
 .lg-table .lg-v.vn{font-weight:400;background:color-mix(in oklab,var(--vc) calc(var(--k) * 38%),transparent)}
-.lg-legend{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:11px;color:var(--lg-muted)}
+.lg-legend{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;color:var(--lg-muted);white-space:nowrap}
+.lg-filters .lg-legend{margin-left:auto}
+@media(max-width:1200px){.lg-filters .lg-legend{display:none}} /* the rule under the table explains it */
 .lg-legend i{flex:none;width:64px;height:6px;background:linear-gradient(90deg,var(--lg-bad),var(--lg-obsidian),var(--lg-spell))}
 .lg-rule{margin-top:6px;font-size:11px;color:var(--lg-muted)}
 .lg-rule summary{cursor:pointer;list-style-position:inside}
@@ -35,7 +37,7 @@
 .lg-tier-none{display:inline-block;width:34px;text-align:center;color:var(--lg-muted)}
 
 /* The art band: champion art, gold rule, the page's title and its first numbers. */
-.lg-band{position:relative;padding:10px 16px 10px;margin-bottom:6px;border-top:1px solid var(--lg-gold);
+.lg-band{position:relative;padding:8px 14px;margin-bottom:6px;border-top:1px solid var(--lg-gold);
   background-image:linear-gradient(90deg,#050d14f5 0%,#050d14d9 50%,#050d1480 100%),var(--champ-art);background-size:cover;background-position:var(--portrait-position,center 20%)}
 .lg-band-row{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap}
 .lg-band h1{font:400 24px/1.15 Marcellus,serif}
@@ -56,7 +58,7 @@
 .lg-icon{width:22px;height:22px;object-fit:cover;flex:none}
 
 /* You, one line */
-.lg-you{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;margin-top:8px;font-size:13px}
+.lg-you{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin-top:6px;font-size:13px}
 .lg-avatar{width:24px;height:24px;border:1px solid var(--lg-gold);border-radius:50%;flex:none;margin-right:-10px}
 .lg-you-name{font:500 16px Cinzel,serif;text-decoration:none}
 .lg-you-name:hover{color:var(--lg-gold)}
@@ -89,7 +91,7 @@
 .lg-table th button{width:100%;text-align:inherit;background:none;border:0;padding:5px 6px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
 .lg-table th[aria-sort=ascending] button,.lg-table th[aria-sort=descending] button{color:var(--lg-gold)}
 .lg-table th.num{text-align:right;padding:5px 6px}.lg-table th.num button{text-align:right;padding:0}
-.lg-table td{height:22px;padding:1px 6px;border-bottom:1px solid #ffffff0a;white-space:nowrap;line-height:20px}
+.lg-table td{height:21px;padding:0 6px;border-bottom:1px solid #ffffff0a;white-space:nowrap;line-height:21px}
 .lg-table .num{text-align:right}
 .lg-table tbody tr{cursor:pointer}
 .lg-table tbody tr:hover{background:#c8aa6e14}
@@ -106,7 +108,7 @@
 .lg-tiers .lg-best-first{border-left:1px solid var(--lg-line)}
 .lg-tiers .lg-group th{box-shadow:none;padding:4px 6px 0;color:var(--lg-gold);text-align:center}
 #lg-tiers{container-type:inline-size}
-@container (max-width:900px){.lg-tiers td,.lg-tiers th.num{padding-left:4px;padding-right:4px}.lg-tiers .lg-v{margin:-1px -4px;padding:1px 4px}.lg-tiers .lg-name{max-width:130px}.lg-tiers small{display:none}}
+@container (max-width:900px){.lg-tiers td,.lg-tiers th.num{padding-left:4px;padding-right:4px}.lg-tiers .lg-v{margin:0 -4px;padding:0 4px}.lg-tiers .lg-name{max-width:130px}.lg-tiers small{display:none}}
 @container (max-width:760px){.lg-tiers .lg-group,.lg-tiers :is(td,th):nth-child(n+11),.lg-tiers :is(td,th):nth-child(4){display:none}}
 
 /* Sections (champion page, history) */

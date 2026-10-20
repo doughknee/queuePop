@@ -109,7 +109,7 @@ function lgFilters(withRole = true, lead = '') {
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
   return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
     ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}
-    ${withRole ? `${num('minLane', 'Lane ≥', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick ≥', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Tier at ≥', 'games', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}</div>`;
+    ${withRole ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
   try {
@@ -147,10 +147,10 @@ const lgSpread = (rows, get, c) => { const d = rows.filter(r => !r.lowSample).ma
 const lgMean = (rows, k) => { let n = 0, s = 0; for (const r of rows) if (r[k] != null) { n += r.games; s += r[k] * r.games; } return n ? s / n : null; };
 function lgHeat(x, c, spread, games, text) {
   if (x == null) return '–';
-  const w = 0.15 + 0.85 * Math.min(1, Math.max(0, Math.log(games / 20) / Math.log(100))), k = c == null ? 0 : Math.sqrt(Math.min(1, Math.abs(x - c) / spread)) * w; // sqrt: half the spread already reads as colored
+  const w = 0.15 + 0.85 * Math.min(1, Math.max(0, Math.log(games / 20) / Math.log(100))), k = c == null ? 0 : Math.min(1, Math.abs(x - c) / spread) * w; // linear: the 90th-percentile distance is the full colour
   return `<span class="lg-v ${x >= c ? 'vg' : 'vb'}" style="--k:${k.toFixed(2)}">${text}</span>`;
 }
-const lgLegend = what => `<p class="lg-legend"><i aria-hidden="true"></i>Below, at, above ${what}; fainter on smaller samples (20 games faint, 2,000 full).</p>`;
+const lgLegend = (what = 'average') => `<span class="lg-legend" title="Cells tint toward defeat below and spell light above the ${what}, gold for a bigger pick or ban; fainter on smaller samples (20 games faint, 2,000 full)"><i aria-hidden="true"></i>worse · better than ${what}</span>`;
 // Pick and ban are magnitudes, not good or bad: tinted toward gold by size, 1 = the list's 90th percentile.
 const lgMag = (x, p90, text) => x == null ? '–' : `<span class="lg-v vn" style="--k:${Math.sqrt(Math.min(1, x / (p90 || 1))).toFixed(2)}">${text}</span>`;
 const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t[0]}${t.length > 1 ? `<sup>${t.slice(1)}</sup>` : ''}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
@@ -188,7 +188,7 @@ async function lgFillTiers(token) {
     }
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
-    document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lg.role] || 'All lanes'} · patch ${lgEsc(data.patch)} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average win ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games, greyed` : ''}`;
+    document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
   } catch {
     if (box()) { box().innerHTML = lgOffline('the stats crawler did not answer.'); document.getElementById('lg-meta').textContent = 'Stats offline'; }
   }
@@ -202,7 +202,7 @@ document.addEventListener('change', e => {
   lgt[k] = v; lgtSave();
   if (k === 'minGames') lgFillTiers(++lg.token); else if (lgTierData) document.getElementById('lg-tiers').innerHTML = lgTierTable(lgTierData);
 });
-const lgTierRule = `<details class="lg-rule"><summary>${lgLegend('the average win rate (Win) or zero (Δ, PBI); gold = bigger pick or ban')}</summary><p>Tier: win rate shrunk toward the list average by 100 games (55%), PBI (20%), and the win rate (15%) and average rank (10%) of players with 20+ games on the champion, each as a percentile of the list; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D, each split into +, plain and −. Greyed rows are under the games line: shown, never tiered. Lane = share of the champion's games in this lane; Δ = win rate minus the average for these filters; PBI = Δ × ban rate ÷ (1 − pick rate). Best on champion = players with 20+ games on it this patch.</p></details>`;
+const lgTierRule = `<details class="lg-rule"><summary>How tiers and colours work</summary><p>Win, Δ and PBI cells tint toward defeat below and spell light above the average win rate (Win) or zero (Δ, PBI); pick and ban tint gold by size; all fainter on smaller samples (20 games faint, 2,000 full).</p><p>Tier: win rate shrunk toward the list average by 100 games (55%), PBI (20%), and the win rate (15%) and average rank (10%) of players with 20+ games on the champion, each as a percentile of the list; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D, each split into +, plain and −. Greyed rows are under the games line: shown, never tiered. Lane = share of the champion's games in this lane; Δ = win rate minus the average for these filters; PBI = Δ × ban rate ÷ (1 − pick rate). Best on champion = players with 20+ games on it this patch.</p></details>`;
 // The art band: the League world's frame (champion art, gold rule, Marcellus title) around the page's own numbers.
 const lgBand = (art, pos, inner, cls = '') => `<header class="lg-band${cls}" style="--champ-art:${art};--portrait-position:${pos}">${inner}</header>`;
 function lgMount(page, fill) {
@@ -220,7 +220,8 @@ function leagueRift() {
 // --- Match history: real recent matches from the bridge, each row expandable ---
 function leagueHistoryPage() {
   lgMount('history', lgFillHistory);
-  return `<div class="lg-page">${lgSearch()}<section class="lg-section"><header class="lg-head"><h2>Match history</h2><small id="lg-hist-sum"></small></header><div id="lg-history"><p class="lg-wait">Loading your games…</p></div></section></div>`;
+  const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
+  return `<div class="lg-page">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Match history</h1><span class="lg-meta" id="lg-hist-sum"></span>${lgSearch()}</div>`)}<div id="lg-history"><p class="lg-wait">Loading your games…</p></div></div>`;
 }
 let lgGames = [];
 async function lgFillHistory(token) {
@@ -230,7 +231,7 @@ async function lgFillHistory(token) {
   lgGames = games;
   if (!games.length) { box().innerHTML = `<p class="lg-wait">${window.pywebview?.api ? 'No recent games. Open the League client, play one and it shows up here.' : 'Connect League to see your matches.'}</p>`; return; }
   const w = games.filter(g => g.win).length;
-  document.getElementById('lg-hist-sum').textContent = `${w}W ${games.length - w}L · ${lgPct(w / games.length)} over your last ${games.length} games`;
+  document.getElementById('lg-hist-sum').textContent = `${w}W ${games.length - w}L · ${lgPct(w / games.length)} over your last ${games.length === 1 ? 'game' : games.length + ' games'}`;
   box().innerHTML = games.map((g, i) => {
     const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts);
     return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId)}<span class="lg-match-name">${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
