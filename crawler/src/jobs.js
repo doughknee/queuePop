@@ -6,6 +6,7 @@ const { ROUTING } = require("./riot");
 const champ = require("./agg-champion");
 const tftAgg = require("./agg-tft");
 const win = require("./agg-window");
+const draftAgg = require("./draft");
 
 const TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
 const DAY = 86400000;
@@ -242,7 +243,7 @@ function backfillPatch(db) {
       up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
       fixed++;
     }
-    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
+    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES, ...draftAgg.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
   });
   return { scanned: rows.length, fixed, unparsed, sample };
 }
@@ -275,6 +276,7 @@ function aggregate(db, now = Date.now, force = false) {
     ...champ.inserts(M, K),
     ...tftAgg.inserts(M, K),
     ...win.inserts(M, K),
+    ...draftAgg.inserts(M, K),
   ].map((q) => db.prepare(q));
   champ.ingestRaw(db);
   // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
@@ -283,7 +285,7 @@ function aggregate(db, now = Date.now, force = false) {
   tx(db, () => {
     for (const patch of dirty) {
       const t1 = Date.now();
-      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES, ...draftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
       log.patches[patch] = { at: now(), ms: Date.now() - t1 };
