@@ -242,7 +242,10 @@
       const r = await fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key }) });
       const msg = { 401: 'Wrong admin token', 400: 'The crawler rejected that key', 503: 'No ADMIN_TOKEN set on the crawler', 403: 'Crawler only accepts LAN requests' }[r.status];
       if (r.ok) { root.querySelector('#st-cr-key').value = root.querySelector('#st-cr-token').value = ''; say('crawler-key', 'Key updated', true); loadCrawler(); }
-      else say('crawler-key', msg || 'HTTP ' + r.status, false);
+      else { // the crawler's own words first: a 503 can be "busy aggregating, try again in a minute" as well as "no ADMIN_TOKEN"
+        const said = await r.json().then(j => j && (j.error || j.message), () => '');
+        say('crawler-key', said ? String(said).replace(/^./, c => c.toUpperCase()) : msg || 'HTTP ' + r.status, false);
+      }
     } catch (err) { say('crawler-key', 'Unreachable: ' + (err.message || err), false); }
   }
   function renderUpdate(s) {
