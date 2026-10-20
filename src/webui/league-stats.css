@@ -156,3 +156,13 @@
 .lg-bchamps .lg-icon{width:20px;height:20px}
 .lg-bchamps a:hover .lg-icon{outline:1px solid var(--accent)}
 .lg-builds tbody tr{cursor:default}
+
+/* DONI-508: summoner page and ladder (league-players.js) */
+.lg-sum-row{grid-template-columns:64px auto minmax(0,1fr) 26px 140px minmax(0,1.2fr) 80px;cursor:default}
+.lg-sum-row a{color:inherit;text-decoration:none}
+.lg-sum-row .lg-match-name a:hover{color:var(--accent)}
+.lg-sum-items{display:flex;gap:2px}
+.lg-sum-items .lg-ico{width:22px;height:22px}
+.lg-ago small{display:block}
+.lg-ladder .lg-name a{display:flex;gap:4px;align-items:baseline}
+.lg-ladder tbody tr{cursor:default}

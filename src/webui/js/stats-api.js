@@ -83,6 +83,10 @@
     players: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}/players`, p), // DONI-506: top 50 on a champion
     status: () => crawler('/status'),
     // DONI-509: rolled up on first read after each aggregation (~10 s cold on the live box), so these wait longer.
+    // DONI-508/512: on-demand player lookups (up to ~23 Riot requests when uncached) and the ranked ladders.
+    summoner: (riotId, region) => crawler(`/lol/summoner/${encodeURIComponent(riotId)}`, { region }, 45000),
+    tftPlayer: (riotId, region) => crawler(`/tft/player/${encodeURIComponent(riotId)}`, { region }, 45000),
+    leaderboard: (game, region, limit = 100) => crawler(`/${game}/leaderboard`, { region, limit: String(limit) }, 20000),
     lolItems: p => crawler('/lol/items', p, 20000), lolRunes: p => crawler('/lol/runes', p, 20000), lolSpells: p => crawler('/lol/spells', p, 20000),
     ddVersion,
     items: patch => ddData(patch, 'item.json'),
