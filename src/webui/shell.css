@@ -199,9 +199,10 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 :root[data-games]:not([data-games~="league"]) .league-gate,:root[data-games]:not([data-games~="tft"]) .tft-gate,:root[data-games]:not([data-games~="deadlock"]) .deadlock-gate{display:none}
 .theme-home .worlds{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 /* Home's set-up strip (Q5): what's left to set up, each linking to its Settings field; dismissible. */
-.qp-setup{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 24px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
-.qp-setup .su-items{flex:1 1 440px;display:flex;flex-direction:column;gap:4px}
-.qp-setup .su-kicker{padding-top:4px;color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.qp-setup{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
+.qp-setup .su-items{flex:1 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.qp-setup .su-dot{color:var(--muted)}
+.qp-setup .su-kicker{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
 .qp-setup .su-item{display:inline-flex;align-items:center;gap:10px}
 .qp-setup a{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap}
 .qp-setup a:hover{text-decoration:underline}
@@ -228,7 +229,7 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 /* Home (Q7): pick up where you left off, then the game cards (what's inside each), all above the fold. */
 .theme-home .hc,.theme-home .hc-first{margin:28px 5% 0}
 .theme-home .hc .eyebrow,.theme-home .hc-first{margin:0 0 12px}
-.hc-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.hc-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px} /* up to 4 tiles, one row (W12) */
 .hc-tile{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s}
 .hc-tile:hover{border-color:var(--accent)}
 .hc-tile img{width:32px;height:32px;flex:none;object-fit:contain}
@@ -239,7 +240,11 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .hc-tile i{font-style:normal;color:var(--muted)}
 .hc-tile:hover i,.hc-tile:hover b{color:var(--accent)}
 .theme-home .worlds{margin-top:28px}
-.theme-home .world-gate{height:clamp(300px,42vh,440px)}
+/* The label sits in the flow above the logo and the card grows with its text, so nothing overlaps at any size (W12). */
+.theme-home .world-gate{height:auto;min-height:clamp(300px,42vh,440px);display:flex}
+.theme-home .world-gate>div{position:relative;inset:auto;flex:1;padding:22px;box-sizing:border-box}
+.theme-home .world-number{position:static;align-self:flex-start;margin-bottom:auto}
+.theme-home .gate-logo{margin-top:20px}
 @media (prefers-reduced-motion:reduce){.hc-tile,.theme-home .world-gate{transition:none}.theme-home .world-gate:hover{transform:none}}
 /* A page row that scrolls sideways fades out at the right edge (under the window buttons) while more is hidden there. */
 #world-nav#world-nav.more-right::after,.city-nav.city-nav.more-right::after{content:'';position:fixed;top:0;right:0;width:184px;height:47px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--bg) 56px)} /* both rows sit at the top (sticky), so the fade can be pinned to the window's corner */
