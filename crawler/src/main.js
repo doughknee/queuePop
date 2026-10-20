@@ -109,6 +109,9 @@ async function forever(name, game, step, idle) {
       inflight++;
       let did;
       try { did = await step(); } finally { inflight--; }
+      // a step that did no I/O (jobs.retireBatch) resolves as a microtask: without a macrotask turn here the loops starved the
+      // HTTP server (the API hung during the 21:14 retirement)
+      await new Promise((r) => setImmediate(r));
       if (!did) await sleep(idle);
     } catch (e) {
       if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid, e.game)) { log(`${name}: stored ${e.game} puuids belong to another Riot app (the key changed apps): those players retired, re-seeding from the ladders`); continue; }

@@ -144,7 +144,7 @@ function retirePuuids(db, puuid, game, now = Date.now) {
   return true;
 }
 // One batch of a retirement: moves up to n of the game's rows seeded before the epoch. True while it did something.
-function retireBatch(db, game, n = 2000) {
+function retireBatch(db, game, n = 500) {
   const r = getMeta(db, `retiring:${game}`);
   if (!r) return false;
   // two index ranges on players_seeded (game, seeded_at); an OR of them scanned all 1.5M rows per batch
