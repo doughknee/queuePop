@@ -58,6 +58,7 @@ QP.bus.on('route',({tab})=>{if(hostSyncing)return;const page=Object.keys(HOST_RO
 
 // Real summoner, top mastery and latest match replace the mockup's fixtures once the client answers.
 const FIXTURE_CHAMPIONS={...champions},FIXTURE_WORLDS={...championWorlds};
+let artTimer=0; // splash art loads re-render once per burst, not once per image (Q1 audit)
 const leagueLive={real:false,summoner:null,match:null,planIcons:[],planTitle:'Your next game starts with one idea.',planLine:'Picks, bans and loadouts, ready before the timer starts.'};
 const artReady={};
 function champArt(id){const c=champions[id];if(!c?.cid)return `url('assets/${id}.webp')`;return `url('${artReady[id]||`assets/skins/tiles/${c.cid*1000}.jpg`}')`;}
@@ -75,7 +76,7 @@ async function loadLeagueLive(){
     top.forEach((m,rank)=>{const c=byId.get(Number(m.championId)),key=String(c.alias||c.name).toLowerCase().replace(/[^a-z0-9]/g,'');
       champions[key]={...(FIXTURE_CHAMPIONS[key]||{name:c.name,title:`Mastery ${m.level||0} · ${fmtPoints(m.points)} points`,role:'',style:`Mastery ${m.level||0}`}),cid:Number(m.championId),alias:c.alias};
       championWorlds[key]=FIXTURE_WORLDS[key]||genericWorld(m,rank);
-      if(c.alias&&!FIXTURE_WORLDS[key]&&!artReady[key]){const url=`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c.alias}_0.jpg`,img=new Image();img.onload=()=>{artReady[key]=url;if(currentGame==='league'&&['','champions'].includes(currentPage))rerenderKeepingFocus();};img.src=url;}});
+      if(c.alias&&!FIXTURE_WORLDS[key]&&!artReady[key]){const url=`https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${c.alias}_0.jpg`,img=new Image();img.onload=()=>{artReady[key]=url;clearTimeout(artTimer);artTimer=setTimeout(()=>{if(currentGame==='league'&&['','champions'].includes(currentPage))rerenderKeepingFocus();},150);};img.src=url;}});
     if(!champions[state.champion])state.champion=Object.keys(champions)[0];
     leagueLive.real=true;
   }

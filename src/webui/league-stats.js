@@ -251,15 +251,19 @@ function leagueHistoryPage() {
 let lgGames = [];
 async function lgFillHistory(token) {
   const box = () => token === lg.token && document.getElementById('lg-history');
-  const [games] = await Promise.all([lgHistory(20), lgNames(lg.patch)]);
+  // DONI-349 (W): the host's draft recaps (what queuePop suggested at your lock, and the result), keyed by game.
+  const [games, , recaps] = await Promise.all([lgHistory(20), lgNames(lg.patch), Promise.resolve(window.pywebview?.api?.get_draft_recaps?.()).catch(() => null)]);
+  const recapBy = new Map(((recaps && recaps.rows) || []).filter(r => r.gameId).map(r => [Number(r.gameId), r]));
   if (!box()) return;
   lgGames = games;
   if (!games.length) { box().innerHTML = `<p class="lg-wait">${window.pywebview?.api ? 'No recent games. Open the League client, play one and it shows up here.' : 'Connect League to see your matches.'}</p>`; return; }
   const w = games.filter(g => g.win).length;
-  document.getElementById('lg-hist-sum').textContent = `${w}W ${games.length - w}L · ${lgPct(w / games.length)} over your last ${games.length === 1 ? 'game' : games.length + ' games'}`;
+  const rec = recaps?.record, rs = b => b && b.games ? `${b.wins}W ${b.games - b.wins}L` : '';
+  document.getElementById('lg-hist-sum').textContent = `${w}W ${games.length - w}L · ${lgPct(w / games.length)} over your last ${games.length === 1 ? 'game' : games.length + ' games'}`
+    + (rec && (rec.followed.games || rec.ignored.games) ? ` · following queuePop's pick ${rs(rec.followed) || '0 games'}, ignoring it ${rs(rec.ignored) || '0 games'}` : '');
   box().innerHTML = games.map((g, i) => {
     const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts), go = `data-lg-goto="#/league/champion/${g.championId}${g.position ? '/' + g.position : ''}" title="Open ${lgEsc(c.name)}'s stats"`;
-    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
+    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}${(r => r && r.suggested ? ` · ${r.followed ? 'took the suggestion' : 'suggested ' + lgEsc(r.suggested)}` : '')(recapBy.get(Number(g.gameId)))}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
   }).join('');
 }
 async function lgExpandMatch(btn) {

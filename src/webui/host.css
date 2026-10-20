@@ -26,7 +26,7 @@ body.theme-league, body.theme-companion { background: var(--bg); }
 #tab-alerts > .page-col, #tab-about > .page-col { max-width: 880px; }
 #tab-alerts + #tab-about:not(.hidden) { margin-top: 20px; }
 /* The champ editor scrolls its own grid, so it gets the remaining window height. */
-#tab-champ > .hextech { height: calc(100vh - 56px - 96px); min-height: 560px; }
+#tab-champ > .hextech { height: calc(100vh - 56px - 96px); min-height: min(560px, calc(100vh - 152px)); } /* Q1 audit: no clipping at 150 % */
 /* No modals or popup menus: the loadout editor, set-up wizard, QR code and
    queue list open inline in the page that asks for them. */
 .host-pages .skin-modal { position: static; inset: auto; display: block; margin: 0 0 20px; z-index: auto; }
