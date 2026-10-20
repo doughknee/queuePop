@@ -194,6 +194,36 @@ function connectStream() {
   es.onerror = () => setConn(false, "Reconnecting…"); // EventSource auto-retries
 }
 
+// DONI-337: champ select on the phone: your champion, the timer, and Accept / Decline for a trade a teammate offers.
+let champTimer = null;
+function startChamp() { if (!champTimer) { pollChamp(); champTimer = setInterval(pollChamp, 2000); } }
+function stopChamp() { clearInterval(champTimer); champTimer = null; $("cs").hidden = true; }
+async function pollChamp() {
+  try {
+    const r = await (await fetch(withToken("/api/champ"), { cache: "no-store" })).json();
+    $("cs").hidden = !r.active;
+    if (!r.active) return;
+    $("cs-timer").textContent = r.timer_left != null ? Math.ceil(r.timer_left) + " s" : "";
+    $("cs-me").textContent = r.champion ? "You: " + r.champion : "No champion yet";
+    const box = $("cs-trades"), ids = (r.trades || []).map((t) => t.id).join(",");
+    if (box.dataset.ids === ids) return; // don't redraw under a finger mid-tap
+    box.dataset.ids = ids;
+    box.innerHTML = (r.trades || []).map((t) => `<div class="trade" data-id="${t.id}"><p>A teammate offers <b>${escapeHtml(t.name)}</b> for your champion.</p>
+      <div class="row"><button class="btn" data-a="accept">Accept</button><button class="btn no" data-a="decline">Decline</button></div><p class="muted" role="status"></p></div>`).join("");
+  } catch (_) { /* the status poll reports a lost connection */ }
+}
+$("cs-trades").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  const card = b.closest(".trade"), msg = card.querySelector("[role=status]");
+  card.querySelectorAll("button").forEach((x) => (x.disabled = true)); msg.textContent = "Sending…";
+  try {
+    const res = await fetch(withToken(`/api/trade?id=${card.dataset.id}&action=${b.dataset.a}`), { method: "POST" });
+    const r = await res.json().catch(() => ({}));
+    msg.textContent = r.ok ? (b.dataset.a === "accept" ? "Accepted" : "Declined") : r.error || "Couldn't send it";
+    if (!r.ok) card.querySelectorAll("button").forEach((x) => (x.disabled = false));
+  } catch (_) { msg.textContent = "Couldn't reach your PC"; card.querySelectorAll("button").forEach((x) => (x.disabled = false)); }
+});
+
 // DONI-424: "I'm stepping away" arms the PC for an away player; "I'm back" restores your own settings.
 function drawAway(on) {
   const b = $("away"); b.hidden = false; b.classList.toggle("on", on);
@@ -233,6 +263,7 @@ async function pollStatus() {
     ensureCustomSound();
     timeline = s.timeline || null; drawTimeline();
     drawAway(!!s.away);
+    if (s.phase === "ChampSelect") startChamp(); else stopChamp();
   } catch (_) {
     setConn(false, "Offline");
   }
