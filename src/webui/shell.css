@@ -70,12 +70,10 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #world-nav{position:sticky;top:0;z-index:30;-webkit-app-region:drag}
 #world-nav,.city-nav{overflow-x:auto;scrollbar-width:none} /* DONI-516: the row scrolls sideways at large Text sizes */
 #world-nav a,#world-nav>[data-keep]{-webkit-app-region:no-drag}
-.theme-deadlock #world-nav#world-nav{display:none}
 #world-nav#world-nav,.city-nav.city-nav{display:flex;align-items:center;justify-content:flex-start;gap:2px;height:auto;min-height:48px;padding:0 136px 0 16px;background:var(--bg);background-image:none;border-bottom:1px solid var(--line);box-shadow:none}
 #world-nav#world-nav:not(:has(a)){min-height:32px;background:none;border-bottom:0} /* home: just the drag strip */
-#world-nav#world-nav::before,.city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
-.theme-league #world-nav#world-nav::before{background-image:url(assets/logos/league.svg)}
-.theme-tft #world-nav#world-nav::before{background-image:url(assets/logos/tft.png)}
+#world-nav#world-nav::before{content:none}
+.city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
 .city-nav.city-nav::before{background-image:url(assets/logos/deadlock.png)}
 #world-nav#world-nav:not(:has(a))::before,.theme-settings #world-nav#world-nav::before{content:none}
 #world-nav#world-nav a,.city-nav.city-nav a{position:relative;display:flex;flex:none;align-items:center;gap:0;height:auto;min-height:48px;padding:0 14px;border:0;border-radius:0;background:none;box-shadow:none;clip-path:none;color:var(--fg);font:400 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;text-decoration:none;white-space:nowrap}
@@ -317,3 +315,17 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .hq-link b{font:400 26px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
 .hq-link i{font-style:normal;color:var(--gc)}
 @media (prefers-reduced-motion:reduce){.hq-link{transition:none}.hq-link:hover{transform:none}}
+/* DONI-595: one PLAY for every game. A lime plate: the game's logo cut out of it (CSS mask), PLAY or the client's state,
+   and a caret when it opens that game's queue menu. In queue it turns outlined; disabled while a match is loading/playing. */
+#world-nav#world-nav .qp-play{display:flex;align-items:center;gap:10px;height:34px;padding:0 12px 0 9px;border:0;border-radius:0;background:var(--accent);color:var(--bg);font:400 18px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
+#world-nav#world-nav .qp-play:hover:not(:disabled),#world-nav#world-nav .qp-play.menu-open{background:var(--fg)}
+#world-nav#world-nav .qp-play:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+#world-nav#world-nav .qp-play:disabled{opacity:.6;cursor:default}
+#world-nav#world-nav .qp-play[data-mode=cancel],#world-nav#world-nav .qp-play[data-mode=live]{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.qp-play-logo{width:22px;height:22px;flex:none;background:currentColor;-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat}
+.theme-league .qp-play{--logo:url(assets/logos/league.svg)}
+.theme-tft .qp-play{--logo:url(assets/logos/tft.png)}
+.theme-deadlock .qp-play{--logo:url(assets/logos/deadlock.png)}
+.qp-play-caret{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;display:none}
+.qp-play[data-mode=queue] .qp-play-caret{display:block}
+.qp-play.menu-open .qp-play-caret{transform:rotate(180deg)}

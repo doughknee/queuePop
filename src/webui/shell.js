@@ -59,11 +59,11 @@
     if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.classList.remove('sb-in'); void block.offsetWidth; block.classList.add('sb-in'); }
     // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
-    const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
+    const pages = bar.querySelector(`[data-game="${game}"] .sb-pages`); // DONI-595: Deadlock uses the shared row too
     const row = game === 'settings' ? settingsView.row() : pages ? pages.innerHTML : '';
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
     if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); nav.classList.remove('sb-in'); void nav.offsetWidth; nav.classList.add('sb-in'); }
-    const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
+    const tp = document.getElementById('tft-play'); if (tp) tp.hidden = true; // DONI-595: the shared PLAY covers TFT
     remember();
     setTimeout(rowEdges);
   };
