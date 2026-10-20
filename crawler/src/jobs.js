@@ -99,11 +99,40 @@ async function aramIds(ctx, region) {
   return true;
 }
 
-// Newest ranked match ids for the player we asked longest ago (highest tier first among equals).
+// Tier-balanced sampling (D14 accuracy audit, 2026-10-20): asking the oldest-asked player first, highest tier among equals,
+// spent the first two days on Master+ (95% of matches), so "Emerald+" stats were really Master+. Each ids() call now picks
+// the tier furthest below its target share of the region's last-24 h matches; target = the tier's share of seeded players,
+// floored at TIER_FLOOR per tier and renormalised (euw1: Emerald ~68%, Diamond ~20%, Master/GM/Challenger 4% each), then the
+// oldest-asked player of that tier. Population shares are cached an hour, the recent mix a minute.
+const TIER_FLOOR = 0.04;
+const tierCache = new Map();
+function tierOrder(db, game, region, now) {
+  const k = `${game}:${region}`;
+  let c = tierCache.get(k);
+  if (!c || now - c.popAt > 3600000) {
+    const pop = db.prepare("SELECT tier, count(*) n FROM players WHERE game = ? AND region = ? GROUP BY tier").all(game, region).filter((r) => r.tier);
+    const total = pop.reduce((s, r) => s + r.n, 0);
+    const floored = Object.fromEntries(pop.map((r) => [r.tier, Math.max(TIER_FLOOR, r.n / total)]));
+    const sum = Object.values(floored).reduce((s, x) => s + x, 0);
+    c = { popAt: now, target: Object.fromEntries(Object.entries(floored).map(([t, x]) => [t, x / sum])), mixAt: 0 };
+    tierCache.set(k, c);
+  }
+  if (now - c.mixAt > 60000) {
+    const rows = db.prepare("SELECT bracket, count(*) n FROM matches WHERE fetched_at > ? AND game = ? AND region = ? GROUP BY bracket").all(now - DAY, game, region);
+    const n = rows.reduce((s, r) => s + r.n, 0);
+    c.mix = Object.fromEntries(rows.map((r) => [r.bracket, n ? r.n / n : 0]));
+    c.mixAt = now;
+  }
+  return Object.keys(c.target).sort((a, b) => (c.target[b] - (c.mix[b] || 0)) - (c.target[a] - (c.mix[a] || 0)));
+}
+
+// Newest ranked match ids for the oldest-asked player of the tier most under its share (see tierOrder).
 async function ids(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
-  const p = db.prepare(`SELECT puuid, tier, ids_at FROM players WHERE game = ? AND region = ? AND (ids_at IS NULL OR ids_at < ?)
-    ORDER BY ids_at, tier_n DESC LIMIT 1`).get(game, region, now() - IDS_EVERY);
+  const pick = db.prepare(`SELECT puuid, tier, ids_at FROM players WHERE game = ? AND region = ? AND tier = ? AND (ids_at IS NULL OR ids_at < ?)
+    ORDER BY ids_at LIMIT 1`);
+  let p = null;
+  for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY))) break;
   if (!p) return false;
   const since = Math.floor((p.ids_at || now() - 7 * DAY) / 1000);
   const lolQ = ctx.queues.filter((q) => q !== 1100 && q !== ARAM);
@@ -334,4 +363,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { tierOrder, ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
