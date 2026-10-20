@@ -36,7 +36,7 @@ async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
 const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, role });
-const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} The rest of the League world still works.</p>`;
+const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} Check its address in <a href="#/settings#crawler">Settings ↗</a>. The rest of the League world still works.</p>`;
 
 // --- Search: champions jump to their page, a Riot ID opens the account page (yours) or OP.GG (anyone else) ---
 function lgSearch() {
@@ -164,7 +164,7 @@ function lgTierTable(data) {
   const avg = data.avgWinRate || lgMean(rows, 'winRate'), sp = k => lgSpread(rows, r => lgVal(r, k), k === 'delta' || k === 'pbi' ? 0 : avg);
   const S = { win: sp('winRate'), delta: sp('delta'), pbi: sp('pbi'), best: sp('best.winRate'), pick: sp('pickRate'), ban: sp('banRate') };
   const th = ([k, t, title], i) => `<th class="${i > 1 ? 'num' : ''}${i === 9 ? ' lg-best-first' : ''}" aria-sort="${lg.sort === k ? (lg.dir < 0 ? 'descending' : 'ascending') : 'none'}"${title ? ` title="${lgEsc(title)}"` : ''}><button data-lg-sort="${k}">${t}${lg.sort === k ? (lg.dir < 0 ? ' ▾' : ' ▴') : ''}</button></th>`;
-  return `<table class="lg-table lg-tiers lg-tiers2"><thead><tr class="lg-group"><th colspan="10"></th><th colspan="3" class="lg-best-first" title="Players with 20+ games on the champion this patch, any lane">Best on champion</th></tr>
+  return `<table class="lg-table lg-tiers"><thead><tr class="lg-group"><th colspan="10"></th><th colspan="3" class="lg-best-first" title="Players with 20+ games on the champion this patch, any lane">Best on champion</th></tr>
     <tr><th class="num">#</th>${LG_COLS.map(th).join('')}</tr></thead><tbody>${rows.map((r, i) => {
     const c = lgChamp(r.champion), role = lgRoleOf(r.role), href = `#/league/champion/${r.champion}/${role}`, b = r.best;
     return `<tr class="${r.lowSample ? 'low' : ''}" data-lg-go="${href}"><td class="num">${i + 1}</td><td>${lgTier(r.tier, r.lowSample)}</td>

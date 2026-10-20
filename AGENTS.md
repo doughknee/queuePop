@@ -142,9 +142,10 @@
   on Unraid; never a second key. It never imports `app/` or `src/`.
 
 ## League stats (DONI-483)
-- The League world leads with crawler stats: `src/webui/league-stats.{js,css}` renders `#/league` (The Rift: search, your
-  card, tier list, links), `#/league/tiers`, `#/league/champion/{id}[/{role}]` (strip, role tabs, build sheet, matchups) and
-  `#/league/history` (bridge `get_match_history`, rows expand). Routes are the League block in `worlds.js`.
+- The League world leads with crawler stats: `src/webui/league-stats.{js,css}` renders `#/league` (the tier list: art band with
+  title, meta, search and your one-line card, then filters and table; `#/league/tiers` redirects here and the page row has one
+  "Tier list" entry, DONI-519 2026-10-19: do not bring back a separate landing), `#/league/champion/{id}[/{role}]` and
+  `#/league/history` (same band; bridge `get_match_history`, rows expand). Routes are the League block in `worlds.js`.
 - `src/webui/js/stats-api.js`: renderer-side fetch of the crawler (base = config `crawler_url`, default
   `http://10.205.0.81:47900`) and Data Dragon (version from `/patches` → newest matching DDragon build), memoised in memory
   for 10 minutes. `window.leagueTierRows` is the tier banding, tested by `app/test-league.js`: win rate shrunk toward the
@@ -153,19 +154,21 @@
 - Tier list (DONI-506): Lolalytics' columns rank · tier (S+ … D-) · champion · lane % · win · Δ · pick · ban · PBI · games ·
   best on champion (win, games, avg rank; players with 20+ games, crawler `best`); lane tabs, min lane % / min pick % (client
   filters, hide rows), min games (crawler `min_games`: greys and un-tiers rows), patch/region (from `/lol/tiers` `regions`)/rank.
-  Rule in `leagueTierRows` (stats-api.js) and crawler/README.md. Styles at the end of `league-world.css` (`.lg-table.lg-tiers2`,
-  a container query keeps it unscrolled down to ~790 px). Crawler side: `crawler/src/agg-players.js`.
-- Champion page (DONI-507) lives in `src/webui/league-champion.{js,css}`, Lolalytics' section order: strip (win, delta, game
-  avg, pick, ban, tier, rank, games) · role tabs · skills (priority + order grid, 6/10/15 toggle) · spells, runes, stat mods ·
-  starting, early, core build, items 4·5·6 (`window.leagueSlotAlternatives`, tested in `app/test-league.js`) · objectives ·
-  counters (delta 1/2) · synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
+  Rule in `leagueTierRows` (stats-api.js) and crawler/README.md. Styles in `league-stats.css` (`.lg-tiers`; a container query keeps
+  it unscrolled down to ~790 px). Crawler side: `crawler/src/agg-players.js`.
+- Champion page (DONI-507) lives in `src/webui/league-champion.{js,css}`, Lolalytics' section order: band (identity + strip: win, Δ vs
+  role average, tier + rank, pick, ban, games) · role tabs + filters on one line · skills (priority + order grid, 6/10/15 toggle) · spells, runes, stat mods ·
+  starting, early, core build / item 4, 5, 6 (one quiet line when all empty) (`window.leagueSlotAlternatives`, tested in `app/test-league.js`) · objectives ·
+  counters (delta 1/2) beside synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
   Crawler side: `crawler/src/timeline.js` (purchase/skill parse) + `crawler/src/agg-champion.js` (tables, aggregate, the extra
   `/lol/champion/{id}` fields). Timeline blocks come from the TIMELINE_SAMPLE share of games and fill forward from deploy.
 - Scanability (DONI-516): `lgHeat` (league-stats.js) tints win rate, Δ, PBI and counter/synergy/objective numbers from ivory toward
   spell light / lifted defeat by distance from the list average (or 0), 1 = the column's 90th-percentile distance over full-sample
-  rows, times a sample weight (20 games 0.15, 2,000 full); a `.lg-legend` line sits under each table. Density compact/comfortable is
-  `<html data-lg-density>` (localStorage `queuepop-league-density-v1`; select its buttons as `button[data-lg-density]`). Table
-  `thead`s are sticky at `top:56px` (League page row height). Styles at the end of `league-world.css`.
+  rows, times a sample weight (20 games 0.15, 2,000 full), linear. DONI-519: inside `.lg-table` the tint is the cell background (the
+  tier list reads as a heat map), elsewhere the text; `lgMag` tints pick/ban gold by size; build picks are colored against the
+  champion's own win rate (`lg.cwr`). One `.lg-legend` per page, at the end of the filter strip. One density (22 px rows; the
+  compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky at `top:56px`. Styles: all in
+  `league-stats.css` + `league-champion.css` (nothing League-stats in `league-world.css`).
 
 ## Text size
 - Settings > Display (DONI-516): config `ui_scale` (0.9/1/1.1/1.25/1.5, default 1.1, kept by `normalizeConfig`). `app/main.js`

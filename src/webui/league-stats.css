@@ -39,8 +39,9 @@
 /* The art band: champion art, gold rule, the page's title and its first numbers. */
 .lg-band{position:relative;padding:8px 14px;margin-bottom:6px;border-top:1px solid var(--lg-gold);
   background-image:linear-gradient(90deg,#050d14f5 0%,#050d14d9 50%,#050d1480 100%),var(--champ-art);background-size:cover;background-position:var(--portrait-position,center 20%)}
-.lg-band-row{display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap}
-.lg-band h1{font:400 24px/1.15 Marcellus,serif}
+.lg-band-row{display:flex;align-items:flex-start;gap:6px 16px;flex-wrap:wrap}
+.lg-band h1{font:400 24px/30px Marcellus,serif}
+.lg-band-row>.lg-meta{line-height:30px}
 .lg-meta{font-size:12px;color:var(--lg-muted)}
 .lg-band .lg-search{margin-left:auto}
 
