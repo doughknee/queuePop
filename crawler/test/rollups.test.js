@@ -66,3 +66,13 @@ test("champion strip uses the same region weighting as its tier list row", () =>
   const row = lolTiers(d, {}).champions[0], strip = lolChampion(d, 1, {}).strip;
   assert.deepStrictEqual([strip.winRate, strip.pickRate, strip.banRate, strip.games], [row.winRate, row.pickRate, row.banRate, 60]);
 });
+
+test("region weighting only applies to bracket=all ranked (the weights are Emerald+ ranked players)", () => {
+  const { lolTiers } = require("../src/server");
+  const d = open(":memory:");
+  d.prepare("INSERT INTO stats_lol_matches VALUES ('16.20', 'big', 'MASTER', 100), ('16.20', 'small', 'MASTER', 100)").run();
+  d.prepare("INSERT INTO stats_lol_champ VALUES ('16.20', 'big', 'MASTER', 'MIDDLE', 1, 10, 5), ('16.20', 'small', 'MASTER', 'MIDDLE', 1, 50, 40)").run();
+  setMeta(d, "regionWeights", { lol: { big: 900, small: 100 } });
+  assert.ok(lolTiers(d, {}).weighting);
+  assert.strictEqual(lolTiers(d, { bracket: "master" }).weighting, undefined);
+});

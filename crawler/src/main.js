@@ -133,10 +133,16 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
     // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
     for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
     const t = Date.now();
-    new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath } })
-      .once("message", (n) => log(`aggregated ${n} patches in ${Date.now() - t} ms`))
-      .once("error", (e) => { failed = true; log(`aggregate: ${e.message}`); })
-      .once("exit", () => { aggregating = false; periodic(failed ? 60000 : 0); });
+    try {
+      new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath } })
+        .once("message", (n) => log(`aggregated ${n} patches in ${Date.now() - t} ms`))
+        .once("error", (e) => { failed = true; log(`aggregate: ${e.message}`); })
+        .once("exit", () => { aggregating = false; periodic(failed ? 60000 : 0); });
+    } catch (e) { // e.g. the worker can't be created: never leave the crawl paused behind a stuck flag (Q review 2)
+      log(`aggregate: could not start the worker: ${e.message}`);
+      aggregating = false;
+      periodic(60000);
+    }
   }, Math.max(minDelay, jobs.nextAggregation(db, cfg.aggregateEveryMin) - Date.now()));
 })();
 
