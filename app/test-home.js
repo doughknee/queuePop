@@ -54,9 +54,9 @@ assert.strictEqual(ctx.qpLastNext(last, "#/").route, "#/");
 // Q5: home's set-up strip, from facts to items.
 const ids = (f) => ctx.homeSetupItems(f).map((i) => i.id).join(",");
 const all3 = ["league", "tft", "deadlock"];
-assert.strictEqual(ids({ games: all3, dlId: "", crawler: "down" }), "crawler,deadlock,games");
+assert.strictEqual(ids({ games: all3, dlId: "", crawler: "down" }), "deadlock,games"); // an offline crawler is the status line's
 assert.strictEqual(ids({ games: all3, dlId: "123", crawler: "ok" }), "games");
-assert.strictEqual(ids({ games: ["deadlock"], dlId: "", crawler: "down" }), "deadlock"); // crawler only matters for League/TFT
+assert.strictEqual(ids({ games: ["deadlock"], dlId: "", crawler: "down" }), "deadlock");
 assert.strictEqual(ids({ games: ["league"], dlId: undefined, crawler: undefined }), ""); // config not loaded: no Deadlock nag
-assert.strictEqual(ids({ games: all3, dlId: "", crawler: "down", dismissed: ["games", "crawler"] }), "deadlock");
+assert.strictEqual(ids({ games: all3, dlId: "", dismissed: ["games"] }), "deadlock");
 console.log("test-home: ok");

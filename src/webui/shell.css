@@ -221,3 +221,19 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .qp-setup button:hover{color:var(--fg)}
 .qp-setup .su-hide{font-size:12px;text-transform:uppercase;letter-spacing:.08em}
 .qp-setup :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* The status line (DONI-541, statusline.js): one problem at a time under the page row, with its fix. */
+.qp-status{display:flex;align-items:center;gap:14px;min-height:40px;padding:6px 24px;box-sizing:border-box;background:var(--bg);color:var(--fg);border-bottom:1px solid var(--line);font:13px/1.35 var(--mono)}
+.qp-status[hidden]{display:none}
+.qp-status .sl-dot{flex:none;width:8px;height:8px;background:var(--amber)}
+.qp-status[data-level="bad"] .sl-dot{background:var(--neg)}
+.qp-status[data-level="info"] .sl-dot{background:var(--accent)}
+.qp-status .sl-text{flex:1;min-width:0}
+.qp-status a,.qp-status button{flex:none;border:0;background:none;padding:4px 6px;font:700 13px var(--mono);color:var(--accent);text-decoration:none;cursor:pointer;white-space:nowrap}
+.qp-status a:hover,.qp-status .sl-fix:hover{text-decoration:underline}
+.qp-status .sl-retry{color:var(--fg);border:1px solid var(--edge);font-weight:400}
+.qp-status .sl-retry:disabled{color:var(--muted);cursor:default}
+.qp-status .sl-more{color:var(--muted);font-size:12px}
+.qp-status .sl-x{color:var(--muted);font-weight:400}
+.qp-status .sl-x:hover{color:var(--fg);text-decoration:none}
+.qp-status :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#upd-banner{display:none!important} /* replaced by the status line's update notice */

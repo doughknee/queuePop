@@ -181,6 +181,10 @@
   `<html data-games>` (CSS hides home gates), filter the home bar and search; `render()` sends a switched-off world's routes home.
 - Home set-up strip (Q5): `homeSetupItems` (pure, `app/test-home.js`) → crawler unreachable / no Deadlock account / all games on;
   each links to its Settings field (`qpSearch.focusSetting`), dismissible per item or whole (localStorage `queuepop-setup-dismissed-v1`).
+- Status line (DONI-541): `src/webui/statusline.js` (loaded by `shell.js`) puts one line under `#world-nav`: Riot key rejected (crawler
+  `/status` `key.valid`) > crawler offline (League/TFT/home) > League client closed (League/TFT) > update out (home/Settings), with
+  Retry and a link that focuses the fixing field. `statusIssues` is pure (`app/test-status.js`). It replaces `#upd-banner` (hidden in
+  shell.css). worlds.js `toast()` goes through `showToast`. Settings buttons all report into a `[data-msg]` (or `data-msg-alias`).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
