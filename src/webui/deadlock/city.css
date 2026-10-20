@@ -33,7 +33,7 @@
 .card-hero img{width:36px;height:36px;object-fit:cover;background:var(--bg)}
 .card-hero small{display:block;color:var(--muted);font-size:12px}
 .card-acct input{color:var(--fg);background:var(--bg);border:1px solid var(--edge);padding:8px 10px}
-.card-acct{color:var(--muted);font-size:12px}
+.card-acct.card-acct{color:var(--muted);font-size:12px;border:0;border-radius:0;padding:0}
 .tier-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:0 20px}
 .tier-head h3{margin:0!important}
 .tier-head .ledger-controls{margin:0}
@@ -54,7 +54,7 @@
 .city-links a{color:var(--bone);text-decoration:none;font:700 13px/1 var(--label);text-transform:uppercase;letter-spacing:.8px;padding:13px 16px;border:1px solid var(--line);background:color-mix(in srgb,var(--fg) 6%,transparent)}
 .city-links a:hover{background:color-mix(in srgb,var(--fg) 6%,transparent);color:var(--fg)}
 .report-items{margin-top:18px}
-@media (max-width:1100px){.city-card{grid-template-columns:1fr}.tier-expand{grid-template-columns:1fr}.city-search input{width:160px}}
+@media (max-width:1100px){.city-card{grid-template-columns:1fr}.tier-expand{grid-template-columns:1fr}}
 @media (max-width:760px){.card-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.city-searchbar{padding:12px 18px 0}.city-search,.city-search input{width:100%}.search-results{margin:10px 18px 0}}
 
 /* Play (DONI-495): dirty cream label on a black title strip with chipped corners, rust triangle, turquoise edge. */
