@@ -3,7 +3,7 @@
 // players. Per team: result, bans, objectives; per player: champion (linked), Riot ID (linked to their page), KDA, damage with
 // a bar against the match's highest, taken, CS/min, gold, vision, items, spells and keystone. Lowroll grammar, tokens only.
 const LG_MT_OBJ = [['tower', 'Towers'], ['dragon', 'Dragons'], ['baron', 'Barons'], ['riftHerald', 'Heralds'], ['horde', 'Grubs'], ['inhibitor', 'Inhibitors']];
-const lgMatchId = (gameId, region) => `${lgRegionCode(region || leagueLive.summoner?.region).toUpperCase()}_${gameId}`;
+const lgMatchId = (gameId, region) => `${(region ? lgRegionCode(region) : lgMyPlatform()).toUpperCase()}_${gameId}`;
 
 function leagueMatchPage() {
   const id = decodeURIComponent(location.hash.split('/')[3] || '');
@@ -30,11 +30,11 @@ async function lgFillMatch(token, id) {
   document.getElementById('lg-meta').textContent = `${Math.floor(min)}:${String(Math.round(m.duration % 60)).padStart(2, '0')} · patch ${m.patch} · ${new Date(m.startedAt).toLocaleString()}`;
   const team = t => {
     const T = (m.teams || []).find(x => x.team === t) || {}, rows = ps.filter(p => p.team === t), k = rows.reduce((n, p) => n + (p.kills || 0), 0);
-    const obj = LG_MT_OBJ.map(([key, label]) => T.objectives?.[key] ? `<span title="${label}${T.objectives[key].first ? ' · took the first' : ''}">${label} <b>${T.objectives[key].kills}</b>${T.objectives[key].first ? '<i>1st</i>' : ''}</span>` : '').join('');
+    const obj = LG_MT_OBJ.map(([key, label]) => T.objectives?.[key] && T.objectives[key].kills != null ? `<span title="${label}${T.objectives[key].first ? ' · took the first' : ''}">${label} <b>${T.objectives[key].kills}</b>${T.objectives[key].first ? '<i>1st</i>' : ''}</span>` : '').join('');
     return `<section class="lg-mt-team ${T.win ? 'win' : 'loss'}"><header><b class="lg-result">${T.win ? 'Victory' : 'Defeat'}</b><span>${t === 100 ? 'Blue' : 'Red'} side · ${k} kills</span>
       <span class="lg-mt-obj">${obj}</span><span class="lg-mt-bans">${(T.bans || []).filter(b => b > 0).map(b => `<a href="#/league/champion/${b}" title="Banned: ${lgEsc(lgChamp(b).name)}">${lgIcon(b, 'lg-icon lg-ban')}</a>`).join('')}</span></header>
       <table class="lg-table lg-mt-table"><thead><tr><th>Player</th><th class="num">KDA</th><th>Damage</th><th class="num">Taken</th><th class="num">CS</th><th class="num">Gold</th><th class="num">Vision</th><th>Build</th></tr></thead><tbody>
-      ${rows.map(p => { const c = lgChamp(p.champion), role = lgRoleOf(p.role), kda = ((p.kills + p.assists) / Math.max(1, p.deaths)).toFixed(2);
+      ${rows.map(p => { const c = lgChamp(p.champion), role = lgRoleOf(p.role), kda = p.kills == null ? '–' : ((p.kills + p.assists) / Math.max(1, p.deaths)).toFixed(2);
         const ks = p.keystone && L.where[p.keystone], rid = p.riotId || '';
         return `<tr class="${me && (p.riotId || '').toLowerCase() === me ? 'lg-mt-me' : ''}"><td class="lg-name"><a href="#/league/champion/${p.champion}${LG_ROLES.includes(role) ? '/' + role : ''}" title="${lgEsc(c.name)} · level ${p.level ?? '–'}">${lgIcon(p.champion)}</a>
           <span class="lg-mt-who">${rid ? `<a href="#/league/summoner/${lgRiotSlug(rid)}/${String(m.id).split('_')[0].toLowerCase()}">${lgEsc(rid.split('#')[0])}</a>` : '<span>Unknown</span>'}<small>${lgEsc(c.name)}${LG_ROLE[role] ? ' · ' + LG_ROLE[role] : ''}</small></span></td>

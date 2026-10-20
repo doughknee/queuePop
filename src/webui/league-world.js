@@ -1,5 +1,4 @@
 // League's world, champion dossiers, and preparation tools. Local concept only.
-const leagueArtwork=['ahri','lux','yasuo'].map(id=>{const image=new Image();image.src=`assets/${id}.webp`;return image;});
 let selectedSpell='Q';
 let leagueFocus={};
 try { const saved=JSON.parse(localStorage.getItem('queuepop-league-focus-v1')||'{}');for(const id of ['ahri','lux','yasuo'])if(Number.isInteger(saved[id])&&saved[id]>=0&&saved[id]<3)leagueFocus[id]=saved[id]; } catch {}
@@ -15,7 +14,7 @@ function riftCrest(){return `<svg class="rift-crest" viewBox="0 0 100 120" fill=
 function portraitLinks(active){return `<nav class="portrait-links" aria-label="Champion dossiers">${Object.entries(champions).map(([id,c])=>`<a href="#/league/champions/${id}" aria-label="View ${c.name}’s dossier" ${active===id?'aria-current="page"':''}>${icon(id)}<span>${c.name}</span></a>`).join('')}</nav>`;}
 // DONI-450: a real champion's passive and Q/W/E/R (name, text, cooldowns, icon) from Data Dragon, once per champion per session.
 window.abilityArt={};const abilityAsked={};
-function fillAbilities(id){const c=champions[id];if(!c?.alias||FIXTURE_WORLDS[id]||abilityAsked[id]||!window.statsApi)return;abilityAsked[id]=true;
+function fillAbilities(id){const c=champions[id];if(!c?.alias||FIXTURE_WORLDS[id]||!window.statsApi||(abilityAsked[id]&&championWorlds[id]?.spells?.[1]?.[1]!=='Q ability'))return;abilityAsked[id]=true;
   statsApi.ddChampion(null,c.alias).then(({v,d})=>{const ch=d.data[c.alias];if(!ch)return;const strip=t=>String(t||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim(),img=(dir,f)=>`${statsApi.DD}/cdn/${v}/img/${dir}/${f}`;
     championWorlds[id].spells=[['P',ch.passive.name,strip(ch.passive.description),'Passive'],...ch.spells.map((s,i)=>['QWER'[i],s.name,strip(s.description),s.cooldownBurn&&s.cooldownBurn!=='0'?`${s.cooldownBurn} s cooldown`:'No cooldown'])];
     abilityArt[id]={P:img('passive',ch.passive.image.full),...Object.fromEntries(ch.spells.map((s,i)=>['QWER'[i],img('spell',s.image.full)]))};

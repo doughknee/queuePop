@@ -219,7 +219,8 @@ const pct = x => (x*100).toFixed(1);
 let viewing = account, ranks = [], patches = [];
 const T = { rank:'', patch:'', days:'', open:null, seq:0, rows:[] };
 const tierQuery = () => {
-  const now = Math.floor(Date.now()/1000), p = patches.find(x => x.title === T.patch), q = {};
+  // review #63: rounded to the hour so the query (and its memo key) stays the same between renders
+  const now = Math.floor(Date.now() / 3600000) * 3600, p = patches.find(x => x.title === T.patch), q = {};
   const from = [p && p.start, T.days ? now - T.days*86400 : null, !p && !T.days ? now - 30*86400 : null].filter(Boolean);
   if(from.length) q.min_unix_timestamp = Math.max(...from);
   if(p && p.end) q.max_unix_timestamp = p.end;
@@ -263,9 +264,9 @@ async function loadCard() {
   card.innerHTML = `<div class="card-who">${p.avatarmedium ? `<img src="${esc(p.avatarmedium)}" alt="" width="64" height="64">` : ''}<div><strong>${esc(clean(p.personaname) || 'Account ' + id)}</strong><small>Account ${esc(id)}${viewing !== account ? ` · <button class="linkish" data-view-own>${account ? 'Back to your file' : 'Clear'}</button>` : ` · <button class="linkish" data-acct-edit>Change</button>`}</small></div></div>
     <dl class="card-stats">
       <div><dt>Rank</dt><dd>${rank ? `${rank.images['small_subrank' + m.division_tier + '_webp'] ? `<img src="${rank.images['small_subrank' + m.division_tier + '_webp']}" alt="" width="28" height="28">` : ''}${esc(rank.name)} ${m.division_tier}` : 'Unranked'}</dd></div>
-      <div><dt>Win rate</dt><dd>${list.length ? pct(wins/list.length) + '%' : '—'}</dd></div>
+      <div><dt>Win rate</dt><dd>${list.length ? pct(wins/list.length) + '%' : '–'}</dd></div>
       <div><dt>Matches</dt><dd>${list.length.toLocaleString()}</dd></div>
-      <div><dt>Last ${form.length}</dt><dd class="card-form">${form.map(x => x.match_result === x.player_team ? '<b class="w">W</b>' : '<b class="l">L</b>').join('') || '—'}</dd></div>
+      <div><dt>Last ${form.length}</dt><dd class="card-form">${form.map(x => x.match_result === x.player_team ? '<b class="w">W</b>' : '<b class="l">L</b>').join('') || '–'}</dd></div>
     </dl>
     <div class="card-heroes"><span class="ledger-label">Most played</span>${top.map(h => { const hero = heroById(h.hid); return `<button class="card-hero" ${hero ? `data-goto-hero="${hero.id}"` : "disabled"}><img src="${hero ? hero.icon || heroImg(hero) : ''}" alt="" width="36" height="36"><span>${esc(hero ? hero.name : 'Hero ' + h.hid)}<small>${h.n} games · ${pct(h.w/h.n)}%</small></span></button>`; }).join('') || '<small>No matches on record.</small>'}</div>
     <div class="card-edit" id="card-edit" hidden>${acctInput()}</div>`;
@@ -436,7 +437,7 @@ async function loadHeroNumbers(hero) {
     const link = list => list.map(x => `<button class="back-link hero-vs" data-goto-hero="${x.e.id}" title="${pct(x.wr)}% win">${esc(x.e.name)}</button>`).join(', ');
     const cell = (k, v, sub) => `<div><dt>${k}</dt><dd>${v}</dd>${sub ? `<dd class="hn-sub">${sub}</dd>` : ''}</div>`;
     el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1} of ${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
-      + (vs.length ? `<p class="hn-read">Best into ${link(vs.slice(0, 3))}. Struggles into ${link(vs.slice(-3).reverse())}.</p>` : '');
+      + ((k => k ? `<p class="hn-read">Best into ${link(vs.slice(0, k))}. Struggles into ${link(vs.slice(-k).reverse())}.</p>` : '')(Math.min(3, vs.length >> 1))); // review #119: never the same hero twice
   } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">deadlock-api error: ${esc(e.message)}</p>`; }
 }
 function inspectHero(id, step) {
@@ -552,7 +553,7 @@ document.addEventListener('click', event => {
   if(button.hasAttribute('data-view-own')) { viewing = account; recordsFor = ''; renderPage(activePanel, false); }
   if(button.hasAttribute('data-acct-edit')) { const edit = document.querySelector('#card-edit'); edit.hidden = !edit.hidden; if(!edit.hidden) document.querySelector('#record-acct').focus(); }
   if(button.dataset.filter) { recordFilter = button.dataset.filter; renderHistory(); document.querySelector(`[data-filter="${recordFilter}"]`).focus({preventScroll:true}); }
-  if(button.dataset.queue) { if(button.dataset.queue === 'start') { queueState = 'searching'; queueStarted = Date.now(); } else if(button.dataset.queue === 'pop') { queueState = 'ready'; toast('Your queue popped — simulated alert.'); } else queueState = 'idle'; syncQueue(); renderCompanion(); document.querySelector('.queue-controls button').focus({preventScroll:true}); }
+  if(button.dataset.queue) { if(button.dataset.queue === 'start') { queueState = 'searching'; queueStarted = Date.now(); } else if(button.dataset.queue === 'pop') { queueState = 'ready'; toast('Your queue popped (simulated alert).'); } else queueState = 'idle'; syncQueue(); renderCompanion(); document.querySelector('.queue-controls button').focus({preventScroll:true}); }
 });
 document.addEventListener('input', event => { if(event.target.id === 'hero-search') renderRoster(event.target.value); if(event.target.id === 'city-search') onSearch(event.target.value); });
 document.addEventListener('keydown', event => { if(event.key === 'Escape' && event.target.id === 'city-search') closeSearch(); });
@@ -597,11 +598,3 @@ document.querySelectorAll('.city-nav a span').forEach((el,i) => {el.innerHTML = 
     }
   };
 };
-// Warm arrival assets without delaying the shared application shell.
-for (const source of ['deadlock/assets/city.webp', 'deadlock/assets/heroes/ivy.webp', 'deadlock/assets/heroes/infernus.webp']) {
-  const image = new Image();
-  image.src = source;
-  image.decode().catch(() => {});
-}
-document.fonts.load('400 16px Germania').catch(() => {});
-document.fonts.load('700 16px Barlow').catch(() => {});

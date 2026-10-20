@@ -3,7 +3,9 @@
 // caches 10 min and allows a few uncached lookups a minute), #/league/leaderboard[/{region}] reads GET /lol/leaderboard.
 // The League search opens Riot IDs here (league-stats.js). Champion leaderboards stay on each champion page (best players).
 const LG_QUEUE_NAME = { RANKED_SOLO_5x5: 'Solo / duo', RANKED_FLEX_SR: 'Flex' };
-const LG_REGION_CODE = { na: 'na1', euw: 'euw1', eune: 'eun1', oc: 'oc1', oce: 'oc1', br: 'br1', jp: 'jp1', tr: 'tr1', la: 'la1', lan: 'la1', las: 'la2' };
+const LG_REGION_CODE = { na: 'na1', euw: 'euw1', eune: 'eun1', oc: 'oc1', oce: 'oc1', br: 'br1', jp: 'jp1', tr: 'tr1', la: 'la1', lan: 'la1', las: 'la2', sg: 'sg2', tw: 'tw2', vn: 'vn2', ph: 'ph2', th: 'th2', me: 'me1', ru: 'ru', kr: 'kr' };
+// DONI-569: your own Riot platform id (summoner.platform, e.g. sg2), not the op.gg-style region.
+const lgMyPlatform = () => (leagueLive.summoner?.platform || lgRegionCode(leagueLive.summoner?.region)).toLowerCase();
 const lgRegionCode = r => { r = String(r || '').toLowerCase(); return LG_REGION_CODE[r] || r || 'na1'; };
 const lgRiotSlug = id => encodeURIComponent(String(id).replace('#', '-'));
 const lgTierWord = t => t ? t[0] + t.slice(1).toLowerCase() : 'Unranked';
@@ -11,7 +13,7 @@ const lgAgoMs = ms => { const m = Math.round((Date.now() - ms) / 60000); return 
 
 function leagueSummonerPage() {
   const [, , , slug = '', region = ''] = location.hash.split('/'), riot = decodeURIComponent(slug).replace(/-(?=[^-]*$)/, '#');
-  const reg = lgRegionCode(region || (lg.region !== 'all' ? lg.region : leagueLive.summoner?.region));
+  const reg = lgRegionCode(region || (lg.region !== 'all' ? lg.region : lgMyPlatform()));
   lgMount('summoner', t => lgFillSummoner(t, riot, reg));
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
   return `<div class="lg-page lg-summoner">${lgBand(art, 'center 20%', `<div class="lg-band-row"><h1 id="lg-sum-name">${lgEsc(riot.split('#')[0])}</h1><span class="lg-meta" id="lg-meta">#${lgEsc(riot.split('#')[1] || '')} · ${lgEsc(reg.toUpperCase())}</span>${lgSearch()}</div><div class="lg-you" id="lg-sum-ranks"></div>`)}

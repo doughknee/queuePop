@@ -52,7 +52,7 @@ function lgResults(q) {
   if (champs.length) out.push(`<div class="lg-hits"><span class="lg-kicker">Champions</span>${champs.map(c => `<a class="lg-hit" href="#/league/champion/${c.id}">${lgIcon(c.id)}<span>${lgEsc(c.name)}</span></a>`).join('')}</div>`);
   if (mine) out.push(`<div class="lg-hits"><span class="lg-kicker">Summoner</span><a class="lg-hit" href="#/league/account">${s.icon ? lgImg(s.icon, '', 'lg-icon') : ''}<span>${lgEsc(s.name)}<small>#${lgEsc(s.tag)} · your account</small></span></a></div>`);
   else if (t.includes('#') || !champs.length) {
-    const [name, tag = ''] = q.trim().split('#'), region = lgRegionCode(lg.region !== 'all' ? lg.region : s?.region);
+    const [name, tag = ''] = q.trim().split('#'), region = lg.region !== 'all' ? lgRegionCode(lg.region) : lgMyPlatform();
     out.push(`<div class="lg-hits"><span class="lg-kicker">Summoner</span>${tag ? `<a class="lg-hit" href="#/league/summoner/${lgRiotSlug(name + '#' + tag)}/${region}"><span>${lgEsc(q.trim())}<small>open their page · ${region.toUpperCase()}</small></span></a>` : `<span class="lg-hit"><span>${lgEsc(q.trim())}<small>add #tag to look up a Riot ID</small></span></span>`}</div>`);
   }
   return out.join('') || '<p class="lg-wait">No match.</p>';
@@ -212,7 +212,7 @@ async function lgFillTiers(token, retried = false) {
     }
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
-    document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
+    document.getElementById('lg-meta').innerHTML = `${lg.queue ? 'ARAM' : LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
   } catch (e) {
     console.error('tier list render failed', e);
     if (box()) box().innerHTML = '<p class="lg-offline">The tier list could not be drawn from this answer. Change a filter to try again.</p>';
@@ -276,7 +276,8 @@ async function lgExpandMatch(btn) {
   more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div><dt>Kills + assists</dt><dd>${g.kills + g.assists}</dd></div><div><dt>Deaths</dt><dd>${g.deaths}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>${g.gameId ? ` <a href="#/league/match/${lgMatchId(g.gameId)}">Open the full match ↗</a>` : ''}`;
   const slot = document.getElementById('lg-meta-' + btn.dataset.lgMatch);
   try {
-    const data = await statsApi.tiers(lgParams(LG_ROLES.includes(role) ? role : 'all'));
+    // review #122: the game's own queue decides ARAM vs ranked numbers, not the tier list's toggle
+    const data = await statsApi.tiers(g.queueId === 450 ? { ...lgParams(), queue: '450', role: '' } : { ...lgParams(LG_ROLES.includes(role) ? role : 'all'), queue: '' });
     const rows = leagueTierRows(data.champions), r = rows.filter(x => x.champion === Number(g.championId)).sort((a, b) => b.games - a.games)[0];
     slot.innerHTML = `<dt>${lgEsc(c.name)} ${LG_ROLE[role] || ''} · ${lgEsc(data.patch)}</dt><dd${r?.lowSample ? ' class="low"' : ''}>${r ? `${lgTier(r.tier, r.lowSample)} ${lgPct(r.winRate)} <small>${lgN(r.games)} games</small>` : 'No crawler games yet'}</dd>`;
   } catch { slot.innerHTML = `<dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Stats offline</dd>`; }
