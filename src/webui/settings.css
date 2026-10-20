@@ -53,10 +53,11 @@ body.theme-settings{background:var(--bg)}
 .st-find:focus-within{border-color:var(--accent)}
 .st-find svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.8}
 .st-find input{flex:1;min-width:0;border:0;background:none;color:var(--fg);font:14px var(--mono);outline:none}
-.st-find input::placeholder{color:var(--dim)}
+.st-find input::placeholder{color:var(--muted)}
 .st-none{margin:16px 0 0;color:var(--muted)}
 .st-off{display:none!important}
 .st-more{border-top:1px solid var(--line);margin-top:8px}
 .st-more summary{cursor:pointer;padding:12px 0;color:var(--fg);font:700 12px var(--mono);text-transform:uppercase;letter-spacing:.1em;list-style-position:inside}
 .st-more summary::marker{color:var(--accent)}
 a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
+.st-in::placeholder{color:var(--muted)}

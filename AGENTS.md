@@ -198,6 +198,8 @@
   worlds, Queue again / Start a queue (League + TFT ids, needs the client), Auto-accept paused, Quit. Config `launch_at_login`
   (`app.setLoginItemSettings`, applied at start and on save) and `close_to_tray` (default on; off makes ✕ quit; `hide_window` now
   calls `win.close()` and the close handler decides). Bridge `test_alert` sends a test queue pop through every channel that is on.
+- Accessibility (DONI-545): shell text is never under 12 px; `--dim`/`--line` are never text (2.7:1 / 1.4:1); `app/test-contrast.js`
+  checks every text token at AA on `--bg` and `--bg` on lime. Reduced motion stops the home bar's clock (pills still turn it).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
