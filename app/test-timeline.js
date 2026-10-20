@@ -32,5 +32,8 @@ assert.strictEqual(csRemaining({}), 30);
   assert.strictEqual(tl.status(), null);
   ev("/lol-gameflow/v1/gameflow-phase", "Matchmaking"); await new Promise((r) => setImmediate(r));
   assert.strictEqual(pushed.length, 4); // next queue starts over
+  cs(30000); assert.strictEqual(pushed.length, 5); // accepted
+  ev("/lol-gameflow/v1/gameflow-phase", "Matchmaking"); await new Promise((r) => setImmediate(r)); // someone dodged
+  assert.strictEqual(pushed.length, 6); // the requeue gets its own ETA
   console.log("test-timeline ok");
 })().catch((e) => { console.error(e); process.exit(1); });

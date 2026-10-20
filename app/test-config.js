@@ -40,3 +40,6 @@ console.log("test-config games ok");
 assert.strictEqual(normalizeConfig({ companion: { token: "0123456789abcdef0123" } }).companion.token, "0123456789abcdef0123");
 assert.strictEqual(normalizeConfig({ companion: { token: "<script>" } }).companion.token, "");
 console.log("test-config token ok");
+// Night review P1: a stale renderer copy can't put an old companion token back.
+assert.strictEqual(mergeForSave({ companion: { token: "aaaaaaaaaaaaaaaaaaaa" } }, { companion: { token: "bbbbbbbbbbbbbbbbbbbb" } }).companion.token, "bbbbbbbbbbbbbbbbbbbb");
+console.log("test-config stale token ok");
