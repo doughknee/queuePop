@@ -101,3 +101,7 @@
 .lg-strip dd.lg-sub{white-space:nowrap}
 .lg-strip dd.lg-sub{font-size:10px}
 .lg-strip>div{padding:0 10px}
+/* The sidebar takes ~275 px, so at Brandon's 1024 px window the page is ~710 px wide: size the card grids by the page, not the viewport */
+.lg-champ-page{container:lgch/inline-size}
+@container lgch (max-width:900px){.lg-sheet3{grid-template-columns:1fr 1fr}.lg-duo{grid-template-columns:1fr}}
+@container lgch (max-width:560px){.lg-sheet3{grid-template-columns:1fr}}
