@@ -8,6 +8,9 @@ window.stBusyBuckets = rl => {
   const busy = all.filter(b => b.used > 0).sort((a, b) => b.pct - a.pct || b.used - a.used);
   return { busy, idle: all.length - busy.length };
 };
+// Settings > Recorder (beta) > ffmpeg: what was found, and why Record video is greyed out (said in the line, not only a hover title).
+window.stFfmpegLine = (f, events) => !f ? 'Couldn’t check.' : !f.found ? 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.'
+  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.${events ? '' : ' Turn on Record game events to record video.'}`;
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
   const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['recorder', 'Recorder (beta)'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
@@ -287,8 +290,8 @@ window.stBusyBuckets = rl => {
     const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
     let s = null; try { s = await bridge().recorder_status(); } catch {}
     const f = s && s.ffmpeg;
-    el.textContent = !f ? 'Couldn’t check.' : f.found ? `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.` : 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.';
     const events = !!QP.store.get('recorder.enabled');
+    el.textContent = stFfmpegLine(f, events);
     sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on Record game events first' : '';
   }
   async function loadAbout() {
