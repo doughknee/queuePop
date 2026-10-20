@@ -19,9 +19,12 @@ window.createTftView = function (host) {
   const input = search.querySelector('input'), results = search.querySelector('.ts-results');
   const api = () => window.pywebview && window.pywebview.api;
   const rankText = (r) => `${r.tier[0] + r.tier.slice(1).toLowerCase()}${r.division && r.division !== 'NA' ? ' ' + r.division : ''}`;
+  let myRegion = 'NA1', myRiot = ''; // your platform prefix for match ids and your Riot ID, to mark you in a match (DONI-564)
   async function refreshRank() {
     try {
       const info = (await api().get_summoner()) || {};
+      if (info.region) myRegion = ({ na: 'NA1', euw: 'EUW1', eune: 'EUN1', oce: 'OC1', oc: 'OC1', br: 'BR1', jp: 'JP1', tr: 'TR1', lan: 'LA1', las: 'LA2' })[String(info.region).toLowerCase()] || String(info.region).toUpperCase();
+      if (info.name) myRiot = `${info.name}#${info.tag || ''}`.toLowerCase();
       const r = info.connected && info.ranked && info.ranked.tft;
       rankEl.textContent = !info.connected ? 'TFT rank: client not connected'
         : r ? `TFT rank: ${rankText(r)} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
@@ -265,7 +268,7 @@ window.createTftView = function (host) {
         <span class="ts-game-traits">${traits.slice(0, 6).map((t) => `<span class="ts-trait st${t.style}">${icon(t.key, 'ts-ico-trait')}${t.units}</span>`).join('')}</span>
         <span class="ts-units">${g.units.map((u) => icon(u.key)).join('')}</span></button>
         ${openGame === i ? `<div class="ts-detail ts-detail-grid"><div><h3>Final board</h3>${g.units.map((u) => `<div class="ts-unit-line">${icon(u.key)}<span>${esc(name(u.key))} ${stars(u.stars)}</span><span class="ts-items">${u.items.map((k) => icon(k, 'ts-ico-item')).join('')}</span></div>`).join('') || '<p class="ts-quiet">No units.</p>'}</div>
-          <div><h3>Traits</h3><div class="ts-trait-list">${traits.map((t) => `<span class="ts-trait st${t.style}">${icon(t.key, 'ts-ico-trait')}${esc(name(t.key))} ${t.units}</span>`).join('')}</div>
+          <div>${g.id ? `<a class="ts-link" href="#/tft/match/${enc(String(g.id).includes('_') ? g.id : myRegion + '_' + g.id)}">Open the full match ↗</a>` : ''}<h3>Traits</h3><div class="ts-trait-list">${traits.map((t) => `<span class="ts-trait st${t.style}">${icon(t.key, 'ts-ico-trait')}${esc(name(t.key))} ${t.units}</span>`).join('')}</div>
           <h3>Augments</h3>${g.augments.length ? `<div class="ts-trait-list">${g.augments.map((a) => `<span class="ts-trait">${icon(a, 'ts-ico-item')}${esc(name(a))}</span>`).join('')}</div>` : '<p class="ts-quiet">The client’s copy of this game has no augments.</p>'}</div></div>` : ''}</div>`;
     }).join('');
   }
@@ -406,6 +409,32 @@ window.createTftView = function (host) {
   const slugOf = (id) => enc(String(id).replace('#', '-'));
   const idOf = (slug) => decodeURIComponent(slug).replace(/-(?=[^-]*$)/, '#');
   const tierWord = (t) => t ? t[0] + t.slice(1).toLowerCase() : 'Unranked';
+
+  // --- DONI-564: one TFT match, all eight boards, MetaTFT's match view (crawler GET /tft/match/{id}) -----------------------
+  async function matchPage(id) {
+    document.title = 'Match · TFT · QueuePop';
+    page.innerHTML = `<div class="ts-wrap"><header class="ts-list-head"><h1>Match</h1><span class="ts-quiet ts-meta">${esc(id)}</span></header><p class="ts-state" role="status">Reading the match… one the crawler doesn't hold yet comes from Riot.</p><div class="ts-match"></div></div>`;
+    let m;
+    try { m = await S.get(`/tft/match/${enc(id)}`, 30000); } catch (e) {
+      const code = String(e.message || e).split(' ')[0];
+      page.querySelector('.ts-state').textContent = code === '404' ? 'Riot has no match with this id.' : code === '429' ? 'The crawler allows a few fresh lookups a minute. Try again in a minute.' : 'Stats offline: the queuePop crawler did not answer.';
+      return;
+    }
+    if (parse().p !== 'match') return;
+    await S.loadDragon();
+    const region = String(m.id).split('_')[0].toLowerCase();
+    page.querySelector('.ts-list-head h1').textContent = QUEUES[m.queueId] || 'TFT';
+    page.querySelector('.ts-meta').textContent = `${Math.round(m.length / 60)} min · set ${m.set} · ${new Date(m.startedAt).toLocaleString()}`;
+    page.querySelector('.ts-state').textContent = m.source === 'rows' ? "The full boards of this match are past the crawler's 7-day window." : '';
+    page.querySelector('.ts-match').innerHTML = (m.participants || []).map((p) => {
+      const traits = [...(p.traits || [])].filter(([, tier]) => tier > 0).sort((a, b) => b[1] - a[1] || (b[2] || 0) - (a[2] || 0));
+      return `<div class="ts-mt-row ${myRiot && (p.riotId || '').toLowerCase() === myRiot ? 'ts-mt-me' : ''}"><span class="ts-place p${p.placement <= 1 ? 1 : p.placement <= 4 ? 4 : 8}">${p.placement}</span>
+        <span class="ts-game-meta">${p.riotId ? `<a href="#/tft/player/${slugOf(p.riotId)}/${region}"><strong>${esc(p.riotId.split('#')[0])}</strong></a>` : '<strong>Unknown</strong>'}<small>level ${p.level ?? '–'} · round ${p.lastRound ?? '–'}${p.goldLeft != null ? ' · ' + p.goldLeft + ' gold left' : ''}</small></span>
+        <span class="ts-game-traits">${traits.map(([t, tier, n]) => `<span class="ts-trait st${Math.min(4, tier)}" title="${esc(name(t))}">${icon(t, 'ts-ico-trait')}${n ?? tier}</span>`).join('')}</span>
+        <span class="ts-units">${(p.units || []).map(([u, st, items]) => `<span class="ts-unit-cell">${unitLink(u, ' · ' + '★'.repeat(st))}<i class="ts-stars s${st}">${'★'.repeat(st)}</i><span class="ts-unit-items">${(items || []).map((k) => icon(k, 'ts-ico-item')).join('')}</span></span>`).join('')}</span></div>`;
+    }).join('');
+  }
+
   async function leaderboardPage(region) {
     region = region || (filters.region !== 'all' ? filters.region : 'na1');
     document.title = 'Leaderboard · TFT · QueuePop';
@@ -443,7 +472,7 @@ window.createTftView = function (host) {
     page.querySelector('.ts-state').textContent = '';
     page.querySelector('.ts-player').innerHTML = `<section class="ts-card"><div class="ts-rank"><small>${esc(d.region.toUpperCase())}</small>${r ? `<strong>${tierWord(r.tier)}${r.division && !/MASTER|CHALLENGER/.test(r.tier) ? ' ' + r.division : ''}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>'}</div>
       ${g.length ? `<div class="ts-form"><small>Last ${g.length} · avg ${avg.toFixed(2)} · ${g.filter((x) => x.placement <= 4).length} top 4</small><div class="ts-places">${g.map((x) => `<span class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}">${x.placement}</span>`).join('')}</div></div>` : ''}</section>
-      <div class="ts-hist">${g.map((x) => `<div class="ts-game"><div class="ts-game-main ts-game-static"><span class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}">${x.placement}</span>
+      <div class="ts-hist">${g.map((x) => `<div class="ts-game"><div class="ts-game-main ts-game-static"><a class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}" href="#/tft/match/${enc(x.id)}" title="Open the full match">${x.placement}</a>
         <span class="ts-game-meta"><strong>${esc(QUEUES[x.queueId] || 'TFT')}</strong><small>${ago(Math.round(x.startedAt / 1000))} · level ${x.level} · ${Math.round(x.length / 60)} min</small></span>
         <span class="ts-game-traits">${[...(x.traits || [])].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t, n]) => `<span class="ts-trait">${icon(t, 'ts-ico-trait')}${n}</span>`).join('')}</span>
         <span class="ts-units">${(x.units || []).map(([u, st, items]) => `<span class="ts-unit-cell">${unitLink(u, ' · ' + '★'.repeat(st))}<i class="ts-stars s${st}">${'★'.repeat(st)}</i></span>`).join('')}</span></div></div>`).join('')}</div>`;
@@ -457,6 +486,7 @@ window.createTftView = function (host) {
       if (cur.p === 'comp') compPage(cur.id);
       else if (cur.p === 'unit') unitPage(cur.id);
       else if (cur.p === 'leaderboard') leaderboardPage(cur.id);
+      else if (cur.p === 'match') matchPage(cur.id);
       else if (cur.p === 'player') playerPage(cur.id, location.hash.split('/')[4]);
       else if (LISTS[cur.p]) statsList(cur.p);
       else if (cur.p === 'history') historyPage();

@@ -163,3 +163,12 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-chips:empty{display:none}
 .ts-chip{display:inline-flex;align-items:center;gap:2px}
 .ts-chip .ts-ico-trait{width:12px;height:12px}
+
+/* DONI-564: match page, one row per board */
+.ts-mt-row{display:grid;grid-template-columns:34px minmax(150px,200px) minmax(0,1fr) minmax(0,2.2fr);gap:12px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--line)}
+.ts-mt-me{background:var(--wash)}
+.ts-mt-row a{text-decoration:none;color:var(--fg)}
+.ts-mt-row a:hover strong{color:var(--accent)}
+.ts-unit-items{display:flex;gap:1px;justify-content:center;min-height:12px}
+.ts-unit-items .ts-ico-item{width:12px;height:12px}
+.ts-game-static a.ts-place{text-decoration:none}

@@ -86,6 +86,8 @@
     // DONI-508/512: on-demand player lookups (up to ~23 Riot requests when uncached) and the ranked ladders.
     summoner: (riotId, region) => crawler(`/lol/summoner/${encodeURIComponent(riotId)}`, { region }, 45000),
     tftPlayer: (riotId, region) => crawler(`/tft/player/${encodeURIComponent(riotId)}`, { region }, 45000),
+    match: id => crawler(`/lol/match/${encodeURIComponent(id)}`, {}, 30000), // DONI-564
+    tftMatch: id => crawler(`/tft/match/${encodeURIComponent(id)}`, {}, 30000),
     leaderboard: (game, region, limit = 100) => crawler(`/${game}/leaderboard`, { region, limit: String(limit) }, 20000),
     lolItems: p => crawler('/lol/items', p, 20000), lolRunes: p => crawler('/lol/runes', p, 20000), lolSpells: p => crawler('/lol/spells', p, 20000),
     ddVersion,

@@ -38,7 +38,7 @@ async function lgFillSummoner(token, riot, region) {
       <span class="lg-match-name"><a href="#/league/champion/${x.champion}">${lgEsc(c.name)}</a><small>${lgEsc(queueMap[x.queueId] || 'Queue ' + x.queueId)}</small></span>
       <span>${lgRoleIcon(role)}</span><span class="lg-kda">${x.kills} / ${x.deaths} / ${x.assists}<small>${kda.toFixed(2)} KDA · ${x.cs} cs</small></span>
       <span class="lg-sum-items">${(x.items || []).filter(Boolean).map(i => lgImg(lgDD(`item/${i}.png`), '', 'lg-ico')).join('')}</span>
-      <span class="lg-ago">${Math.round(x.duration / 60)} min<small>${lgAgoMs(x.startedAt)}</small></span></div></div>`; }).join('')}</div>`;
+      <span class="lg-ago"><a href="#/league/match/${encodeURIComponent(x.id)}" title="Open the full match">${Math.round(x.duration / 60)} min ↗</a><small>${lgAgoMs(x.startedAt)}</small></span></div></div>`; }).join('')}</div>`;
 }
 
 function leagueLeaderboardPage() {

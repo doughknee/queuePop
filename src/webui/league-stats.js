@@ -263,7 +263,7 @@ async function lgExpandMatch(btn) {
   if (!open || more.dataset.done || !g) return;
   more.dataset.done = '1';
   const c = lgChamp(g.championId), role = g.position || '', href = `#/league/champion/${g.championId}${role ? '/' + role : ''}`;
-  more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div><dt>Kills + assists</dt><dd>${g.kills + g.assists}</dd></div><div><dt>Deaths</dt><dd>${g.deaths}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>`;
+  more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div><dt>Kills + assists</dt><dd>${g.kills + g.assists}</dd></div><div><dt>Deaths</dt><dd>${g.deaths}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>${g.gameId ? ` <a href="#/league/match/${lgMatchId(g.gameId)}">Open the full match ↗</a>` : ''}`;
   const slot = document.getElementById('lg-meta-' + btn.dataset.lgMatch);
   try {
     const data = await statsApi.tiers(lgParams(LG_ROLES.includes(role) ? role : 'all'));

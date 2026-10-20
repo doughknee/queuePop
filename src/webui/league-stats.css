@@ -180,3 +180,31 @@
 /* Narrow pages (1280 at 150 %): the top-champions strip wraps under its own width, names shorten */
 #lg-builds{container-type:inline-size}
 @container (max-width:900px){.lg-builds .lg-bchamps{flex-wrap:wrap;max-width:110px}.lg-builds .lg-bname>span:last-child{max-width:180px}.lg-builds td,.lg-builds th{padding-left:4px;padding-right:4px}}
+
+/* DONI-564: match page (league-match.js) */
+.lg-match-band{border-top:1px solid var(--accent)}
+.lg-mt-team{margin-bottom:16px;border-left:3px solid var(--green)}
+.lg-mt-team.loss{border-left-color:var(--neg)}
+.lg-mt-team>header{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding:6px 10px;border-bottom:1px solid var(--line)}
+.lg-mt-team.loss .lg-result{color:var(--neg)}
+.lg-mt-team>header>span{color:var(--muted);font-size:11px}
+.lg-mt-obj{display:flex;gap:12px}
+.lg-mt-obj b{color:var(--fg)}
+.lg-mt-obj i{font-style:normal;color:var(--accent);margin-left:2px;font-size:10px}
+.lg-mt-bans{display:flex;gap:2px;margin-left:auto}
+.lg-mt-bans .lg-ban{width:20px;height:20px;filter:grayscale(1);opacity:.7}
+.lg-mt-table td{height:34px}
+.lg-mt-table tbody tr{cursor:default}
+.lg-mt-table .lg-name{display:flex;align-items:center;gap:8px}
+.lg-mt-table .lg-name .lg-icon{width:28px;height:28px}
+.lg-mt-who{display:flex;flex-direction:column;line-height:1.2}
+.lg-mt-who a{font-weight:700;text-decoration:none}
+.lg-mt-who a:hover{color:var(--accent)}
+.lg-mt-table small{display:block;color:var(--muted)}
+.lg-mt-me{background:var(--wash)}
+.lg-mt-dmg{position:relative;min-width:110px;font-variant-numeric:tabular-nums}
+.lg-mt-bar{display:block;height:4px;width:var(--w);background:var(--purple);margin-bottom:2px}
+.lg-mt-build{display:flex;align-items:center;gap:2px}
+.lg-mt-build .lg-ico{width:20px;height:20px}
+.lg-mt-items{display:flex;gap:2px;margin-left:6px}
+.lg-sum-row .lg-ago a{color:var(--fg)}
