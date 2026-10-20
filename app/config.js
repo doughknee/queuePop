@@ -33,19 +33,25 @@ function dump(cfg) {
     .replace(/("bench_delay": )(-?\d+)(?=[,\n}])/g, "$1$2.0");
 }
 
-// Python's text-mode write on Windows turns every \n into \r\n.
-const write = (cfg) => fs.writeFileSync(CONFIG_FILE, dump(cfg).replace(/\n/g, "\r\n"));
+// Python's text-mode write on Windows turns every \n into \r\n. Written to a temp file and renamed over the old one,
+// so a reader never sees half a file (DONI-529).
+const write = (cfg, file = CONFIG_FILE) => {
+  fs.writeFileSync(file + ".tmp", dump(cfg).replace(/\n/g, "\r\n"));
+  fs.renameSync(file + ".tmp", file);
+};
 
-// Like load_or_create_config: a missing or corrupt file is replaced with defaults. Read fresh every call
-// (a ~7KB file) because host.js and the Python app write it too; a cache would overwrite their keys on save.
-function get() {
-  try {
-    return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8"));
-  } catch {
-    const cfg = defaultConfig();
-    try { write(cfg); } catch {}
-    return cfg;
+// Like load_or_create_config: a missing file is created with defaults. A corrupt one is kept as config.json.corrupt
+// before defaults replace it, so a bad write never silently costs the user their settings (DONI-529). Read fresh every
+// call (a ~7KB file) because host.js and the Python app write it too; a cache would overwrite their keys on save.
+function get(file = CONFIG_FILE) {
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); } catch (e) { if (e.code !== "ENOENT") throw e; }
+  if (text !== undefined) {
+    try { return JSON.parse(text); } catch { try { fs.copyFileSync(file, file + ".corrupt"); } catch {} }
   }
+  const cfg = defaultConfig();
+  try { write(cfg, file); } catch {}
+  return cfg;
 }
 
 // Throws on write failure so the caller can report it (save_config returns {ok: false, error}).

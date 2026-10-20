@@ -1,7 +1,7 @@
 // queuePop Electron host: one window on the existing webui, LCU auto-accept in the main process.
 const fs = require("fs");
 const path = require("path");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
 const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
@@ -14,9 +14,10 @@ const VERSION = (fs.readFileSync(path.join(__dirname, "..", "src", "_version.py"
 
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
-function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, "utf8")); } catch { return {}; }
-}
+// Read-only callers get {} when the file can't be read right now; writers use config.get, which throws instead,
+// so nothing writes an empty config over the user's (DONI-529).
+const config = require("./config");
+const loadConfig = () => { try { return config.get(); } catch (e) { log("config unreadable:", e.message); return {}; } };
 
 // Activity feed, same shape as src/events.py.
 const events = [];
@@ -104,17 +105,30 @@ const assets = require("./assets").create(log); // DONI-504: icon packs download
 Object.assign(impl, assets.methods(impl));
 
 const stubbed = new Set();
-ipcMain.handle("api", async (_e, name, args) => {
-  if (impl[name]) return impl[name](...args);
-  if (!(name in METHODS)) throw new Error("unknown bridge method " + name);
+// Only our own page's top frame may call the bridge, by an own method name, with an argument list (DONI-529).
+ipcMain.handle("api", async (e, name, args) => {
+  if (!win || e.sender.id !== win.webContents.id || (e.senderFrame && e.senderFrame.parent)) throw new Error("bridge refused: not the app window");
+  if (typeof name !== "string" || !Array.isArray(args)) throw new Error("bridge refused: bad call");
+  if (Object.hasOwn(impl, name)) return impl[name](...args);
+  if (!Object.hasOwn(METHODS, name)) throw new Error("unknown bridge method " + name);
   if (!stubbed.has(name)) { stubbed.add(name); log("stub:", name); }
   return METHODS[name];
 });
 
 app.whenReady().then(() => {
   win = new BrowserWindow({
-    width: 1280, height: 860, minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#010a13",
-    webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
+    width: 1280, height: 860, minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#0A0A0A",
+    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
+  });
+  // The window only ever shows src/webui. Links that leave it open in the browser; nothing else may load here,
+  // because any page in this window would get the bridge (DONI-529).
+  const external = (url) => { if (/^https?:\/\//i.test(url)) shell.openExternal(url); };
+  win.webContents.setWindowOpenHandler(({ url }) => { external(url); return { action: "deny" }; });
+  win.webContents.on("will-navigate", (e, url) => { if (!url.startsWith("file:")) { e.preventDefault(); external(url); } });
+  let reloadedAt = 0; // a renderer that crashes again within 10 s stays down instead of looping
+  win.webContents.on("render-process-gone", (_e, d) => {
+    log("renderer gone:", d.reason);
+    if (d.reason !== "clean-exit" && Date.now() - reloadedAt > 10000) { reloadedAt = Date.now(); win.reload(); }
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
   win.webContents.on("did-finish-load", () => {
@@ -139,3 +153,6 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => app.quit());
+// A failed promise or a throw in a timer must not kill the host or vanish: log it and keep running (DONI-529).
+process.on("unhandledRejection", (err) => log("unhandled rejection:", (err && err.stack) || err));
+process.on("uncaughtException", (err) => log("uncaught exception:", (err && err.stack) || err));

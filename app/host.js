@@ -9,6 +9,7 @@ const { createCompanion, lanIp, DEFAULT_PORT } = require("./companion");
 const { createUpdater } = require("./updater");
 const { createAccount, QUEUE_ID_MAP } = require("./account");
 const { createTray } = require("./tray");
+const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
 if (!app.requestSingleInstanceLock()) app.exit(0);
@@ -26,7 +27,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   let quitting = false;
   const quit = () => { quitting = true; app.quit(); };
   app.on("before-quit", () => { quitting = true; });
-  app.on("second-instance", () => { win.show(); win.focus(); });
+  app.on("second-instance", () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); });
 
   // Close hides to the tray; only tray Exit / app.quit() really closes.
   win.on("close", (e) => { if (!quitting) { e.preventDefault(); win.hide(); } });
@@ -44,9 +45,9 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
 
   const setConfigKey = (key, value) => {
     try {
-      const cfg = loadConfig();
+      const cfg = config.get(); // throws when unreadable, so a failed read never writes {key} over the whole file
       cfg[key] = value;
-      fs.writeFileSync(configFile, JSON.stringify(cfg, null, 4));
+      config.save(cfg);
     } catch (e) { log("could not save", key, e.message); }
   };
   const account = createAccount({ lcu, getConfig: loadConfig, setConfigKey, push });
