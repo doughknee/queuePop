@@ -64,7 +64,40 @@ async function refreshChampLive() {
     cs = cs || {};
   } catch (_) { return; }
   if (!cs.active) return; // session not ready yet; keep showing the last frame
-  renderChampLive(cs, sugg);
+  // Q10: the crawler's draft ranking for your role (once per lock/ban; memoised in draft-advice.js). Without it, the
+  // older rule-based "queuePop suggests" panel stays.
+  let draft = null;
+  const ctx = wantSugg && window.draftAdvice ? draftAdvice.draftContext(cs) : null;
+  if (ctx && ctx.role) draft = await draftAdvice.fetch(ctx).then((r) => ({ r, ctx }), () => null);
+  renderChampLive(cs, sugg, draft);
+}
+
+// Q10: top 5 for your role from /lol/draft, re-ranked as enemies lock, each with one line saying why.
+function draftPanel(d) {
+  const rows = draftAdvice.topCandidates(d.r, d.ctx, 5);
+  if (!rows.length) return "";
+  const role = QP.store.config?.champ_select?.roles?.[d.ctx.role] || {};
+  const mine = new Set((role.picks || []).map((n) => Number(resolveName(n))).filter(Boolean));
+  const name = (id) => idToName(Number(id)) || draftAdvice.ddName(Number(id)) || `Champion ${id}`;
+  const lockedEnemies = d.ctx.enemies.length;
+  return (
+    `<section class="dr-panel" aria-label="Draft suggestions">` +
+      `<div class="dr-head"><span class="dr-title">Best picks for you</span>` +
+        `<span class="dr-sub">${escapeHtml(d.ctx.role)} · ${lockedEnemies ? `vs ${lockedEnemies} locked` : "before enemies lock"}` +
+        `${d.r.patch ? ` · patch ${escapeHtml(d.r.patch)}` : ""}</span></div>` +
+      `<ol class="dr-list">` +
+      rows.map((c, i) => {
+        const icon = champIconById(Number(c.champion));
+        return `<li class="dr-row${c.lowSample ? " low" : ""}">` +
+          `<span class="dr-rank">${i + 1}</span>` +
+          (icon ? `<img src="${icon}" alt="" onerror="this.style.visibility='hidden'" />` : "") +
+          `<span class="dr-txt"><b>${escapeHtml(name(c.champion))}${mine.has(Number(c.champion)) ? `<em>in your list</em>` : ""}</b>` +
+          `<small>${escapeHtml(draftAdvice.whyLine(c, name)) || "Not enough games yet"}</small></span>` +
+        `</li>`;
+      }).join("") +
+      `</ol>` +
+    `</section>`
+  );
 }
 
 // "queuePop suggests" (pick_suggestions → counter_engine): top bans until an
@@ -159,7 +192,7 @@ const TRADE_WORDS = {
   CANCELLED: "cancelled",
 };
 
-function renderChampLive(cs, sugg) {
+function renderChampLive(cs, sugg, draft) {
   const phase = (cs.phase || "Champ Select").replace(/_/g, " ");
 
   const ticker = lastAutoEv
@@ -212,7 +245,7 @@ function renderChampLive(cs, sugg) {
           : `<div class="text-subText text-sm italic px-2 py-1">Hidden</div>`) +
       `</div>` +
     `</div>` +
-    suggPanel(sugg) +
+    (draft && draftPanel(draft) || suggPanel(sugg)) +
     bansStrip + tradesStrip + benchStrip;
 }
 

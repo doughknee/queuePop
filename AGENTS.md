@@ -212,6 +212,9 @@
   `applyAway` (auto pick/ban on, lock in with 3 s left) via `ChampSelect.overlay`, and auto-accept is unpaused; config.json is never
   written, so "I'm back" restores exactly. Switches: phone (`POST /api/away?on=1|0`), tray checkbox, status line "I'm back", bridge
   `set_stepping_away`. Not done: auto-disarm when you pick by hand.
+- Draft suggestions (DONI-553): `src/webui/draft-advice.js` (loaded by shell.js) turns get_champ_select into a `/lol/draft` query
+  (role, enemies, allies, bans; memoised per draft state) and gives the live view (`js/pages/live.js` `draftPanel`) its top 5 and a
+  why line. Crawler rates/deltas are fractions. No answer → the older rule-based `pick_suggestions` panel. Tested by `app/test-draft.js`.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
