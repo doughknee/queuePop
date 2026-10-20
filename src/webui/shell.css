@@ -267,3 +267,23 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .dr-lines{margin:0;padding:0 0 0 2px;list-style:none}
 .dr-lines li{padding:5px 0;border-top:1px solid var(--line)}
 .dr-lines li:first-child{border-top:0}
+/* Recordings (DONI-523): one row per game with its event strip; marker colours from the data palette. */
+body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mono)}
+.rec-page{max-width:1100px;margin:0 auto;padding:40px 5% 60px}
+.rec-head h1{font:clamp(48px,5vw,80px)/.9 var(--display);text-transform:uppercase;margin:4px 0 10px}
+.rec-head p{color:var(--muted);max-width:760px}
+.rec-head a{color:var(--accent);font-weight:700;text-decoration:none;margin-left:6px}
+.rec-empty{margin-top:28px;padding:16px;border:1px solid var(--line);color:var(--muted)}
+.rec-list{list-style:none;margin:24px 0 0;padding:0}
+.rec-row{display:grid;grid-template-columns:minmax(200px,280px) 1fr auto;align-items:center;gap:18px;padding:12px 0;border-top:1px solid var(--line)}
+.rec-row.win .rec-meta b{color:var(--green)}.rec-row.loss .rec-meta b{color:var(--neg)}
+.rec-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rec-meta b{font:22px/1 var(--display);text-transform:uppercase}
+.rec-meta small{color:var(--muted);font-size:12px}
+.rec-strip{position:relative;height:22px;border-bottom:1px solid var(--edge)}
+.rec-m{position:absolute;bottom:0;width:4px;height:14px;margin-left:-2px;background:var(--grey)}
+.rec-kill{background:var(--green)}.rec-death{background:var(--neg)}.rec-assist{background:var(--blue)}
+.rec-multikill{background:var(--accent);height:22px}.rec-objective{background:var(--purple)}.rec-end{background:var(--fg);height:22px}
+.rec-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;color:var(--muted);font-size:12px}
+.rec-legend span{display:inline-flex;align-items:center;gap:6px}.rec-legend .rec-m{position:static;margin:0;height:12px}
+.sb-rec[aria-current]{color:var(--accent)}

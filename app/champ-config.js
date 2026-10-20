@@ -153,6 +153,15 @@ function normalizeAram(aram, aramRoleMode) {
   return { enabled, mode: aramRoleMode === "off" ? "list" : aramRoleMode, auto_mastery: enabled && aramRoleMode === "highest", bench_delay: delay };
 }
 
+// Recorder (beta): events on/off, video on/off, quality preset, folder (empty = userData/recordings), size cap in GB.
+const REC_PRESETS = ["720p30", "1080p30", "1080p60"];
+function normalizeRecorder(r) {
+  r = or(r, {});
+  const cap = Number(getd(r, "cap_gb", 50));
+  return { enabled: T(getd(r, "enabled", false)), video: T(getd(r, "video", false)), preset: REC_PRESETS.includes(r.preset) ? r.preset : "1080p60",
+    folder: String(r.folder || "").trim(), cap_gb: Number.isFinite(cap) ? Math.min(2000, Math.max(1, Math.round(cap))) : 50 };
+}
+
 // ntfy push: on/off, server (default ntfy.sh), topic (letters, digits, - and _), optional access token.
 function normalizeNtfy(n) {
   n = or(n, {});
@@ -214,6 +223,7 @@ function normalizeConfig(data) {
     show_last_queue: T(getd(data, "show_last_queue", true)),
     start_minimized: T(getd(data, "start_minimized", false)),
     launch_at_login: T(getd(data, "launch_at_login", false)), // DONI-544
+    recorder: normalizeRecorder(data.recorder), // DONI-523: off by default
     float_window: T(getd(data, "float_window", true)), // DONI-346: suggestions float over League in champ select
     close_to_tray: T(getd(data, "close_to_tray", true)), // DONI-544: the window's ✕ hides to the tray (off: it quits)
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
