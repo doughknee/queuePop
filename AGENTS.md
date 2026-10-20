@@ -294,7 +294,7 @@
   rows, times a sample weight (20 games 0.15, 2,000 full), linear. DONI-519: inside `.lg-table` the tint is the cell background (the
   tier list reads as a heat map), elsewhere the text; `lgMag` tints pick/ban purple by size; build picks are colored against the
   champion's own win rate (`lg.cwr`). One `.lg-legend` per page, at the end of the filter strip. One density (22 px rows; the
-  compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky at `top:56px`. Styles: all in
+  compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky at `top:48px` (the page row's height). Styles: all in
   `league-stats.css` + `league-champion.css` (nothing League-stats in `league-world.css`).
 
 ## Text size
