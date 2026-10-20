@@ -15,4 +15,10 @@ assert.deepStrictEqual(B({ a: lim(0, 100), b: lim(10, 100), c: lim(90, 100), d: 
 assert.deepStrictEqual(B({ a: lim(0, 100), b: {} }).idle, 2); // a bucket with no limits counts as idle
 assert.deepStrictEqual(B(undefined), { busy: [], idle: 0 });
 assert.strictEqual(B({ x: lim(700, 500) }).busy[0].pct, 100); // capped
+// The ffmpeg line says why Record video is greyed out.
+const L = ctx.window.stFfmpegLine;
+assert.strictEqual(L(null, true), "Couldn’t check.");
+assert.ok(L({ found: false }, true).startsWith("ffmpeg not found"));
+assert.strictEqual(L({ found: true, version: "9.0.1", encoder: "h264_nvenc" }, true), "Found ffmpeg 9.0.1, encoding with your NVIDIA card.");
+assert.ok(L({ found: true, encoder: "libx264" }, false).endsWith("Turn on Record game events to record video."));
 console.log("test-settings ok");
