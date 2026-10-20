@@ -41,7 +41,17 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused }),
+    status: () => ({ connected: lcu.connected, paused: state.paused,
+      ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
+    // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
+    decline: async () => {
+      if (!lcu.connected) return { ok: false, error: "The League client isn't running" };
+      if (!state.ready || state.ready.state !== "InProgress") return { ok: false, error: "There's no match to decline right now" };
+      const r = await lcu.request("post", "/lol-matchmaking/v1/ready-check/decline").catch((e) => ({ status: e.message }));
+      const ok = r.status >= 200 && r.status < 300;
+      push(ok ? "Match declined from your phone" : `Decline from your phone failed (${r.status})`, ok ? "warning" : "danger", "match");
+      return ok ? { ok } : { ok, error: `The client said ${r.status}` };
+    },
   });
   if ((loadConfig().companion || {}).enabled) companion.start();
   const updater = createUpdater({ version, push });

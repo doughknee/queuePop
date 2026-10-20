@@ -16,7 +16,7 @@ assert.ok(isNewer("v1.5.0", "1.4.7") && !isNewer("1.4.7", "1.4.7") && !isNewer("
 const TOKEN = "0123456789abcdef0123456789abcdef";
 (async () => {
   const events = [{ id: 1, level: "info", message: "old", kind: null, ts: 0 }];
-  const comp = createCompanion({ webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: () => ({ companion: { token: TOKEN } }), push: () => {},
+  const comp = createCompanion({ webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: () => ({ companion: { token: TOKEN } }), push: () => {}, decline: async () => ({ ok: true }),
     status: () => ({ connected: false, paused: false }) });
   assert.ok(await comp.start(0));
   const port = comp.boundPort();
@@ -34,6 +34,11 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
   assert.ok(String(landing.headers["set-cookie"]).includes("qp_t=" + TOKEN));
   assert.strictEqual((await get("/api/status", { cookie: "qp_t=" + TOKEN })).statusCode, 200);
   assert.strictEqual((await get("/manifest.json")).statusCode, 200);
+  // DONI-337: Decline is POST-only and token-gated.
+  const post = (p) => new Promise((r) => { const q = http.request({ port, path: p, method: "POST" }, (res) => { let t = ""; res.on("data", (c) => (t += c)); res.on("end", () => r([res.statusCode, t])); }); q.end(); });
+  assert.strictEqual((await post("/api/decline"))[0], 403);
+  assert.deepStrictEqual(await post("/api/decline?t=" + TOKEN), [200, '{"ok":true}']);
+  assert.strictEqual((await get("/api/decline?t=" + TOKEN)).statusCode, 405);
 
   // Simulated queue pop after the phone connected: must arrive after the 'synced' marker.
   const body = await new Promise((resolve) => {
