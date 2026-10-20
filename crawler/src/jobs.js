@@ -343,10 +343,10 @@ function backfillPatch(db) {
 
 // DONI-596: before it, flex (440) shared the solo patch. Re-tags every League match whose queue has a mode suffix but whose patch
 // lacks it (normalised rows follow the patch at aggregation, raw not needed) and queues the old and new patches for the next
-// pass (meta dirtyPatches). Idempotent.
+// pass (meta dirtyPatches). Also queues the players of capped-mode matches stored before mode_players existed. Idempotent.
 function backfillModes(db) {
   const patches = new Set(getMeta(db, "dirtyPatches") || []);
-  let retagged = 0;
+  let retagged = 0, seeded = 0;
   tx(db, () => {
     for (const [q, sfx] of Object.entries(MODES)) {
       if (!sfx) continue;
@@ -355,8 +355,10 @@ function backfillModes(db) {
       retagged += Number(db.prepare("UPDATE matches SET patch = patch || ? WHERE game = 'lol' AND queue = ? AND patch NOT LIKE '%-%' AND patch <> '?'").run(sfx, Number(q)).changes);
     }
     setMeta(db, "dirtyPatches", [...patches]);
+    seeded = Number(db.prepare(`INSERT OR IGNORE INTO mode_players (puuid, region, queue) SELECT DISTINCT p.puuid, m.region, CASE m.queue WHEN 490 THEN 480 ELSE m.queue END
+      FROM lol_participants p JOIN matches m ON m.id = p.match_id WHERE m.game = 'lol' AND m.queue IN (450, 400, 480, 490)`).run().changes);
   });
-  return { retagged, patches: [...patches] };
+  return { retagged, patches: [...patches], seeded };
 }
 
 // Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass

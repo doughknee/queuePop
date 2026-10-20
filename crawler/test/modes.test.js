@@ -29,11 +29,12 @@ test("each queue gets its own suffix and ?queue picks it", () => {
 
 test("backfill-modes moves old flex rows off the solo patch and the next pass rebuilds both", () => {
   const db = open(":memory:");
-  put(db, solo); put(db, as("F", 440, 901));
+  put(db, solo); put(db, as("F", 440, 901)); put(db, as("A", 450, 902));
+  db.prepare("DELETE FROM mode_players").run(); // as stored before DONI-596
   db.prepare("UPDATE matches SET patch = '16.20' WHERE id = 'F'").run(); // as stored before DONI-596
   aggregate(db);
   assert.ok(lolTiers(db, {}).champions.some((c) => c.champion === 901), "before: flex mixed into solo");
-  assert.deepStrictEqual(backfillModes(db), { retagged: 1, patches: ["16.20", "16.20-flex"] });
+  assert.deepStrictEqual(backfillModes(db), { retagged: 1, patches: ["16.20", "16.20-flex"], seeded: 10 });
   assert.deepStrictEqual(backfillModes(db).retagged, 0, "idempotent");
   assert.strictEqual(aggregate(db), 2, "both patches dirty although no match was fetched");
   assert.ok(!lolTiers(db, {}).champions.some((c) => c.champion === 901));
