@@ -27,7 +27,9 @@ function createCompanion(ctx) {
   const write = (res, e) => res.write(`id: ${e.id}\nevent: log\ndata: ${JSON.stringify(e)}\n\n`);
   const cfgComp = () => ctx.getConfig().companion || {};
 
+  const MAX_CLIENTS = 8; // a phone or two in practice; a cap keeps a stuck LAN client from piling up timers (DONI-534)
   function stream(req, res) {
+    if (clients >= MAX_CLIENTS) { res.writeHead(503, { "Retry-After": "30" }); return res.end(); }
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
     clients++;
     const url = new URL(req.url, "http://x");
@@ -41,7 +43,11 @@ function createCompanion(ctx) {
       for (const e of fresh) { write(res, e); after = e.id; }
       if (!fresh.length && ++beats % 15 === 0) res.write(": ping\n\n");
     }, 1000);
-    req.on("close", () => { clearInterval(timer); clients = Math.max(0, clients - 1); });
+    let done = false;
+    const stop = () => { if (done) return; done = true; clearInterval(timer); clients = Math.max(0, clients - 1); };
+    req.on("close", stop);
+    res.on("error", stop); // a write to a phone that vanished mid-stream
+    res.on("close", stop);
   }
 
   function handler(req, res) {
