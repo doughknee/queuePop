@@ -141,7 +141,7 @@ function lgTierSort(rows) {
 const LG_TIER_SHORT = ['I', 'B', 'S', 'G', 'P', 'E', 'D', 'M', 'GM', 'C'];
 // best.avgTier is a tier index (Iron 0 .. Challenger 9) plus the division (IV 0, III .25, II .5, I .75): 6.5 -> D2.
 const lgRankLabel = n => n == null ? '–' : n >= 7 ? LG_TIER_SHORT[Math.min(9, Math.floor(n))] : `${LG_TIER_SHORT[Math.floor(n)]}${4 - Math.floor((n % 1) * 4 + 1e-9)}`;
-// DONI-516: value color. A number is tinted toward spell light (above the centre) or defeat (below) by how far it sits from the
+// DONI-516 / DONI-528: value color. A number is tinted green (above the centre) or red (below) by how far it sits from the
 // centre, 1 = the column's 90th-percentile distance over full-sample rows, times its sample weight: 20 games 0.15, 2,000 games 1 (log scale).
 const lgSpread = (rows, get, c) => { const d = rows.filter(r => !r.lowSample).map(get).filter(x => x != null).map(x => Math.abs(x - c)).sort((a, b) => a - b); return d[Math.floor(d.length * 0.9)] || 1; };
 const lgMean = (rows, k) => { let n = 0, s = 0; for (const r of rows) if (r[k] != null) { n += r.games; s += r[k] * r.games; } return n ? s / n : null; };
@@ -150,8 +150,8 @@ function lgHeat(x, c, spread, games, text) {
   const w = 0.15 + 0.85 * Math.min(1, Math.max(0, Math.log(games / 20) / Math.log(100))), k = c == null ? 0 : Math.min(1, Math.abs(x - c) / spread) * w; // linear: the 90th-percentile distance is the full colour
   return `<span class="lg-v ${x >= c ? 'vg' : 'vb'}" style="--k:${k.toFixed(2)}">${text}</span>`;
 }
-const lgLegend = (what = 'average') => `<span class="lg-legend" title="Cells tint toward defeat below and spell light above the ${what}, gold for a bigger pick or ban; fainter on smaller samples (20 games faint, 2,000 full)"><i aria-hidden="true"></i>worse · better than ${what}</span>`;
-// Pick and ban are magnitudes, not good or bad: tinted toward gold by size, 1 = the list's 90th percentile.
+const lgLegend = (what = 'average') => `<span class="lg-legend" title="Cells tint red below and green above the ${what}, purple for a bigger pick or ban; fainter on smaller samples (20 games faint, 2,000 full)"><i aria-hidden="true"></i>worse · better than ${what}</span>`;
+// Pick and ban are magnitudes, not good or bad: tinted purple by size, 1 = the list's 90th percentile.
 const lgMag = (x, p90, text) => x == null ? '–' : `<span class="lg-v vn" style="--k:${Math.sqrt(Math.min(1, x / (p90 || 1))).toFixed(2)}">${text}</span>`;
 const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t[0]}${t.length > 1 ? `<sup>${t.slice(1)}</sup>` : ''}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
 const lgSign = (x, d = 1) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x).toFixed(d)}`;
@@ -202,8 +202,8 @@ document.addEventListener('change', e => {
   lgt[k] = v; lgtSave();
   if (k === 'minGames') lgFillTiers(++lg.token); else if (lgTierData) document.getElementById('lg-tiers').innerHTML = lgTierTable(lgTierData);
 });
-const lgTierRule = `<details class="lg-rule"><summary>How tiers and colours work</summary><p>Win, Δ and PBI cells tint toward defeat below and spell light above the average win rate (Win) or zero (Δ, PBI); pick and ban tint gold by size; all fainter on smaller samples (20 games faint, 2,000 full).</p><p>Tier: win rate shrunk toward the list average by 100 games (55%), PBI (20%), and the win rate (15%) and average rank (10%) of players with 20+ games on the champion, each as a percentile of the list; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D, each split into +, plain and −. Greyed rows are under the games line: shown, never tiered. Lane = share of the champion's games in this lane; Δ = win rate minus the average for these filters; PBI = Δ × ban rate ÷ (1 − pick rate). Best on champion = players with 20+ games on it this patch.</p></details>`;
-// The art band: the League world's frame (champion art, gold rule, Marcellus title) around the page's own numbers.
+const lgTierRule = `<details class="lg-rule"><summary>How tiers and colours work</summary><p>Win, Δ and PBI cells tint red below and green above the average win rate (Win) or zero (Δ, PBI); pick and ban tint purple by size; all fainter on smaller samples (20 games faint, 2,000 full).</p><p>Tier: win rate shrunk toward the list average by 100 games (55%), PBI (20%), and the win rate (15%) and average rank (10%) of players with 20+ games on the champion, each as a percentile of the list; top 10% S, next 20% A, middle 40% B, next 20% C, last 10% D, each split into +, plain and −; badges run green (S), blue (A), grey (B), amber (C), red (D). Greyed rows are under the games line: shown, never tiered. Lane = share of the champion's games in this lane; Δ = win rate minus the average for these filters; PBI = Δ × ban rate ÷ (1 − pick rate). Best on champion = players with 20+ games on it this patch.</p></details>`;
+// The art band: the League world's frame (champion art, lime hairline, Anton title) around the page's own numbers.
 const lgBand = (art, pos, inner, cls = '') => `<header class="lg-band${cls}" style="--champ-art:${art};--portrait-position:${pos}">${inner}</header>`;
 function lgMount(page, fill) {
   const token = ++lg.token; lg.page = page;

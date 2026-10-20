@@ -1,140 +1,141 @@
-/* DONI-483 / DONI-519: League stats pages (league-stats.js, league-champion.js). Tokens from prototypes/queuepop/DIRECTION.md:
-   obsidian, deep blue, aged gold as structure, ivory text, spell light for wins, muted defeat; Cinzel names, Marcellus headings,
-   Segoe UI data. The League world lives in the frame (art band, gold rule, Cinzel/Marcellus); the data rows stay dense Segoe UI
-   and read as a heat map (cell tint from lgHeat / lgMag, --k 0..1). */
-.lg-page{--lg-obsidian:#050d14;--lg-deep:#0d1c25;--lg-gold:#c8aa6e;--lg-ivory:#f0e6d0;--lg-spell:#79c9cf;--lg-defeat:#9f6058;--lg-line:#c8aa6e2e;--lg-muted:#93a5ad;
-  --lg-bad:color-mix(in oklab,var(--lg-defeat) 70%,var(--lg-ivory)); /* defeat lifted for 4.5:1 on obsidian */
-  max-width:1400px;margin:0 auto;padding:10px clamp(12px,2vw,28px) 40px;color:var(--lg-ivory);font:13px/1.4 'Segoe UI',Arial,sans-serif;min-width:0}
+/* DONI-483 / DONI-519 / DONI-528: League stats pages (league-stats.js, league-champion.js) in theme.css's tokens only.
+   Anton for the page and section heads and the big figures, Space Mono for every row, label and number. The numbers carry
+   the colour: green above the centre, --neg below, purple for pick/ban size (cell tint from lgHeat / lgMag, --k 0..1). */
+.lg-page{max-width:1400px;margin:0 auto;padding:10px clamp(12px,2vw,28px) 40px;color:var(--fg);font:12px/1.4 var(--mono);min-width:0}
 .lg-page *{min-width:0}
 .lg-page a{color:inherit}
 .lg-page h1,.lg-page h2,.lg-page h3{letter-spacing:0;margin:0}
 .lg-visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.lg-kicker{display:block;font:600 10px/1.4 'Segoe UI',sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:var(--lg-gold)}
-.lg-wait{color:var(--lg-muted);font-size:12px;margin:0}
-.lg-offline{color:var(--lg-muted);font-size:13px;margin:6px 0;padding:10px 14px;border-left:2px solid var(--lg-line)}
+.lg-kicker{display:block;font:10px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.lg-wait{color:var(--muted);font-size:12px;margin:0}
+.lg-offline{color:var(--muted);font-size:13px;margin:6px 0;padding:10px 14px;border-left:2px solid var(--line)}
 .lg-page .low{opacity:.45}
-.lg-page small{display:inline;font-size:11px;color:var(--lg-muted);font-weight:400}
-.lg-page .lg-sub{font:11px 'Segoe UI',sans-serif;color:var(--lg-muted);margin:0}
+.lg-page small{display:inline;font-size:11px;color:var(--muted);font-weight:400}
+.lg-page .lg-sub{font:11px var(--mono);color:var(--muted);margin:0}
 
 /* Value colour: inside tables the cell is tinted (a heat map); elsewhere the text is. */
-.lg-v{--vc:var(--lg-spell);color:color-mix(in oklab,var(--vc) calc(var(--k) * 100%),var(--lg-ivory));font-weight:600}
-.lg-v.vb{--vc:var(--lg-bad)}.lg-v.vn{--vc:var(--lg-gold)}
-.lg-table .lg-v{display:block;margin:0 -6px;padding:0 6px;color:var(--lg-ivory);background:color-mix(in oklab,var(--vc) calc(var(--k) * 55%),transparent)}
-.lg-table .lg-v.vn{font-weight:400;background:color-mix(in oklab,var(--vc) calc(var(--k) * 38%),transparent)}
-.lg-legend{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;color:var(--lg-muted);white-space:nowrap}
+.lg-v{--vc:var(--green);color:color-mix(in srgb,var(--vc) calc(var(--k) * 100%),var(--fg));font-weight:700}
+.lg-v.vb{--vc:var(--neg)}.lg-v.vn{--vc:var(--purple)}
+.lg-table .lg-v{display:block;margin:0 -6px;padding:0 6px;color:var(--fg);background:color-mix(in srgb,var(--vc) calc(var(--k) * 60%),transparent)}
+.lg-table .lg-v.vn{font-weight:400;background:color-mix(in srgb,var(--vc) calc(var(--k) * 40%),transparent)}
+.lg-legend{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:11px;color:var(--muted);white-space:nowrap}
 .lg-filters .lg-legend{margin-left:auto}
-@media(max-width:1200px){.lg-filters .lg-legend{display:none}} /* the rule under the table explains it */
-.lg-legend i{flex:none;width:64px;height:6px;background:linear-gradient(90deg,var(--lg-bad),var(--lg-obsidian),var(--lg-spell))}
-.lg-rule{margin-top:6px;font-size:11px;color:var(--lg-muted)}
+@media(max-width:1500px){.lg-filters .lg-legend{display:none}} /* the rule under the table explains it */
+.lg-legend i{flex:none;width:64px;height:6px;background:linear-gradient(90deg,var(--neg),var(--bg),var(--green))}
+.lg-rule{margin-top:6px;font-size:11px;color:var(--muted)}
 .lg-rule summary{cursor:pointer;list-style-position:inside}
 .lg-rule p{margin:4px 0 0;max-width:120ch}
 
 /* Tier badge: the band colour is the first read. */
-.lg-tier{display:inline-flex;align-items:center;justify-content:center;width:34px;height:18px;vertical-align:middle;font:700 12px/1 Cinzel,serif;color:var(--lg-obsidian);background:var(--lg-muted)}
+.lg-tier{display:inline-flex;align-items:center;justify-content:center;width:34px;height:18px;vertical-align:middle;font:700 11px/1 var(--mono);color:var(--bg);background:var(--grey)}
 .lg-tier sup{align-self:flex-start;margin:1px 0 0 1px;font-size:10px;line-height:1}
-.lg-tier.t-S{background:var(--lg-gold)}.lg-tier.t-A{background:var(--lg-spell)}.lg-tier.t-B{background:#2a3036;color:var(--lg-ivory)}
-.lg-tier.t-C{background:var(--lg-muted)}.lg-tier.t-D{background:var(--lg-defeat);color:var(--lg-ivory)}
-.lg-tier-none{display:inline-block;width:34px;text-align:center;color:var(--lg-muted)}
+.lg-tier.t-S{background:var(--green)}.lg-tier.t-A{background:var(--blue)}.lg-tier.t-B{background:var(--grey)}
+.lg-tier.t-C{background:var(--amber)}.lg-tier.t-D{background:var(--neg)}
+.lg-tier[class*=t-]{color:var(--bg)} /* outranks tft-view.css's global .t-S/.t-A/.t-B text colours */
+.lg-tier-none{display:inline-block;width:34px;text-align:center;color:var(--muted)}
 
-/* The art band: champion art, gold rule, the page's title and its first numbers. */
-.lg-band{position:relative;padding:8px 14px;margin-bottom:6px;border-top:1px solid var(--lg-gold);
-  background-image:linear-gradient(90deg,#050d14f5 0%,#050d14d9 50%,#050d1480 100%),var(--champ-art);background-size:cover;background-position:var(--portrait-position,center 20%)}
+/* The art band: champion art under a black scrim, a lime hairline, the page's title in Anton and its first numbers. */
+.lg-band{position:relative;padding:8px 14px;margin-bottom:6px;border-top:1px solid var(--accent);
+  background-image:linear-gradient(90deg,color-mix(in srgb,var(--bg) 96%,transparent) 0%,color-mix(in srgb,var(--bg) 85%,transparent) 50%,color-mix(in srgb,var(--bg) 50%,transparent) 100%),var(--champ-art);background-size:cover;background-position:var(--portrait-position,center 20%)}
 .lg-band-row{display:flex;align-items:flex-start;gap:6px 16px;flex-wrap:wrap}
-.lg-band h1{font:400 24px/30px Marcellus,serif}
+.lg-band h1{font:400 28px/30px var(--display);text-transform:uppercase;letter-spacing:.01em}
 .lg-band-row>.lg-meta{line-height:30px}
-.lg-meta{font-size:12px;color:var(--lg-muted)}
+.lg-meta{font-size:11px;color:var(--muted)}
 .lg-band .lg-search{margin-left:auto}
 
 /* Search: inline results (no popup), they push the band open. */
-.lg-search{width:min(300px,100%)}
-.lg-search input{width:100%;height:30px;padding:4px 10px;background:#0d1c25e6;color:var(--lg-ivory);border:1px solid #c8aa6e55;font:13px 'Segoe UI',sans-serif}
-.lg-search input:focus-visible{outline:0;border-color:var(--lg-gold);box-shadow:0 0 0 1px var(--lg-gold)}
-.lg-results{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:#050d14f0;border:1px solid var(--lg-line)}
+.lg-search{width:min(250px,100%)}
+.lg-search input{width:100%;height:30px;padding:4px 10px;background:color-mix(in srgb,var(--bg) 90%,transparent);color:var(--fg);border:1px solid var(--edge);font:12px var(--mono)}
+.lg-search input:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.lg-results{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px 10px;background:color-mix(in srgb,var(--bg) 94%,transparent);border:1px solid var(--line)}
 .lg-results[hidden]{display:none}
 .lg-hits{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
 .lg-hits .lg-kicker{width:100%;margin:0}
-.lg-hit{display:flex;align-items:center;gap:6px;min-height:28px;padding:2px 8px 2px 2px;background:var(--lg-obsidian);border:1px solid #c8aa6e30;color:var(--lg-ivory);font:12px 'Segoe UI',sans-serif;text-align:left}
-.lg-hit:hover,.lg-hit:focus-visible{border-color:var(--lg-gold)}
+.lg-hit{display:flex;align-items:center;gap:6px;min-height:28px;padding:2px 8px 2px 2px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font:12px var(--mono);text-align:left}
+.lg-hit:hover,.lg-hit:focus-visible{border-color:var(--accent)}
 .lg-page .lg-hit small{display:block}
 .lg-icon{width:22px;height:22px;object-fit:cover;flex:none}
 
 /* You, one line */
-.lg-you{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin-top:6px;font-size:13px}
-.lg-avatar{width:24px;height:24px;border:1px solid var(--lg-gold);border-radius:50%;flex:none;margin-right:-10px}
-.lg-you-name{font:500 16px Cinzel,serif;text-decoration:none}
-.lg-you-name:hover{color:var(--lg-gold)}
-.lg-you-name small{font-family:'Segoe UI',sans-serif;margin-left:2px}
-.lg-you>span>small:first-child{font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--lg-gold);margin-right:4px}
+.lg-you{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;margin-top:4px;font-size:11px}
+/* One line: under ~1100 px of band the top-mastery icons go first (the Champions page is that list). */
+.lg-band{container-type:inline-size}
+@container (max-width:1100px){.lg-you .lg-you-mastery{display:none}}
+.lg-avatar{width:24px;height:24px;border:1px solid var(--edge);border-radius:50%;flex:none;margin-right:-10px}
+.lg-you-name{font:700 13px var(--mono);text-decoration:none}
+.lg-you-name:hover{color:var(--accent)}
+.lg-you-name small{font-weight:400;margin-left:2px}
+.lg-you>span>small:first-child{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .lg-you-rank .lg-v{margin:0 2px 0 4px}
 .lg-you-mastery,.lg-you-form{display:inline-flex;align-items:center;gap:4px}
-.lg-you-mastery a:hover .lg-icon{outline:1px solid var(--lg-gold)}
+.lg-you-mastery a:hover .lg-icon{outline:1px solid var(--accent)}
 .lg-chips{display:inline-flex;gap:2px;margin-right:6px}
-.lg-chips b{width:7px;height:16px;background:var(--lg-defeat)}
-.lg-chips b.w{background:var(--lg-spell)}
+.lg-chips b{width:7px;height:16px;background:var(--neg)}
+.lg-chips b.w{background:var(--green)}
 
 /* Filter strip: one line, labels inside the controls. */
 .lg-filters{display:flex;align-items:center;gap:6px 8px;margin:0 0 6px;flex-wrap:wrap}
-.lg-filters select{height:28px;background:var(--lg-deep);color:var(--lg-ivory);border:1px solid #c8aa6e44;padding:2px 22px 2px 8px;font:12px 'Segoe UI',sans-serif}
-.lg-num{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 6px;border:1px solid #c8aa6e44;background:var(--lg-deep);font-size:12px;color:var(--lg-muted)}
-.lg-num input{width:44px;height:22px;background:transparent;color:var(--lg-ivory);border:0;border-bottom:1px solid #c8aa6e55;padding:0 2px;font:12px 'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;text-align:right}
-.lg-roles{display:flex;border:1px solid #c8aa6e44}
-.lg-roles button{min-width:32px;height:28px;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--lg-deep);border:0;border-right:1px solid #c8aa6e22;color:var(--lg-muted);font:12px 'Segoe UI',sans-serif;padding:0 7px}
+.lg-filters select{height:28px;background:var(--bg);color:var(--fg);border:1px solid var(--edge);padding:2px 18px 2px 6px;font:11px var(--mono)}
+.lg-num{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 6px;border:1px solid var(--edge);background:var(--bg);font-size:11px;color:var(--muted)}
+.lg-num input{width:44px;height:22px;background:transparent;color:var(--fg);border:0;border-bottom:1px solid var(--edge);padding:0 2px;font:11px var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.lg-roles{display:flex;border:1px solid var(--edge)}
+.lg-roles button{min-width:32px;height:28px;display:flex;align-items:center;justify-content:center;gap:5px;background:var(--bg);border:0;border-right:1px solid var(--line);color:var(--muted);font:12px var(--mono);padding:0 7px}
 .lg-roles button:last-child{border-right:0}
-.lg-roles button[aria-pressed=true]{background:#c8aa6e26;color:var(--lg-ivory);box-shadow:inset 0 -2px var(--lg-gold)}
+.lg-roles button[aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
 .lg-roles button small{font-size:11px}
 .lg-role-ico{width:18px;height:18px;vertical-align:middle}
-.lg-role-txt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:.5px;text-transform:uppercase;color:var(--lg-muted)}
+.lg-role-txt{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 /* Tables: 22 px rows, no zebra, the colour is the stripe. */
 .lg-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .lg-table thead{position:sticky;top:56px;z-index:3}
-.lg-table thead th{background:#08141c;box-shadow:inset 0 -1px var(--lg-line);text-align:left;padding:0;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted);white-space:nowrap}
+.lg-table thead th{background:var(--bg);box-shadow:inset 0 -1px var(--line);text-align:left;padding:0;font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .lg-table th button{width:100%;text-align:inherit;background:none;border:0;padding:5px 6px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
-.lg-table th[aria-sort=ascending] button,.lg-table th[aria-sort=descending] button{color:var(--lg-gold)}
+.lg-table th[aria-sort=ascending] button,.lg-table th[aria-sort=descending] button{color:var(--accent)}
 .lg-table th.num{text-align:right;padding:5px 6px}.lg-table th.num button{text-align:right;padding:0}
-.lg-table td{height:21px;padding:0 6px;border-bottom:1px solid #ffffff0a;white-space:nowrap;line-height:21px}
+.lg-table td{height:21px;padding:0 6px;border-bottom:1px solid var(--line);white-space:nowrap;line-height:21px}
 .lg-table .num{text-align:right}
 .lg-table tbody tr{cursor:pointer}
-.lg-table tbody tr:hover{background:#c8aa6e14}
-.lg-name a{display:flex;align-items:center;gap:6px;font-weight:600;text-decoration:none}
+.lg-table tbody tr:hover{background:var(--wash)}
+.lg-name a{display:flex;align-items:center;gap:6px;font-weight:700;text-decoration:none}
 .lg-name a span{overflow:hidden;text-overflow:ellipsis}
-.lg-name a:hover span{color:var(--lg-gold)}
+.lg-name a:hover span{color:var(--accent)}
 .lg-name .lg-icon{width:20px;height:20px}
 .lg-name .lg-role-ico{width:14px;height:14px;opacity:.75;flex:none}
 .lg-table small{font-size:11px}
 
 /* Tier list */
-.lg-tiers td:first-child{color:var(--lg-muted);font-size:11px;width:28px}
+.lg-tiers td:first-child{color:var(--muted);font-size:11px;width:28px}
 .lg-tiers .lg-name{max-width:190px}
-.lg-tiers .lg-best-first{border-left:1px solid var(--lg-line)}
-.lg-tiers .lg-group th{box-shadow:none;padding:4px 6px 0;color:var(--lg-gold);text-align:center}
+.lg-tiers .lg-best-first{border-left:1px solid var(--line)}
+.lg-tiers .lg-group th{box-shadow:none;padding:4px 6px 0;color:var(--muted);text-align:center}
 #lg-tiers{container-type:inline-size}
 @container (max-width:900px){.lg-tiers td,.lg-tiers th.num{padding-left:4px;padding-right:4px}.lg-tiers .lg-v{margin:0 -4px;padding:0 4px}.lg-tiers .lg-name{max-width:130px}.lg-tiers small{display:none}}
 @container (max-width:760px){.lg-tiers .lg-group,.lg-tiers :is(td,th):nth-child(n+11),.lg-tiers :is(td,th):nth-child(4){display:none}}
 
 /* Sections (champion page, history) */
 .lg-section{margin-bottom:16px}
-.lg-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border-bottom:1px solid var(--lg-line);padding-bottom:4px;margin-bottom:8px}
-.lg-head h2{font:400 19px/1.2 Marcellus,serif}
+.lg-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:8px}
+.lg-head h2{font:400 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.01em}
 
 /* Match history */
-.lg-match{border-bottom:1px solid #ffffff0d;border-left:3px solid var(--lg-spell)}
-.lg-match.loss{border-left-color:var(--lg-defeat)}
-.lg-match-row{width:100%;display:grid;grid-template-columns:64px auto minmax(0,1fr) 26px 110px 80px 18px;align-items:center;gap:10px;padding:4px 10px;background:none;border:0;color:var(--lg-ivory);text-align:left;font:13px 'Segoe UI',sans-serif}
-.lg-match-row:hover{background:#c8aa6e10}
+.lg-match{border-bottom:1px solid var(--line);border-left:3px solid var(--green)}
+.lg-match.loss{border-left-color:var(--neg)}
+.lg-match-row{width:100%;display:grid;grid-template-columns:64px auto minmax(0,1fr) 26px 110px 80px 18px;align-items:center;gap:10px;padding:4px 10px;background:none;border:0;color:var(--fg);text-align:left;font:12px var(--mono)}
+.lg-match-row:hover{background:var(--wash)}
 .lg-match-row .lg-icon{width:30px;height:30px}
-.lg-result{font:600 11px 'Segoe UI',sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--lg-spell)}
-.loss .lg-result{color:var(--lg-bad)}
-.lg-match-name{font:15px Cinzel,serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-result{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.loss .lg-result{color:var(--neg)}
+.lg-match-name{font:700 13px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lg-page .lg-match-name small,.lg-page .lg-kda small{display:block}
 .lg-kda{font-variant-numeric:tabular-nums}
-.lg-ago{color:var(--lg-muted);font-size:12px;text-align:right}
+.lg-ago{color:var(--muted);font-size:12px;text-align:right}
 .lg-match-row[aria-expanded=true] i{transform:rotate(180deg)}
-.lg-match-row i{font-style:normal;color:var(--lg-muted)}
+.lg-match-row i{font-style:normal;color:var(--muted)}
 .lg-match-more{padding:4px 14px 10px 84px;font-size:13px}
 .lg-match-more dl{display:flex;flex-wrap:wrap;gap:8px 32px;margin:0 0 6px}
-.lg-match-more dt{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-gold)}
+.lg-match-more dt{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
 .lg-match-more dd{margin:2px 0 0;display:flex;align-items:center;gap:6px}
-.lg-match-more a{color:var(--lg-gold)}
+.lg-match-more a{color:var(--accent)}
 
 @media(max-width:700px){.lg-match-row{grid-template-columns:60px auto minmax(0,1fr) 90px 18px}.lg-match-row>span:nth-child(4),.lg-ago{display:none}.lg-match-more{padding-left:14px}}
