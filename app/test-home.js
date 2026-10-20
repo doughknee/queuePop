@@ -72,7 +72,7 @@ lt = ctx.qpLastNext(lt, "#/league");
 assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.champion || "")), ["league:Tier list:", "deadlock:Hero:", "league:Last champion:103"]);
 assert.deepStrictEqual(tiles(lt, ["league"]).map((t) => t.page), ["Tier list", "Last champion"]); // switched-off worlds drop out
 lt = ctx.qpLastNext(lt, "#/league/champion/103/top");
-assert.deepStrictEqual(tiles(lt).map((t) => t.page), ["Champion", "Heroes"]); // already on that champion: no second tile
+assert.deepStrictEqual(tiles(lt).map((t) => t.page), ["Champion", "Hero"]); // already on that champion: no second tile
 assert.strictEqual(tiles(ctx.qpLastNext({}, "#/tft/comp/TFT16_A%2CTFT16_B"))[0].comp, "TFT16_A,TFT16_B");
 // DONI-548: client closed. No games remembered → one plain note per page; games remembered → they show, ranks say why they don't.
 assert.deepStrictEqual(vals(homePages({ offline: true })[0]), ["Open the League client to see your ranks and games"]);
