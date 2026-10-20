@@ -46,9 +46,19 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const away = createAway(state, push); // DONI-424
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused, timeline: timeline.status(), away: away.status().on,
+    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, timeline: timeline.status(), away: away.status().on,
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
     setAway: (on) => away.set(on),
+    // DONI-337: champ select on the phone: who you are, the timer, trades waiting for your answer.
+    champ: async () => {
+      if (state.phase !== "ChampSelect" || !impl.get_champ_select) return { active: false };
+      const s = await impl.get_champ_select().catch(() => null);
+      if (!s || !s.active) return { active: false };
+      const me = (s.myTeam || []).find((p) => p.cellId === s.localCellId) || {};
+      return { active: true, phase: s.phase, timer_left: s.timer_left, champion: me.championName || me.name || "",
+        trades: (s.trades || []).filter((t) => t.state === "RECEIVED").map((t) => ({ id: t.id, name: t.name || "a teammate's champion" })) };
+    },
+    trade: (id, action) => impl.respond_trade(id, action),
     // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
     decline: async () => {
       if (!lcu.connected) return { ok: false, error: "The League client isn't running" };

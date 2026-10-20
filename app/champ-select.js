@@ -867,6 +867,13 @@ function attach(lcu, impl, push, state) {
       }
       return { ok: true, config: cfg };
     },
+    // DONI-337: answer an incoming champion trade by hand. -> {ok}
+    respond_trade: async (tradeId, action) => {
+      if (!["accept", "decline"].includes(action) || !Number.isInteger(Number(tradeId))) return { ok: false, error: "Bad trade answer" };
+      const ok = await cs.postTrade(Number(tradeId), action);
+      push(ok ? `Trade ${action === "accept" ? "accepted" : "declined"} from your phone` : `Trade ${action} failed`, ok ? "success" : "warning", "trade");
+      return ok ? { ok } : { ok, error: "The client refused it (the trade may have expired)" };
+    },
     get_roles: () => C.EDITOR_ROLES.map((r) => ({ key: r, label: ROLE_LABELS[r] })),
     get_summoner_spells: () => C.SUMMONER_SPELLS.map((s) => ({ ...s })),
     get_champions: getChampions,
