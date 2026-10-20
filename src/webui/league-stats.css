@@ -208,3 +208,9 @@
 .lg-mt-build .lg-ico{width:20px;height:20px}
 .lg-mt-items{display:flex;gap:2px;margin-left:6px}
 .lg-sum-row .lg-ago a{color:var(--fg)}
+
+/* DONI-565: ARAM has no lanes */
+.lg-aram .lg-lanes,.lg-aram .lg-croles,.lg-aram .lg-num:first-of-type{display:none}
+.lg-aram .lg-tiers :is(td,th):nth-child(4){display:none}
+.lg-queues-tabs{margin-right:4px}
+#lg-queues:empty{display:none}
