@@ -104,6 +104,7 @@ window.stCovers = g => Object.keys(window.ST_FOR).filter(id => window.ST_FOR[id]
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
         <div id="st-cr-grid" class="st-grid"></div>
         <details class="st-more" id="st-cr-keybox"><summary>Replace the Riot key</summary>
+        <div class="st-row"><span class="st-lbl">Get a new key<small>Riot’s developer portal: log in, then Regenerate API Key. A development key lasts 24 hours.</small></span><span class="st-act"><button class="st-btn" data-do="riot-dev">Open developer.riotgames.com</button></span></div>
         <label class="st-row"><span class="st-lbl">New key<small>Starts with RGAPI-</small></span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
         <label class="st-row"><span class="st-lbl">Admin token<small>The crawler's ADMIN_TOKEN. Used once, never stored.</small></span><input class="st-in st-wide" id="st-cr-token" type="password" autocomplete="off"></label>
         <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div></details>`) +
@@ -242,6 +243,7 @@ window.stCovers = g => Object.keys(window.ST_FOR).filter(id => window.ST_FOR[id]
       else if (d === 'copy-link') { const ok = compUrl && await copyText(compUrl); say('test-companion', ok ? 'Link copied' : 'No link yet', !!ok); }
       else if (d === 'test-companion') { const r = await a.test_companion(); say(d, r && r.running ? 'Sent, your phone should alarm' : 'The companion is off. Turn it on above first', r && r.running); }
       else if (d === 'crawler-open') { const ok = await a.open_external(base() + '/'); if (ok === false) say(d, 'That address can’t be opened', false); }
+      else if (d === 'riot-dev') await a.open_external('https://developer.riotgames.com/');
       else if (d === 'crawler-key') await postKey();
       else if (d === 'check-update') { say(d, 'Checking…', true); const s = await a.check_for_update(); renderUpdate(s); say(d, s && s.error ? 'Couldn’t reach the update server' : s && s.available ? 'Update available' : 'Up to date', !(s && s.error)); }
       else if (d === 'refresh-assets') { say(d, 'Refreshing…', true); const p = a.refresh_assets(); loadAssets(); const r = await p; loadAssets(); say(d, r && r.ok === false ? r.error || 'Failed' : 'Done', !(r && r.ok === false)); }
@@ -287,7 +289,8 @@ window.stCovers = g => Object.keys(window.ST_FOR).filter(id => window.ST_FOR[id]
       const d = await r.json(), m = d.matches || {}, p = d.players || {}, k = d.key || {}, dk = d.disk || {};
       const sum = o => Object.values(o || {}).reduce((x, y) => x + y, 0);
       const cell = (l, v) => `<div><b>${E(v)}</b><span>${l}</span></div>`;
-      const bk = stBusyBuckets(d.rateLimits), buckets = bk.busy.map(b => `<div class="st-bk"><span>${E(b.name)}</span><i><u style="width:${b.pct}%"></u></i><em>${E(b.used)}/${E(b.limit ?? '?')} per ${E(b.windowSec ?? '?')}s</em></div>`).join('')
+      const bk = stBusyBuckets(d.rateLimits), full = bk.busy.filter(b => b.pct >= 90 && !/\s/.test(b.name)).map(b => b.name), buckets = bk.busy.map(b => `<div class="st-bk"><span>${E(b.name)}</span><i><u style="width:${b.pct}%"></u></i><em>${E(b.used)}/${E(b.limit ?? '?')} per ${E(b.windowSec ?? '?')}s</em></div>`).join('')
+        + (full.length ? `<p class="st-bk-idle st-bk-full">The Riot key’s allowance (100 requests per 2 minutes) is used up in ${E(full.join(', '))}. That is the ceiling on matches, not the regions; a production key raises it.</p>` : '')
         + (bk.idle ? `<p class="st-bk-idle">${bk.busy.length ? `${bk.idle} other rate limits idle` : `All ${bk.idle} rate limits idle`}</p>` : '');
       st.textContent = 'Online'; st.className = 'st-val ok';
       if (k.valid === false || k.source === 'none') root.querySelector('#st-cr-keybox').open = true; // the fix is right there
