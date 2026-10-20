@@ -11,7 +11,8 @@
     memo.set(key, { t: Date.now(), p });
     return p;
   }
-  const json = (url, ms = 6000) => fetch(url, { signal: AbortSignal.timeout(ms) }).then(r => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); });
+  // D15: errors keep the HTTP status and Retry-After (seconds) so pages can say what happened.
+  const json = (url, ms = 6000) => fetch(url, { signal: AbortSignal.timeout(ms) }).then(r => { if (!r.ok) { const e = new Error(`${r.status} ${url}`); e.status = r.status; e.retry = Number(r.headers.get('Retry-After')) || 0; throw e; } return r.json(); });
   // DONI-515: before the bridge is ready, use the default without memoising it, so a configured crawler_url wins on the next call.
   const base = () => !window.pywebview?.api ? Promise.resolve(DEFAULT_CRAWLER) : once('base', async () => {
     let u = '';
@@ -22,7 +23,7 @@
   const crawler = async (path, params = {}, ms) => { const q = qs(params), b = await base(); return once(`c${b}${path}?${q}`, () => json(`${b}${path}${q ? '?' + q : ''}`, ms)); }; // the base is in the key (review #74)
   // A crawler patch ("16.20") maps to the newest Data Dragon build of it ("16.20.1"); unknown patches use the newest build.
   const ddVersion = patch => once('ddv', () => json(`${DD}/api/versions.json`), 3600000)
-    .then(v => v.find(x => patch && x.startsWith(patch + '.')) || v[0]);
+    .then(v => { const p = String(patch || '').replace(/-aram$/, ''); return v.find(x => p && x.startsWith(p + '.')) || v[0]; }); // D15: ARAM answers carry "16.20-aram"
   const ddData = (patch, file) => ddVersion(patch).then(v => once(`dd${v}${file}`, () => json(`${DD}/cdn/${v}/data/en_US/${file}`), 3600000).then(d => ({ v, d })));
 
   /* Tier banding (DONI-506, Lolalytics-style S+ .. D-), over the rows of one /lol/tiers response:

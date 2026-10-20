@@ -143,7 +143,7 @@ const LG_COLS = [['score', 'Tier', 'S+ to D-: the rule is under the table'], ['n
 function lgSortRows(rows, key, dir, name) {
   const v = r => key === 'name' ? name(r) : key === 'role' ? LG_ROLES.indexOf(lgRoleOf(r.role)) : r[key];
   // Tier order keeps low-sample rows below the rest; every other column sorts them in place.
-  return [...rows].sort((a, b) => { const x = v(a), y = v(b); return (key === 'score' && a.lowSample !== b.lowSample ? (a.lowSample ? 1 : -1) : 0) || (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || b.games - a.games; });
+  return [...rows].sort((a, b) => { const x = v(a), y = v(b); return (a.lowSample !== b.lowSample ? (a.lowSample ? 1 : -1) : 0) || (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir || b.games - a.games; });
 }
 const lgVal = (r, k) => k === 'name' ? lgChamp(r.champion).name : k.startsWith('best.') ? r.best?.[k.slice(5)] : r[k];
 function lgTierSort(rows) {
@@ -279,7 +279,7 @@ async function lgExpandMatch(btn) {
     // review #122: the game's own queue decides ARAM vs ranked numbers, not the tier list's toggle
     const data = await statsApi.tiers(g.queueId === 450 ? { ...lgParams(), queue: '450', role: '' } : { ...lgParams(LG_ROLES.includes(role) ? role : 'all'), queue: '' });
     const rows = leagueTierRows(data.champions), r = rows.filter(x => x.champion === Number(g.championId)).sort((a, b) => b.games - a.games)[0];
-    slot.innerHTML = `<dt>${lgEsc(c.name)} ${LG_ROLE[role] || ''} · ${lgEsc(data.patch)}</dt><dd${r?.lowSample ? ' class="low"' : ''}>${r ? `${lgTier(r.tier, r.lowSample)} ${lgPct(r.winRate)} <small>${lgN(r.games)} games</small>` : 'No crawler games yet'}</dd>`;
+    slot.innerHTML = `<dt>${lgEsc(c.name)} ${LG_ROLE[role] || ''} · ${lgEsc(data.patch)}${[lg.region !== 'all' ? lg.region.replace(/\d+$/, '').toUpperCase() : '', lg.bracket !== 'all' ? (LG_BRACKETS.find(b => b[0] === lg.bracket) || [])[1] : '', lg.days ? (LG_WINDOWS.find(w => w[0] === lg.days) || [])[1] : ''].filter(Boolean).map(x => ' · ' + lgEsc(x)).join('')}</dt><dd${r?.lowSample ? ' class="low"' : ''}>${r ? `${lgTier(r.tier, r.lowSample)} ${lgPct(r.winRate)} <small>${lgN(r.games)} games</small>` : 'No crawler games yet'}</dd>`;
   } catch { slot.innerHTML = `<dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Stats offline</dd>`; }
 }
 

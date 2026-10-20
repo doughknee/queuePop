@@ -31,7 +31,7 @@
   async function get(path, ms = 6000) {
     const url = (await crawler()) + path;
     if (!memo.has(url)) {
-      memo.set(url, fetch(url, { signal: AbortSignal.timeout(ms) }).then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))));
+      memo.set(url, fetch(url, { signal: AbortSignal.timeout(ms) }).then((r) => r.ok ? r.json() : Promise.reject(Object.assign(new Error(r.status), { status: r.status, retry: Number(r.headers.get('Retry-After')) || 0 }))));
       memo.get(url).catch(() => memo.delete(url));
     }
     return memo.get(url);

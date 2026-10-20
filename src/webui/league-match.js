@@ -19,15 +19,14 @@ async function lgFillMatch(token, id) {
     m = await statsApi.match(id);
     [items, runes, spells] = await Promise.all([statsApi.items(m.patch).catch(() => null), statsApi.runes(m.patch).catch(() => null), statsApi.spells(m.patch).catch(() => null), lgNames(m.patch).catch(() => null)]);
   } catch (e) {
-    const code = String(e.message).split(' ')[0];
-    if (box()) box().innerHTML = `<p class="lg-offline">${code === '404' ? 'Riot has no match with this id.' : code === '429' ? 'The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in a minute.' : code === '503' ? "The crawler's Riot key is not valid right now; replace it in Settings > Stats crawler." : lgOffline('the stats crawler did not answer.')}</p>`;
+    if (box()) box().innerHTML = `<p class="lg-offline">${lgLookupError(e, 'match with this id')}</p>`;
     return;
   }
   if (!box()) return;
   const L = lgLookups(items?.d, runes?.d, spells?.d), s = leagueLive.summoner, me = s ? `${s.name}#${s.tag}`.toLowerCase() : '', min = m.duration / 60;
   const ps = m.participants || [], maxDmg = Math.max(1, ...ps.map(p => p.damage || 0)), slim = m.source === 'rows';
   document.getElementById('lg-mt-title').textContent = queueMap[m.queueId] || `Queue ${m.queueId}`;
-  document.getElementById('lg-meta').textContent = `${Math.floor(min)}:${String(Math.round(m.duration % 60)).padStart(2, '0')} · patch ${m.patch} · ${new Date(m.startedAt).toLocaleString()}`;
+  document.getElementById('lg-meta').textContent = `${m.duration ? `${Math.floor(min)}:${String(Math.round(m.duration % 60)).padStart(2, '0')} · ` : ''}patch ${m.patch} · ${new Date(m.startedAt).toLocaleString()}`;
   const team = t => {
     const T = (m.teams || []).find(x => x.team === t) || {}, rows = ps.filter(p => p.team === t), k = rows.reduce((n, p) => n + (p.kills || 0), 0);
     const obj = LG_MT_OBJ.map(([key, label]) => T.objectives?.[key] && T.objectives[key].kills != null ? `<span title="${label}${T.objectives[key].first ? ' · took the first' : ''}">${label} <b>${T.objectives[key].kills}</b>${T.objectives[key].first ? '<i>1st</i>' : ''}</span>` : '').join('');
@@ -40,7 +39,7 @@ async function lgFillMatch(token, id) {
           <span class="lg-mt-who">${rid ? `<a href="#/league/summoner/${lgRiotSlug(rid)}/${String(m.id).split('_')[0].toLowerCase()}">${lgEsc(rid.split('#')[0])}</a>` : '<span>Unknown</span>'}<small>${lgEsc(c.name)}${LG_ROLE[role] ? ' · ' + LG_ROLE[role] : ''}</small></span></td>
           <td class="num">${p.kills ?? '–'} / ${p.deaths ?? '–'} / ${p.assists ?? '–'}<small>${kda}</small></td>
           <td class="lg-mt-dmg">${p.damage == null ? '–' : `<span class="lg-mt-bar" style="--w:${(p.damage / maxDmg * 100).toFixed(0)}%"></span>${lgN(p.damage)}`}</td>
-          <td class="num">${p.damageTaken == null ? '–' : lgN(p.damageTaken)}</td><td class="num">${p.cs ?? '–'}<small>${p.cs == null ? '' : (p.cs / min).toFixed(1) + '/m'}</small></td>
+          <td class="num">${p.damageTaken == null ? '–' : lgN(p.damageTaken)}</td><td class="num">${p.cs ?? '–'}<small>${p.cs == null || !min ? '' : (p.cs / min).toFixed(1) + '/m'}</small></td>
           <td class="num">${p.gold == null ? '–' : (p.gold / 1000).toFixed(1) + 'k'}</td><td class="num">${p.vision ?? '–'}</td>
           <td class="lg-mt-build">${(p.spells || []).map(k => lgImg(L.spellBy[k] ? lgDD(`spell/${L.spellBy[k].image.full}`) : `assets/spells/${k}.png`, L.spellBy[k]?.name || k)).join('')}${ks ? lgImg(`${statsApi.DD}/cdn/img/${ks.r.icon}`, ks.r.name) : ''}<span class="lg-mt-items">${(p.items || []).filter(Boolean).map(i => L.itemImg(i)).join('')}</span></td></tr>`; }).join('')}
       </tbody></table></section>`;

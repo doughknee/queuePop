@@ -22,9 +22,9 @@ const lgBlock = (title, note, body, cls = '') => `<article class="lg-block${cls 
 const lgDelta = (x, spread, games) => lgHeat(x, 0, spread, games, x == null ? '' : lgSign(x * 100));
 // DONI-513: win rate per 5-minute game-length bucket (crawler length[]), a column each: the bar is the share of games,
 // the number is the win rate tinted against the champion's own average, fainter on small buckets.
-function lgLength(buckets, cwr) {
+function lgLength(buckets, cwr, lenMin = 20) { // lenMin: the crawler's min_games scaled to a bucket (D15)
   const max = Math.max(...buckets.map(b => b.share || 0)) || 1;
-  return `<div class="lg-length">${buckets.map(b => `<div class="lg-len${b.games < 20 ? ' low' : ''}" title="${lgN(b.games)} games, ${lgPct(b.share)} of all">
+  return `<div class="lg-length">${buckets.map(b => `<div class="lg-len${b.games < lenMin ? ' low' : ''}" title="${lgN(b.games)} games, ${lgPct(b.share)} of all">
     <span class="lg-len-bar" style="--h:${((b.share || 0) / max * 100).toFixed(0)}%"></span>${lgHeat(b.winRate, cwr, 0.06, b.games, lgPct(b.winRate))}<small>${b.from}${b.to == null ? '+' : '–' + b.to} min</small></div>`).join('')}</div>`;
 }
 const lgSection = (title, note, body) => `<section class="lg-section"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
@@ -144,7 +144,7 @@ async function lgFillPlayers(token, id) {
   try { data = await statsApi.players(id, lgParams(lgRoleOf(lgChampData?.role))); } catch {}
   if (!el()) return;
   const ps = data?.players || [];
-  if (!data) { el().innerHTML = '<p class="lg-wait">Coming soon: the stats crawler does not rank players on a champion yet.</p>'; return; }
+  if (!data) { el().innerHTML = '<p class="lg-wait">Best players could not load: the stats crawler did not answer.</p>'; return; } // D15: the endpoint is live
   if (!ps.length) { el().innerHTML = `<p class="lg-wait">Nobody has ${lgN(data.minPlayerGames || 20)}+ games on this champion under these filters yet.</p>`; return; }
   const tier = p => p.tier ? `${p.tier.charAt(0)}${p.tier.slice(1).toLowerCase()} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(p.tier) ? '' : p.division || ''}` : '';
   const avg = lgMean(ps, 'winRate'), sp = lgSpread(ps, p => p.winRate, avg);
@@ -170,7 +170,7 @@ async function lgFillChampion(token, id) {
     const want = lgHashRole();
     const d = await statsApi.champion(id, lgParams(LG_ROLES.includes(want) ? want : ''));
     const [list, items, runes, spells] = await Promise.all([
-      statsApi.tiers(lgParams(lgRoleOf(d.role))).catch(() => null), statsApi.items(d.patch).catch(() => null),
+      statsApi.tiers({ ...lgParams(lgRoleOf(d.role)), min_games: String(lgt.minGames) }).catch(() => null), // D15: same low-sample line as the list statsApi.items(d.patch).catch(() => null),
       statsApi.runes(d.patch).catch(() => null), statsApi.spells(d.patch).catch(() => null), lgNames(d.patch)]);
     if (!box()) return;
     lgChampData = d;
@@ -184,7 +184,7 @@ async function lgFillChampion(token, id) {
     document.getElementById('lg-champ-roles').innerHTML = (d.roles || []).map(r => `<button data-lg-crole="${lgRoleOf(r.role)}" aria-pressed="${lgRoleOf(r.role) === role}" title="${lgN(r.games)} games as ${LG_ROLE[lgRoleOf(r.role)] || r.role}">${lgRoleIcon(lgRoleOf(r.role))}<span>${LG_ROLE[lgRoleOf(r.role)] || r.role}</span><small>${lgPct(r.games / ((d.roles || []).reduce((n, x) => n + x.games, 0) || 1)).replace('.0%', '%')}</small></button>`).join('');
     document.getElementById('lg-verdict').innerHTML = lgVerdict(c, d, me, rank, banded.length, R);
     const strip = document.getElementById('lg-champ-strip');
-    if (!s.games) { strip.innerHTML = ''; box().innerHTML = `<p class="lg-wait">No ranked games for ${lgEsc(c.name)} on patch ${lgEsc(d.patch)} with these filters yet.</p>`; return; }
+    if (!s.games) { strip.innerHTML = ''; box().innerHTML = `<p class="lg-wait">No ${lg.queue ? 'ARAM' : 'ranked'} games for ${lgEsc(c.name)} on patch ${lgEsc(d.patch)} with these filters yet.</p>`; return; }
     lg.cwr = s.winRate;
     const cell = (dt, dd, sub) => `<div><dt>${dt}</dt><dd>${dd}</dd><dd class="lg-sub">${sub}</dd></div>`;
     strip.className = `lg-strip${s.lowSample ? ' low' : ''}`;
@@ -200,7 +200,7 @@ async function lgFillChampion(token, id) {
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
       ${lgSection('Objectives', 'your team took it first (secured) or the enemy did (yielded); rates out of all games', lgObjectives(d))}
-      ${(d.length || []).some(b => b.games) ? lgSection('Game length', 'win rate by game length · share of games', lgLength(d.length, s.winRate)) : ''}
+      ${(d.length || []).some(b => b.games) ? lgSection('Game length', 'win rate by game length · share of games', lgLength(d.length, s.winRate, Math.max(20, Math.round((d.minGames || 200) / 10)))) : ''}
       <div class="lg-duo">${lgMatchups(d)}${lgSynergies(d)}</div>
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
     lgFillPlayers(token, id);
