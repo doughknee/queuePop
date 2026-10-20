@@ -184,3 +184,10 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-band .ts-place{background:var(--bg)}
 .ts-head,.ts-main{grid-template-columns:34px minmax(200px,1.4fr) minmax(0,1.5fr) repeat(5,minmax(52px,66px))}
 .ts-mt-row>*{min-width:0;overflow:hidden}
+/* DONI-571: More (same grammar as League's) */
+.ts-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:12px}
+.ts-more a{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:14px 16px;border:1px solid var(--line);text-decoration:none;color:var(--fg)}
+.ts-more a:hover{border-color:var(--accent);background:var(--wash)}
+.ts-more b{font:400 24px/1 var(--display);text-transform:uppercase}
+.ts-more span{grid-column:1;color:var(--muted);font-size:12px;line-height:1.5}
+.ts-more i{grid-row:1;grid-column:2;font-style:normal;color:var(--accent)}
