@@ -408,6 +408,7 @@ function renderHeroes() {
   inspectedHero = heroes.some(hero => hero.id === addressHero) ? addressHero : selectedHero;
   body.innerHTML = `<div class="archive-intro"><div><div class="sheet-kicker">The personnel archive</div><h2 id="sheet-title">A face you can trust.</h2></div><span class="archive-count">${heroes.length} dossiers<br><small>${liveError ? 'Offline · curated six' : 'Every active hero'}</small></span></div><div class="archive-layout"><aside class="directory"><label for="hero-search" class="sr-only">Search heroes or playstyles</label><input class="search" id="hero-search" type="search" placeholder="Find a hero…"><div class="roster" id="roster"></div><p class="directory-instruction">Find your person.<br><em>Choose a hero to remember them here.</em></p></aside><section class="dossier" id="dossier" aria-label="Hero dossier" aria-live="polite"></section></div>`;
   renderRoster(); renderHero(inspectedHero); liftPageHeading();
+  requestAnimationFrame(() => { const ro = document.querySelector('.roster'), on = ro?.querySelector('[aria-pressed=true]'); if(ro && on) ro.scrollTop = on.offsetTop - ro.offsetTop - 60; }); // the open hero in view in its column
 }
 function renderHero(id) {
   const hero = heroes.find(item => item.id === id); if(!hero) return;
@@ -438,7 +439,8 @@ async function loadHeroNumbers(hero) {
     const link = list => list.map(x => `<button class="back-link hero-vs" data-goto-hero="${x.e.id}" title="${pct(x.wr)}% win">${esc(x.e.name)}</button>`).join(', ');
     const cell = (k, v, sub) => `<div><dt>${k}</dt><dd>${v}</dd>${sub ? `<dd class="hn-sub">${sub}</dd>` : ''}</div>`;
     el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1}&nbsp;of&nbsp;${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
-      + ((k => k ? `<p class="hn-read">Best into ${link(vs.slice(0, k))}. Struggles into ${link(vs.slice(-k).reverse())}.</p>` : '')(Math.min(3, vs.length >> 1))); // review #119: never the same hero twice
+      + ((k => k ? `<p class="hn-read">Best into ${link(vs.slice(0, k))}. Struggles into ${link(vs.slice(-k).reverse())}.</p>` : '')(Math.min(3, vs.length >> 1))) // review #119: never the same hero twice
+      + `<button class="hn-build" data-hero-build="${hero.id}">${esc(hero.name)} builds and items ↗</button>`; // deck-out: the build ledger, one click from the numbers
   } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">${esc(dlErr(e))}</p>`; }
 }
 function inspectHero(id, step) {
