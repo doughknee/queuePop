@@ -18,3 +18,6 @@ assert.strictEqual(ids({ game: "home", client: false, crawler: "down", update: u
 assert.strictEqual(ids({ game: "settings", update: upd }), "update:2.1.0");
 assert.strictEqual(ids({ game: "league" }), ""); // nothing known yet: say nothing
 console.log("test-status ok");
+assert.strictEqual(ids({ game: "deadlock", away: true }), "away"); // DONI-424: shows on every page, first
+assert.strictEqual(ids({ game: "league", away: true, client: false }), "away,client");
+console.log("test-status away ok");

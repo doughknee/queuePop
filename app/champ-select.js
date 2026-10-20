@@ -93,7 +93,8 @@ class ChampSelect {
     this.pickOpen = null;
   }
 
-  settings() { return or(config.get().champ_select, {}); }
+  // While "stepping away" is on (DONI-424) the automation sees the away overlay; config.json itself never changes.
+  settings() { const s = or(config.get().champ_select, {}); return this.overlay ? this.overlay(s) : s; }
   name(cid) { return this.idToName.has(cid) ? this.idToName.get(cid) : cid; }
 
   // GET that resolves to parsed JSON on 200, else null (never throws).
@@ -813,6 +814,7 @@ function resolveManifest() {
 
 function attach(lcu, impl, push, state) {
   const cs = new ChampSelect(lcu, push, () => !!state.paused);
+  cs.overlay = (s) => (state.away ? require("./stepping-away").applyAway(s) : s); // DONI-424
   let skinsCatalog = null;
 
   lcu.on("connect", () => { if (ChampSelect.anyAutomation(cs.settings())) cs.loadChampionData(); });
@@ -928,7 +930,7 @@ function attach(lcu, impl, push, state) {
       if (!s) return { ok: false };
       if (!cs.idToName.size) await cs.loadChampionData();
       const points = (await cs.masteryPoints()) || new Map();
-      const settings = or(config.get().champ_select, {});
+      const settings = cs.settings();
       const me = arr(s.myTeam).find((p) => p.cellId === s.localPlayerCellId) || {};
       let role = String(me.assignedPosition || "").toLowerCase();
       if (!role && !T(s.benchEnabled)) role = fallbackRole(settings);

@@ -38,6 +38,8 @@
     .lvl { width: 3px; flex: none; background: var(--muted); }
     .lvl.success { background: var(--green); } .lvl.warning { background: var(--amber); }
     .lvl.danger { background: var(--neg); } .lvl.info { background: var(--blue); }
+    .btn.away { display: block; width: 100%; margin-top: 14px; }
+    .btn.away.on { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
     .tl-count { font: 64px/1 var(--display); color: var(--accent); margin-top: 10px; letter-spacing: .02em; }
 
     /* Enable-alerts gate: covers everything until the first tap (mobile browsers only play sound after one). */
@@ -97,6 +99,8 @@
         <span class="status-txt kicker">Monitoring</span>
         <span class="status-txt" id="armed">Disarmed</span>
       </div>
+      <button class="btn away" id="away" hidden>I'm stepping away</button>
+      <p class="muted" id="away-note" hidden>Auto-accept, auto pick and ban are on, locking in with 3 s left. Your own settings come back when you tap I'm back.</p>
       <p class="muted">
         Your phone alarms when your League queue pops. queuePop accepts the match on your PC; this is your nudge to come back.
       </p>

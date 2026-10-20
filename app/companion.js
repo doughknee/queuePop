@@ -66,6 +66,11 @@ function createCompanion(ctx) {
       res.setHeader("Set-Cookie", `qp_t=${cfgComp().token}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict`);
     }
     if (p === "/api/stream") return stream(req, res);
+    if (p === "/api/away") { // DONI-424: the phone's "I'm stepping away" / "I'm back"
+      if (req.method !== "POST" || !ctx.setAway) { res.writeHead(405); return res.end(); }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(ctx.setAway(url.searchParams.get("on") === "1")));
+    }
     if (p === "/api/decline") {
       if (req.method !== "POST" || !ctx.decline) { res.writeHead(405); return res.end(); }
       return Promise.resolve(ctx.decline()).catch((e) => ({ ok: false, error: e.message }))

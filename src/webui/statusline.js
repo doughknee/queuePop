@@ -7,6 +7,7 @@
   // f = { game, client: true|false|undefined, crawler: 'ok'|'down'|undefined, key: {valid, reason}|undefined, update: {available, latest}|undefined }
   function statusIssues(f) {
     const stats = ['league', 'tft', 'home'].includes(f.game), play = ['league', 'tft'].includes(f.game), out = [];
+    if (f.away) out.push({ id: 'away', level: 'info', text: 'You’re stepping away: auto-accept and auto pick and ban are on, locking in with 3 s left.', fix: 'I’m back', act: 'back' }); // DONI-424
     if (stats && f.crawler === 'ok' && f.key && f.key.valid === false) out.push({ id: 'key', level: 'bad', text: `The stats crawler’s Riot key was rejected${f.key.reason ? ` (${f.key.reason})` : ''}, so stats stopped updating.`, fix: 'Replace the key', href: '#/settings#crawler', focus: 'st-cr-key' });
     if (stats && f.crawler === 'down') out.push({ id: 'crawler', level: 'bad', text: 'The stats crawler isn’t answering, so League and TFT stats can’t load.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
     if (play && f.client === false) out.push({ id: 'client', level: 'warn', text: 'The League client isn’t running: no auto-accept, no live data.', fix: 'Open League', act: 'launch', retry: true });
@@ -18,7 +19,7 @@
 
   const E = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
   const api = () => window.pywebview && window.pywebview.api;
-  const facts = { client: undefined, crawler: undefined, key: undefined, update: undefined };
+  const facts = { client: undefined, crawler: undefined, key: undefined, update: undefined, away: false };
   const hidden = new Set(); // ✕ for this session; an id that changes (a newer version) shows again
   let crawlerAt = 0, updateAt = 0, busy = false;
 
@@ -69,10 +70,14 @@
       if (r && r.ok === false) window.showToast ? showToast(r.error || 'Couldn’t open League', false) : console.warn(r);
       else window.showToast && showToast('Opening League…');
     }
+    else if (act === 'back') { await Promise.resolve(api() && api().set_stepping_away(false)).catch(() => {}); facts.away = false; hidden.delete('away'); draw(); }
     else if (act === 'update') { const u = facts.update || {}; api() && api().open_external(u.url || 'https://github.com/doughknee/queuePop/releases/latest'); }
   });
   if (window.QP && QP.bus) {
-    QP.bus.on('status', st => { const up = !!(st && st.connected); if (up !== facts.client) { facts.client = up; draw(); } });
+    QP.bus.on('status', st => {
+      const up = !!(st && st.connected), away = !!(st && st.stepping_away && st.stepping_away.on);
+      if (up !== facts.client || away !== facts.away) { facts.client = up; facts.away = away; if (away) hidden.delete('away'); draw(); }
+    });
     QP.bus.on('config:changed', ({ path }) => { if (path === 'crawler_url') refresh(true); });
   }
   addEventListener('hashchange', () => refresh(false));

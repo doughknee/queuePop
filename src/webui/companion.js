@@ -194,6 +194,20 @@ function connectStream() {
   es.onerror = () => setConn(false, "Reconnecting…"); // EventSource auto-retries
 }
 
+// DONI-424: "I'm stepping away" arms the PC for an away player; "I'm back" restores your own settings.
+function drawAway(on) {
+  const b = $("away"); b.hidden = false; b.classList.toggle("on", on);
+  b.textContent = on ? "I'm back" : "I'm stepping away"; $("away-note").hidden = !on; b.dataset.on = on ? "1" : "";
+}
+$("away").addEventListener("click", async () => {
+  const b = $("away"); b.disabled = true;
+  try {
+    const res = await fetch(withToken("/api/away?on=" + (b.dataset.on ? "0" : "1")), { method: "POST" });
+    if (res.ok) drawAway(!!(await res.json()).on); else if (res.status === 403) setConn(false, "Scan the QR code in queuePop again");
+  } catch (_) { setConn(false, "Offline"); }
+  b.disabled = false;
+});
+
 // DONI-423: a live countdown to the next moment the PC told us about (ETA in queue, game start, come back).
 let timeline = null;
 function drawTimeline() {
@@ -218,6 +232,7 @@ async function pollStatus() {
     }
     ensureCustomSound();
     timeline = s.timeline || null; drawTimeline();
+    drawAway(!!s.away);
   } catch (_) {
     setConn(false, "Offline");
   }
