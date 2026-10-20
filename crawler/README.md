@@ -102,6 +102,15 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- Windows and trends (DONI-513 data side): `?days=N` (1..90, or `patch` = the default whole patch) on `/lol/tiers`,
+  `/lol/champion/{id}` (strip and roles only; builds, matchups and depth blocks stay per patch), `/tft/comps` and `/tft/comp/{id}`
+  (the comp row; units/augments/traits stay per patch) reads the last N UTC days of the patch (today counts as one) from
+  `stats_{lol_matches,lol_champ,lol_bans,tft_boards,tft_comp}_daily`; the response echoes `days` and `since` (YYYY-MM-DD).
+  `?trend=1` adds `daily: [{ day, games, winRate }]` to tier rows and `daily: [{ day, games, avgPlacement }]` to comp rows.
+- Game length and depth (D6): `/lol/champion/{id}` adds `length: [{ bucket, from, to, games, winRate, share }]` (5-minute buckets of
+  `matches.duration`, `to: null` = 45 min and longer) and `depth: { players, gamesPerPlayer }`; `/lol/tiers` rows add `players` and
+  `gamesPerPlayer` (distinct puuids per champion+role; with bracket=all a player seen in two brackets counts twice). Matches stored
+  before the column existed get `duration` from `npm run -s backfill-length` (raw retention window only), then `aggregate`.
 - `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
   items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
   by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −

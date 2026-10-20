@@ -68,7 +68,8 @@ const best = (ps, wr) => {
 // rate, avg rank_n). Plus regions[] (the crawled regions, for the app's filter).
 function tiersPlus(db, base, where, q = {}) {
   const [w, a] = where(q, base.patch);
-  const all = db.prepare(`SELECT champion, sum(games) g, sum(wins) wins FROM stats_lol_champ WHERE ${w} GROUP BY champion`).all(...a);
+  const C = require("./agg-window").src(q, "lol_champ"); // ?days: lane share and the average follow the window
+  const all = db.prepare(`SELECT champion, sum(games) g, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d} GROUP BY champion`).all(...a, ...C.da);
   const total = new Map(all.map((r) => [r.champion, r.g]));
   const games = all.reduce((s, r) => s + r.g, 0), avg = games ? all.reduce((s, r) => s + r.wins, 0) / games : 0.5;
   const pool = new Map();
