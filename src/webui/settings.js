@@ -3,7 +3,7 @@
    Settings/Alerts pages used. The stats crawler card talks to the crawler straight from the renderer. */
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
-  const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
+  const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['recorder', 'Recorder (beta)'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
   const EVENTS = [['game_plan', 'Game plan at lock-in'], ['timeline', 'Queue timeline (ETA, game start, come back)'], ['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -63,6 +63,14 @@
         <div class="st-comp"><img id="st-qr" alt="Scan to open on your phone" hidden>
           <div><p id="st-comp-note" class="st-val"></p><p class="st-hint">Scan with your phone camera, tap Enable Alerts and keep the tab open. Same Wi-Fi only.</p>
           <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`) +
+      card('recorder', 'Recorder (beta)', `
+        ${sw('recorder.enabled', 'Record game events', 'Keeps a timeline of each League and TFT game: your kills, deaths, assists, multikills, objectives and the result. See them under Recordings.')}
+        ${sw('recorder.video', 'Record video', 'Records your main screen while a game is in progress and cuts a clip around each moment. Needs ffmpeg; uses your graphics card when it can.')}
+        <div class="st-row"><span class="st-lbl">ffmpeg<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
+        <label class="st-row"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.preset"><option value="720p30">720p, 30 fps</option><option value="1080p30">1080p, 30 fps</option><option value="1080p60">1080p, 60 fps</option></select></label>
+        <label class="st-row"><span class="st-lbl">Folder<small>Leave empty for queuePop's own folder.</small></span><input class="st-in st-wide" data-k="recorder.folder" placeholder="queuePop's recordings folder"></label>
+        ${num('recorder.cap_gb', 'Size limit (GB)', 'When videos pass this, the oldest are deleted first.', 1, 2000)}
+        <div class="st-row"><span class="st-lbl">Recordings</span><span class="st-act"><a class="st-btn" href="#/recordings">Open Recordings</a><button class="st-btn" data-do="rec-folder">Open folder</button><span class="st-msg" data-msg="rec-folder"></span></span></div>`) +
       card('crawler', 'Stats crawler', `
         <label class="st-row"><span class="st-lbl">Address<small>Where League and TFT stats come from. Leave empty for the default.</small></span><input class="st-in st-wide" data-k="crawler_url" data-url placeholder="${DEFAULT_CRAWLER}"></label>
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
@@ -191,6 +199,8 @@
       else if (d === 'test-alert') { const r = await a.test_alert(); const c = (r && r.channels) || []; say(d, c.length ? 'Sent to ' + (c.length > 1 ? c.slice(0, -1).join(', ') + ' and ' + c[c.length - 1] : c[0]) : 'Nothing is on yet: turn on Windows notifications, Discord or the phone companion', c.length > 0); }
       else if (d === 'ntfy-new') { const t = 'queuepop-' + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join(''); QP.store.set('ntfy.topic', t); hydrate(); say('test-ntfy', 'New topic made. Subscribe to it in the ntfy app', true); }
       else if (d === 'test-ntfy') { say(d, 'Sending…', true); const r = await a.test_ntfy(); say(d, r && r.ok ? 'Sent, check your phone' : (r && r.error) || 'Failed', r && r.ok); }
+      else if (d === 'rec-recheck') { loadRecorder(true); }
+      else if (d === 'rec-folder') { const r = await a.open_recordings_folder(); if (r && r.ok === false) say(d, r.error || 'Couldn’t open it', false); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
       else if (d === 'reset-setup') { window.homeSetup?.reset(); say(d, 'They’ll show on home', true); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }
@@ -263,6 +273,14 @@
       if (s.busy && !root.hidden) assetsTimer = setTimeout(loadAssets, 1500); // one poll chain, and only while Settings shows
     } catch (err) { el.textContent = 'Could not read the icon packs: ' + (err.message || err); }
   }
+  // Q21: video needs ffmpeg on PATH; say so and keep the switch off when it isn't there.
+  async function loadRecorder() {
+    const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
+    let s = null; try { s = await bridge().recorder_status(); } catch {}
+    const f = s && s.ffmpeg;
+    el.textContent = !f ? 'Couldn’t check.' : f.found ? `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.` : 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.';
+    sw.disabled = !(f && f.found); sw.closest('.st-row').title = sw.disabled ? 'Install ffmpeg first' : '';
+  }
   async function loadAbout() {
     loadAssets();
     try { renderUpdate(await bridge().get_update_status()); } catch (err) { renderUpdate({ error: String(err.message || err) }); }
@@ -283,7 +301,7 @@
     lead.classList.toggle('bad', !QP.store.config);
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
-    if (bridge()) { loadAccount(); loadCompanion(); loadCrawler(); loadAbout(); }
+    if (bridge()) { loadAccount(); loadCompanion(); loadCrawler(); loadAbout(); loadRecorder(); }
     clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 60000); // /status is the crawler's slow admin view: once a minute while Settings shows // stops once you leave Settings
     if (section) requestAnimationFrame(() => document.getElementById('st-' + section)?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);

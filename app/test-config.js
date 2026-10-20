@@ -51,3 +51,7 @@ console.log("test-config auto_accept ok");
 assert.deepStrictEqual(normalizeConfig({ ntfy: { enabled: true, topic: "queuepop-ab", server: "https://n.example/" } }).ntfy, { enabled: true, server: "https://n.example", topic: "queuepop-ab", token: "" });
 assert.strictEqual(normalizeConfig({ ntfy: { topic: "bad topic" } }).ntfy.topic, "");
 console.log("test-config ntfy ok");
+// DONI-523: the recorder is off by default and its settings survive normalize.
+assert.deepStrictEqual(normalizeConfig({}).recorder, { enabled: false, video: false, preset: "1080p60", folder: "", cap_gb: 50 });
+assert.strictEqual(normalizeConfig({ recorder: { enabled: true, preset: "x", cap_gb: 0 } }).recorder.cap_gb, 1);
+console.log("test-config recorder ok");
