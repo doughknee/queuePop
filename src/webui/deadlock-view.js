@@ -9,8 +9,8 @@ window.deadlockTierRows = function(stats, minMatches = 50) {
 };
 // The Deadlock page list in one place, for the shell sidebar (DONI-487). Routes are the view's own (see pageNames).
 window.DEADLOCK_PAGES = [
-  {hash:'#/deadlock', label:'The city'}, {hash:'#/deadlock/heroes', label:'Heroes'}, {hash:'#/deadlock/builds', label:'Builds'},
-  {hash:'#/deadlock/history', label:'Match history'}, {hash:'#/deadlock/guides', label:'Field guide'}
+  // DONI-595: the same spine as League and TFT. Heroes open from the tier list; the field guide left the nav.
+  {hash:'#/deadlock', label:'Tier list'}, {hash:'#/deadlock/history', label:'Match history'}, {hash:'#/deadlock/builds', label:'Builds'}
 ];
 window.createDeadlockView = function(host) {
   const ownerDocument = window.document;

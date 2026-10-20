@@ -28,7 +28,6 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-pages{display:none} /* the source lists; shell.js copies the current game's into .sb-block (DONI-527) */
 .sb-block{display:flex;flex-direction:column;gap:1px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)}
 .sb-block:empty{display:none}
-.sb-block::before{content:attr(data-label);padding:0 8px 6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-block a{padding:6px 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #qp-sidebar [aria-current="page"]{background:var(--wash);color:var(--accent);box-shadow:inset 2px 0 var(--accent)}
 .sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid var(--line)}
@@ -292,3 +291,30 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .rec-del:hover,.rec-del:focus-visible{color:var(--neg)}.rec-del[data-sure]{color:var(--neg)}
 .rec-nostrip{color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding-bottom:4px}
 .rec-empty .st-btn{margin-left:12px}
+/* DONI-595: a game's pages slide in when you switch games (sidebar block and the page row), staggered; Settings sits apart
+   with a cog. Reduced motion just shows them. */
+@keyframes sbIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.sb-block.sb-in>a{animation:sbIn .26s cubic-bezier(.2,.7,.2,1) both}
+#world-nav.sb-in>a{animation:rowIn .22s cubic-bezier(.2,.7,.2,1) both}
+.sb-block.sb-in>a:nth-child(2),#world-nav.sb-in>a:nth-of-type(2){animation-delay:.03s}
+.sb-block.sb-in>a:nth-child(3),#world-nav.sb-in>a:nth-of-type(3){animation-delay:.06s}
+.sb-block.sb-in>a:nth-child(4),#world-nav.sb-in>a:nth-of-type(4){animation-delay:.09s}
+.sb-block.sb-in>a:nth-child(5),#world-nav.sb-in>a:nth-of-type(5){animation-delay:.12s}
+@media (prefers-reduced-motion:reduce){.sb-block.sb-in>a,#world-nav.sb-in>a{animation:none}}
+.sb-block a.sb-set{display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+.sb-cog{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7}
+#world-nav a.sb-set{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+#world-nav a.sb-set .sb-cog{width:13px;height:13px}
+/* DONI-595: Home quick links: the tier list of each game you play, and Settings. Game color on hover. */
+.theme-home .hq{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:28px 5% 0}
+.hq-link{--gc:var(--accent);display:flex;align-items:center;gap:14px;min-height:84px;padding:14px 18px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .15s}
+.hq-link[data-game=league]{--gc:var(--blue)}.hq-link[data-game=tft]{--gc:var(--purple)}.hq-link[data-game=deadlock]{--gc:var(--amber)}
+.hq-link:hover,.hq-link:focus-visible{border-color:var(--gc);transform:translateY(-2px)}
+.hq-link img,.hq-link svg{width:40px;height:40px;flex:none;object-fit:contain}
+.hq-link svg{fill:none;stroke:var(--accent);stroke-width:1.5}
+.hq-link span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hq-link small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+.hq-link b{font:400 26px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.hq-link i{font-style:normal;color:var(--gc)}
+@media (prefers-reduced-motion:reduce){.hq-link{transition:none}.hq-link:hover{transform:none}}

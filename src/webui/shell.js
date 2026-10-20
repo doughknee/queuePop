@@ -55,13 +55,14 @@
     bar.querySelector('.sb-rec')?.toggleAttribute('aria-current', game === 'recordings');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     const src = bar.querySelector(`[data-game="${game}"] .sb-pages`), html = src ? src.innerHTML : '';
-    if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.dataset.label = src ? src.previousElementSibling.title : ''; }
+    // DONI-595: a new game's pages slide in (the label above them was the game's name again, so it's gone).
+    if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.classList.remove('sb-in'); void block.offsetWidth; block.classList.add('sb-in'); }
     // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
     const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
     const row = game === 'settings' ? settingsView.row() : pages ? pages.innerHTML : '';
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
-    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
+    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); nav.classList.remove('sb-in'); void nav.offsetWidth; nav.classList.add('sb-in'); }
     const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
     remember();
     setTimeout(rowEdges);
