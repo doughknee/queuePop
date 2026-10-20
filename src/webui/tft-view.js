@@ -299,7 +299,7 @@ window.createTftView = function (host) {
   // --- Search: filters the comps list as you type; results jump to a comp or narrow to a unit/trait. ----------
   function renderResults() {
     if (!query) { results.hidden = true; return; }
-    const units = new Set([...known.values()].flat()), traits = new Set(rows.flatMap((r) => r.id.split(',')));
+    const units = new Set([...known.values()].flat()), traits = new Set(rows.flatMap((r) => r.id.split(',')).filter((k) => !units.has(k))); // a comp id is trait,carry: the carry is a unit, not a trait
     const hit = (k) => name(k).toLowerCase().includes(query);
     const u = [...units].filter(hit).slice(0, 8), t = [...traits].filter(hit).slice(0, 8);
     const c = rows.filter(matches).slice(0, 5);
