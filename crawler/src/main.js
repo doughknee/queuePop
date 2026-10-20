@@ -122,8 +122,9 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
     }, 600000);
     forever(`matches ${region}`, async () => {
       let did = false;
-      // A match per game per pass; only ask for new ids when there's nothing left to fetch.
-      for (const g of games) did = (await jobs.fetchOne(ctx, g, region)) || (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.ids(ctx, g, region)) || did;
+      // A match per game per pass; only ask for new ranked ids when there's nothing left to fetch. Capped modes go first: ranked ids
+      // keep the queue full, so behind fetchOne they ran ~once per 15 min (DONI-596); they're gated to one call per queue a minute.
+      for (const g of games) did = (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)) || did;
       return did;
     }, 60000);
   }
