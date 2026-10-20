@@ -27,11 +27,11 @@ function lgAllChamps() {
 }
 function lgIcon(id, cls = 'lg-icon') {
   const c = lgChamp(id), dd = c.alias && lg.ddv ? lgDD(`champion/${c.alias}.png`) : '';
-  return `<img class="${cls}" src="${champBase}/${c.id}.png" alt="" loading="lazy" onerror="this.onerror=null;${dd ? `this.src='${dd}'` : `this.style.visibility='hidden'`}">`;
+  return `<img class="${cls}" src="${champBase}/${c.id}.png" alt="" loading="lazy" ${dd ? `data-fb-src="${dd}"` : ''} data-fb="hide">`;
 }
-const lgImg = (src, title = '', cls = 'lg-ico') => `<img class="${cls}" src="${src}" alt="" title="${lgEsc(title)}" loading="lazy" onerror="this.style.visibility='hidden'">`;
+const lgImg = (src, title = '', cls = 'lg-ico') => `<img class="${cls}" src="${src}" alt="" title="${lgEsc(title)}" loading="lazy" data-fb="hide">`;
 // Position icons are downloaded assets (gitignored); a missing file falls back to the text label.
-const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/positions/${r}.svg" alt="${LG_ROLE[r]}" title="${LG_ROLE[r]}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lg-role-txt',textContent:this.title}))">` : '';
+const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/positions/${r}.svg" alt="${LG_ROLE[r]}" title="${LG_ROLE[r]}" data-fb-class="lg-role-txt" data-fb-text="@title">` : '';
 async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }

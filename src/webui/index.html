@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QueuePop</title>
   <meta name="theme-color" content="#0A0A0A" />
+  <!-- DONI-533: no inline or remote script (image fallbacks are img-fallback.js data attributes); data and images from
+       the crawler (any address in Settings), Data Dragon, Community Dragon and deadlock-api; the TFT field guide frame is local. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: http: https:; font-src 'self' file: data:; connect-src 'self' file: http: https:; frame-src 'self' file:; media-src 'self' file: data:; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <script src="img-fallback.js"></script>
   <!--
     Precompiled Tailwind (scripts/tailwind.config.js + tailwind.src.css → styles.css)
     and locally-vendored fonts, so the bundled app works fully offline.
@@ -180,7 +184,7 @@
         <div id="account-content" class="space-y-5">
           <!-- Riot ID -->
           <div class="hextech framed p-5 acct-head">
-            <span class="acct-portrait"><img id="acct-icon" alt="" onerror="this.style.visibility='hidden'" /></span>
+            <span class="acct-portrait"><img id="acct-icon" alt="" data-fb="hide" /></span>
             <div class="acct-id">
               <div class="acct-name-row">
                 <span id="acct-name" class="acct-name">, </span><span id="acct-tag" class="acct-tag"></span>
@@ -372,7 +376,7 @@
           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="3" y1="3" x2="9" y2="9" /><line x1="9" y1="3" x2="3" y2="9" /></svg>
         </button>
         <div class="lo-hero-content">
-          <img id="lo-icon" class="lo-icon" alt="" onerror="this.style.visibility='hidden'" />
+          <img id="lo-icon" class="lo-icon" alt="" data-fb="hide" />
           <span><span id="lo-name" class="lo-name"></span><span id="lo-role" class="lo-role"></span></span>
         </div>
       </div>
@@ -839,7 +843,7 @@
 
   <div id="deadlock-view" hidden></div>
   <div id="tft-view" hidden></div>
-  <footer class="qp-footer"><span>QueuePop <i>✦</i> A little more ready.</span><span>Live where the client connects · TFT and Deadlock are previews</span></footer>
+  <footer class="qp-footer"><span>QueuePop <i>✦</i> A little more ready.</span><span>Stats from Riot, Data Dragon, Community Dragon and deadlock-api · not endorsed by Riot Games or Valve</span></footer>
   <div id="notice" role="status" class="notice" hidden></div>
 
   <!-- UI modules: classic scripts sharing one global scope. Load order matters

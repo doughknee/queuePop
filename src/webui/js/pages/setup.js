@@ -13,7 +13,7 @@ let setupPaused = false;    // last status snapshot's paused flag
 function setupTileHtml(role, name) {
   const icon = champIcon(name);
   const media = icon
-    ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
+    ? `<img src="${icon}" data-fb="hide" />`
     : `<span class="setup-ini">${initials(name)}</span>`;
   return (
     `<label class="setup-tile"><input type="checkbox" data-role="${role}" data-champ="${escapeHtml(name)}" checked />` +
@@ -60,7 +60,7 @@ async function openSetup() {
     const names = sug[r] || [];
     return (
       `<div class="setup-role"><div class="setup-role-head">` +
-        `<img src="assets/positions/${r}.svg" onerror="this.style.display='none'" />${label}</div>` +
+        `<img src="assets/positions/${r}.svg" data-fb="none" />${label}</div>` +
         (names.length
           ? names.map((n) => setupTileHtml(r, n)).join("")
           : '<span class="setup-role-empty">No suggestions</span>') +
