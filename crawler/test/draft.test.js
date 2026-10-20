@@ -36,6 +36,7 @@ test("draft ranks by own win rate, lane matchup, other enemies and allies, with 
     assert.strictEqual(one.components.base.games, 60);
     assert.ok(!(await get("/lol/draft?role=middle&bans=1"))[1].candidates.some((c) => c.champion === 1), "banned champions drop out");
     assert.strictEqual((await get("/lol/draft?role=middle&enemies=1:TOP"))[1].lane, null, "an enemy given with another role is not the lane opponent");
+    assert.deepStrictEqual((await get("/lol/draft?role=middle&pool=2,9"))[1].candidates.map((c) => c.champion).sort(), [2, 9], "pool limits candidates");
     assert.strictEqual((await get("/lol/draft?role=mid"))[0], 400);
     assert.strictEqual((await get("/lol/draft?role=middle&enemies=x"))[0], 400);
 
