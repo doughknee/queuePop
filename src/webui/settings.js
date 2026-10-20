@@ -156,6 +156,7 @@
     if (e.type === 'input' && el.tagName === 'INPUT' && el.type !== 'checkbox') return;
     QP.store.set(k, typeof v === 'string' && !el.dataset.url && el.tagName === 'INPUT' ? v.trim() : v);
     if (k === 'crawler_url') loadCrawler();
+    if (k === 'recorder.enabled') { if (!v) QP.store.set('recorder.video', false); loadRecorder(); } // video rides on event recording
     if (k === 'ntfy.enabled' && v && !QP.store.get('ntfy.topic')) root.querySelector('[data-do="ntfy-new"]').click(); // DONI-425
     if (k === 'webhook_url') say('test-discord', v && !/^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+\/?$/.test(String(v).trim()) ? 'That isn’t a Discord webhook address' : '', false);
     if (k === 'companion.enabled' || k === 'companion.port') setTimeout(loadCompanion, 900); // the host restarts it on save
@@ -279,7 +280,8 @@
     let s = null; try { s = await bridge().recorder_status(); } catch {}
     const f = s && s.ffmpeg;
     el.textContent = !f ? 'Couldn’t check.' : f.found ? `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.` : 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.';
-    sw.disabled = !(f && f.found); sw.closest('.st-row').title = sw.disabled ? 'Install ffmpeg first' : '';
+    const events = !!QP.store.get('recorder.enabled');
+    sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on Record game events first' : '';
   }
   async function loadAbout() {
     loadAssets();

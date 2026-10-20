@@ -27,6 +27,14 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "src", "webui", "r
 const m = ctx.window.recStripMarkers({ events: [{ t: 450, type: "kill", label: "Killed Zed" }, { t: 900, type: "end", label: "Victory" }, { t: null, type: "end", label: "4th place" }] });
 assert.deepStrictEqual(JSON.parse(JSON.stringify(m)).map((x) => [x.left, x.type, x.label]), [[50, "kill", "7:30 Killed Zed"], [100, "end", "15:00 Victory"]]);
 
+// One row's words: plural right, TFT says Top/Bottom 4.
+const F = (r) => JSON.parse(JSON.stringify(ctx.window.recFacts(r)));
+assert.deepStrictEqual(F({ game: "league", champion: "Ahri", result: "win", counts: { kill: 3, death: 1, assist: 7, objective: 1, multikill: 2 } }),
+  { title: "Ahri", result: "Win", facts: "3 / 1 / 7 · 2 multikills · 1 objective" });
+assert.deepStrictEqual(F({ game: "league", counts: {} }), { title: "League", result: "", facts: "0 / 0 / 0" });
+assert.deepStrictEqual(F({ game: "tft", placement: 3, result: "win" }), { title: "TFT · 3rd place", result: "Top 4", facts: "" });
+assert.deepStrictEqual(F({ game: "tft", placement: 7, result: "loss" }), { title: "TFT · 7th place", result: "Bottom 4", facts: "" });
+
 // A whole game: off by default; on → one file per game with your events and the result, no duplicates across polls.
 (async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qp-rec-")), lcu = new EventEmitter();
