@@ -2,6 +2,7 @@
 //   node src/main.js             crawl + serve
 //   node src/main.js aggregate   rebuild all stats_* now and exit
 //   node src/main.js backfill-patch  re-parse patch/set from stored raw for '?' rows, drop stale '?' stats, exit
+//   node src/main.js backup       one VACUUM INTO BACKUP_DIR now (keeps the newest BACKUP_KEEP), exit
 //   node src/main.js backfill-length  matches.duration from stored raw (D6 length buckets), exit
 //   node src/main.js backfill-comps  re-key TFT boards with the current comp rule from stored raw (DONI-502), exit
 //   node src/main.js backfill-players  Riot ids from stored raw into lol_names (DONI-506), exit
@@ -26,6 +27,9 @@ const cfg = {
   retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
   adminToken: env.ADMIN_TOKEN || "",
+  backupDir: env.BACKUP_DIR || "", // empty: no nightly backup
+  backupKeep: Number(env.BACKUP_KEEP ?? 3),
+  backupHourUtc: Number(env.BACKUP_HOUR_UTC ?? 10),
 };
 for (const r of cfg.regions) if (!ROUTING[r]) throw new Error(`unknown region ${r}; use platform ids like na1, euw1, kr`);
 if (!jobs.TIERS.includes(cfg.minTier)) throw new Error(`MIN_TIER must be one of ${jobs.TIERS.join(", ")}`);
@@ -42,6 +46,11 @@ if (process.argv[2] === "aggregate") {
 }
 if (process.argv[2] === "backfill-patch") {
   log("backfill-patch", JSON.stringify(jobs.backfillPatch(db)), "- now run: npm run aggregate");
+  process.exit(0);
+}
+if (process.argv[2] === "backup") {
+  if (!cfg.backupDir) throw new Error("BACKUP_DIR is not set");
+  log("backup", JSON.stringify(require("./backup").backup(db, cfg.backupDir, cfg.backupKeep)));
   process.exit(0);
 }
 if (process.argv[2] === "backfill-length") {
@@ -122,3 +131,19 @@ function retain() {
 }
 setTimeout(retain, 60000).unref();
 setInterval(retain, 86400000).unref();
+
+// Nightly backup (D10) at BACKUP_HOUR_UTC, in a worker (VACUUM INTO reads the whole DB; WAL lets the crawl keep writing).
+// Waits 10 min while an aggregation pass runs.
+function nextBackup(from = Date.now()) {
+  const d = new Date(from); d.setUTCHours(cfg.backupHourUtc, 0, 0, 0);
+  if (d.getTime() <= from) d.setUTCDate(d.getUTCDate() + 1);
+  return d.getTime() - from;
+}
+function runBackup() {
+  if (aggregating) return setTimeout(runBackup, 600000).unref();
+  new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "backup", dir: cfg.backupDir, keep: cfg.backupKeep } })
+    .once("message", (b) => log(`backup: ${b.file} ${(b.bytes / 1048576).toFixed(0)} MB in ${(b.ms / 1000).toFixed(0)} s${b.removed.length ? ", removed " + b.removed.join(", ") : ""}`))
+    .once("error", (e) => log(`backup: ${e.message}`))
+    .once("exit", () => setTimeout(runBackup, nextBackup()).unref());
+}
+if (cfg.backupDir && cfg.dbPath !== ":memory:") setTimeout(runBackup, nextBackup()).unref();

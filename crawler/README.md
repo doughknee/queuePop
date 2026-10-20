@@ -25,6 +25,9 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 |---|---|---|
 | `RIOT_API_KEY` | none | personal key. Without it (and without one posted to `/admin/key`) the service only serves the existing DB |
 | `LOOKUPS_PER_MIN` | 3 | uncached `/lol/summoner` + `/tft/player` lookups allowed per minute (each costs up to ~23 Riot requests) |
+| `BACKUP_DIR` | `/backups` (image) | nightly `VACUUM INTO` target (compose mounts `./backups`, inside appdata so the server backup copies it); empty = off. `npm run -s backup` runs one now |
+| `BACKUP_KEEP` | 3 | newest `crawler-YYYYMMDD-HHMM.db` files kept; only files with that name are ever deleted |
+| `BACKUP_HOUR_UTC` | 10 | hour of the nightly backup (03:00 PT); waits while an aggregation pass runs; `/status` `backup` = `{ at, file, bytes, ms, removed }` |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
@@ -248,7 +251,7 @@ First install:
 ```bash
 scp -r crawler root@unraid:/mnt/user/appdata/queuepop-crawler
 cd /mnt/user/appdata/queuepop-crawler && cp .env.example .env   # paste RIOT_API_KEY, set TZ
-mkdir -p data && chown -R 1000:1000 data   # the image runs as "node" (uid 1000); a root-owned ./data crash-loops with
+mkdir -p data backups && chown -R 1000:1000 data backups   # the image runs as "node" (uid 1000); a root-owned ./data crash-loops with
                                            # "unable to open database file" (DONI-494)
 docker compose up -d --build
 curl http://127.0.0.1:47900/status
