@@ -185,6 +185,11 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, require("./agg-players").championPlayers(db, head, where, Number(m[1]), q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));
       if (p === "/tft/comps") return send(200, tftComps(db, q));
+      if ((m = /^\/tft\/(units|items|augments|traits)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-tft")[m[1]](db, head, where, q)));
+      if ((m = /^\/tft\/unit\/([^/]+)$/.exec(p))) {
+        const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, decodeURIComponent(m[1]), q));
+        return r ? send(200, r) : send(404, { error: "no such unit on this patch/filter" });
+      }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
         const c = tftComp(db, decodeURIComponent(m[1]), q);
