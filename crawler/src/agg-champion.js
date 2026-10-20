@@ -69,14 +69,19 @@ function ingestRaw(db) {
 // INSERT ... SELECT per patch; M joins matches on the patch placeholder, K is "m.patch, m.region, m.bracket" (jobs.aggregate).
 function inserts(M, K) {
   const T = `FROM lol_timeline t JOIN lol_participants p ON p.match_id = t.match_id AND p.puuid = t.puuid ${M}`;
+  const B = `(SELECT t.match_id, t.puuid, json_extract(j.value, '$[0]') item, json_extract(j.value, '$[1]') sec,
+    row_number() OVER (PARTITION BY t.match_id, t.puuid ORDER BY j.key) slot FROM lol_timeline t, json_each(t.build) j
+    WHERE json_extract(j.value, '$[0]') IN (SELECT id FROM temp.lol_completed) OR NOT EXISTS (SELECT 1 FROM temp.lol_completed))`;
   return [
     `INSERT INTO stats_lol_starting SELECT ${K}, p.role, p.champion, 'start', t.start, count(*), sum(p.win) ${T} GROUP BY 1, 2, 3, 4, 5, 7`,
     `INSERT INTO stats_lol_starting SELECT ${K}, p.role, p.champion, 'early', j.value, count(*), sum(p.win) ${T}, json_each(t.early) j GROUP BY 1, 2, 3, 4, 5, 7`,
-    `INSERT INTO stats_lol_build_order SELECT ${K}, p.role, p.champion, j.key + 1, json_extract(j.value, '$[0]'), count(*), sum(p.win), sum(json_extract(j.value, '$[1]'))
-      ${T}, json_each(t.build) j WHERE j.key < 6 GROUP BY 1, 2, 3, 4, 5, 6, 7`,
-    // slot 0 = core: the first three build items as one ordered key, timed at the third
-    `INSERT INTO stats_lol_build_order SELECT ${K}, p.role, p.champion, 0, json_extract(t.build, '$[0][0]') || ',' || json_extract(t.build, '$[1][0]') || ',' || json_extract(t.build, '$[2][0]'),
-      count(*), sum(p.win), sum(json_extract(t.build, '$[2][1]')) ${T} WHERE json_array_length(t.build) >= 3 GROUP BY 1, 2, 3, 4, 5, 7`,
+    // slots 1..6 = the nth completed item (temp.lol_completed, src/lol-items.js; empty = every item), in first-purchase order
+    `INSERT INTO stats_lol_build_order SELECT ${K}, p.role, p.champion, b.slot, b.item, count(*), sum(p.win), sum(b.sec)
+      FROM ${B} b JOIN lol_participants p ON p.match_id = b.match_id AND p.puuid = b.puuid ${M} WHERE b.slot <= 6 GROUP BY 1, 2, 3, 4, 5, 6, 7`,
+    // slot 0 = core: the first three completed items as one ordered key, timed at the third
+    `INSERT INTO stats_lol_build_order SELECT ${K}, p.role, p.champion, 0, c.items, count(*), sum(p.win), sum(c.sec)
+      FROM (SELECT match_id, puuid, group_concat(item, ',' ORDER BY slot) items, max(sec) sec FROM ${B} WHERE slot <= 3 GROUP BY match_id, puuid HAVING count(*) = 3) c
+      JOIN lol_participants p ON p.match_id = c.match_id AND p.puuid = c.puuid ${M} GROUP BY 1, 2, 3, 4, 5, 7`,
     ...SKILL_LEVELS.map((n) => `INSERT INTO stats_lol_skills SELECT ${K}, p.role, p.champion, ${n}, substr(t.skills, 1, ${n}), count(*), sum(p.win) ${T} WHERE length(t.skills) >= ${n} GROUP BY 1, 2, 3, 4, 5, 7`),
     `INSERT INTO stats_lol_objectives SELECT ${K}, p.role, p.champion, o.objective, sum(o.state = 1), sum(o.state = 1 AND p.win), sum(o.state = -1), sum(o.state = -1 AND p.win)
       FROM lol_participants p JOIN lol_objectives o ON o.match_id = p.match_id AND o.team = p.team ${M} GROUP BY 1, 2, 3, 4, 5, 6`,

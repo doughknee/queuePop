@@ -122,6 +122,9 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `buildOrder: { core: [...], slots: [[...] × 6] }`, each `{ key, games, winRate, pickRate, avgMinute, lowSample }`. A build is
     the final-inventory items in first-purchase order (bought after 1:30, no consumables); `slots[n]` = what was item n+1
     (pickRate out of games that reached that slot), `core` key = the first three in order (`"3020,3078,6672"`), timed at the third.
+    Since D14 only completed items count (`src/lol-items.js`: has a recipe, not a consumable/trinket, builds into nothing but tier-3
+    boots or an Ornn upgrade; Data Dragon, refreshed daily into `meta.lolItems`): components and starters (Kindlegem, Dark Seal,
+    Doran's, World Atlas) no longer take slots, like Lolalytics' core.
   - `skills: { 6, 10, 15: [{ key, ... }] }` key = the first N skill points (`"QEWQQR"`); games shorter than N levels drop out.
   - `objectives: [{ objective, games, secured, securedRate, securedWinRate, yielded, yieldedRate, yieldedWinRate, lowSample }]` for
     `first_blood first_tower first_dragon grubs herald baron first_inhibitor atakhan soul`: secured = your team took it first,

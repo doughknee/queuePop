@@ -126,10 +126,17 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
 })();
 
 // Raw JSON retention: a minute after start (so a pass has happened), then daily.
+// In the worker too: the UPDATE + incremental vacuum held the API thread ~12 s (seen 2026-10-20 08:02Z).
 function retain() {
   if (aggregating) return log("retention: skipped, aggregation running");
-  try { log(`retention: nulled raw on ${jobs.retain(db, cfg.retentionDays)} matches`); } catch (e) { log(`retention: ${e.message}`); }
+  new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "retain", days: cfg.retentionDays } })
+    .once("message", (n) => log(`retention: nulled raw on ${n} matches`))
+    .once("error", (e) => log(`retention: ${e.message}`));
 }
+
+// Completed-item list for build slots (src/lol-items.js): on start, then daily; a failure keeps the last list.
+const items = () => require("./lol-items").refreshItems(db).then((m) => log(`items: ${m.completed.length} completed items (${m.version})`), (e) => log(`items: ${e.message}`));
+items(); setInterval(items, 86400000).unref();
 setTimeout(retain, 60000).unref();
 setInterval(retain, 86400000).unref();
 
