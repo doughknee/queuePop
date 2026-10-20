@@ -11,6 +11,7 @@ const { createTray } = require("./tray");
 const { attachTimeline } = require("./timeline");
 const { createAway } = require("./stepping-away");
 const { attachGamePlan } = require("./game-plan");
+const { attachRecap } = require("./recap");
 const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
@@ -23,7 +24,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -46,9 +47,11 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
   const away = createAway(state, push); // DONI-424
   const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log }); // DONI-347
+  const champName = (id) => ((impl.get_champion_catalog && impl.get_champion_catalog()) || []).find((c) => Number(c.id) === Number(id))?.name || `champion ${id}`;
+  const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, plan: plan.get(), timeline: timeline.status(), away: away.status().on,
+    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, plan: plan.get(), record: recap.list().record, timeline: timeline.status(), away: away.status().on,
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
     setAway: (on) => away.set(on),
     // DONI-337: champ select on the phone: who you are, the timer, trades waiting for your answer.
@@ -99,7 +102,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       const allowed = loadConfig().allowed_queue_ids || [];
       if (allowed.length && !allowed.includes(qid)) return; // main.js already logged the skip
       queueName = QUEUE_ID_MAP[qid] || (qid ? `Queue ${qid}` : "Unknown");
-      notifier.alert("queue_pop", "Queue Popped!", "Accepting your match automatically, get back to your PC!", "Queue pop", { queue: queueName });
+      const auto = state.away || loadConfig().auto_accept !== false; // DONI-351: say what will actually happen
+      notifier.alert("queue_pop", "Queue Popped!", auto ? "Accepting your match automatically, get back to your PC!" : "Accept it in the client, auto-accept is off!", "Queue pop", { queue: queueName });
     } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && e.eventType !== "Delete") {
       if (e.data === "ChampSelect") notifier.alert("champ_select", "⚔️ Champ select started", "Champ select has started.", "Champ select", { queue: queueName });
       else if (e.data === "InProgress") notifier.alert("game_start", "🎮 Game starting", "Your game is starting.", "Game start", { queue: queueName });
@@ -145,11 +149,14 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     new_companion_link: () => ({ ok: newToken() }),
     set_stepping_away: (on) => away.set(on),
     get_game_plan: () => plan.get(),
+    test_ntfy: () => notifier.ntfy("test", "queuePop test", "ntfy is working. You'll get a push like this when your queue pops.", "Test message"),
+    get_draft_recaps: () => recap.list(),
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];
       if (cfg.desktop_notifications) channels.push("Windows");
       if (cfg.webhook_url && (cfg.discord_enabled ?? true) && require("./notifications").isWebhook(cfg.webhook_url)) channels.push("Discord");
+      if (require("./notifications").buildNtfyRequest(cfg.ntfy, "queue_pop", "t", "t")) channels.push("ntfy");
       if (companion.isRunning()) { channels.push("your phone"); push("Test queue pop", "danger", "queue_pop"); }
       await notifier.alert("queue_pop", "Queue Popped! (test)", "This is what a queue pop looks like. Nothing was accepted.", "Test queue pop", { test: true, queue: "Test" });
       return { ok: channels.length > 0, channels };

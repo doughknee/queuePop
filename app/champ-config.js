@@ -153,6 +153,14 @@ function normalizeAram(aram, aramRoleMode) {
   return { enabled, mode: aramRoleMode === "off" ? "list" : aramRoleMode, auto_mastery: enabled && aramRoleMode === "highest", bench_delay: delay };
 }
 
+// ntfy push: on/off, server (default ntfy.sh), topic (letters, digits, - and _), optional access token.
+function normalizeNtfy(n) {
+  n = or(n, {});
+  const server = String(n.server || "").trim().replace(/\/+$/, "");
+  return { enabled: T(getd(n, "enabled", false)), server: /^https?:\/\//i.test(server) ? server : "https://ntfy.sh",
+    topic: /^[\w-]{1,64}$/.test(String(n.topic || "").trim()) ? String(n.topic).trim() : "", token: String(n.token || "").trim() };
+}
+
 function normalizeCompanion(comp) {
   comp = or(comp, {});
   let port = pyInt(getd(comp, "port", COMPANION_PORT));
@@ -200,6 +208,7 @@ function normalizeConfig(data) {
       .map((k) => [k, T(getd(alerts, k, k === "queue_pop" || k === "game_plan"))])), // game plan on by default (DONI-347)
     allowed_queue_ids: cleanQueueIds(data.allowed_queue_ids),
     accept_delay_seconds: acceptDelay(data.accept_delay_seconds),
+    auto_accept: T(getd(data, "auto_accept", true)), // DONI-351: kept across restarts (Pause is for now only)
     favorite_queue_ids: cleanQueueIds(data.favorite_queue_ids, true),
     last_queue_id: coerceQueueId(data.last_queue_id),
     show_last_queue: T(getd(data, "show_last_queue", true)),
@@ -210,6 +219,7 @@ function normalizeConfig(data) {
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
     crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),
+    ntfy: normalizeNtfy(data.ntfy), // DONI-425
     timeline_load_seconds: Math.min(300, Math.max(0, pyInt(getd(data, "timeline_load_seconds", 60)) ?? 60)), // DONI-423
     games_enabled: cleanGames(data.games_enabled), // DONI-522: which worlds show in the sidebar and on home
     ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.25, // DONI-516 Text size (zoom factor)

@@ -75,3 +75,17 @@ assert.ok(!isWebhook("https://evil.example/api/webhooks/1/x"));
 assert.ok(!isWebhook("http://discord.com/api/webhooks/1/x"));
 assert.ok(!isWebhook("https://discord.com.evil.example/api/webhooks/1/x"));
 console.log("test-notify webhook ok");
+
+// DONI-425: the ntfy request.
+const { buildNtfyRequest: N } = require("./notifications");
+assert.strictEqual(N({ enabled: false, topic: "abc" }, "queue_pop", "Q", "go"), null);
+assert.strictEqual(N({ enabled: true, topic: "" }, "queue_pop", "Q", "go"), null);
+assert.strictEqual(N({ enabled: true, topic: "a b" }, "queue_pop", "Q", "go"), null);
+const nq = N({ enabled: true, topic: "queuepop-1a2b" }, "queue_pop", "⚡ Queue Popped!", "Get back!");
+assert.deepStrictEqual(nq, { url: "https://ntfy.sh/queuepop-1a2b", headers: { Title: "Queue Popped!", Priority: "5", Tags: "zap" }, body: "Get back!" });
+const nt = N({ enabled: true, topic: "t", server: "https://ntfy.home.lan/", token: "tk" }, "timeline", "queuePop", "About 90 seconds until your game starts: come back.");
+assert.strictEqual(nt.url, "https://ntfy.home.lan/t");
+assert.strictEqual(nt.headers.Priority, "5");
+assert.strictEqual(nt.headers.Authorization, "Bearer tk");
+assert.strictEqual(N({ enabled: true, topic: "t" }, "timeline", "queuePop", "In queue. About 3 min.").headers.Priority, "3");
+console.log("test-notify ntfy ok");

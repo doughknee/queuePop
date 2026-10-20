@@ -264,6 +264,9 @@ async function pollStatus() {
     ensureCustomSound();
     timeline = s.timeline || null; drawTimeline();
     drawAway(!!s.away);
+    const rec = s.record, f = rec && rec.followed, ig = rec && rec.ignored; // DONI-349
+    $("rec").hidden = !(f && (f.games || ig.games));
+    if (f) $("rec-text").textContent = `When you took the top suggestion: ${f.games} games, ${f.wins}-${f.games - f.wins}. When you didn't: ${ig.games} games, ${ig.wins}-${ig.games - ig.wins}.`;
     const p = s.plan; $("plan").hidden = !(p && p.lines && p.lines.length); // DONI-347
     if (p && p.lines) { $("plan-title").textContent = "Your game plan" + (p.champion ? " · " + p.champion : ""); $("plan-lines").innerHTML = p.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join(""); }
     if (s.phase === "ChampSelect") startChamp(); else stopChamp();
