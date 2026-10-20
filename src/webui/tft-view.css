@@ -144,3 +144,14 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-table td .ts-ico-item{margin-right:2px}
 .ts-table .ts-v{display:inline-block;margin:0;padding:0 6px;line-height:22px}
 @media (max-width:900px){.ts-head-list,.ts-row-list{grid-template-columns:minmax(130px,1fr) repeat(4,minmax(48px,64px)) minmax(0,1fr)}.ts-head-list span:nth-child(5),.ts-row-list>span:nth-child(5){display:none}}
+
+/* DONI-512: leaderboard and player pages */
+.ts-seg a.ts-seg-a{display:flex;align-items:center;height:26px;padding:0 10px;border-right:1px solid var(--line);color:var(--muted);font:11px var(--mono);text-decoration:none}
+.ts-seg a.ts-seg-a:last-child{border-right:0}
+.ts-seg a.ts-seg-a[aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
+.ts-ladder-table td:nth-child(2) a{font-weight:700;text-decoration:none;color:var(--fg)}
+.ts-ladder-table td:nth-child(2) a:hover{color:var(--accent)}
+.ts-game-static{cursor:default}
+.ts-unit-cell{display:inline-flex;flex-direction:column;align-items:center}
+.ts-unit-cell .ts-stars{line-height:1}
+.ts-ladder-table :is(th,td):nth-child(2),.ts-ladder-table :is(th,td):nth-child(3){text-align:left}
