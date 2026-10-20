@@ -82,6 +82,9 @@
     #alarm h2 { font-family: Cinzel, serif; font-weight: 700; font-size: 40px; margin: 0 0 6px; letter-spacing: .04em; }
     #alarm p { font-size: 18px; margin: 0 0 4px; opacity: .95; }
     #alarm .mode { color: #fde68a; font-size: 16px; margin-top: 8px; }
+    #alarm .decline { display: block; margin: 18px auto 0; border-color: #fff; background: #fff; color: #b91c1c; font-weight: 700; }
+    #alarm .decline:disabled { opacity: .6; }
+    #alarm .decline-msg { min-height: 1.4em; font-size: 15px; }
   </style>
 </head>
 <body>
@@ -133,6 +136,8 @@
       <p>Get back to your PC!</p>
       <div class="mode" id="alarm-mode"></div>
       <button class="btn" id="silence" style="border-color:#fff;color:#fff;">Silence</button>
+      <button class="btn decline" id="decline">Decline this match</button>
+      <p class="decline-msg" id="decline-msg" role="status"></p>
     </div>
   </div>
 

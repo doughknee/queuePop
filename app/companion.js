@@ -18,7 +18,7 @@ function lanIp() {
   });
 }
 
-// ctx: { webRoot, events (shared array, ascending ids), getConfig, status: () => ({connected, paused}), push }
+// ctx: { webRoot, events (shared array, ascending ids), getConfig, status: () => ({connected, paused, ready}), push, decline }
 function createCompanion(ctx) {
   let server = null;
   let boundPort = null;
@@ -66,6 +66,11 @@ function createCompanion(ctx) {
       res.setHeader("Set-Cookie", `qp_t=${cfgComp().token}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict`);
     }
     if (p === "/api/stream") return stream(req, res);
+    if (p === "/api/decline") {
+      if (req.method !== "POST" || !ctx.decline) { res.writeHead(405); return res.end(); }
+      return Promise.resolve(ctx.decline()).catch((e) => ({ ok: false, error: e.message }))
+        .then((r) => { res.writeHead(r.ok ? 200 : 409, { "Content-Type": "application/json" }); res.end(JSON.stringify(r)); });
+    }
     if (p === "/api/status") {
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ...ctx.status(), sound: cfgComp().sound || "chime" }));

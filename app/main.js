@@ -40,10 +40,11 @@ lcu.on("connect", async () => {
 lcu.on("disconnect", () => {
   log("LCU disconnected, waiting for client");
   push("League client disconnected", "warning");
-  state.phase = null;
+  state.phase = null; state.ready = null;
 });
 lcu.on("event", (e) => {
   if (e.uri === "/lol-gameflow/v1/gameflow-phase") state.phase = e.data;
+  if (e.uri === "/lol-matchmaking/v1/ready-check") state.ready = e.eventType === "Delete" ? null : e.data; // the phone's Decline (DONI-337)
   if (e.uri === "/lol-matchmaking/v1/ready-check" && e.eventType !== "Delete") readyCheck(e.data);
 });
 
