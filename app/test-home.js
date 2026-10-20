@@ -66,7 +66,7 @@ const tiles = (l, g = all3) => J(ctx.resumeTiles(l, g, pages));
 assert.deepStrictEqual(tiles({}), []);
 let lt = ctx.qpLastNext({}, "#/league/history");
 lt = ctx.qpLastNext(lt, "#/deadlock/heroes/mo-krill");
-assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.detail || "")), ["deadlock:Heroes:Mo Krill", "league:Match history:"]);
+assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.detail || "")), ["deadlock:Hero:Mo Krill", "league:Match history:"]);
 lt = ctx.qpLastNext(lt, "#/league/champion/103");
 lt = ctx.qpLastNext(lt, "#/league");
 assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.champion || "")), ["league:Tier list:", "deadlock:Heroes:", "league:Last champion:103"]);

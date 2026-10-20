@@ -33,22 +33,29 @@ function push(message, level = "info", kind = null) {
 }
 
 const lcu = new LCU();
-const state = { paused: false, phase: null, accepting: false };
+const state = { paused: false, phase: null, accepting: false, game: null, queueId: null };
+// DONI-598: which game the client's current lobby/queue/match is (League or TFT), so PLAY can show it on every page.
+async function syncClientGame(phase) {
+  if (!phase || phase === "None") { state.game = null; state.queueId = null; return; }
+  const s = await lcu.request("get", "/lol-gameflow/v1/session").catch(() => null);
+  const q = s && s.data && s.data.gameData && s.data.gameData.queue;
+  if (q && q.id > 0) { state.queueId = q.id; state.game = gameOfQueue(q.id, q.gameMode); }
+}
 
 lcu.on("connect", async () => {
   log("LCU connected on port", lcu.creds.port);
   push("League client connected", "success");
   const r = await lcu.request("get", "/lol-gameflow/v1/gameflow-phase").catch(() => null);
-  if (r && r.status === 200) { state.phase = r.data; if (float) float.sync(r.data); } // reconnecting mid champ select opens the float
+  if (r && r.status === 200) { state.phase = r.data; if (float) float.sync(r.data); syncClientGame(r.data); } // reconnecting mid champ select opens the float
 });
 lcu.on("disconnect", () => {
   log("LCU disconnected, waiting for client");
   push("League client disconnected", "warning");
-  state.phase = null; state.ready = null;
+  state.phase = null; state.ready = null; state.game = null; state.queueId = null;
   if (float) float.sync(null);
 });
 lcu.on("event", (e) => {
-  if (e.uri === "/lol-gameflow/v1/gameflow-phase") { state.phase = e.data; if (float) float.sync(e.data); }
+  if (e.uri === "/lol-gameflow/v1/gameflow-phase") { state.phase = e.data; if (float) float.sync(e.data); syncClientGame(e.data); }
   if (e.uri === "/lol-matchmaking/v1/ready-check") state.ready = e.eventType === "Delete" ? null : e.data; // the phone's Decline (DONI-337)
   if (e.uri === "/lol-matchmaking/v1/ready-check" && e.eventType !== "Delete") readyCheck(e.data);
 });
@@ -103,7 +110,7 @@ async function readyCheck(data) {
 let win;
 const impl = {
   get_status: () => ({
-    connected: lcu.connected, gameflow_phase: state.phase, paused: state.paused,
+    connected: lcu.connected, gameflow_phase: state.phase, paused: state.paused, client_game: state.game, queue_id: state.queueId,
     webhook_configured: false, user_id: "", desktop_notifications: false,
     champ_select_enabled: false, allowed_queue_count: (loadConfig().allowed_queue_ids || []).length,
     champions_loaded: 0, companion_enabled: false, companion_running: false, companion_clients: 0,
