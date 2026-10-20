@@ -244,4 +244,4 @@ function deriveRolePicks(mastery, matches, champRoles) {
   return out;
 }
 
-module.exports = { liveSuggestions, inferRole, matchPosition, loadChampionRoles, deriveRolePicks, SETUP_ROLES, pyRound };
+module.exports = { flagsOf, liveSuggestions, inferRole, matchPosition, loadChampionRoles, deriveRolePicks, SETUP_ROLES, pyRound };

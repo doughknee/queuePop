@@ -70,6 +70,7 @@ async function refreshChampLive() {
   const ctx = wantSugg && window.draftAdvice ? draftAdvice.draftContext(cs) : null;
   if (ctx && ctx.role) draft = await draftAdvice.fetch(ctx).then((r) => ({ r, ctx }), () => null);
   const plan = await Promise.resolve(api().get_game_plan && api().get_game_plan()).catch(() => null); // DONI-347
+  if (cs.bench && cs.bench.enabled) cs.bench.advice = await Promise.resolve(api().bench_advice && api().bench_advice()).catch(() => null); // DONI-350
   renderChampLive(cs, sugg, draft, plan);
 }
 
@@ -235,7 +236,8 @@ function renderChampLive(cs, sugg, draft, plan) {
     bench.enabled && (bench.champions || []).length
       ? `<div class="cs-strip cs-bench"><span class="cs-strip-label">Bench</span>` +
         bench.champions.map((c) => csMini(c, false)).join("") +
-        `</div>`
+        `</div>` +
+        (bench.advice && bench.advice.line ? `<p class="dr-bench">${escapeHtml(bench.advice.line)}</p>` : "")
       : "";
 
   $("champ-live").innerHTML =

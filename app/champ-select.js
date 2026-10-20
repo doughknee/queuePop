@@ -906,6 +906,19 @@ function attach(lcu, impl, push, state) {
       return { ok: true, roles, queues, last };
     },
 
+    // DONI-350: ARAM, which bench champion fills what your team lacks (advice only).
+    bench_advice: async () => {
+      const s = await session();
+      if (!s || !T(s.benchEnabled)) return null;
+      if (!cs.idToName.size) await cs.loadChampionData();
+      const nm2 = (id) => cs.idToName.get(id);
+      const team = arr(s.myTeam).map((p) => nm2(p.championId)).filter(Boolean);
+      let bench = arr(s.benchChampions).map((b) => (b && typeof b === "object" ? b.championId : b)).filter(Boolean);
+      if (!bench.length) bench = arr(s.benchChampionIds);
+      const { benchAdvice, adviceLine } = require("./bench-advice");
+      const a = benchAdvice(team, bench.map(nm2).filter(Boolean), suggest.flagsOf);
+      return a ? { pick: a.pick, line: adviceLine(a) } : null;
+    },
     get_champ_select: async () => {
       const s = await session();
       if (!s) return { active: false };
