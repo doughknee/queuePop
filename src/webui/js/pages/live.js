@@ -91,7 +91,7 @@ function draftPanel(d) {
         const icon = champIconById(Number(c.champion));
         return `<li class="dr-row${c.lowSample ? " low" : ""}">` +
           `<span class="dr-rank">${i + 1}</span>` +
-          (icon ? `<img src="${icon}" alt="" onerror="this.style.visibility='hidden'" />` : "") +
+          (icon ? `<img src="${icon}" alt="" data-fb="hide" />` : "") +
           `<span class="dr-txt"><b>${escapeHtml(name(c.champion))}${mine.has(Number(c.champion)) ? `<em>in your list</em>` : ""}</b>` +
           `<small>${escapeHtml(draftAdvice.whyLine(c, name)) || "Not enough games yet"}</small></span>` +
         `</li>`;
@@ -118,7 +118,7 @@ function suggPanel(s) {
     return (
       `<div class="cs-sugg-card">` +
         `<div class="cs-mini${bans ? " ban" : ""}">` +
-          (icon ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />` : "") +
+          (icon ? `<img src="${icon}" data-fb="hide" />` : "") +
         `</div>` +
         `<div class="cs-meta"><span class="cs-name">${escapeHtml(it.champ)}</span>` +
           reasons.map((r) => `<span class="cs-sugg-why">${escapeHtml(r)}</span>`).join("") +
@@ -142,7 +142,7 @@ function csPortrait(p) {
   const icon = champIconById(id);
   const cls = "cs-portrait" + (!locked && p.intent > 0 ? " intent" : "");
   const img = icon
-    ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
+    ? `<img src="${icon}" data-fb="hide" />`
     : "";
   return `<div class="${cls}">${img}</div>`;
 }
@@ -153,14 +153,14 @@ function csRow(p) {
   const nameCls = "cs-name" + (locked ? "" : " pending");
   const nameTxt = name || (p.intent > 0 ? "Hovering…" : "Picking…");
   const role = p.position
-    ? `<img class="cs-role" src="assets/positions/${p.position}.svg" onerror="this.style.display='none'" />`
+    ? `<img class="cs-role" src="assets/positions/${p.position}.svg" data-fb="none" />`
     : "";
   const spells = [p.spell1Id, p.spell2Id]
     .filter((s) => s > 0)
     .map(
       (s) =>
         `<img class="cs-spell-ico" src="assets/spells/${s}.png" title="${spellShort(s)}" ` +
-        `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cs-spell',textContent:'${spellShort(s)}'}))" />`,
+        `data-fb-class="cs-spell" data-fb-text="${spellShort(s)}" />`,
     )
     .join("");
   return (
@@ -179,7 +179,7 @@ function csMini(c, ban) {
   const icon = champIconById(c.championId);
   return (
     `<div class="cs-mini${ban ? " ban" : ""}" title="${c.name || ""}">` +
-      (icon ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />` : "") +
+      (icon ? `<img src="${icon}" data-fb="hide" />` : "") +
     `</div>`
   );
 }

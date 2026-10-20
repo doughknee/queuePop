@@ -87,7 +87,7 @@ window.createTftView = function (host) {
   // Icon with a lettered fallback when Community Dragon has no art (or it fails to load).
   const icon = (key, cls = '') => {
     const i = S.info(key), letters = i.name.replace(/\W/g, '').slice(0, 2);
-    return i.icon ? `<img class="ts-ico ${cls}" src="${esc(i.icon)}" alt="" title="${esc(i.name)}" loading="lazy" onerror="this.outerHTML='<span class=&quot;ts-ico ts-ico-x ${cls}&quot;>${letters}</span>'">`
+    return i.icon ? `<img class="ts-ico ${cls}" src="${esc(i.icon)}" alt="" title="${esc(i.name)}" loading="lazy" data-fb-class="ts-ico ts-ico-x ${cls}" data-fb-text="${letters}">`
       : `<span class="ts-ico ts-ico-x ${cls}" title="${esc(i.name)}">${letters}</span>`;
   };
   const compName = (id) => id.split(',').map(name).join(' · ');
@@ -111,6 +111,9 @@ window.createTftView = function (host) {
   const games = (n) => `<span class="ts-games">${n.toLocaleString()} games</span>`;
 
   const filters = { patch: '', region: 'all', bracket: 'all', days: '' };
+  // Region, rank and window are remembered between sessions like League's (patch always starts on the newest).
+  const FKEY = 'queuepop-tft-filters-v1', saveFilters = () => { try { localStorage.setItem(FKEY, JSON.stringify({ region: filters.region, bracket: filters.bracket, days: filters.days })); } catch (_) {} };
+  try { const s = JSON.parse(localStorage.getItem(FKEY) || '{}'); for (const k of ['region', 'bracket', 'days']) if (typeof s[k] === 'string') filters[k] = s[k]; } catch (_) {}
   let rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
   const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
   const detail = (id) => S.get(`/tft/comp/${enc(id)}?${qs()}`);
@@ -311,12 +314,12 @@ window.createTftView = function (host) {
     const cb = e.target.closest('[data-cost]');
     if (cb) { costFilter = +cb.dataset.cost; statsList('units'); return; }
     const r = e.target.closest('[data-region]');
-    if (r) { filters.region = r.dataset.region; refilter(); return; }
+    if (r) { filters.region = r.dataset.region; saveFilters(); refilter(); return; }
     if (e.target.closest('[data-more]')) { shown += 30; renderList(); return; }
     const g = e.target.closest('[data-game]');
     if (g) { openGame = openGame === +g.dataset.game ? null : +g.dataset.game; renderHistory(); page.querySelector(`[data-game="${g.dataset.game}"]`)?.focus(); }
   });
-  page.addEventListener('change', (e) => { if (e.target.dataset.f) { filters[e.target.dataset.f] = e.target.value; refilter(); } });
+  page.addEventListener('change', (e) => { if (e.target.dataset.f) { filters[e.target.dataset.f] = e.target.value; if (e.target.dataset.f !== 'patch') saveFilters(); refilter(); } });
   async function refilter() {
     if (LISTS[parse().p]) return statsList(parse().p);
     open = null; shown = 30; known.clear(); searchedAll = false;

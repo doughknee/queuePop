@@ -9,7 +9,7 @@
   const icon = id => `assets/champions/${id}.png`;
   api()?.get_champion_catalog().then(list => { for (const c of list || []) names[c.id] = c.name; }).catch(() => {});
 
-  const row = (n, id, title, why, low) => `<li class="${low ? 'low' : ''}"><span class="n">${n}</span><img src="${icon(id)}" alt="" onerror="this.style.visibility='hidden'"><span><b>${E(title)}</b><small>${E(why)}</small></span></li>`;
+  const row = (n, id, title, why, low) => `<li class="${low ? 'low' : ''}"><span class="n">${n}</span><img src="${icon(id)}" alt="" data-fb="hide"><span><b>${E(title)}</b><small>${E(why)}</small></span></li>`;
   async function tick() {
     const a = api(); if (!a) return;
     let cs; try { cs = await a.get_champ_select(); } catch { return; }

@@ -173,7 +173,7 @@ $("accept_seconds").addEventListener("input", () => {
 function planChampHtml(name, ban) {
   const icon = champIcon(name);
   const media = icon
-    ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
+    ? `<img src="${icon}" data-fb="hide" />`
     : `<span class="plan-champ-name">${initials(name)}</span>`;
   // DONI-542: a champion anywhere in League opens its champion page.
   const c = (typeof catalog !== "undefined" ? catalog : []).find((x) => x.name === name);
@@ -187,7 +187,7 @@ function planLoadoutHtml(rc, pickName) {
   if (!lo) return "";
   const bits = [];
   for (const sid of lo.spells || [])
-    bits.push(`<img src="assets/spells/${sid}.png" title="${spellName(sid)}" onerror="this.style.display='none'" />`);
+    bits.push(`<img src="assets/spells/${sid}.png" title="${spellName(sid)}" data-fb="none" />`);
   if (lo.rune && lo.rune !== "off") bits.push(`<span class="plan-lo-badge">Runes</span>`);
   if (lo.skin && lo.skin !== "off")
     bits.push(`<span class="plan-lo-badge">${Array.isArray(lo.skin) ? "Skins" : "Skin"}</span>`);
@@ -268,7 +268,7 @@ function renderPlan(c) {
       const ban = (rc.bans || [])[0];
       return (
         `<div class="plan-row">` +
-          `<span class="plan-role"><img src="assets/positions/${r.key}.svg" onerror="this.style.display='none'" /><span>${r.label}</span></span>` +
+          `<span class="plan-role"><img src="assets/positions/${r.key}.svg" data-fb="none" /><span>${r.label}</span></span>` +
           `<span class="plan-pb">` +
             slot("Pick", pick, (rc.picks || []).length, false) +
             slot("Ban", ban, (rc.bans || []).length, true) +
