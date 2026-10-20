@@ -9,7 +9,8 @@ const ROUTING = {
 };
 
 // key is a string, or a function called per request so a rotated key applies without a restart.
-function createClient({ key, base, limiter, log = () => {} }) {
+// onAuthFail(status, message) fires on 401/403: Riot's answer to an expired or revoked key.
+function createClient({ key, base, limiter, log = () => {}, onAuthFail = () => {} }) {
   // Returns parsed JSON, or null on 404.
   async function get(host, path, method) {
     for (let attempt = 0; ; attempt++) {
@@ -28,6 +29,11 @@ function createClient({ key, base, limiter, log = () => {} }) {
       if (res.status === 429 && attempt < 5) { log(`429 ${host} ${method}, retry-after ${res.headers.get("retry-after")}`); continue; }
       if (res.status >= 500 && attempt < 3) { await limiter.sleep(2000 * (attempt + 1)); continue; }
       if (res.status === 404) return null;
+      if (res.status === 401 || res.status === 403) {
+        const msg = (await res.json().catch(() => null))?.status?.message || res.statusText;
+        onAuthFail(res.status, msg);
+        throw Object.assign(new Error(`${res.status} ${msg} ${host}${path}`), { auth: true });
+      }
       if (!res.ok) throw new Error(`${res.status} ${host}${path}`);
       return res.json();
     }

@@ -6,7 +6,7 @@ body{margin:0 auto;max-width:560px;padding:16px;background:#14161a;color:#e6e1d3
 h1{color:#c8a85a;font-size:24px}h2{color:#c8a85a;font-size:16px;margin:20px 0 4px}
 .bar{background:#2a2d33;height:10px;border-radius:5px}.bar i{display:block;height:10px;border-radius:5px;background:#c8a85a}
 input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font-size:18px;border-radius:6px;border:1px solid #3a3d44;background:#1d2025;color:inherit}
-button{background:#c8a85a;color:#14161a;border:0;font-weight:700}#msg.err{color:#e5736a}#msg.ok{color:#7fcf8a}
+button{background:#c8a85a;color:#14161a;border:0;font-weight:700}#msg.err,.bad{color:#e5736a}.bad{font-weight:700}#msg.ok{color:#7fcf8a}
 </style>
 <h1>queuePop crawler</h1>
 <div id="s">loading…</div>
@@ -29,7 +29,7 @@ async function load() {
 <div>Matches: ${sum(s.matches, "done")} done · ${sum(s.matches, "new")} new · ${sum(s.matches, "skip")} skip</div>
 <div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)} (every ${s.aggregateEveryMin} min)</div>
 <div>DB: ${mb(s.disk.dbBytes)} + WAL ${mb(s.disk.walBytes)} · raw JSON ${mb(s.disk.rawBytes)} in ${s.disk.rawMatches} matches (kept ${s.retentionDays} d)</div>
-<div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""}</div><h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
+<div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""}</div>${s.key.valid === false ? `<div class="bad">Key invalid: ${s.key.reason}${s.key.since ? " since " + when(s.key.since) : ""}. Crawl paused; paste a new key below.</div>` : ""}<h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
   } catch (e) { $("s").textContent = "status failed: " + e.message; }
 }
 $("f").onsubmit = async (e) => {

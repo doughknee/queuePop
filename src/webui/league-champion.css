@@ -1,72 +1,73 @@
 /* DONI-507 / DONI-519: League champion page (league-champion.js). Tokens and the table / heat rules live in league-stats.css. */
 
-/* Band: identity left (Cinzel name on the splash), the numbers right. */
+/* Band: identity left (the name in Anton on the splash), the numbers right. */
 .lg-champ-band{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 24px;align-items:center;padding:12px 16px;background-position:center 22%}
 .lg-champ-id{display:flex;align-items:center;gap:14px}
 .lg-portrait{width:60px;height:60px;object-fit:cover;flex:none}
-.lg-champ-band h1{font:500 34px/1.05 Cinzel,serif}
+.lg-champ-band h1{font:400 40px/1 var(--display);text-transform:uppercase;letter-spacing:.01em}
 .lg-champ-id p{display:flex;flex-wrap:wrap;gap:2px 14px;margin:4px 0 0;font-size:12px}
-.lg-champ-id p a{color:var(--lg-gold);text-decoration:none}
+.lg-champ-id p a{color:var(--accent);text-decoration:none}
 .lg-champ-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .lg-strip{display:flex;flex-wrap:wrap;justify-content:flex-end;margin:0}
-.lg-strip>div{padding:0 14px;border-left:1px solid var(--lg-line)}
+.lg-strip>div{padding:0 14px;border-left:1px solid var(--line)}
 .lg-strip>div:first-child{border-left:0}
-.lg-strip dt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--lg-gold)}
-.lg-strip dd{margin:0;font:400 21px/1.2 Marcellus,serif;font-variant-numeric:tabular-nums}
+.lg-strip dt{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.lg-strip dd{margin:0;font:700 20px/1.2 var(--mono);font-variant-numeric:tabular-nums}
 .lg-strip .lg-tier{width:40px;height:24px;font-size:15px;margin:1px 0}
 .lg-croles:empty{display:none}
 
 /* Blocks: dense rows, each block only as tall as its own rows. */
 .lg-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;align-items:start}
-.lg-block{border:1px solid #c8aa6e24;background:#0d1c2566;padding:6px 10px}
+.lg-block{border:1px solid var(--line);background:var(--bg);padding:6px 10px}
 .lg-block>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin-bottom:2px}
-.lg-block h3{font:400 15px Marcellus,serif;color:var(--lg-ivory)}
-.lg-block-head,.lg-pick{display:grid;grid-template-columns:auto minmax(0,1fr) 50px 78px;align-items:center;gap:6px}
-.lg-block-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted);border-bottom:1px solid #ffffff0d}
+.lg-block h3{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--fg)}
+.lg-block-head,.lg-pick{display:grid;grid-template-columns:auto minmax(0,1fr) 46px 96px;align-items:center;gap:6px}
+.lg-block-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
 .lg-block-head span:nth-child(n+3){text-align:right}
-.lg-pick{padding:1px 0;border-bottom:1px solid #ffffff08;font-variant-numeric:tabular-nums}
-.lg-pick b{text-align:right;font-weight:600}
-.lg-pick>small{text-align:right}
+.lg-pick{padding:1px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lg-pick b{text-align:right;font-weight:700}
+.lg-pick>small{text-align:right;white-space:nowrap;font-size:10px}
+.lg-block-head span{white-space:nowrap}
 .lg-pick-icons{display:flex;gap:2px}
-.lg-pick-label{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-pick-label{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lg-pick-label .lg-min{display:block;line-height:1.1}
-.lg-ico{width:24px;height:24px;object-fit:cover;background:var(--lg-obsidian)}
+.lg-ico{width:24px;height:24px;object-fit:cover;background:var(--bg)}
 .lg-keys{display:flex;align-items:center;gap:2px}
-.lg-keys kbd{display:grid;place-items:center;width:20px;height:20px;font:700 11px 'Segoe UI',sans-serif;background:var(--lg-deep);border:1px solid var(--lg-gold);color:var(--lg-ivory)}
-.lg-keys i{color:var(--lg-muted);font-style:normal}
-.lg-sep{height:1px;background:var(--lg-line);margin:3px 0}
-.lg-msort{margin-left:auto;display:flex;gap:3px;align-items:center;font-size:11px;color:var(--lg-muted)}
-.lg-msort button{background:none;border:1px solid #c8aa6e33;color:var(--lg-muted);padding:1px 7px;font:11px 'Segoe UI',sans-serif}
-.lg-msort button[aria-pressed=true]{color:var(--lg-ivory);border-color:var(--lg-gold)}
+.lg-keys kbd{display:grid;place-items:center;width:20px;height:20px;font:700 11px var(--mono);background:var(--bg);border:1px solid var(--edge);color:var(--fg)}
+.lg-keys i{color:var(--muted);font-style:normal}
+.lg-sep{height:1px;background:var(--line);margin:3px 0}
+.lg-msort{margin-left:auto;display:flex;gap:3px;align-items:center;font-size:11px;color:var(--muted)}
+.lg-msort button{background:none;border:1px solid var(--edge);color:var(--muted);padding:1px 7px;font:11px var(--mono)}
+.lg-msort button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
 
 /* Skills & spells, runes, items: three columns, the left skills column stacks priority over spells. */
 .lg-sheet3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .lg-stack-col{display:grid;gap:8px}
 /* Skills */
-.lg-sheet-skills{grid-template-columns:minmax(240px,1fr) minmax(0,2.6fr)}
+.lg-sheet-skills{grid-template-columns:minmax(320px,1fr) minmax(0,2.2fr)}
 .lg-sk-grid{display:grid;gap:1px;margin:4px 0 6px;overflow-x:auto}
 .lg-sk-row{display:grid;grid-template-columns:22px repeat(var(--n),minmax(16px,1fr));gap:1px}
-.lg-sk-row kbd{display:grid;place-items:center;height:18px;font:700 11px 'Segoe UI',sans-serif;background:var(--lg-deep);border:1px solid var(--lg-gold);color:var(--lg-ivory)}
-.lg-sk-row span{height:18px;display:grid;place-items:center;background:#ffffff08;font:600 11px 'Segoe UI',sans-serif;color:var(--lg-obsidian);font-variant-numeric:tabular-nums}
-.lg-sk-row span.on{background:var(--lg-spell)}
-.lg-sk-row:last-child span.on{background:var(--lg-gold)}
-.lg-sk-key{font:600 11px/1 Consolas,'Segoe UI',monospace;letter-spacing:1px;color:var(--lg-ivory)}
+.lg-sk-row kbd{display:grid;place-items:center;height:18px;font:700 11px var(--mono);background:var(--bg);border:1px solid var(--edge);color:var(--fg)}
+.lg-sk-row span{height:18px;display:grid;place-items:center;background:var(--line);font:700 11px var(--mono);color:var(--bg);font-variant-numeric:tabular-nums}
+.lg-sk-row span.on{background:var(--green)}
+.lg-sk-row:last-child span.on{background:var(--amber)}
+.lg-sk-key{font:11px/1 var(--mono);letter-spacing:1px;color:var(--fg)}
 
 /* Items */
 .lg-stack{position:relative;display:inline-flex}
-.lg-stack i{position:absolute;right:-2px;bottom:-3px;font:700 10px 'Segoe UI',sans-serif;font-style:normal;color:var(--lg-ivory);background:var(--lg-obsidian);padding:0 2px}
-.lg-arrow{color:var(--lg-muted);font-style:normal;align-self:center;margin:0 1px}
+.lg-stack i{position:absolute;right:-2px;bottom:-3px;font:700 10px var(--mono);font-style:normal;color:var(--fg);background:var(--bg);padding:0 2px}
+.lg-arrow{color:var(--muted);font-style:normal;align-self:center;margin:0 1px}
 
 /* Objectives */
-.lg-sides{display:flex;margin:0 0 6px;border:1px solid var(--lg-line);width:max-content;max-width:100%}
-.lg-sides>div{padding:4px 14px;border-right:1px solid var(--lg-line)}
+.lg-sides{display:flex;margin:0 0 6px;border:1px solid var(--line);width:max-content;max-width:100%}
+.lg-sides>div{padding:4px 14px;border-right:1px solid var(--line)}
 .lg-sides>div:last-child{border-right:0}
-.lg-sides dt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--lg-gold)}
-.lg-sides dd{margin:0;font:18px Marcellus,serif}
+.lg-sides dt{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.lg-sides dd{margin:0;font:700 18px var(--mono)}
 .lg-champ-page .lg-table th.num:first-child{text-align:left}
 .lg-obj tbody tr,.lg-best tbody tr{cursor:default}
 .lg-best th{padding:5px 6px}
-.lg-obj td:nth-child(5),.lg-obj th:nth-child(5){border-left:1px solid var(--lg-line)}
+.lg-obj td:nth-child(5),.lg-obj th:nth-child(5){border-left:1px solid var(--line)}
 .lg-obj th.num{white-space:normal}
 
 /* Counters (left) beside synergies (right, stacked) */
@@ -75,14 +76,15 @@
 
 /* Synergies */
 .lg-syn-head,.lg-syn{display:grid;grid-template-columns:minmax(0,1fr) 54px 50px 44px;align-items:center;gap:6px}
-.lg-syn{grid-template-columns:auto minmax(0,1fr) 54px 50px 44px;padding:1px 0;border-bottom:1px solid #ffffff08;font-variant-numeric:tabular-nums;text-decoration:none}
-.lg-syn-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--lg-muted);border-bottom:1px solid #ffffff0d}
+.lg-syn{grid-template-columns:auto minmax(0,1fr) 54px 50px 44px;padding:1px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;text-decoration:none}
+.lg-syn-head{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
 .lg-syn-head span:nth-child(n+2),.lg-syn>b,.lg-syn>span:nth-child(4),.lg-syn>small{text-align:right}
 .lg-syn>span:nth-child(2){font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lg-champ-page .lg-syn>span small{margin-left:6px}
-.lg-syn:hover>span:nth-child(2){color:var(--lg-gold)}
+.lg-syn:hover>span:nth-child(2){color:var(--accent)}
 
 @media(max-width:1100px){.lg-strip>div{padding:0 9px}.lg-strip dd{font-size:19px}.lg-champ-band h1{font-size:30px}}
-@media(max-width:800px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch}.lg-strip{justify-content:flex-start}.lg-sheet-skills{grid-template-columns:1fr}}
+@media(max-width:1100px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch;flex-direction:row-reverse;justify-content:space-between;flex-wrap:wrap}.lg-strip{justify-content:flex-start}.lg-strip>div:first-child{padding-left:0}}
+@media(max-width:800px){.lg-sheet-skills{grid-template-columns:1fr}}
 @media(max-width:1000px){.lg-sheet3,.lg-duo{grid-template-columns:1fr 1fr}.lg-duo{grid-template-columns:1fr}}
 @media(max-width:700px){.lg-sheet3{grid-template-columns:1fr}}

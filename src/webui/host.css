@@ -1,38 +1,32 @@
 /* Electron host glue for the three-worlds shell (ported from prototypes/queuepop). The window chrome and the
-   page dock wear theme.css via shell.css (DONI-525); what follows seats the League working pages and stays League.
-   The mockup owns home and League world; this file only seats the
-   working pages (hextech markup, js/pages/*) inside it in the League tokens:
-   obsidian #050D14, deep blue #0D1C25, aged gold #C8AA6E, ivory #F0E6D0,
-   spell light #79C9CF. Cinzel names, Marcellus editorial, Segoe UI controls. */
+   page dock wear theme.css via shell.css (DONI-525); this file seats the League working pages (hextech markup,
+   js/pages/*) in the same tokens (DONI-528). */
 body { min-height: 100vh; overflow-x: hidden; }
-body.theme-league, body.theme-companion { background: #050D14; }
+body.theme-league, body.theme-companion { background: var(--bg); }
 .win-controls { position: fixed; z-index: 40; }
 /* League dock (PLAY): sits at the right end of the League page row, left of the window buttons. */
 .league-dock { position: fixed; top: 8px; right: 136px; z-index: 31; display: flex; }
 .league-dock[hidden] { display: none; }
 .league-dock .play-btn { height: 40px; }
 .league-dock .play-svg { height: 38px; }
-
 /* Working pages: a composed reading area on the League obsidian. */
 .host-pages {
   max-width: 1760px; margin: 0 auto; padding: 32px clamp(16px, 5vw, 88px) 64px;
-  color: #a5a6a6; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5;
+  color: var(--muted); font-family: var(--mono); font-size: 14px; line-height: 1.5;
 }
 .host-pages[hidden] { display: none; }
 .host-pages h1, .host-pages h2, .host-pages h3 { letter-spacing: normal; }
 .host-pages p { max-width: none; }
-.host-pages .hextech { background-color: #0D1C25cc; }
-.host-pages .sec-head h3, .host-pages .set-card-title { font-family: Cinzel, Georgia, serif; color: #C8AA6E; }
+.host-pages .hextech { background-color: color-mix(in srgb,var(--bg) 80%,transparent); }
+.host-pages .sec-head h3, .host-pages .set-card-title { font-family: var(--mono); color: var(--fg); }
 .host-head { margin: 4px 0 24px; }
-.host-head h1 { font: 500 34px/1.15 Marcellus, Georgia, serif; color: #F0E6D0; letter-spacing: 0; }
-.host-head p:not(.eyebrow) { margin-top: 8px; color: #a1adb3; }
-.host-pages .eyebrow { color: #C8AA6E; margin-bottom: 10px; }
+.host-head h1 { font: 500 34px/1.15 var(--display);text-transform:uppercase; color: var(--fg); letter-spacing: 0; }
+.host-head p:not(.eyebrow) { margin-top: 8px; color: var(--muted); }
+.host-pages .eyebrow { color: var(--fg); margin-bottom: 10px; }
 #tab-alerts > .page-col, #tab-about > .page-col { max-width: 880px; }
 #tab-alerts + #tab-about:not(.hidden) { margin-top: 20px; }
-
 /* The champ editor scrolls its own grid, so it gets the remaining window height. */
 #tab-champ > .hextech { height: calc(100vh - 56px - 96px); min-height: 560px; }
-
 /* No modals or popup menus: the loadout editor, set-up wizard, QR code and
    queue list open inline in the page that asks for them. */
 .host-pages .skin-modal { position: static; inset: auto; display: block; margin: 0 0 20px; z-index: auto; }
@@ -42,6 +36,4 @@ body.theme-league, body.theme-companion { background: #050D14; }
 .host-pages .qr-panel { width: auto; max-width: 360px; margin-top: 12px; }
 #tab-play #queue-menu, #tab-play #queue-menu.hidden { position: static; display: block; }
 #tab-play .qm-panel { width: min(560px, 100%); }
-
 /* Companion: the alerts page under the shared masthead. */
-.theme-companion .companion-page { padding-bottom: 0; }

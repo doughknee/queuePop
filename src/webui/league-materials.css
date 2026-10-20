@@ -1,127 +1,84 @@
 /* The armory's material language, carried into portraits and the match journal. */
 .league-material-world {
-  --metal:#b69a67;
+  --metal:var(--accent);
   position:relative;
   isolation:isolate;
   overflow:clip;
   padding-bottom:1px;
-  background:#09121a;
+  background:var(--bg);
 }
 .league-material-world:before {
   content:'';position:absolute;inset:0;z-index:-2;pointer-events:none;
-  background:linear-gradient(180deg,#09121a30,#09121a66 48%,#071119 95%),url('assets/armory-sanctuary.png') center top/100% auto no-repeat;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 19%,transparent),color-mix(in srgb,var(--bg) 40%,transparent) 48%,var(--bg) 95%),url('assets/armory-sanctuary.png') center top/100% auto no-repeat;
   opacity:.8;
 }
 .league-material-world:after {
   content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
-  background:linear-gradient(90deg,#07101955,transparent 30%,transparent 70%,#07101955);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 33%,transparent),transparent 30%,transparent 70%,color-mix(in srgb,var(--bg) 33%,transparent));
 }
-.material-lux{--metal:#d4bc7d}.material-yasuo{--metal:#a5aa93}
+.material-lux{--metal:var(--accent)}.material-yasuo{--metal:var(--muted)}
 .material-lux:before{filter:sepia(.24)}.material-yasuo:before{filter:saturate(.65)}
 .champion-archive .champion-gallery{background:none;padding-top:40px}
 .champion-archive .champion-gallery>header{margin-bottom:42px}
-.champion-archive .champion-gallery h1{font-family:Marcellus,serif;color:#ebd9b3}
-.champion-archive .champion-gallery>header>span{color:#b1bdb9}
+.champion-archive .champion-gallery h1{font-family: var(--display);text-transform:uppercase;color:var(--fg)}
+.champion-archive .champion-gallery>header>span{color:var(--muted)}
 .champion-archive .legend-selection{gap:clamp(24px,3vw,56px)}
 .champion-archive .legend-selection-item{
-  overflow:hidden;border:0;border-radius:46% 46% 0 0 / 17% 17% 0 0;
-  clip-path:polygon(0 0,100% 0,100% 94%,97% 98%,82% 97%,64% 99%,48% 98%,29% 100%,12% 98%,0 99%);
-  box-shadow:inset 0 0 0 2px #c7ad7870;
+  overflow:hidden;border:0;
+  
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--bg) 44%,transparent);
 }
-.champion-archive .legend-selection-item:before{background:linear-gradient(0deg,#0b1720 0%,#0b1720ed 24%,#0b17204a 58%,#0b172029 80%)}
-.champion-archive .legend-selection-item:after{inset:12px 12px 23px;border:1px solid #d9bd8075;border-radius:45% 45% 0 0 / 17% 17% 0 0;box-shadow:inset 0 0 25px #c4ac7920}
-.legend-selection-item>.armory-sigil{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:60px;height:60px;color:#e1c995;filter:drop-shadow(0 2px 7px #071119)}
+.champion-archive .legend-selection-item:before{background:linear-gradient(0deg,var(--bg) 0%,color-mix(in srgb,var(--bg) 93%,transparent) 24%,color-mix(in srgb,var(--bg) 29%,transparent) 58%,color-mix(in srgb,var(--bg) 16%,transparent) 80%)}
+.champion-archive .legend-selection-item:after{inset:12px 12px 23px;border:1px solid var(--edge);box-shadow:inset 0 0 25px color-mix(in srgb,var(--bg) 13%,transparent)}
+.legend-selection-item>.armory-sigil{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:60px;height:60px;color:var(--fg);filter:drop-shadow(0 2px 7px var(--bg))}
 .champion-archive .selection-region{top:100px;left:28px}
 .champion-archive .selection-caption{bottom:43px}
 .champion-archive .selection-caption h2{font-size:clamp(40px,4.5vw,69px);font-weight:500}
-.selection-caption em{display:block;font:italic 16px/1.6 Marcellus,serif;color:#cfbd98;max-width:25ch;margin:16px auto 0}
-.champion-archive .selection-caption b{margin-top:23px;color:#e4d1a7}
-.champion-archive .gallery-caption{margin-top:38px;color:#bbaf92}
+.selection-caption em{display:block;font:16px/1.6 var(--mono);color:var(--fg);max-width:25ch;margin:16px auto 0}
+.champion-archive .selection-caption b{margin-top:23px;color:var(--fg)}
+.champion-archive .gallery-caption{margin-top:38px;color:var(--fg)}
 .champion-dossier .champion-sanctum{background:none;padding-bottom:110px}
-.champion-dossier .sanctum-art{opacity:.85;mask-image:linear-gradient(180deg,#000 60%,transparent)}
-.champion-dossier .champion-sanctum:before{background:linear-gradient(90deg,#09121aeb 2%,#09121abd 29%,#09121a00 74%),linear-gradient(0deg,#09121a00,transparent)}
-.champion-dossier .sanctum-orbit{border-color:#ceb98740;border-style:dashed}
-.dossier-insignia{display:flex;align-items:center;gap:18px;margin:0 0 25px;color:#cbbb96}
+.champion-dossier .sanctum-art{opacity:.85;mask-image:linear-gradient(180deg,var(--bg) 60%,transparent)}
+.champion-dossier .champion-sanctum:before{background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 92%,transparent) 2%,color-mix(in srgb,var(--bg) 74%,transparent) 29%,transparent 74%),linear-gradient(0deg,transparent,transparent)}
+.champion-dossier .sanctum-orbit{border-color:var(--line);border-style:dashed}
+.dossier-insignia{display:flex;align-items:center;gap:18px;margin:0 0 25px;color:var(--fg)}
 .dossier-insignia .armory-sigil{width:47px;height:47px}
-.dossier-insignia>span{font:italic 14px/1.6 Marcellus,serif;max-width:23ch}
+.dossier-insignia>span{font:14px/1.6 var(--mono);max-width:23ch}
 .champion-dossier .sanctum-name{padding-top:24px}
-.champion-dossier .sanctum-name>p:not(.sanctum-story){font:13px Marcellus,serif;color:#dbc697}
-.champion-dossier .sanctum-story{color:#bbcac8}
+.champion-dossier .sanctum-name>p:not(.sanctum-story){font:13px var(--mono);color:var(--fg)}
+.champion-dossier .sanctum-story{color:var(--fg)}
 .champion-dossier .sanctum-title{border:0;padding-bottom:25px}
-.champion-dossier .sanctum-title:after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,#c8aa6e90,#c8aa6e20,transparent)}
+.champion-dossier .sanctum-title:after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,color-mix(in srgb,var(--fg) 6%,transparent),color-mix(in srgb,var(--fg) 6%,transparent),transparent)}
 .champion-dossier .champion-spellbook{grid-template-columns:300px minmax(0,1fr);padding-top:35px;gap:22px 50px;align-items:center}
-.spellbook-label{display:block;font:19px Marcellus,serif;color:#decea9;margin-bottom:25px}
+.spellbook-label{display:block;font:19px var(--mono);color:var(--fg);margin-bottom:25px}
 .champion-dossier .spell-buttons{gap:16px}
-.champion-dossier .spell-buttons button{border-radius:50%;padding:6px;width:47px;box-shadow:0 0 0 4px #c8aa6e10;background:#12222a;border-color:#aa9362}
+.champion-dossier .spell-buttons button{border-radius:50%;padding:6px;width:47px;box-shadow:0 0 0 4px color-mix(in srgb,var(--bg) 6%,transparent);background:var(--bg);border-color:var(--edge)}
 .champion-dossier .spell-buttons img{border-radius:50%}
 .champion-dossier .spell-buttons kbd{bottom:-13px;min-width:21px;height:21px}
-.champion-dossier .spell-buttons [aria-pressed=true]{border-color:#edcf8a;box-shadow:0 0 0 4px #c8aa6e22,0 0 24px #b7dbce40}
-.champion-dossier .spellbook-controls>p{color:#a6b6b8;margin-top:29px}
-.champion-dossier #spell-description,.battle-world .battle-takeaway{
+.champion-dossier .spell-buttons [aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 13%,transparent),0 0 24px color-mix(in srgb,var(--accent) 25%,transparent)}
+.champion-dossier .spellbook-controls>p{color:var(--muted);margin-top:29px}
+.champion-dossier #spell-description{
   position:relative;isolation:isolate;border:0;
-  background:linear-gradient(115deg,#cfbf96,#b5aa89 75%,#c9ba94);
-  clip-path:polygon(0 7px,28% 4px,53% 0,80% 5px,99% 1px,100% 30%,99.5% 61%,100% 98%,73% 97%,42% 100%,17% 98%,0 100%,.6% 58%);
+  background:var(--fg);color:var(--bg);
+  
 }
-.champion-dossier #spell-description:before,.battle-world .battle-takeaway:before{
+.champion-dossier #spell-description:before{
   content:'';position:absolute;inset:0;z-index:-1;opacity:.15;pointer-events:none;
   background:url('assets/armory-sanctuary.png') 40% 85%/1800px auto;mix-blend-mode:multiply;
 }
-.champion-dossier #spell-description:after,.battle-world .battle-takeaway:after{content:'';position:absolute;inset:12px;border-block:1px solid #5f614340;pointer-events:none}
+.champion-dossier #spell-description:after{content:'';position:absolute;inset:12px;border-block:1px solid var(--edge);pointer-events:none}
 .champion-dossier #spell-description{min-height:210px;padding:35px;align-items:center;gap:30px}
-.champion-dossier #spell-description h2{color:#20362f;font-size:34px}
-.champion-dossier #spell-description p{color:#31433e;line-height:1.85}
-.champion-dossier #spell-description>div:last-child>span{color:#4c5d49}
-.champion-dossier .spell-emblem{transform:none;border-radius:50%;border:1px solid #5a654c99;padding:12px;width:86px;height:86px;box-shadow:0 0 0 5px #54604714;margin:0}
-.champion-dossier .spell-emblem img{transform:none;border-radius:50%;border:1px solid #5a654c}
-.champion-dossier .spell-source{color:#b9ba9e;font-size:11px}
-.champion-dossier .champion-instinct{padding:32px 0 38px;border-top:0;border-bottom-color:#b6a37744}
-.champion-dossier .champion-instinct h2{color:#ded0ae;font-size:30px}
-.champion-dossier .champion-instinct p{line-height:1.9;color:#acbdbb}
+.champion-dossier #spell-description h2{color:var(--bg);font-size:34px}
+.champion-dossier #spell-description p{color:var(--dim);line-height:1.85}
+.champion-dossier #spell-description>div:last-child>span{color:var(--dim)}
+.champion-dossier .spell-emblem{transform:none;border-radius:50%;border:1px solid var(--edge);padding:12px;width:86px;height:86px;box-shadow:0 0 0 5px color-mix(in srgb,var(--bg) 8%,transparent);margin:0}
+.champion-dossier .spell-emblem img{transform:none;border-radius:50%;border:1px solid var(--edge)}
+.champion-dossier .spell-source{color:var(--muted);font-size:11px}
+.champion-dossier .champion-instinct{padding:32px 0 38px;border-top:0;border-bottom-color:var(--line)}
+.champion-dossier .champion-instinct h2{color:var(--fg);font-size:30px}
+.champion-dossier .champion-instinct p{line-height:1.9;color:var(--muted)}
 .champion-dossier .instinct-seal{border:0;width:100%;height:auto}
 .champion-dossier .instinct-seal .armory-sigil{width:85px;height:85px;opacity:.8}
-.chronicle-world:before{background-size:cover}
-.chronicle-world .chronicle-heading{padding:49px 0 35px}
-.chronicle-world .chronicle-heading h1{color:#ebd9b3}
-.chronicle-world .chronicle-heading p{color:#b0bdb9}
-.chronicle-world .chronicle-summary{border:0;position:relative;padding:28px 35px 33px;background:radial-gradient(ellipse,#bcaa7320,transparent 70%)}
-.chronicle-world .chronicle-summary:after{content:'';position:absolute;inset:10px;border:1px solid #b9a47540;border-radius:50% 50% 5% 5% / 25% 25% 5% 5%;pointer-events:none}
-.chronicle-world .chronicle-toolbar{border-color:#c8aa6e60}
-.chronicle-world .chronicle-cover{border:0;border-radius:3px 30px 3px 3px;clip-path:polygon(0 1%,36% 0,70% .5%,100% 0,100% 96%,96% 99%,74% 98.5%,48% 100%,23% 99%,1% 100%,0 61%,.5% 35%);background:#132026}
-.chronicle-world .chronicle-cover:after{inset:11px;border-color:#cfb88465;border-radius:2px 23px 2px 2px;box-shadow:inset 0 0 40px #baa47715}
-.chronicle-world .featured-cover{border-radius:44% 44% 0 0 / 13% 13% 0 0}
-.chronicle-world .featured-cover:after{border-radius:44% 44% 0 0 / 13% 13% 0 0}
-.chronicle-world .featured-cover .cover-top{padding:60px 8px 0}
-.cover-insignia{position:absolute;right:30px;top:37px;opacity:.65;pointer-events:none}
-.cover-insignia .armory-sigil{width:50px;height:50px;color:#e4cd98;filter:drop-shadow(0 2px 6px #061019)}
-.featured-cover .cover-insignia{top:19px;left:50%;right:auto;transform:translateX(-50%)}
-.chronicle-world .cover-caption h2{color:#f0dfba;text-shadow:0 2px 10px #0006}
-.chronicle-world .cover-caption>p{color:#b8c8c6}
-.chronicle-world .cover-footer{border-top-style:dashed;border-top-color:#c8aa6e55}
-.chronicle-world .single-cover .featured-cover{border-radius:5px 50px 3px 3px}
-.chronicle-world .single-cover .featured-cover:after{border-radius:3px 40px 2px 2px}
-.chronicle-world .single-cover .cover-top{padding-top:0}
-.chronicle-world .single-cover .cover-insignia{left:auto;right:50px;transform:none;top:65px}
-.battle-world:before{background-size:100% auto;opacity:.6}
-.battle-world .battle-heading{border:0;border-radius:80px 6px 70px 3px;padding:45px;clip-path:polygon(0 0,100% 0,100% 97%,87% 99%,60% 98%,37% 100%,0 98%)}
-.battle-world .battle-heading:after{content:'';position:absolute;inset:12px;border:1px solid #c8aa6e66;border-radius:70px 3px 55px 3px;pointer-events:none}
-.battle-insignia{position:absolute;right:5%;top:32px;opacity:.8}
-.battle-insignia .armory-sigil{width:90px;height:90px;color:#d7c493;filter:drop-shadow(0 2px 6px #061019)}
-.battle-world .battle-stats{padding-top:18px;border-top:1px dashed #b8a47650;max-width:450px}
-.battle-world .battle-chapters{border:0;gap:25px}
-.battle-world .battle-chapters button{border-bottom:1px solid #a68e5955;padding-bottom:21px}
-.battle-world .battle-chapters [aria-pressed=true]{border-color:#e1c388;background:linear-gradient(0deg,#bca77320,transparent)}
-.battle-world .battle-sketch{border:1px solid #b9a56b66;border-radius:30px 4px 35px 4px;background:linear-gradient(#0d2026df,#0b191fee),url('assets/armory-sanctuary.png') center bottom/1200px auto;box-shadow:inset 0 0 0 7px #bcaa7010,0 15px 35px #0003;padding:25px}
-.battle-world .battle-sketch svg{filter:sepia(.25) saturate(.8)}
-.battle-world .battle-sketch figcaption small{color:#a0b0ad}
-.battle-world .battle-takeaway{display:flex;align-items:center;gap:23px;padding:28px}
-.battle-world .battle-takeaway>.armory-sigil{width:54px;height:54px;color:#4c5e50}
-.battle-world .battle-takeaway span{color:#4c5d49}
-.battle-world .battle-takeaway p{color:#31433e;line-height:1.85}
-.battle-world .report-items{gap:28px;align-items:start}
-.battle-world .report-items a{position:relative;width:115px;padding-top:14px}
-.battle-world .report-items a:before{content:'';position:absolute;top:0;width:78px;height:78px;left:50%;transform:translateX(-50%);border:1px dashed #c8aa6e66;border-radius:50%;pointer-events:none;box-shadow:0 0 0 5px #c8aa6e10}
-.battle-world .report-items img{margin-bottom:31px;position:relative;box-shadow:0 5px 18px #0009}
-.battle-world .report-loadout{padding-block:35px 44px}
 @media(min-width:1900px){
   .champion-dossier .champion-spellbook{grid-template-columns:390px 1fr;gap:30px 70px}
   .champion-dossier .spell-buttons{gap:24px}
@@ -136,10 +93,6 @@
   .champion-dossier .spell-emblem{width:60px;height:60px;padding:8px}
   .champion-dossier #spell-description h2{font-size:29px}
   .selection-caption em{font-size:14px}
-  .battle-world .battle-heading{padding:35px}
-  .battle-world .battle-takeaway{padding:27px 23px;gap:16px}
-  .battle-world .report-items{gap:18px}
-  .battle-world .report-items a{width:90px}
 }
 @media(max-width:760px){
   .league-material-world:before{background-size:auto 1300px;background-position:40% top}
@@ -153,11 +106,6 @@
   .selection-caption em{font-size:13px;line-height:1.5}
   .legend-selection-item>.armory-sigil{width:43px;height:43px}
   .champion-archive .selection-region{left:20px;top:80px}
-  .chronicle-world .chronicle-heading{gap:20px}
-  .chronicle-world .chronicle-summary{padding:22px 15px}
-  .battle-world .battle-heading{border-radius:40px 3px 40px 3px;padding:35px 26px}
-  .battle-world .battle-heading:after{border-radius:32px 3px 32px 3px}
-  .battle-insignia .armory-sigil{width:54px;height:54px}
 }
 @media(max-width:570px){
   .champion-archive .champion-gallery{padding-top:30px}
@@ -169,7 +117,7 @@
   .legend-selection-item>.armory-sigil{width:53px;height:53px}
   .champion-dossier .champion-sanctum{padding-bottom:90px}
   .champion-dossier .sanctum-name{padding-top:177px}
-  .champion-dossier .champion-sanctum:before{background:linear-gradient(0deg,#09121a00,#09121ae8 28%,#09121a22 80%)}
+  .champion-dossier .champion-sanctum:before{background:linear-gradient(0deg,transparent,color-mix(in srgb,var(--bg) 91%,transparent) 28%,color-mix(in srgb,var(--bg) 13%,transparent) 80%)}
   .dossier-insignia{margin:0 0 18px;gap:15px}
   .dossier-insignia .armory-sigil{width:37px;height:37px}
   .dossier-insignia>span{font-size:13px}
@@ -184,31 +132,11 @@
   .champion-dossier .champion-instinct{padding-top:14px}
   .champion-dossier .champion-instinct h2{font-size:27px}
   .champion-dossier .spell-source{font-size:10px;line-height:1.8}
-  .chronicle-world .chronicle-heading{padding-top:30px}
-  .chronicle-world .chronicle-summary{padding:20px 0 0;background:none}
-  .chronicle-world .chronicle-summary:after{display:none}
-  .chronicle-world .featured-cover .cover-top{padding-top:55px}
-  .chronicle-world .single-cover .cover-top{padding-top:0}
-  .chronicle-world .cover-insignia{right:24px;top:50px}
-  .chronicle-world .featured-cover .cover-insignia{top:18px;right:auto}
-  .chronicle-world .single-cover .cover-insignia{left:auto;right:25px;top:60px}
-  .chronicle-world .chronicle-toolbar{gap:12px;align-items:start}
-  .chronicle-world .chronicle-toolbar>span{font-size:10px;line-height:1.6;max-width:80px;text-align:right}
-  .battle-world .battle-heading{padding:30px 24px}
-  .battle-insignia{top:23px;right:20px;opacity:.45}
-  .battle-world .battle-title h1{font-size:35px}
-  .battle-world .battle-sketch{padding:18px 12px}
-  .battle-world .battle-takeaway{padding:28px 23px;display:block}
-  .battle-world .battle-takeaway>.armory-sigil{float:right;width:42px;height:42px;margin:0 0 10px 14px}
-  .battle-world .battle-takeaway p{clear:both}
-  .battle-world .report-items{gap:18px;justify-content:space-between}
-  .battle-world .report-items a{width:calc((100% - 36px)/3);font-size:11px}
-  .battle-world .report-items a:before{width:70px;height:70px}
 }
 @media(max-width:360px){
   .champion-dossier .spell-buttons{gap:13px}
   .champion-dossier .spell-buttons button{width:43px}
-  .chronicle-world .chronicle-toolbar{flex-wrap:wrap}
-  .chronicle-world .chronicle-toolbar>span{max-width:none;text-align:left}
-  .battle-world .report-items a:before{width:62px;height:62px}
 }
+
+/* The champions directory sigil (armorySigil in league-interiors.js). */
+.armory-sigil{width:70px;height:70px;color:var(--metal);flex-shrink:0}

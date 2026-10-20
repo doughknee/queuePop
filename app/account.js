@@ -186,24 +186,45 @@ function createAccount(ctx) {
     return list.filter((m) => m.championId).map((m) => ({ championId: m.championId, level: m.championLevel, points: m.championPoints ?? 0, lastPlayTime: m.lastPlayTime ?? 0 }));
   }
 
+  // The client's League history can shrink to the newest game only (seen 2026-10-19/20: every begIndex/endIndex, and the
+  // by-puuid route, return gameCount 1 until the client refetches). So every game we have ever seen is kept per account in
+  // match-history.json (userData) and merged with whatever the client returns; a game is never dropped, newest 50 kept.
+  function historyFile() {
+    if (ctx.historyFile) return ctx.historyFile;
+    let dir;
+    try { dir = require("electron").app.getPath("userData"); } catch { dir = require("os").tmpdir(); }
+    return path.join(dir, "match-history.json");
+  }
+  function mergeHistory(puuid, games) {
+    let all = {};
+    try { all = JSON.parse(fs.readFileSync(historyFile(), "utf8")); } catch {}
+    const byId = new Map((all[puuid] || []).map((g) => [g.gameId, g]));
+    for (const g of games) byId.set(g.gameId, g);
+    const list = [...byId.values()].sort((a, b) => b.ts - a.ts).slice(0, 50);
+    if (puuid && games.length) {
+      all[puuid] = list;
+      try { fs.writeFileSync(historyFile(), JSON.stringify(all)); } catch {}
+    }
+    return list;
+  }
+
   async function getMatchHistory(count = 10) {
     count = Math.max(1, Math.min(parseInt(count, 10) || 10, 20));
     const me = await get("/lol-summoner/v1/current-summoner");
     const puuid = me && me.status === 200 ? me.data.puuid : null;
     const r = await get(`/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=0&endIndex=${count - 1}`);
-    if (!r || r.status !== 200) return [];
     const out = [];
-    for (const g of ((r.data && r.data.games) || {}).games || []) {
+    for (const g of (r && r.status === 200 && ((r.data && r.data.games) || {}).games) || []) {
       const parts = g.participants || [];
       const ident = puuid && (g.participantIdentities || []).find((i) => (i.player || {}).puuid === puuid);
       let part = ident ? parts.find((p) => p.participantId === ident.participantId) : null;
       if (!part && parts.length === 1) part = parts[0]; // endpoint sometimes returns only our participant
       if (!part) continue;
       const st = part.stats || {}, tl = part.timeline || {};
-      out.push({ position: matchPosition(g.mapId, tl.lane, tl.role), championId: part.championId, win: !!st.win, kills: st.kills ?? 0,
+      out.push({ gameId: g.gameId, position: matchPosition(g.mapId, tl.lane, tl.role), championId: part.championId, win: !!st.win, kills: st.kills ?? 0,
         deaths: st.deaths ?? 0, assists: st.assists ?? 0, queueId: g.queueId, ts: (g.gameCreation || 0) / 1000 });
     }
-    return out;
+    return puuid ? mergeHistory(puuid, out).slice(0, count) : out;
   }
 
   // TFT games live under their own product: /lol-match-history/v1/products/tft/{puuid}/matches (checked on the live client
