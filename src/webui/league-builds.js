@@ -67,3 +67,16 @@ document.addEventListener('click', e => {
   lgb.dir = lgb.sort === k ? -lgb.dir : -1; lgb.sort = k;
   document.getElementById('lg-builds').innerHTML = lgBuildsTable(lgb.data, lgb.kind);
 });
+
+// League's page row (DONI-571): three stats pages plus "More", which lands here: the rest of the League pages as an
+// inline list (no popup). The sidebar keeps every page (index.html: .lg-row-hide hides them in the row only).
+function leagueMorePage() {
+  const P = [['#/league/leaderboard', 'Leaderboard', 'The ranked ladder per region; open anyone for their ranks and last 20 matches.'], ['#/league/champions', 'Champions', 'Your most-played champions: lore, abilities and a plan for each.'],
+    ['#/league/champ', 'Champ select', 'Auto pick and ban, runes and loadouts for every role, set up before the timer starts.'],
+    ['#/league/dashboard', 'Dashboard', 'Auto-accept, alerts and what happened in your last queues.'],
+    ['#/league/play', 'Queue', 'Start any queue from here, with your favourites first.'],
+    ['#/league/account', 'Account', 'Your ranks, mastery and challenges from the League client.']];
+  const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
+  return `<div class="lg-page">${lgBand(art, 'center 20%', `<div class="lg-band-row"><h1>More</h1><span class="lg-meta">The rest of the League world</span>${lgSearch()}</div>`)}
+    <nav class="lg-more" aria-label="More League pages">${P.map(([h, t, d]) => `<a href="${h}"><b>${t}</b><span>${d}</span><i aria-hidden="true">↗</i></a>`).join('')}</nav></div>`;
+}
