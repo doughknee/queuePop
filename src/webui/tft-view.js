@@ -93,8 +93,9 @@ window.createTftView = function (host) {
     return i.icon ? `<img class="ts-ico ${cls}" src="${esc(i.icon)}" alt="" title="${esc(i.name)}" loading="lazy" data-fb-class="ts-ico ts-ico-x ${cls}" data-fb-text="${letters}">`
       : `<span class="ts-ico ts-ico-x ${cls}" title="${esc(i.name)}">${letters}</span>`;
   };
-  const compName = (id) => id.split(',').map(name).join(' · ');
-  const traitsMarkup = (id) => id.split(',').map((t) => `<span class="ts-trait">${icon(t, 'ts-ico-trait')}${esc(name(t))}</span>`).join('');
+  const parts = (id) => [...new Set(id.split(','))]; // the crawler can repeat a part ("Lunar,Lunar"): name it once
+  const compName = (id) => parts(id).map(name).join(' · ');
+  const traitsMarkup = (id) => parts(id).map((t) => `<span class="ts-trait">${icon(t, 'ts-ico-trait')}${esc(name(t))}</span>`).join('');
   const tierBadge = (t) => t ? `<span class="ts-tier t-${t}" title="Tier ${t}: average placement with a pick-rate bonus">${t}</span>`
     : '<span class="ts-tier ts-untiered" title="Low sample: not tiered">–</span>';
   // Value colour (DONI-531): green better than a lobby average, red worse, by distance x sample weight (20 games faint, 2,000 full).
