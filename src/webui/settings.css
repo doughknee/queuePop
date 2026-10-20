@@ -83,3 +83,4 @@ a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 .st-who{color:var(--fg);overflow-wrap:anywhere}
 .st-does{display:flex;flex-wrap:wrap;gap:4px 12px}.st-does a{color:var(--accent);text-decoration:none}.st-does a:hover{text-decoration:underline}
 .st-game.is-off{opacity:.55}.st-game.is-off .st-does{display:none}
+.st-bk-full{color:var(--fg)}
