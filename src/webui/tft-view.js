@@ -214,7 +214,7 @@ window.createTftView = function (host) {
     page.innerHTML = '<div class="ts-wrap"><a class="ts-back" href="#/tft">← All comps</a><p class="ts-state" role="status">Loading comp…</p></div>';
     if (!patches) await loadComps();
     let d;
-    try { d = await detail(id); } catch (e) {
+    try { [d] = await Promise.all([detail(id), S.loadFull()]); } catch (e) { // loadFull: the board needs attack ranges
       page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this comp with these filters.' : 'Stats offline: the queuePop crawler did not answer.';
       return;
     }
