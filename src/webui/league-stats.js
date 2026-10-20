@@ -179,7 +179,7 @@ function lgHeat(x, c, spread, games, text) {
 const lgLegend = (what = 'average') => `<span class="lg-legend" title="Cells tint red below and green above the ${what}, purple for a bigger pick or ban; fainter on smaller samples (20 games faint, 2,000 full)"><i aria-hidden="true"></i>worse · better than ${what}</span>`;
 // Pick and ban are magnitudes, not good or bad: tinted purple by size, 1 = the list's 90th percentile.
 const lgMag = (x, p90, text) => x == null ? '–' : `<span class="lg-v vn" style="--k:${Math.sqrt(Math.min(1, x / (p90 || 1))).toFixed(2)}">${text}</span>`;
-const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t[0]}${t.length > 1 ? `<sup>${t.slice(1)}</sup>` : ''}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
+const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
 const lgSign = (x, d = 1) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x).toFixed(d)}`;
 function lgTierTable(data) {
   const banded = leagueTierRows(data.champions);

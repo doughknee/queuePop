@@ -5,7 +5,7 @@ body.theme-settings{background:var(--bg)}
 .st-wrap{max-width:900px;margin:0 auto;padding:28px 24px 72px;box-sizing:border-box}
 .st-head h1{font:clamp(48px,5vw,80px)/.9 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--fg);margin:0}
 .st-head p{margin:6px 0 22px}.st-head p.bad{color:var(--neg)}
-.st-card{scroll-margin-top:60px;background:var(--bg);border:1px solid var(--line);border-radius:0;padding:6px 20px 14px;margin-bottom:16px}
+.st-card{scroll-margin-top:calc(var(--marks-h,0px) + 60px);background:var(--bg);border:1px solid var(--line);border-radius:0;padding:6px 20px 14px;margin-bottom:16px}
 .st-card h2{font:700 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
 .st-card h2:before{content:'// ';color:var(--muted)}
 .st-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid var(--line);min-width:0}

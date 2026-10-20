@@ -23,33 +23,31 @@ function renderPause(paused) {
 
 // --- PLAY button (launch client / quick-queue / cancel) ----------------
 // Mode is set by updatePlay() from the live gameflow phase.
-// DONI-595: the one PLAY serves the game you're in. League and TFT share the client's state; Deadlock just launches.
+// DONI-598: one PLAY on every page. While the client is busy (in queue, champ select, in game) it shows that, with
+// that game's logo, wherever you are, Deadlock and Home included. Otherwise it serves the page: League or TFT
+// opens that game's queues, Deadlock launches Deadlock, and Home (or Settings) lists every queue, recent first.
 let playLast = {};
-const playGame = () => (document.body.className.match(/theme-(league|tft|deadlock)/) || [])[1] || "league";
+const playGame = () => (document.body.className.match(/theme-(league|tft|deadlock)/) || [])[1] || "home";
+const PLAY_BUSY = { Matchmaking: "IN QUEUE", ReadyCheck: "READY", ChampSelect: "LIVE", InProgress: "IN GAME", Reconnect: "RECONNECT" };
 window.qpPlaySync = () => { closeQueueMenu(); updatePlay(playLast); };
+window.qpPlayState = (s, page) => { // pure; app/test-play.js checks it
+  const busy = s.connected && PLAY_BUSY[s.gameflow_phase];
+  if (busy) {
+    const game = s.client_game || "league";
+    const mode = s.gameflow_phase === "Matchmaking" ? "cancel" : s.gameflow_phase === "ChampSelect" && game === "league" ? "live" : "none";
+    return { text: busy, mode, game, disabled: mode === "none" };
+  }
+  if (page === "deadlock") return { text: "PLAY", mode: "deadlock", game: "deadlock", disabled: false };
+  if (!s.connected) return { text: "LAUNCH", mode: "launch", game: page, disabled: false };
+  return { text: "PLAY", mode: "queue", game: page, disabled: false };
+};
 function updatePlay(s) {
   playLast = s || {};
   const btn = $("play-btn");
   const label = $("play-label");
   if (!btn || !label) return;
-  let text = "PLAY", mode = "queue", disabled = false;
-  if (playGame() === "deadlock") {
-    mode = "deadlock";
-  } else if (!s.connected) {
-    text = "LAUNCH"; mode = "launch"; // no client → launch it
-  } else {
-    switch (s.gameflow_phase) {
-      case "Matchmaking": text = "IN QUEUE"; mode = "cancel"; break;
-      case "ReadyCheck": text = "READY"; mode = "none"; disabled = true; break;
-      case "ChampSelect": text = "LIVE"; mode = "live"; break; // jump to live view
-
-      case "InProgress": text = "IN GAME"; mode = "none"; disabled = true; break;
-      case "PreEndOfGame":
-      case "WaitingForStats":
-      case "EndOfGame": text = "PLAY"; mode = "queue"; break;
-      default: text = "PLAY"; mode = "queue"; // None / Lobby / idle
-    }
-  }
+  const st = qpPlayState(playLast, playGame()), text = st.text, mode = st.mode, disabled = st.disabled;
+  btn.dataset.game = st.game;
   label.textContent = text;
   btn.disabled = disabled;
   btn.dataset.mode = mode;
@@ -171,7 +169,7 @@ function qmRowHtml(q, idx, opts) {
       `data-qid="${q.id}" style="--i:${idx}">` +
       `<span class="qm-row-content">` +
         `<span class="qm-ico">${qmGroupIcon(q.group)}</span>` +
-        `<span class="qm-name">${q.group === "tft" ? qmStripPrefix(q.name, "Teamfight Tactics") : q.name}</span>` +
+        `<span class="qm-name">${q.group === "tft" ? (playGame() === "home" ? "TFT · " : "") + qmStripPrefix(q.name, "Teamfight Tactics") : q.name}</span>` +
         pill +
       `</span>` +
     `</button>`
@@ -182,7 +180,7 @@ function qmRowHtml(q, idx, opts) {
 // the user curates any, the full curated list so the menu is never empty). Flat,
 // no group headers, no sorting — order is the user's pick / the backend's order.
 // DONI-595: League's PLAY lists League queues, TFT's lists TFT's.
-const qmMine = (q) => q && (q.group === "tft") === (playGame() === "tft");
+const qmMine = (q) => q && (playGame() === "home" || (q.group === "tft") === (playGame() === "tft")); // Home lists both
 function qmNormalInner() {
   const last = qmShowLast && qmLast != null && qmMine(qmQueueById(qmLast)) ? qmQueueById(qmLast) : null;
   let chosen = qmShown.map(qmQueueById).filter(qmMine);
@@ -333,6 +331,9 @@ function openQueueMenu() {
   const btn = $("play-btn");
   if (!menu || !btn) return;
   renderQueueMenu(); // the list depends on which game's PLAY opened it
+  // DONI-598: the same list is the Play page's inline queue list, so it lives inside the (often hidden) Play page.
+  // As PLAY's dropdown it floats at the top level, and goes home when it closes.
+  if (menu.parentElement !== document.body) { menu._home = [menu.parentElement, menu.nextSibling]; document.body.append(menu); }
   // The menu is position:fixed at the body level, so place it under PLAY.
   const r = btn.getBoundingClientRect();
   menu.style.left = Math.round(r.left) + "px";
@@ -351,6 +352,7 @@ function closeQueueMenu() {
   if (!menu) return;
   menu.classList.add("hidden");
   $("play-btn")?.classList.remove("menu-open");
+  if (menu._home) { menu._home[0].insertBefore(menu, menu._home[1]); menu._home = null; menu.style.left = menu.style.top = ""; }
   if (qmEditing) { qmEditing = false; renderQueueMenu(); } // reopen in normal view
 }
 // Click outside closes the queue menu. The PLAY button toggles it via its own

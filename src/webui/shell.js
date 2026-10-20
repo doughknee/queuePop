@@ -39,6 +39,13 @@
   // '#/', '#/deadlock/' and '' all normalise to their unslashed form; the longest matching link is the page.
   const norm = h => h.replace(/\/+$/, '') || '#';
   let synced = null;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  const swapIn = (el, apply) => {
+    clearTimeout(el._swap);
+    if (calm.matches || !el.querySelector(':scope > a')) { apply(); return; }
+    el.classList.remove('sb-in'); el.classList.add('sb-out');
+    el._swap = setTimeout(() => { apply(); el.classList.remove('sb-out'); void el.offsetWidth; el.classList.add('sb-in'); }, 110);
+  };
   window.syncSidebar = function () {
     synced = location.hash;
     const hash = norm(location.hash), game = hash.replace(/^#\/?/, '').split(/[\/#]/)[0] || 'home';
@@ -56,13 +63,14 @@
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     const src = bar.querySelector(`[data-game="${game}"] .sb-pages`), html = src ? src.innerHTML : '';
     // DONI-595: a new game's pages slide in (the label above them was the game's name again, so it's gone).
-    if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.classList.remove('sb-in'); void block.offsetWidth; block.classList.add('sb-in'); }
+    // DONI-595/612: switching games, the old pages fade out first and the new ones slide in (an instant blank read as a glitch).
+    if (block.dataset.html !== html) { block.dataset.html = html; swapIn(block, () => { block.innerHTML = html; }); }
     // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
     const pages = bar.querySelector(`[data-game="${game}"] .sb-pages`); // DONI-595: Deadlock uses the shared row too
     const row = game === 'settings' ? settingsView.row() : pages ? pages.innerHTML : '';
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
-    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); nav.classList.remove('sb-in'); void nav.offsetWidth; nav.classList.add('sb-in'); }
+    if (nav.dataset.row !== row) { nav.dataset.row = row; swapIn(nav, () => { nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }); }
     const tp = document.getElementById('tft-play'); if (tp) tp.hidden = true; // DONI-595: the shared PLAY covers TFT
     remember();
     setTimeout(rowEdges);
@@ -164,7 +172,7 @@ window.resumeTiles = function (last, games, pages) {
     const t = { game: g, href, page: page ? page.label : 'Overview' };
     let m;
     if ((m = /^#\/league\/champion\/(\d+)/.exec(href))) { t.page = 'Champion'; t.champion = m[1]; }
-    else if ((m = /^#\/deadlock\/heroes\/([\w-]+)/.exec(href))) t.detail = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    else if ((m = /^#\/deadlock\/heroes\/([\w-]+)/.exec(href))) t.page = 'Hero', t.detail = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     else if ((m = /^#\/tft\/comp\/(.+)$/.exec(href))) { t.page = 'Comp'; t.comp = decodeURIComponent(m[1]); }
     return t;
   });

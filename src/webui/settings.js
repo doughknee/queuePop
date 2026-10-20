@@ -353,7 +353,17 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
     if (!tok) return say('crawler-key', 'Admin token required', false);
     say('crawler-key', 'Sending…', true);
     try {
-      const r = await fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key, ...(game && { game }) }) });
+      // While a stats rebuild holds the crawler's database it answers 503 "busy": keep trying every 10 s for up to
+      // 15 minutes (as its status page does) instead of making you press again.
+      const send = () => fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key, ...(game && { game }) }) });
+      let r = await send();
+      for (let i = 0; r.status === 503 && i < 90; i++) {
+        const said = await r.clone().json().then(j => String(j && (j.error || j.message) || ''), () => '');
+        if (!/busy|locked|try again/i.test(said)) break;
+        say('crawler-key', `The crawler is rebuilding its stats; trying again every 10 s (${Math.round(i / 6)} of 15 min)…`, true);
+        await new Promise(res => setTimeout(res, 10000));
+        r = await send();
+      }
       const msg = { 401: 'Wrong admin token', 400: 'The crawler rejected that key', 503: 'No ADMIN_TOKEN set on the crawler', 403: 'Crawler only accepts LAN requests' }[r.status];
       if (r.ok) { root.querySelector('#st-cr-key').value = root.querySelector('#st-cr-token').value = ''; say('crawler-key', 'Key updated', true); loadCrawler(); }
       else { // the crawler's own words first: a 503 can be "busy aggregating, try again in a minute" as well as "no ADMIN_TOKEN"
