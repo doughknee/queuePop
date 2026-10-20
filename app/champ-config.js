@@ -204,6 +204,7 @@ function normalizeConfig(data) {
     show_last_queue: T(getd(data, "show_last_queue", true)),
     start_minimized: T(getd(data, "start_minimized", false)),
     launch_at_login: T(getd(data, "launch_at_login", false)), // DONI-544
+    float_window: T(getd(data, "float_window", true)), // DONI-346: suggestions float over League in champ select
     close_to_tray: T(getd(data, "close_to_tray", true)), // DONI-544: the window's ✕ hides to the tray (off: it quits)
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",

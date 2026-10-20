@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { app, BrowserWindow, ipcMain, shell, screen, powerMonitor } = require("electron");
 const { windowState } = require("./window-state"); // DONI-539
+const { createFloat, FLOAT_METHODS } = require("./float"); // DONI-346
+let float = null;
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
 const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
@@ -41,9 +43,10 @@ lcu.on("disconnect", () => {
   log("LCU disconnected, waiting for client");
   push("League client disconnected", "warning");
   state.phase = null; state.ready = null;
+  if (float) float.sync(null);
 });
 lcu.on("event", (e) => {
-  if (e.uri === "/lol-gameflow/v1/gameflow-phase") state.phase = e.data;
+  if (e.uri === "/lol-gameflow/v1/gameflow-phase") { state.phase = e.data; if (float) float.sync(e.data); }
   if (e.uri === "/lol-matchmaking/v1/ready-check") state.ready = e.eventType === "Delete" ? null : e.data; // the phone's Decline (DONI-337)
   if (e.uri === "/lol-matchmaking/v1/ready-check" && e.eventType !== "Delete") readyCheck(e.data);
 });
@@ -105,6 +108,7 @@ const impl = {
   minimize_window: () => win.minimize(),
   toggle_maximize_window: () => { win.isMaximized() ? win.unmaximize() : win.maximize(); return win.isMaximized(); },
   // DONI-516: Settings > Display > Text size. The renderer saves config ui_scale; this applies it.
+  close_float: () => (float ? float.dismiss() : false), // the float's ✕: hidden until the next champ select
   set_ui_scale: (f) => { f = Number(f); if (!UI_SCALES.includes(f)) return false; win.webContents.setZoomFactor(f); return true; },
 };
 Object.assign(impl, require("./champ-select").attach(lcu, impl, push, state)); // DONI-441
@@ -116,8 +120,10 @@ Object.assign(impl, assets.methods(impl));
 const stubbed = new Set();
 // Only our own page's top frame may call the bridge, by an own method name, with an argument list (DONI-529).
 ipcMain.handle("api", async (e, name, args) => {
-  if (!win || e.sender.id !== win.webContents.id || (e.senderFrame && e.senderFrame.parent)) throw new Error("bridge refused: not the app window");
+  const fromFloat = float && e.sender.id === float.id(); // the suggestions float may only read (DONI-346)
+  if (!win || (e.sender.id !== win.webContents.id && !fromFloat) || (e.senderFrame && e.senderFrame.parent)) throw new Error("bridge refused: not the app window");
   if (typeof name !== "string" || !Array.isArray(args)) throw new Error("bridge refused: bad call");
+  if (fromFloat && !FLOAT_METHODS.has(name)) throw new Error("bridge refused: not for the float");
   if (Object.hasOwn(impl, name)) return impl[name](...args);
   if (!Object.hasOwn(METHODS, name)) throw new Error("unknown bridge method " + name);
   if (!stubbed.has(name)) { stubbed.add(name); log("stub:", name); }
@@ -130,9 +136,11 @@ app.whenReady().then(() => {
   log("startup: app ready at", since());
   const ws = windowState(path.join(app.getPath("userData"), "window-state.json"));
   // Hidden until the first paint, then shown where it was last time (size, position, maximised); no blank frame.
+  const bridgeArgs = ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)];
+  float = createFloat({ preload: path.join(__dirname, "preload.js"), args: bridgeArgs, getConfig: loadConfig, userData: app.getPath("userData"), log });
   win = new BrowserWindow({
     width: 1280, height: 860, ...ws.options(screen), minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#0A0A0A", show: false,
-    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
+    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: bridgeArgs },
   });
   // The window only ever shows src/webui. Links that leave it open in the browser; nothing else may load here,
   // because any page in this window would get the bridge (DONI-529).

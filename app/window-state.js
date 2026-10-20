@@ -13,13 +13,13 @@ function fitBounds(saved, workAreas, min = [1280, 720]) {
   return seen ? b : null;
 }
 
-function windowState(file) {
+function windowState(file, min) {
   let saved = {};
   try { saved = JSON.parse(fs.readFileSync(file, "utf8")) || {}; } catch {}
   return {
     // BrowserWindow options to merge: bounds when they still fit, plus whether to maximise once shown.
     options(screen) {
-      const b = fitBounds(saved, screen.getAllDisplays().map((d) => d.workArea));
+      const b = fitBounds(saved, screen.getAllDisplays().map((d) => d.workArea), min);
       return b || {};
     },
     maximized: () => !!saved.maximized,
