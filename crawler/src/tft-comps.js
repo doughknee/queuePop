@@ -13,7 +13,10 @@ const { getMeta } = require("./db");
 const CENTROID_MIN = 200, SHARE = 0.3, MAX_UNITS = 9, MIN_JACCARD = 0.3;
 
 function init(db) {
-  db.exec("CREATE TEMP TABLE IF NOT EXISTS tft_board_comp (match_id TEXT, puuid TEXT, id TEXT, PRIMARY KEY (match_id, puuid))");
+  if (db.prepare("SELECT 1 FROM temp.sqlite_master WHERE name = 'tft_board_comp'").get()) return;
+  // keyed by tft_participants.rowid: (match_id, puuid) is not unique (a few matches carry one placeholder puuid on several boards),
+  // which made every pass fail with "UNIQUE constraint failed" from 11:13Z on 2026-10-20 (#189 streamed rows instead of a Map)
+  db.exec("DROP TABLE IF EXISTS temp.tft_board_comp; CREATE TEMP TABLE tft_board_comp (rid INTEGER PRIMARY KEY, id TEXT)");
 }
 
 // Unique (one-unit) traits never label a comp: /tft/meta breakpoints of length 1, else the name.
@@ -68,21 +71,21 @@ function cluster(boards, isUnique) {
 function labelPatch(db, patch) {
   init(db);
   db.exec("DELETE FROM temp.tft_board_comp");
-  const q = db.prepare(`SELECT p.match_id, p.puuid, p.comp carry, p.units, p.traits FROM tft_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ?`);
+  const q = db.prepare(`SELECT p.rowid rid, p.comp carry, p.units, p.traits FROM tft_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ?`);
   function* boards() {
-    for (const r of q.iterate(patch)) yield { match_id: r.match_id, puuid: r.puuid, carry: r.carry, units: JSON.parse(r.units || "[]"), traits: JSON.parse(r.traits || "[]") };
+    for (const r of q.iterate(patch)) yield { match_id: r.rid, puuid: "", carry: r.carry, units: JSON.parse(r.units || "[]"), traits: JSON.parse(r.traits || "[]") };
   }
-  const ins = db.prepare("INSERT INTO temp.tft_board_comp VALUES (?, ?, ?)");
+  const ins = db.prepare("INSERT INTO temp.tft_board_comp VALUES (?, ?)");
   // ponytail: the second pass reads the patch again (~2x the I/O of one pass), in exchange for O(carries) memory
   const rows = [];
-  const centroids = clusterStream(boards, (m, p, id) => { rows.push(m, p, id); if (rows.length >= 3000) flush(); }, uniqueTraits(db));
+  const centroids = clusterStream(boards, (rid, _, id) => { rows.push(rid, id); if (rows.length >= 2000) flush(); }, uniqueTraits(db));
   flush();
-  function flush() { for (let i = 0; i < rows.length; i += 3) ins.run(rows[i], rows[i + 1], rows[i + 2]); rows.length = 0; }
+  function flush() { for (let i = 0; i < rows.length; i += 2) ins.run(rows[i], rows[i + 1]); rows.length = 0; }
   return centroids.length;
 }
 
 // SQL pieces for jobs.aggregate: join after "tft_participants p", and the comp expression.
-const JOIN = "LEFT JOIN temp.tft_board_comp l ON l.match_id = p.match_id AND l.puuid = p.puuid";
+const JOIN = "LEFT JOIN temp.tft_board_comp l ON l.rid = p.rowid";
 const COMP = "coalesce(l.id, 'none,' || p.comp)";
 
 module.exports = { init, labelPatch, cluster, clusterStream, JOIN, COMP, CENTROID_MIN };
