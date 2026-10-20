@@ -174,7 +174,30 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregates: getMeta(db, "aggregates"),
     backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
+    health: health(db),
   };
+}
+
+// Data health (D16, the status page's per-game section): matches fetched per region per hour over the last 24 h (oldest
+// first, 24 numbers), and the share of the default patch's tier/comp rows under 200 games. Cached 5 min (~0.2 s of SQL).
+let healthCache = { at: 0, v: null };
+function health(db) {
+  if (Date.now() - healthCache.at < 300000) return healthCache.v;
+  const now = Date.now(), from = now - 24 * 3600000, out = {};
+  for (const game of ["lol", "tft"]) {
+    const hourly = {};
+    for (const r of db.prepare("SELECT region, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = ? AND status = 'done' GROUP BY 1, 2").all(from, from, game)) {
+      (hourly[r.region] ??= Array(24).fill(0))[Math.min(23, r.h)] = r.n;
+    }
+    const patch = patches(db).default[game];
+    const rows = !patch ? [] : game === "lol"
+      ? db.prepare("SELECT sum(games) g FROM stats_lol_champ WHERE patch = ? GROUP BY champion, role").all(patch)
+      : db.prepare("SELECT sum(games) g FROM stats_tft_comp WHERE patch = ? GROUP BY comp").all(patch);
+    out[game] = { patch, hourly, rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
+      last24h: Object.values(hourly).flat().reduce((s, n) => s + n, 0) };
+  }
+  healthCache = { at: now, v: out };
+  return out;
 }
 
 // What each route serves and how fresh it is (D7): stats routes read the newest patch's last aggregation; leaderboards the

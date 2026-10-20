@@ -78,7 +78,9 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 - `GET /health` → `{ ok, version }`
 - `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits,
   aggregates: { at, ms, dirty: [patch], patches: { patch: { at, ms } } }, endpoints: [{ path, game, patch, updatedAt, live? }] }` (`endpoints`: what each
-  route serves and when that data was last rebuilt; the status page lists it)
+  route serves and when that data was last rebuilt; the status page lists it),
+  `health: { lol|tft: { patch, hourly: { region: [24 matches per hour, oldest first] }, last24h, rows, lowSampleShare } }` (D16: the status page
+  draws one sparkline per region, the default patch's row count and its share under 200 games, plus the last backup; cached 5 min)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
@@ -288,7 +290,8 @@ curl http://127.0.0.1:47900/status
 docker compose logs -f
 ```
 
-Updates (from the repo root on the dev PC; never copies `.env` or `data/`):
+Updates (from the repo root on the dev PC; never copies `.env`, `data/` or `backups/`). `backfill-comps` rewrites every TFT board and took
+~10 min of downtime on 2026-10-20 (2.2 GB DB); `backfill-length`/`backfill-players` 2-3 min each.
 
 ```bash
 scp -q -r crawler/Dockerfile crawler/docker-compose.yml crawler/package.json crawler/README.md crawler/src crawler/fixtures crawler/test unraid:/mnt/user/appdata/queuepop-crawler/

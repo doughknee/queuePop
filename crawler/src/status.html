@@ -11,6 +11,7 @@ small{color:var(--muted)}.bar{background:var(--line);height:8px}.bar i{display:b
 input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font:inherit;border:1px solid var(--line);background:#141414;color:inherit}
 input:focus{outline:2px solid var(--accent);outline-offset:-1px}button{background:var(--accent);color:var(--bg);border:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
 table{width:100%;border-collapse:collapse;font-size:14px}td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line)}td:last-child{text-align:right;white-space:nowrap;color:var(--muted)}
+.spark{display:flex;align-items:center;gap:8px;margin:2px 0}.spark span{width:48px;color:var(--muted)}.spark small{margin-left:auto}
 .ok,#msg.ok{color:var(--green)}#msg.err{color:var(--neg)}.bad{background:var(--neg);color:var(--bg);font-weight:700;padding:10px;margin:8px 0}
 </style>
 <h1>QUEUE<b>POP</b> crawler</h1>
@@ -25,6 +26,8 @@ const ago = (t) => { if (!t) return "never"; const s = Math.round((Date.now() - 
 const sum = (o, k) => Object.values(o).reduce((n, g) => n + (g[k] || 0), 0);
 const mb = (b) => b == null ? "—" : (b / 1048576).toFixed(1) + " MB";
 const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// 24 hourly counts -> an inline SVG bar sparkline (lime bars, oldest left; an empty hour is a gap)
+const spark = (a) => { const m = Math.max(1, ...a); return `<svg viewBox="0 0 96 20" width="96" height="20" role="img" aria-label="matches per hour, last 24 h">${a.map((n, i) => `<rect x="${i * 4}" y="${20 - Math.max(n ? 1 : 0, 20 * n / m)}" width="3" height="${Math.max(n ? 1 : 0, 20 * n / m)}" fill="var(--accent)"/>`).join("")}</svg>`; };
 const when = (t) => t ? new Date(t).toLocaleString() : "—";
 async function load() {
   try {
@@ -35,8 +38,12 @@ async function load() {
     $("s").innerHTML = `${s.key.valid === false ? `<div class="bad">Riot key invalid: ${esc(s.key.reason)}${s.key.since ? " since " + when(s.key.since) : ""}. Crawl and lookups are paused; paste a new key below and they resume on their own.</div>` : ""}<div>Players: ${Object.values(s.players).reduce((a, b) => a + b, 0)}</div>
 <div>Matches: ${sum(s.matches, "done")} done · ${sum(s.matches, "new")} new · ${sum(s.matches, "skip")} skip</div>
 <div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)} (every ${s.aggregateEveryMin} min)</div>
-<div>DB: ${mb(s.disk.dbBytes)} + WAL ${mb(s.disk.walBytes)} · raw JSON ${mb(s.disk.rawBytes)} in ${s.disk.rawMatches} matches (kept ${s.retentionDays} d)</div>
+<div>DB: ${mb(s.disk.dbBytes)} + WAL ${mb(s.disk.walBytes)} · raw JSON ${mb(s.disk.rawBytes)} in ${s.disk.rawMatches ?? "—"} matches (kept ${s.retentionDays} d)</div>
 <div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""} ${s.key.valid === false ? "" : "<span class=ok>valid</span>"}</div><div>Last aggregation pass: ${s.aggregates ? (s.aggregates.ms / 1000).toFixed(1) + " s (" + (s.aggregates.dirty || []).join(", ") + ")" : "—"}</div>
+${["lol", "tft"].filter((g) => s.health && s.health[g]).map((g) => { const h = s.health[g]; return `<h2>${g === "lol" ? "League" : "TFT"} data · patch ${esc(h.patch || "—")}</h2>
+<div>${h.last24h.toLocaleString()} matches in 24 h · ${h.rows} ${g === "lol" ? "champion-roles" : "comps"}, ${h.lowSampleShare == null ? "—" : Math.round(h.lowSampleShare * 100) + "%"} under 200 games</div>
+${Object.entries(h.hourly).sort().map(([r, a]) => `<div class="spark"><span>${esc(r)}</span>${spark(a)}<small>${a.reduce((x, y) => x + y, 0)}</small></div>`).join("")}`; }).join("")}
+<div>Backup: ${s.backup ? esc(s.backup.file) + " · " + mb(s.backup.bytes) + " · " + ago(s.backup.at) : "none yet"}</div>
 <h2>Endpoints</h2><table>${(s.endpoints || []).map((e) => `<tr><td>${e.path}</td><td>${e.patch || ""}</td><td>${e.live ? "live" : ago(e.updatedAt)}</td></tr>`).join("")}</table>
 <h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
   } catch (e) { $("s").textContent = "status failed: " + e.message; }
