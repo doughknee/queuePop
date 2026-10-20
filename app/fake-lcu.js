@@ -62,6 +62,7 @@ function install(lcu, kind, log) {
   lcu.request = async (method, uri, body) => {
     method = method.toLowerCase();
     if (uri === "/lol-gameflow/v1/gameflow-phase") return ok(phase);
+    if (uri === "/lol-gameflow/v1/session") return ok({ phase, gameData: { gameId: s.gameId, queue: { id: queueId, gameMode: kind === "aram" ? "ARAM" : "CLASSIC" } } });
     if (uri === "/lol-game-data/assets/v1/champion-summary.json") return ok(summary);
     if (uri === "/lol-champ-select/v1/session") return sessionLive ? ok(JSON.parse(JSON.stringify(s))) : { status: 404, data: null };
     if (uri === "/lol-lobby/v2/lobby") return ok({ gameConfig: { queueId } });
@@ -94,7 +95,7 @@ function install(lcu, kind, log) {
   const run = (step) => {
     if (step.phase) {
       if (step.phase === "ChampSelect") sessionLive = true;
-      if (step.phase === "InProgress") sessionLive = false;
+      if (step.phase === "InProgress") { sessionLive = false; gameStart = Date.now(); }
       if (step.phase === "ReadyCheck") { ready = { state: "InProgress", playerResponse: "None", timer: 0 }; emit("/lol-matchmaking/v1/ready-check", { ...ready }); }
       if (step.phase === "ChampSelect" && ready) { ready.state = "EveryoneReady"; emit("/lol-matchmaking/v1/ready-check", { ...ready }); ready = null; }
       if (step.phase === "EndOfGame") win = step.win !== false;
@@ -114,4 +115,26 @@ function install(lcu, kind, log) {
   }, 1500);
 }
 
-module.exports = { install, script, CHAMPS };
+// The in-game live client API (127.0.0.1:2999) for the recorder: game time runs from the moment the script says InProgress;
+// events land a few seconds apart so the whole (short) fake game produces a full timeline.
+let gameStart = 0;
+const LIVE_EVENTS = [
+  { EventID: 1, EventName: "ChampionKill", EventTime: 2, KillerName: "Fake", VictimName: "Caitlyn", Assisters: [] },
+  { EventID: 2, EventName: "DragonKill", EventTime: 3.5, KillerName: "Fake", DragonType: "Fire", Stolen: "False" },
+  { EventID: 3, EventName: "ChampionKill", EventTime: 5, KillerName: "Thresh", VictimName: "Fake", Assisters: [] },
+  { EventID: 4, EventName: "ChampionKill", EventTime: 6.5, KillerName: "Garen", VictimName: "Leona", Assisters: ["Fake"] },
+  { EventID: 5, EventName: "Multikill", EventTime: 8, KillerName: "Fake", KillStreak: 3 },
+  { EventID: 6, EventName: "BaronKill", EventTime: 9.5, KillerName: "Jinx", Stolen: "False" },
+  { EventID: 7, EventName: "GameEnd", EventTime: 11, Result: "Win" },
+];
+async function live(p) {
+  if (!gameStart) return null;
+  const t = (Date.now() - gameStart) / 1000;
+  if (p.endsWith("activeplayername")) return "Fake#TEST";
+  if (p.endsWith("activeplayer")) return { championName: "Ahri" };
+  if (p.endsWith("gamestats")) return { gameTime: t };
+  if (p.endsWith("eventdata")) return { Events: LIVE_EVENTS.filter((e) => e.EventTime <= t) };
+  return null;
+}
+
+module.exports = { install, script, CHAMPS, live };
