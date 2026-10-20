@@ -18,9 +18,7 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
 -- /status lastFetch and the aggregation dirty check (max / > fetched_at), leaderboard freshness (max seeded_at)
 CREATE INDEX IF NOT EXISTS matches_fetched ON matches (fetched_at);
--- aggregation: every per-patch INSERT joins matches on patch; without this each one scanned all of matches (~150 s fixed cost per
--- patch, DONI-596 found it when the mode patches made five of them an hour)
-CREATE INDEX IF NOT EXISTS matches_patch ON matches (patch);
+DROP INDEX IF EXISTS matches_patch; -- made the 16.20 pass 3x+ slower (planner drove every join from it); aggregation uses temp.pm
 CREATE INDEX IF NOT EXISTS players_seeded ON players (game, seeded_at);
 -- leaderboards: ladder order per game and per game+region (division sorts as text: I < II < III < IV)
 CREATE INDEX IF NOT EXISTS players_ladder ON players (game, tier_n DESC, division, lp DESC);
@@ -62,6 +60,9 @@ function open(file) {
   db.exec(require("./draft").SCHEMA); // D8: stats_lol_vs // DONI-510/511: tft_participants.board + stats_tft_{unit,unit_item,item,augment,trait}
   // Migration: TFT set number (nullable), for DBs created before it existed.
   if (!db.prepare("PRAGMA table_info(matches)").all().some((c) => c.name === "set")) db.exec('ALTER TABLE matches ADD COLUMN "set" INT');
+  // Every stats_* read and the aggregation's per-patch swap filter on patch: without these each was a full table scan (the swap
+  // runs while the crawl waits, DONI-596).
+  for (const { name } of db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'stats_*'").all()) db.exec(`CREATE INDEX IF NOT EXISTS ${name}_patch ON ${name} (patch)`);
   return db;
 }
 

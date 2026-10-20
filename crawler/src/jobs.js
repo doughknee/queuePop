@@ -373,7 +373,9 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
   const dirty = db.prepare(all ? "SELECT DISTINCT patch FROM matches WHERE status = 'done'"
     : "SELECT DISTINCT patch FROM matches WHERE status = 'done' AND coalesce(fetched_at, 0) > ?").all(...(all ? [] : [last])).map((r) => r.patch);
   for (const p of getMeta(db, "dirtyPatches") || []) if (!dirty.includes(p)) dirty.push(p); // backfillModes
-  const M = "JOIN matches m ON m.id = p.match_id AND m.patch = ?";
+  // temp.pm: the patch's matches, copied once per patch (narrow, keyed by id), so the ~35 inserts don't each scan the wide matches
+  // table (raw blobs): that scan was a ~150 s floor per patch, even for a 35-match mode patch (DONI-596)
+  const M = "JOIN temp.pm m ON m.id = p.match_id AND m.patch = ?";
   const K = "m.patch, m.region, m.bracket";
   const inserts = [
     `INSERT INTO stats_lol_matches SELECT patch, region, bracket, count(*) FROM matches WHERE game = 'lol' AND status = 'done' AND patch = ? GROUP BY 1, 2, 3`,
@@ -396,12 +398,13 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
     ...win.inserts(M, K),
     ...draftAgg.inserts(M, K),
   ];
+  db.exec("DROP TABLE IF EXISTS temp.pm; CREATE TEMP TABLE pm (id TEXT PRIMARY KEY, patch TEXT, region TEXT, bracket TEXT, duration INT, started_at INT)");
   const tables = db.prepare("SELECT name FROM main.sqlite_master WHERE type = 'table' AND name GLOB 'stats_*'").all().map((r) => r.name);
   for (const t of tables) db.exec(`CREATE TEMP TABLE IF NOT EXISTS ${t} AS SELECT * FROM main.${t} WHERE 0`); // before any prepare
   require("./lol-items").loadCompleted(db); // temp.lol_completed before the build-order inserts are prepared
   require("./tft-comps").init(db); // temp.tft_comp_label, filled per patch below
   const prepared = inserts.map((q) => db.prepare(q));
-  locked(() => champ.ingestRaw(db));
+  champ.ingestRaw(db, locked);
   // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
   const log = getMeta(db, "aggregates") || { patches: {} };
   const t0 = Date.now();
@@ -410,6 +413,8 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
     const t1 = Date.now();
     tx(db, () => { // one read snapshot of main per patch; writes go to temp only
       for (const t of tables) db.exec(`DELETE FROM temp.${t}`);
+      db.exec("DELETE FROM temp.pm");
+      db.prepare("INSERT INTO temp.pm SELECT id, patch, region, bracket, duration, started_at FROM matches WHERE patch = ?").run(patch);
       require("./tft-comps").labelPatch(db, patch);
       for (const q of prepared) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
@@ -425,7 +430,7 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
     setMeta(db, "dirtyPatches", []);
     setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   }));
-  } finally { for (const t of tables) db.exec(`DROP TABLE IF EXISTS temp.${t}`); } // this connection reads main's stats again
+  } finally { for (const t of [...tables, "pm"]) db.exec(`DROP TABLE IF EXISTS temp.${t}`); } // this connection reads main's stats again
   return dirty.length;
 }
 
