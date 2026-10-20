@@ -135,7 +135,17 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return true;
     },
   };
-  for (const k of Object.keys(mine)) if (!NAMES.includes(k)) throw new Error("host.js: " + k + " missing from NAMES");
+  // The phone companion applies at once: turning it on/off or changing its port in Settings restarts the server (Q7).
+  const saveConfig = impl.save_config;
+  if (saveConfig) mine.save_config = async (c) => {
+    const before = cfgComp(), r = await saveConfig(c), after = cfgComp();
+    if (!!before.enabled !== !!after.enabled || Number(before.port) !== Number(after.port)) {
+      companion.stop();
+      if (after.enabled) await companion.start();
+    }
+    return r;
+  };
+  for (const k of Object.keys(mine)) if (k !== "save_config" && !NAMES.includes(k)) throw new Error("host.js: " + k + " missing from NAMES");
   Object.assign(impl, mine);
   return { notifier, companion, updater, tray };
 }
