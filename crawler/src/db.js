@@ -42,6 +42,7 @@ function open(file) {
   db.exec(SCHEMA);
   require("./agg-players").migrate(db); // DONI-506: lol_names + stats_lol_player_champ
   db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables
+  require("./agg-tft").migrate(db); // DONI-510/511: tft_participants.board + stats_tft_{unit,unit_item,item,augment,trait}
   // Migration: TFT set number (nullable), for DBs created before it existed.
   if (!db.prepare("PRAGMA table_info(matches)").all().some((c) => c.name === "set")) db.exec('ALTER TABLE matches ADD COLUMN "set" INT');
   return db;
