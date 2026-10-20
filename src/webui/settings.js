@@ -3,7 +3,7 @@
    Settings/Alerts pages used. The stats crawler card talks to the crawler straight from the renderer. */
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
-  const SECTIONS = [['account', 'Account'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'Display'], ['about', 'Updates & about']];
+  const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'Display'], ['about', 'Updates & about']];
   const EVENTS = [['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -21,6 +21,9 @@
         <div class="st-row"><span class="st-lbl">League summoner<small>Read from the League client; sign in there to change it.</small></span><span id="st-summoner" class="st-val">Offline</span></div>
         <label class="st-row"><span class="st-lbl">Deadlock account ID<small>Your Steam friend ID (numbers). Powers the Deadlock player card.</small></span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="e.g. 123456789"></label>
         <label class="st-row"><span class="st-lbl">Stats crawler URL<small>Where League and TFT stats come from.</small></span><input class="st-in st-wide" data-k="crawler_url" data-url placeholder="${DEFAULT_CRAWLER}"></label>`) +
+      card('games', 'Games', `
+        <p class="st-hint">Games you switch off leave the sidebar, home and search. Their pages and settings stay as they are.</p>
+        ${[['league', 'League of Legends'], ['tft', 'Teamfight Tactics'], ['deadlock', 'Deadlock']].map(([g, l]) => sw('games_enabled.' + g, l, '')).join('')}`) +
       card('league', 'League', `
         ${num('accept_delay_seconds', 'Accept delay', 'Seconds to wait before accepting a ready check. 0 accepts instantly.', 0, 10)}
         <div class="st-row"><span class="st-lbl">Queues to auto-accept<small>Pick which queues on the Play page.</small></span><span id="st-queues" class="st-val"></span></div>
@@ -78,6 +81,7 @@
       if (el.dataset.k === 'champ_select.instant_lock') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
+      if (el.dataset.k.startsWith('games_enabled.')) { const on = window.qpGames ? qpGames() : []; v = on.includes(el.dataset.k.slice(14)); el.disabled = v && on.length === 1; el.closest('.st-row').title = el.disabled ? 'Keep at least one game on' : ''; }
       if (el.type === 'checkbox') el.checked = !!v; else if (document.activeElement !== el) el.value = v ?? '';
     });
     const ids = c.allowed_queue_ids || [];
@@ -94,6 +98,12 @@
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.dataset.num !== undefined) { if (v === '') return; v = Math.min(+el.max, Math.max(+el.min, Math.round(+v) || 0)); }
     if (el.dataset.scale !== undefined) return setScale(Number(v));
+    if (k.startsWith('games_enabled.')) { // DONI-522: one switch per world, stored as the list of worlds that are on
+      const g = k.slice(14), on = new Set(window.qpGames ? qpGames() : []);
+      v ? on.add(g) : on.delete(g);
+      if (on.size) QP.store.set('games_enabled', ['league', 'tft', 'deadlock'].filter(x => on.has(x)));
+      return hydrate();
+    }
     if (el.dataset.digits !== undefined) v = String(v).replace(/\D/g, '');
     if (el.dataset.url !== undefined) { v = String(v).trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) v = 'http://' + v; }
     // Typed fields commit on blur/Enter ('change'), never per keystroke: a half-typed URL must not be saved or fetched.

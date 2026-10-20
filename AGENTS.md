@@ -175,6 +175,12 @@
   that no longer land on a screen; `app/test-window.js`). The window is created hidden and shown on `ready-to-show` (5 s fallback),
   unless `start_minimized`. Startup milestones log as `startup: …`. `shell.js` remembers the route in localStorage `queuepop-last-v1`
   ({route, worlds, champion} via `qpLastNext`, tested in `app/test-home.js`) and restores it when the app opens with no hash.
+- Games (DONI-522): config `games_enabled` (list, never empty, `cleanGames` in champ-config.js). Settings > Games has one switch per
+  world (`data-k="games_enabled.<game>"`, special-cased in settings.js; the last one is disabled). `shell.js` `qpGames()` /
+  `applyGames()` (on store `config:loaded`, a new event in js/core/store.js, and `config:changed`) hide sidebar groups, set
+  `<html data-games>` (CSS hides home gates), filter the home bar and search; `render()` sends a switched-off world's routes home.
+- Home set-up strip (Q5): `homeSetupItems` (pure, `app/test-home.js`) → crawler unreachable / no Deadlock account / all games on;
+  each links to its Settings field (`qpSearch.focusSetting`), dismissible per item or whole (localStorage `queuepop-setup-dismissed-v1`).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

@@ -178,6 +178,13 @@ function acceptDelay(v) {
 }
 
 const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5];
+// Known worlds in sidebar order, unique; never empty (the last game can't be turned off), default all.
+const GAMES = ["league", "tft", "deadlock"];
+function cleanGames(v) {
+  const list = Array.isArray(v) ? GAMES.filter((g) => v.includes(g)) : [];
+  return list.length ? list : [...GAMES];
+}
+
 function normalizeConfig(data) {
   data = or(data, {});
   const webhook = String(data.webhook_url || "").trim();
@@ -198,6 +205,7 @@ function normalizeConfig(data) {
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
     crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),
+    games_enabled: cleanGames(data.games_enabled), // DONI-522: which worlds show in the sidebar and on home
     ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.25, // DONI-516 Text size (zoom factor)
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),
     companion: normalizeCompanion(data.companion),
@@ -223,5 +231,5 @@ function mergeForSave(newConfig, prev) {
 
 module.exports = {
   ROLES, ARAM_ROLE, EDITOR_ROLES, ROLE_LABELS, DEFAULT_LOCK_SECONDS, ARAM_MODES, ROLE_MODES, SUMMONER_SPELLS,
-  RUNE_PAGE_NAME, T, or, getd, pyInt, pyFloat, normalizeConfig, mergeForSave, UI_SCALES,
+  RUNE_PAGE_NAME, T, or, getd, pyInt, pyFloat, normalizeConfig, mergeForSave, UI_SCALES, cleanGames,
 };
