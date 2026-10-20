@@ -66,3 +66,14 @@
 .city-nav .dl-play:focus-visible{outline:3px solid var(--spectral);outline-offset:3px}
 /* DONI-481: programmatic focus (tab switch) draws no box; keyboard focus keeps its ring. */
 :focus:not(:focus-visible){outline:none}
+/* DONI-542: narrow windows (1280 at 150 % is 853 px of page): tables scroll inside their box, the record toolbar wraps,
+   and the archive's big figures are Anton like every other world's. */
+.ledger-scroll{overflow-x:auto;max-width:100%}
+.ledger-table{font-size:12px}
+.ledger-table th,.ledger-table td{padding:4px 8px}
+.record-toolbar{flex-wrap:wrap}
+.record-toolbar .record-tabs button{white-space:nowrap}
+.page-heading .archive-count{font-family:var(--display);font-weight:400;text-transform:uppercase}
+.page-heading .archive-count small{font-family:var(--mono);text-transform:none}
+.casework-layout>*,.ledger-scroll{min-width:0}
+.file-register b{font-family:var(--display);font-weight:400}

@@ -42,13 +42,14 @@ function idToName(id) {
 }
 
 // --- Rank / mastery formatting -----------------------------------------
+// DONI-542: rank colours are theme.css data tokens (lowroll palette), so the account page and sidebar stay in the system.
 const TIER_COLORS = {
-  IRON: "#7c7166", BRONZE: "#a05a36", SILVER: "#9fb0c2", GOLD: "#e2b24a",
-  PLATINUM: "#4ec1b0", EMERALD: "#2faa64", DIAMOND: "#6aa0ff",
-  MASTER: "#b552d6", GRANDMASTER: "#e0584f", CHALLENGER: "#f0d27a",
+  IRON: "var(--grey)", BRONZE: "var(--amber)", SILVER: "var(--grey)", GOLD: "var(--amber)",
+  PLATINUM: "var(--green)", EMERALD: "var(--green)", DIAMOND: "var(--blue)",
+  MASTER: "var(--purple)", GRANDMASTER: "var(--neg)", CHALLENGER: "var(--accent)",
 };
 const APEX_TIERS = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
-function tierColor(t) { return TIER_COLORS[(t || "").toUpperCase()] || "#A09B8C"; }
+function tierColor(t) { return TIER_COLORS[(t || "").toUpperCase()] || "var(--muted)"; }
 function titleCase(s) { return s ? s.charAt(0) + s.slice(1).toLowerCase() : s; }
 // "Gold III" / "Master" (apex tiers have no division); optionally " · 45 LP".
 function rankLabel(r, withLp) {

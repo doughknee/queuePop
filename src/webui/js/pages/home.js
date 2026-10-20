@@ -175,7 +175,10 @@ function planChampHtml(name, ban) {
   const media = icon
     ? `<img src="${icon}" onerror="this.style.visibility='hidden'" />`
     : `<span class="plan-champ-name">${initials(name)}</span>`;
-  return `<span class="plan-champ${ban ? " ban" : ""}">${media}<span class="plan-champ-name">${name}</span></span>`;
+  // DONI-542: a champion anywhere in League opens its champion page.
+  const c = (typeof catalog !== "undefined" ? catalog : []).find((x) => x.name === name);
+  return c ? `<a class="plan-champ${ban ? " ban" : ""}" href="#/league/champion/${c.id}" title="Open ${name}'s stats">${media}<span class="plan-champ-name">${name}</span></a>`
+    : `<span class="plan-champ${ban ? " ban" : ""}">${media}<span class="plan-champ-name">${name}</span></span>`;
 }
 
 function planLoadoutHtml(rc, pickName) {

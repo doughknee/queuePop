@@ -12,7 +12,8 @@
     return p;
   }
   const json = url => fetch(url, { signal: AbortSignal.timeout(6000) }).then(r => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); });
-  const base = () => once('base', async () => {
+  // DONI-515: before the bridge is ready, use the default without memoising it, so a configured crawler_url wins on the next call.
+  const base = () => !window.pywebview?.api ? Promise.resolve(DEFAULT_CRAWLER) : once('base', async () => {
     let u = '';
     try { u = (await window.pywebview?.api?.get_config())?.crawler_url || ''; } catch {}
     return String(u || DEFAULT_CRAWLER).replace(/\/+$/, '');
@@ -85,6 +86,7 @@
     items: patch => ddData(patch, 'item.json'),
     runes: patch => ddData(patch, 'runesReforged.json'),
     ddChampions: patch => ddData(patch, 'champion.json'),
+    ddChampion: (patch, alias) => ddData(patch, `champion/${encodeURIComponent(alias)}.json`), // DONI-450: spells + passive
     spells: patch => ddData(patch, 'summoner.json'),
     DD,
   };

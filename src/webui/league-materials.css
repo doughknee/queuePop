@@ -62,10 +62,6 @@
   background:var(--fg);color:var(--bg);
   
 }
-.champion-dossier #spell-description:before{
-  content:'';position:absolute;inset:0;z-index:-1;opacity:.15;pointer-events:none;
-  background:url('assets/armory-sanctuary.png') 40% 85%/1800px auto;mix-blend-mode:multiply;
-}
 .champion-dossier #spell-description:after{content:'';position:absolute;inset:12px;border-block:1px solid var(--edge);pointer-events:none}
 .champion-dossier #spell-description{min-height:210px;padding:35px;align-items:center;gap:30px}
 .champion-dossier #spell-description h2{color:var(--bg);font-size:34px}

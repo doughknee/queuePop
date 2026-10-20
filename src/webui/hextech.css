@@ -842,7 +842,7 @@
     .acct-portrait img { width: 100%; height: 100%; border-radius: 9999px; border: 2px solid var(--line); object-fit: cover; display: block; background: var(--bg); }
     .acct-id { flex: 1; min-width: 0; }
     .acct-name-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-    .acct-name { font-family: var(--mono); font-size: 23px; color: var(--fg); line-height: 1.05; }
+    .acct-name { font-family: var(--display); text-transform: uppercase; font-size: 26px; color: var(--fg); line-height: 1.05; }
     .acct-tag { font-family: var(--mono); font-size: 15px; color: var(--muted); }
     .acct-copy { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer; background: transparent; border: 0; outline: 1px solid var(--line); outline-offset: -1px; color: var(--muted); font-family: var(--mono); font-size: 11px; transition: color .15s ease, background-color .15s ease, outline-color .15s ease; }
     .acct-copy:hover { color: var(--fg); outline-color: var(--accent); background: color-mix(in srgb,var(--fg) 6%,transparent); }
@@ -1235,3 +1235,6 @@
 .text-red-400 { color: var(--neg); }
  .border-t-icon\/20 { border-top-color: var(--line); }
 .border-b-icon\/20, .border-b-icon\/30 { border-bottom-color: var(--line); }
+a.plan-champ { text-decoration: none; }
+a.plan-champ:hover .plan-champ-name { color: var(--accent); }
+a.plan-champ:hover img { outline-color: var(--accent); }
