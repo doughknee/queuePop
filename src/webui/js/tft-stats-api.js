@@ -28,10 +28,10 @@
   }
   const memo = new Map();
   // GET {crawler}{path}; cached per URL for the session. Rejects on network error, timeout or non-2xx.
-  async function get(path) {
+  async function get(path, ms = 6000) {
     const url = (await crawler()) + path;
     if (!memo.has(url)) {
-      memo.set(url, fetch(url, { signal: AbortSignal.timeout(6000) }).then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))));
+      memo.set(url, fetch(url, { signal: AbortSignal.timeout(ms) }).then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))));
       memo.get(url).catch(() => memo.delete(url));
     }
     return memo.get(url);

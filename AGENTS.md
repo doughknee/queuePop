@@ -122,7 +122,9 @@
   `#/tft/comps` redirects there and the guide's Set 13 practice comps live only inside the Planner; do not bring back a
   separate comps entry. DONI-510/511: `#/tft/units` (cost filter), `#/tft/unit/{key}`, `#/tft/items`, `#/tft/traits` are MetaTFT's
   stat pages on the crawler's `/tft/units|unit|items|traits` (statsList / unitPage in tft-view.js); the guide's libraries moved to
-  `#/tft/champions` and `#/tft/item-library` (linked from Units and Items). Augments: Riot sends none for set 18, so no page. Look: lime tokens like League (tft-view.css; the field guide loads `../theme.css` and its own
+  `#/tft/champions` and `#/tft/item-library` (linked from Units and Items). Augments: Riot sends none for set 18, so no page. DONI-512: `#/tft/leaderboard[/{region}]`
+  and `#/tft/player/{Name-TAG}[/{region}]` (crawler `/tft/leaderboard`, `/tft/player`); the TFT search opens name#tag there. League twins
+  (DONI-508): `#/league/leaderboard`, `#/league/summoner/{Name-TAG}` in league-players.js; the League search opens name#tag there. Look: lime tokens like League (tft-view.css; the field guide loads `../theme.css` and its own
   colours map to tokens, unit costs to grey/green/blue/purple/amber); value cells tint green/red against a lobby average
   (4.5 place, 50 % top 4, 12.5 % win) by sample, pick purple.
 - Data: `src/webui/js/tft-stats-api.js` (`window.tftStats`): crawler base from config `crawler_url` (default
