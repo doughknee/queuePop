@@ -40,7 +40,7 @@ assert.deepStrictEqual(vals(homePages({ info: { ranked: {} }, lol: [] })[0]), ["
 const J = (o) => JSON.parse(JSON.stringify(o));
 let last = {};
 last = ctx.qpLastNext(last, "#/league/champion/103/middle");
-assert.deepStrictEqual(J(last), { route: "#/league/champion/103/middle", worlds: { league: "#/league/champion/103/middle" }, champion: "103" });
+assert.deepStrictEqual(J(last), { route: "#/league/champion/103/middle", worlds: { league: "#/league/champion/103/middle" }, recent: ["league"], champion: "103" });
 last = ctx.qpLastNext(last, "#/tft/comp/x");
 assert.deepStrictEqual(J(last.worlds), { league: "#/league/champion/103/middle", tft: "#/tft/comp/x" });
 assert.strictEqual(last.champion, "103");
@@ -59,4 +59,19 @@ assert.strictEqual(ids({ games: all3, dlId: "123", crawler: "ok" }), "games");
 assert.strictEqual(ids({ games: ["deadlock"], dlId: "", crawler: "down" }), "deadlock");
 assert.strictEqual(ids({ games: ["league"], dlId: undefined, crawler: undefined }), ""); // config not loaded: no Deadlock nag
 assert.strictEqual(ids({ games: all3, dlId: "", dismissed: ["games"] }), "deadlock");
+// Q7: home's "Pick up where you left off" tiles.
+const pages = [{ href: "#/league", label: "Tier list", game: "league" }, { href: "#/league/history", label: "Match history", game: "league" },
+  { href: "#/tft", label: "Overview", game: "tft" }, { href: "#/deadlock/heroes", label: "Heroes", game: "deadlock" }];
+const tiles = (l, g = all3) => J(ctx.resumeTiles(l, g, pages));
+assert.deepStrictEqual(tiles({}), []);
+let lt = ctx.qpLastNext({}, "#/league/history");
+lt = ctx.qpLastNext(lt, "#/deadlock/heroes/mo-krill");
+assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.detail || "")), ["deadlock:Heroes:Mo Krill", "league:Match history:"]);
+lt = ctx.qpLastNext(lt, "#/league/champion/103");
+lt = ctx.qpLastNext(lt, "#/league");
+assert.deepStrictEqual(tiles(lt).map((t) => t.game + ":" + t.page + ":" + (t.champion || "")), ["league:Tier list:", "deadlock:Heroes:", "league:Last champion:103"]);
+assert.deepStrictEqual(tiles(lt, ["league"]).map((t) => t.page), ["Tier list", "Last champion"]); // switched-off worlds drop out
+lt = ctx.qpLastNext(lt, "#/league/champion/103/top");
+assert.deepStrictEqual(tiles(lt).map((t) => t.page), ["Champion", "Heroes"]); // already on that champion: no second tile
+assert.strictEqual(tiles(ctx.qpLastNext({}, "#/tft/comp/TFT16_A%2CTFT16_B"))[0].comp, "TFT16_A,TFT16_B");
 console.log("test-home: ok");
