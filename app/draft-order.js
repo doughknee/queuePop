@@ -13,7 +13,7 @@ function reorderByScore(ids, candidates) {
 // ctx: { getConfig, log } → { order(ids, query) : ids, why(id) : string }
 function createDraftOrder(ctx) {
   const memo = new Map(); // query → { candidates } | "pending" | "failed@<ms>"
-  const base = () => String(ctx.getConfig().crawler_url || "http://10.205.0.81:47900").replace(/\/+$/, "");
+  const base = () => { let u = ""; try { u = ctx.getConfig().crawler_url || ""; } catch { /* unreadable config: default */ } return String(u || "http://10.205.0.81:47900").replace(/\/+$/, ""); };
   function order(ids, q) {
     const hit = memo.get(q);
     if (hit && hit.candidates) return reorderByScore(ids, hit.candidates);

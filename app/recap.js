@@ -49,6 +49,8 @@ function attachRecap(ctx) {
         const top = r.ok ? ((await r.json()).candidates || []).find((c) => !c.lowSample) : null;
         if (top) snap.suggested = Number(top.champion);
       } catch (err) { ctx.log("recap: draft", err.message); }
+    } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && ["None", "Lobby", "Matchmaking"].includes(e.data)) {
+      snap = null; lockedFor = null; // dodged or left: that draft never became a game
     } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && e.data === "EndOfGame" && snap) {
       const eog = await ctx.lcu.request("get", "/lol-end-of-game/v1/eog-stats-block").catch(() => null);
       const row = recapRow(snap, eogResult(eog && eog.data));

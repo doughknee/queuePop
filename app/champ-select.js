@@ -216,8 +216,10 @@ class ChampSelect {
     // DONI-348 (opt-in): your own list, best draft score first. Cached; never waits on the network.
     if (!isAram && T(roleCfg) && T(cs.smart_pick) && this.draftOrder && pri.length > 1) {
       const ids = (team) => arr(team).map((p) => p.championId).filter((x) => x > 0);
-      const q = new URLSearchParams({ role: position, enemies: ids(session.theirTeam).join(","),
-        allies: ids(myTeam.filter((p) => p.cellId !== localCell)).join(","), bans: [...unavailable].join(","), pool: pri.join(",") }).toString();
+      // Keyed on role + enemies + your list only (sorted): ally hovers and your own lock don't change it, so the answer fetched
+      // during bans is ready when your pick comes (review 2026-10-20).
+      const q = new URLSearchParams({ role: position, enemies: ids(session.theirTeam).sort((a, b) => a - b).join(","),
+        pool: [...pri].sort((a, b) => a - b).join(",") }).toString();
       const ordered = this.draftOrder.order(pri, q);
       if (ordered[0] !== pri[0] && this.smartSaid !== q) {
         this.smartSaid = q;

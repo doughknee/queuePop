@@ -37,7 +37,7 @@ lcu.on("connect", async () => {
   log("LCU connected on port", lcu.creds.port);
   push("League client connected", "success");
   const r = await lcu.request("get", "/lol-gameflow/v1/gameflow-phase").catch(() => null);
-  if (r && r.status === 200) state.phase = r.data;
+  if (r && r.status === 200) { state.phase = r.data; if (float) float.sync(r.data); } // reconnecting mid champ select opens the float
 });
 lcu.on("disconnect", () => {
   log("LCU disconnected, waiting for client");
@@ -53,8 +53,6 @@ lcu.on("event", (e) => {
 
 async function readyCheck(data) {
   if (state.paused || !data) return;
-  // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
-  if (!state.away && loadConfig().auto_accept === false) return;
   if (data.state !== "InProgress") { state.accepting = false; state.popPushed = false; return; }
   if (data.playerResponse !== "None" || state.accepting) return;
   state.accepting = true;
@@ -67,8 +65,12 @@ async function readyCheck(data) {
     state.accepting = false;
     return;
   }
-  if (!state.popPushed) push(`Queue popped (queue ${queueId}), accepting…`, "danger", "queue_pop"); // once per pop, not per retry
+  // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
+  // Off still pushes the pop (the phone alarms on it), it just doesn't accept.
+  const autoAccept = state.away || loadConfig().auto_accept !== false;
+  if (!state.popPushed) push(`Queue popped (queue ${queueId}), ${autoAccept ? "accepting…" : "accept it in the client"}`, "danger", "queue_pop"); // once per pop, not per retry
   state.popPushed = true;
+  if (!autoAccept) { log(`Ready check popped queue=${queueId}; auto-accept is off`); return; } // the latch stays until the check ends
   log(`Ready check popped queue=${queueId}`);
   const delay = Math.min(10, Math.max(0, Number(loadConfig().accept_delay_seconds) || 0));
   if (delay) {
@@ -185,6 +187,7 @@ app.whenReady().then(() => {
       .then((p) => log("startup: renderer", p)).catch(() => {});
   });
   ws.track(win);
+  win.on("closed", () => { if (float) float.sync(null); }); // with close-to-tray off, the float mustn't keep the app alive
   const setDl = impl.set_deadlock_account;
   impl.set_deadlock_account = (id) => {
     const r = setDl(id), v = JSON.stringify(require("./deadlock-api").get_deadlock_account());

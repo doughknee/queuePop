@@ -46,7 +46,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     onClick: () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
   const away = createAway(state, push); // DONI-424
-  const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log }); // DONI-347
+  const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log, isPaused: () => state.paused }); // DONI-347
   const champName = (id) => ((impl.get_champion_catalog && impl.get_champion_catalog()) || []).find((c) => Number(c.id) === Number(id))?.name || `champion ${id}`;
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
