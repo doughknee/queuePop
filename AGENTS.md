@@ -17,7 +17,7 @@
   the window's 32 px drag strip. Deadlock keeps its own `.city-nav` row (`worlds.js` makes it drag the window and fills the
   sidebar from `DEADLOCK_PAGES`). Drag areas: `.sb-top`, `#world-nav`, `.city-nav`; their links are `no-drag`), `worlds.js`
   (the mockup's `app.js`: hash router, home, companion) + `worlds.css` (its `styles.css`),
-  `league-*.css/js` and `playbooks.*` for the League world, `tft-view.*` + `tft-field-guide/`
+  `league-*.css/js` and `playbooks.*` for the League world (the directory/dossier in `league-world.js`, its sigil in `league-interiors.js`), `tft-view.*` + `tft-field-guide/`
   and `deadlock-view.js` + `deadlock/assets/` for the static TFT/Deadlock arrival pages.
   The working League pages (`js/pages/*`, hextech markup) live in `#host-pages` and mount
   on `#/league/{play,champ,live,dashboard,account,settings}` and `#/companion`; the glue
@@ -146,7 +146,14 @@
   10/avg place (bridge), Deadlock matches/win rate/last 10 (deadlock-api, when `deadlock_account_id` is set; else a line pointing to
   Settings). Not loaded = dashes. The lit pill's 6 s fill animation is the clock (`animationend` turns), so `:hover`/`:focus-within`
   pause it in CSS; reduced motion cuts. Narrow columns (container query) stack LP / W-L under the figure. Its row rules use doubled selectors (`#world-nav#world-nav`) to outrank
-  the world files' row CSS; world content (`league-*`, `tft-*`, `deadlock/**`) is not themed yet.
+  the world files' row CSS; TFT and Deadlock content (`tft-*`, `deadlock/**`) is not themed yet.
+- League world (DONI-528, 2026-10-20): every League page wears the tokens. Space Mono for rows, labels and numbers; Anton only for
+  page/section heads and big figures (`.theme-league h1,h2` in worlds.css); no Cinzel, Marcellus or Segoe left in League CSS. Heat
+  map: green above the centre, `--neg` below, purple for pick/ban size, alpha by distance x sample (no hue mixing, so every pixel is a
+  token). Tier badges S green, A blue, B grey, C amber, D red (`.lg-tier[class*=t-]` outranks tft-view.css's global `.t-S`).
+  `hextech.css` stays as the functional pages' stylesheet, recoloured to tokens (gold corner brackets dropped; Tailwind gold
+  utilities overridden at its end). Dropped: the armory, chronicle and battle-report interiors (unreachable), league-armory.css,
+  league-interiors.css, league-home.css. Do not bring back gold, arches, torn-paper clip-paths or italics in League.
 
 ## Settings
 - `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the
@@ -184,10 +191,10 @@
   counters (delta 1/2) beside synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
   Crawler side: `crawler/src/timeline.js` (purchase/skill parse) + `crawler/src/agg-champion.js` (tables, aggregate, the extra
   `/lol/champion/{id}` fields). Timeline blocks come from the TIMELINE_SAMPLE share of games and fill forward from deploy.
-- Scanability (DONI-516): `lgHeat` (league-stats.js) tints win rate, Δ, PBI and counter/synergy/objective numbers from ivory toward
-  spell light / lifted defeat by distance from the list average (or 0), 1 = the column's 90th-percentile distance over full-sample
+- Scanability (DONI-516): `lgHeat` (league-stats.js) tints win rate, Δ, PBI and counter/synergy/objective numbers from --fg toward
+  --green / --neg by distance from the list average (or 0), 1 = the column's 90th-percentile distance over full-sample
   rows, times a sample weight (20 games 0.15, 2,000 full), linear. DONI-519: inside `.lg-table` the tint is the cell background (the
-  tier list reads as a heat map), elsewhere the text; `lgMag` tints pick/ban gold by size; build picks are colored against the
+  tier list reads as a heat map), elsewhere the text; `lgMag` tints pick/ban purple by size; build picks are colored against the
   champion's own win rate (`lg.cwr`). One `.lg-legend` per page, at the end of the filter strip. One density (22 px rows; the
   compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky at `top:56px`. Styles: all in
   `league-stats.css` + `league-champion.css` (nothing League-stats in `league-world.css`).
