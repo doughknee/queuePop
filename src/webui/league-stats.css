@@ -177,3 +177,6 @@
 .lg-len-bar:after{content:'';position:absolute;left:0;right:0;bottom:0;height:var(--h);background:var(--edge)}
 .lg-len .lg-v{display:block;padding:2px 0}
 .lg-len small{color:var(--muted);font-size:10px}
+/* Narrow pages (1280 at 150 %): the top-champions strip wraps under its own width, names shorten */
+#lg-builds{container-type:inline-size}
+@container (max-width:900px){.lg-builds .lg-bchamps{flex-wrap:wrap;max-width:110px}.lg-builds .lg-bname>span:last-child{max-width:180px}.lg-builds td,.lg-builds th{padding-left:4px;padding-right:4px}}
