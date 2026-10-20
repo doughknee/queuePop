@@ -40,7 +40,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   };
   if (app.getLoginItemSettings().openAtLogin !== !!loadConfig().launch_at_login) loginItem(loadConfig().launch_at_login);
 
-  const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
+  const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification,
+    onClick: () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
   const away = createAway(state, push); // DONI-424
   const companion = createCompanion({

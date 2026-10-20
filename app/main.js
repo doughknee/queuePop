@@ -1,7 +1,7 @@
 // queuePop Electron host: one window on the existing webui, LCU auto-accept in the main process.
 const fs = require("fs");
 const path = require("path");
-const { app, BrowserWindow, ipcMain, shell, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, screen, powerMonitor } = require("electron");
 const { windowState } = require("./window-state"); // DONI-539
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
@@ -171,6 +171,7 @@ app.whenReady().then(() => {
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   assets.check(); // never awaited: icons fill in as they land
   lcu.start();
+  powerMonitor.on("resume", () => { log("system resumed, checking the League client"); lcu.recheck(); }); // DONI-532
   log("Searching for League client...");
 });
 
