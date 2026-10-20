@@ -71,5 +71,29 @@ test("key health: a 403 marks the key invalid in /status, a posted key makes it 
     assert.ok(await riot.get("na1", "/lol/match/v5/matches/NA1_520000001", "m"));
     assert.strictEqual(mock.stats.requests, n + 1, "one request with the new key, no retries");
     assert.strictEqual(keyHealth(db, "").valid, true);
+    // the same key, rejected and then re-posted, is valid again (POST clears keyBad); a 403 for an older key marks only that one
+    markKeyBad(db, "", "403 Forbidden");
+    assert.strictEqual(keyHealth(db, "").valid, false);
+    await fetch(url + "/admin/key", { method: "POST", headers: { authorization: "Bearer tok" }, body: JSON.stringify({ key: KEY }) });
+    assert.strictEqual(keyHealth(db, "").valid, true);
+    markKeyBad(db, "", "403 Forbidden", Date.now(), "RGAPI-env");
+    assert.strictEqual(keyHealth(db, "").valid, true, "a late 403 for the old key leaves the new key valid");
   } finally { api.close(); mock.server.close(); }
+});
+
+test("POST /admin/key while another connection holds the write lock answers 503 and the server stays up (DONI-568)", async () => {
+  const fs = require("fs"), os = require("os"), path = require("path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "qp-lock-")), file = path.join(dir, "c.db");
+  const db = open(file), other = open(file);
+  const api = createServer({ db, version: "test", adminToken: "tok" });
+  await new Promise((r) => api.listen(0, "127.0.0.1", r));
+  const url = `http://127.0.0.1:${api.address().port}`;
+  try {
+    other.exec("BEGIN IMMEDIATE"); // like the aggregation worker mid-pass
+    const r = await fetch(url + "/admin/key", { method: "POST", headers: { authorization: "Bearer tok" }, body: JSON.stringify({ key: KEY }) });
+    assert.strictEqual(r.status, 503);
+    other.exec("ROLLBACK");
+    assert.strictEqual((await fetch(url + "/health")).status, 200);
+    assert.strictEqual((await fetch(url + "/admin/key", { method: "POST", headers: { authorization: "Bearer tok" }, body: JSON.stringify({ key: KEY }) })).status, 200);
+  } finally { api.close(); db.close(); other.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });

@@ -82,10 +82,11 @@ function keyHealth(db, envKey) {
   if (!k.key) return { valid: false, reason: "no key set", since: null };
   return bad && bad.hash === keyHash(k.key) ? { valid: false, reason: bad.reason, since: bad.since } : { valid: true, reason: null, since: null };
 }
-function markKeyBad(db, envKey, reason, now = Date.now()) {
-  const k = riotKey(db, envKey);
-  if (!k.key) return;
-  const h = keyHash(k.key), bad = getMeta(db, "keyBad");
+// usedKey: the key the rejected request carried (DONI-568: a 403 for the old key arriving after a new key was posted must not
+// mark the new one bad). Defaults to the current key.
+function markKeyBad(db, envKey, reason, now = Date.now(), usedKey = riotKey(db, envKey).key) {
+  if (!usedKey) return;
+  const h = keyHash(usedKey), bad = getMeta(db, "keyBad");
   if (bad?.hash !== h) setMeta(db, "keyBad", { hash: h, reason, since: now });
 }
 
