@@ -11,7 +11,7 @@
     memo.set(key, { t: Date.now(), p });
     return p;
   }
-  const json = url => fetch(url, { signal: AbortSignal.timeout(6000) }).then(r => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); });
+  const json = (url, ms = 6000) => fetch(url, { signal: AbortSignal.timeout(ms) }).then(r => { if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); });
   // DONI-515: before the bridge is ready, use the default without memoising it, so a configured crawler_url wins on the next call.
   const base = () => !window.pywebview?.api ? Promise.resolve(DEFAULT_CRAWLER) : once('base', async () => {
     let u = '';
@@ -19,7 +19,7 @@
     return String(u || DEFAULT_CRAWLER).replace(/\/+$/, '');
   }, 60000);
   const qs = o => new URLSearchParams(Object.entries(o).filter(([, v]) => v && v !== 'all')).toString();
-  const crawler = (path, params = {}) => { const q = qs(params); return once(`c${path}?${q}`, async () => json(`${await base()}${path}${q ? '?' + q : ''}`)); };
+  const crawler = (path, params = {}, ms) => { const q = qs(params); return once(`c${path}?${q}`, async () => json(`${await base()}${path}${q ? '?' + q : ''}`, ms)); };
   // A crawler patch ("16.20") maps to the newest Data Dragon build of it ("16.20.1"); unknown patches use the newest build.
   const ddVersion = patch => once('ddv', () => json(`${DD}/api/versions.json`), 3600000)
     .then(v => v.find(x => patch && x.startsWith(patch + '.')) || v[0]);
@@ -82,6 +82,8 @@
     champion: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}`, p),
     players: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}/players`, p), // DONI-506: top 50 on a champion
     status: () => crawler('/status'),
+    // DONI-509: rolled up on first read after each aggregation (~10 s cold on the live box), so these wait longer.
+    lolItems: p => crawler('/lol/items', p, 20000), lolRunes: p => crawler('/lol/runes', p, 20000), lolSpells: p => crawler('/lol/spells', p, 20000),
     ddVersion,
     items: patch => ddData(patch, 'item.json'),
     runes: patch => ddData(patch, 'runesReforged.json'),

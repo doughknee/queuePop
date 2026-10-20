@@ -104,12 +104,12 @@ const lgtSave = () => { try { localStorage.setItem(LG_TKEY, JSON.stringify(lgt))
 const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+'], ['grandmaster', 'Grandmaster+'], ['challenger', 'Challenger']];
 // Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
-function lgFilters(withRole = true, lead = '') {
+function lgFilters(withRole = true, lead = '', nums = withRole) {
   const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
   return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
     ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}
-    ${withRole ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
+    ${nums ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
   try {
@@ -265,7 +265,7 @@ async function lgExpandMatch(btn) {
 // --- Events: one delegated listener each, scoped to the League stats pages ---
 function lgRefill() {
   const t = ++lg.token;
-  if (lg.page === 'champion') { const id = location.hash.split('/')[3]; lgFillChampion(t, id); } else lgFillTiers(t);
+  if (lg.page === 'champion') { const id = location.hash.split('/')[3]; lgFillChampion(t, id); } else if (lg.page === 'items') lgFillBuilds(t); else lgFillTiers(t);
 }
 document.addEventListener('input', e => { if (e.target.id === 'lg-search') lgOnSearch(e.target); });
 document.addEventListener('keydown', e => {
