@@ -15,6 +15,7 @@ class Limiter {
     this.sleep = sleep;
     this.app = app;
     this.buckets = new Map();
+    this.sent = new Map(); // "minute|host|method" -> requests sent, last 60 min (/status requests)
   }
 
   bucket(key, limits) {
@@ -37,7 +38,12 @@ class Limiter {
           if (inWindow >= n) wait = Math.max(wait, b.log[b.log.length - n] + ms + PAD - t);
         }
       }
-      if (wait <= 0) { for (const b of bs) b.log.push(t); return; }
+      if (wait <= 0) {
+        for (const b of bs) b.log.push(t);
+        const k = `${Math.floor(t / 60000)}|${host}|${method}`;
+        this.sent.set(k, (this.sent.get(k) || 0) + 1);
+        return;
+      }
       await this.sleep(wait);
     }
   }
@@ -53,6 +59,18 @@ class Limiter {
       // "service" 429s often come without Retry-After; back off 5s.
       b.until = this.now() + (Number(headers.get("retry-after")) || 5) * 1000;
     }
+  }
+
+  // Requests sent in the last 60 minutes: { host: { total, methods: { method: n } } }.
+  requests() {
+    const from = Math.floor(this.now() / 60000) - 59, out = {};
+    for (const [k, n] of this.sent) {
+      const [m, host, method] = k.split("|");
+      if (Number(m) < from) { this.sent.delete(k); continue; }
+      const h = (out[host] ??= { total: 0, methods: {} });
+      h.total += n; h.methods[method] = (h.methods[method] || 0) + n;
+    }
+    return out;
   }
 
   state() {

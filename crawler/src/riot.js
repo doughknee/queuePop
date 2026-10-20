@@ -34,6 +34,12 @@ function createClient({ key, base, limiter, log = () => {}, onAuthFail = () => {
         onAuthFail(res.status, msg, used);
         throw Object.assign(new Error(`${res.status} ${msg} ${host}${path}`), { auth: true });
       }
+      // Riot encrypts puuids per app: a puuid stored under another key's app (a new personal key) answers 400 "Exception
+      // decrypting <puuid>". Flagged so the crawl can retire the stored players (jobs.retirePuuids).
+      if (res.status === 400) {
+        const msg = (await res.json().catch(() => null))?.status?.message || "";
+        if (/decrypt/i.test(msg)) throw Object.assign(new Error(`400 ${msg} ${host}${path}`), { decrypt: true, puuid: /\/by-puuid\/([^/?]+)/.exec(path)?.[1] ?? null });
+      }
       if (!res.ok) throw new Error(`${res.status} ${host}${path}`);
       return res.json();
     }

@@ -58,3 +58,13 @@ test("headers tighten limits and 429 Retry-After blocks the bucket", async () =>
   await l.run(l.take("na1", "other"));
   assert.ok(l.now() - t1 >= 7000);
 });
+
+test("requests(): sent per host and method over the last 60 minutes", async () => {
+  let t = 0;
+  const l = new Limiter({ now: () => t, sleep: async () => {} });
+  await l.take("americas", "lol match"); await l.take("americas", "lol match"); await l.take("americas", "lol ids");
+  t = 30 * 60000; await l.take("europe", "lol match");
+  assert.deepStrictEqual(l.requests(), { americas: { total: 3, methods: { "lol match": 2, "lol ids": 1 } }, europe: { total: 1, methods: { "lol match": 1 } } });
+  t = 61 * 60000;
+  assert.deepStrictEqual(l.requests(), { europe: { total: 1, methods: { "lol match": 1 } } }, "older than 60 min dropped");
+});

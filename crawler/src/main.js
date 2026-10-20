@@ -109,7 +109,11 @@ async function forever(name, step, idle) {
       let did;
       try { did = await step(); } finally { inflight--; }
       if (!did) await sleep(idle);
-    } catch (e) { if (!e.auth) log(`${name}: ${e.message}`); await sleep(10000); }
+    } catch (e) {
+      if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid)) { log(`${name}: stored puuids belong to another Riot app (key changed apps): players retired, re-seeding from the ladders`); continue; }
+      if (!e.auth && !e.decrypt) log(`${name}: ${e.message}`);
+      await sleep(10000);
+    }
   }
 }
 

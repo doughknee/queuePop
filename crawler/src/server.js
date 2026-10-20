@@ -225,6 +225,8 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
     rateLimits: limiter ? limiter.state() : {},
+    puuidsRetired: getMeta(db, "puuidsRetired"), // the last key change across Riot apps (jobs.retirePuuids)
+    requests: limiter ? limiter.requests() : {}, // sent in the last 60 min per host and method: is every bucket spent, and on what
     nextAggregation: nextAggregation(db, aggregateEveryMin),
     aggregateEveryMin,
     retentionDays,
@@ -247,11 +249,17 @@ function health(db, now = Date.now()) {
     for (const r of db.prepare("SELECT region, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = ? AND status = 'done' GROUP BY 1, 2").all(from, from, game)) {
       (hourly[r.region] ??= Array(24).fill(0))[Math.min(23, r.h)] = r.n;
     }
+    // League per mode (DONI-596): matches stored per hour, all regions
+    const modes = {};
+    if (game === "lol") for (const r of db.prepare("SELECT queue, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = 'lol' AND status = 'done' GROUP BY 1, 2").all(from, from)) {
+      const m = (MODE_RE.exec(MODES[r.queue] ?? "") || [, "solo"])[1];
+      (modes[m] ??= Array(24).fill(0))[Math.min(23, r.h)] += r.n;
+    }
     const patch = patches(db).default[game];
     const rows = !patch ? [] : game === "lol"
       ? db.prepare("SELECT sum(games) g FROM stats_lol_champ WHERE patch = ? GROUP BY champion, role").all(patch)
       : db.prepare("SELECT sum(games) g FROM stats_tft_comp WHERE patch = ? GROUP BY comp").all(patch);
-    out[game] = { patch, hourly, rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
+    out[game] = { patch, hourly, ...(game === "lol" && { modes }), rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
       last24h: Object.values(hourly).flat().reduce((s, n) => s + n, 0) };
   }
   return { ...out, at: now };

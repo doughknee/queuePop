@@ -36,7 +36,7 @@ function aggregatePatch(db, patch) {
   db.prepare(`INSERT INTO stats_lol_player_champ
     SELECT m.patch, m.region, pl.tier, p.puuid, p.role, p.champion, count(*), sum(p.win), pl.division, pl.lp,
       pl.tier_n + CASE WHEN pl.tier_n >= 7 THEN 0 ELSE CASE pl.division WHEN 'I' THEN .75 WHEN 'II' THEN .5 WHEN 'III' THEN .25 ELSE 0 END END
-    FROM lol_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ? LEFT JOIN players pl ON pl.puuid = p.puuid AND pl.game = 'lol'
+    FROM lol_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ? LEFT JOIN players pl ON pl.puuid = p.puuid AND pl.game IN ('lol', 'lol-stale')
     GROUP BY m.region, p.puuid, p.role, p.champion HAVING count(*) >= ${KEEP_MIN}`).run(patch);
 }
 

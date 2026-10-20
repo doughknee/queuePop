@@ -119,6 +119,25 @@ async function capped(ctx, region) {
   return false;
 }
 
+// Key changed apps (a personal key replacing a development key, 2026-10-20): Riot encrypts puuids per app, so every stored
+// puuid now answers 400 "Exception decrypting". When the failing puuid is one the crawl still asks (players / mode_players),
+// every player row is kept but retired (game "lol" -> "lol-stale", so ids(), leaderboards and stats joins stop using it;
+// aggregatePatch still reads its rank for the matches it played), mode_players likewise, and the ladder walk restarts:
+// Master+ (three requests per region) comes back with fresh puuids within minutes. Match ids aren't encrypted, so matches
+// and stats stay. Returns whether it retired anything (a late error for an already-retired puuid is a no-op).
+function retirePuuids(db, puuid, now = Date.now) {
+  const live = db.prepare("SELECT 1 FROM players WHERE puuid = ? AND game IN ('lol', 'tft') UNION ALL SELECT 1 FROM mode_players WHERE puuid = ? AND region NOT LIKE '%-stale'").get(puuid, puuid);
+  if (!live) return false;
+  tx(db, () => {
+    db.exec("UPDATE OR REPLACE players SET game = game || '-stale' WHERE game IN ('lol', 'tft')");
+    db.exec("UPDATE mode_players SET region = region || '-stale' WHERE region NOT LIKE '%-stale'");
+    db.exec("DELETE FROM meta WHERE k LIKE 'seed:%' OR k LIKE 'apex:%'");
+    setMeta(db, "puuidsRetired", { at: now(), puuid });
+  });
+  tierCache.clear();
+  return true;
+}
+
 // Tier-balanced sampling (D14 accuracy audit, 2026-10-20): asking the oldest-asked player first, highest tier among equals,
 // spent the first two days on Master+ (95% of matches), so "Emerald+" stats were really Master+. Each ids() call now picks
 // the tier furthest below its target share of the region's last-24 h matches; target = the tier's share of seeded players,
@@ -448,4 +467,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { retirePuuids, repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
