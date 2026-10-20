@@ -128,7 +128,7 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .hp-label{font:12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
 .hp-value{display:flex;align-items:baseline;gap:6px;font:clamp(16px,16cqi,28px)/1 var(--display);text-transform:uppercase;letter-spacing:.01em}
 .hp-value small{font:700 12px/1 var(--mono);letter-spacing:.04em}
-@container (max-width:180px){.hp-col .hp-strip i{font-size:0}.hp-col{gap:3px}.hp-value{flex-direction:column;align-items:flex-start;gap:3px;font-size:clamp(16px,19cqi,22px)}} /* narrow (1280 at 150 %): LP and W/L go under the figure */
+@container (max-width:180px){.hp-page:not([data-game=tft]) .hp-strip i{font-size:0}.hp-col{gap:3px}.hp-value{flex-direction:column;align-items:flex-start;gap:3px;font-size:clamp(16px,19cqi,22px)}} /* narrow (1280 at 150 %): LP and W/L go under the figure; W/L boxes keep their colour, TFT keeps its placement digits */
 .hp-strip{display:flex;gap:2px;align-self:center;width:100%;max-width:220px}
 .hp-strip i{flex:0 1 20px;min-width:0;height:20px;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;border:1px solid var(--bg);font:700 12px/1 var(--mono);font-style:normal}
 .hp-strip i.up{background:var(--bg);color:var(--accent)}
@@ -235,7 +235,7 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .hc-tile img{width:32px;height:32px;flex:none;object-fit:contain}
 .hc-tile img.hc-champ{object-fit:cover}
 .hc-tile span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.hc-tile small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-tile small{color:var(--muted);font-size:12px;line-height:1.3;text-transform:uppercase;letter-spacing:.08em} /* wraps, never cut: 'League · Champion' is wider than a tile at 1024 px (W) */
 .hc-tile b{font:22px/1.05 var(--display);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hc-tile i{font-style:normal;color:var(--muted)}
 .hc-tile:hover i,.hc-tile:hover b{color:var(--accent)}
