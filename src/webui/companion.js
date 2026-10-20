@@ -197,7 +197,7 @@ function connectStream() {
 
 // DONI-337: champ select on the phone: your champion, the timer, and Accept / Decline for a trade a teammate offers.
 let champTimer = null;
-function startChamp() { if (!champTimer) { pollChamp(); champTimer = setInterval(pollChamp, 2000); } }
+function startChamp() { if (!champTimer) { pollChamp(); pollPicks(); champTimer = setInterval(() => { pollChamp(); pollPicks(); }, 2000); } }
 function stopChamp() { clearInterval(champTimer); champTimer = null; $("cs").hidden = true; }
 async function pollChamp() {
   try {
@@ -213,6 +213,33 @@ async function pollChamp() {
       <div class="row"><button class="btn" data-a="accept">Accept</button><button class="btn no" data-a="decline">Decline</button></div><p class="muted" role="status"></p></div>`).join("");
   } catch (_) { /* the status poll reports a lost connection */ }
 }
+// DONI-549: your list for the role as tiles; a tap hovers, "Lock in" locks it on your turn.
+let pickSig = "";
+async function pollPicks() {
+  let r; try { r = await (await fetch(withToken("/api/picks"), { cache: "no-store" })).json(); } catch (_) { return; }
+  const box = $("cs-picks");
+  if (!r.active || r.locked || !(r.picks || []).length) { box.innerHTML = ""; pickSig = ""; return; }
+  const sig = JSON.stringify([r.picks.map((p) => p.id), r.hovered, r.myTurn, r.auto]);
+  if (sig === pickSig) return; // don't redraw under a finger
+  pickSig = sig;
+  box.innerHTML = `<p class="k" style="margin:14px 0 0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em">Your ${escapeHtml(r.role || "")} picks${r.auto ? " · auto pick is on" : ""}</p>` +
+    `<div class="picks">${r.picks.map((p) => `<button type="button" data-id="${p.id}" aria-pressed="${p.id === r.hovered}"><img src="assets/champions/${p.id}.png" alt="" onerror="this.style.visibility='hidden'"><span>${escapeHtml(p.name)}</span></button>`).join("")}</div>` +
+    (r.myTurn && r.hovered ? `<button class="btn" id="pick-lock" type="button">Lock in</button>` : "") + `<p class="muted" id="pick-msg" role="status"></p>`;
+}
+$("cs-picks").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const lock = b.id === "pick-lock", id = lock ? $("cs-picks").querySelector('[aria-pressed="true"]')?.dataset.id : b.dataset.id;
+  if (!id) return;
+  b.disabled = true;
+  try {
+    const res = await fetch(withToken(`/api/pick?id=${id}${lock ? "&lock=1" : ""}`), { method: "POST" });
+    const r = await res.json().catch(() => ({}));
+    if (!r.ok) $("pick-msg").textContent = r.error || "Couldn't send it";
+    pickSig = ""; pollPicks();
+  } catch (_) { $("pick-msg").textContent = "Couldn't reach your PC"; }
+  b.disabled = false;
+});
+
 $("cs-trades").addEventListener("click", async (e) => {
   const b = e.target.closest("button[data-a]"); if (!b) return;
   const card = b.closest(".trade"), msg = card.querySelector("[role=status]");

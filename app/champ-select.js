@@ -906,6 +906,32 @@ function attach(lcu, impl, push, state) {
       return { ok: true, roles, queues, last };
     },
 
+    // DONI-549: pick from the phone. Your role's list (minus banned/taken), whose turn it is, and hover / lock one.
+    pick_options: async () => {
+      const s = await session();
+      if (!s) return { active: false };
+      if (!cs.idToName.size) await cs.loadChampionData();
+      const me = arr(s.myTeam).find((p) => p.cellId === s.localPlayerCellId) || {};
+      const settings = cs.settings();
+      let role = String(me.assignedPosition || "").toLowerCase();
+      if (!role && !T(s.benchEnabled)) role = fallbackRole(settings) || "";
+      const mine = arr(s.actions).flat().find((a) => a.actorCellId === s.localPlayerCellId && a.type === "pick");
+      const gone = new Set(arr(s.actions).flat().filter((a) => a.completed && a.championId > 0).map((a) => a.championId));
+      const ids = [...new Set(or(or(or(settings.roles, {})[role], {}).picks, []).map((n) => cs.resolve(n)).filter((x) => x && !gone.has(x)))];
+      return { active: true, role, myTurn: !!(mine && mine.isInProgress && !mine.completed), locked: !!(mine && mine.completed),
+        hovered: mine && !mine.completed ? mine.championId || 0 : 0, auto: T(settings.enabled),
+        picks: ids.slice(0, 8).map((id) => ({ id, name: cs.idToName.get(id) || String(id) })) };
+    },
+    phone_pick: async (championId, lock) => {
+      const s = await session(), cid = Number(championId);
+      if (!s || !Number.isInteger(cid) || cid <= 0) return { ok: false, error: "No champion select right now" };
+      const mine = arr(s.actions).flat().find((a) => a.actorCellId === s.localPlayerCellId && a.type === "pick" && !a.completed);
+      if (!mine) return { ok: false, error: "You've already locked in" };
+      if (lock && !mine.isInProgress) return { ok: false, error: "It isn't your turn to pick yet" };
+      const ok = await cs.patch(mine.id, cid, !!lock);
+      push(ok ? `${lock ? "Locked" : "Hovering"} ${cs.name(cid)} from your phone` : `Phone ${lock ? "lock" : "hover"} failed`, ok ? (lock ? "success" : "info") : "warning", "champ");
+      return ok ? { ok } : { ok, error: "The client refused it (taken or banned?)" };
+    },
     // DONI-350: ARAM, which bench champion fills what your team lacks (advice only).
     bench_advice: async () => {
       const s = await session();
