@@ -10,7 +10,7 @@ let float = null;
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
 const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
-const { UI_SCALES } = require("./champ-config");
+const { UI_SCALES, gameOfQueue, forGame } = require("./champ-config");
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
@@ -60,6 +60,7 @@ async function readyCheck(data) {
   state.accepting = true;
   const lobby = await lcu.request("get", "/lol-lobby/v2/lobby").catch(() => null);
   const queueId = lobby && lobby.data && lobby.data.gameConfig ? lobby.data.gameConfig.queueId : null;
+  const game = gameOfQueue(queueId, lobby && lobby.data && lobby.data.gameConfig && lobby.data.gameConfig.gameMode), mine = forGame(loadConfig(), game); // DONI-594
   const allowed = loadConfig().allowed_queue_ids || [];
   if (allowed.length && !allowed.includes(queueId)) {
     log(`Ready check for queue ${queueId} skipped (not in allowed list)`);
@@ -69,12 +70,12 @@ async function readyCheck(data) {
   }
   // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
   // Off still pushes the pop (the phone alarms on it), it just doesn't accept.
-  const autoAccept = state.away || loadConfig().auto_accept !== false;
+  const autoAccept = state.away || mine.auto_accept;
   if (!state.popPushed) push(`Queue popped: ${qname(queueId)}. ${autoAccept ? "Accepting…" : "Accept it in the client."}`, "danger", "queue_pop"); // once per pop, not per retry
   state.popPushed = true;
   if (!autoAccept) { log(`Ready check popped queue=${queueId}; auto-accept is off`); return; } // the latch stays until the check ends
   log(`Ready check popped queue=${queueId}`);
-  const delay = Math.min(10, Math.max(0, Number(loadConfig().accept_delay_seconds) || 0));
+  const delay = mine.accept_delay_seconds;
   if (delay) {
     push(`Accepting in ${delay} s…`, "info", "match");
     await new Promise((r) => setTimeout(r, delay * 1000));

@@ -1,5 +1,6 @@
 // Discord webhook + desktop toast alerts. Port of src/notifications.py.
 const https = require("https");
+const { forGame } = require("./champ-config");
 
 const GOLD = 0xc8aa6e;
 const KINDS = {
@@ -141,13 +142,16 @@ function createNotifier(ctx) {
   // opts.test skips the per-event filter (Settings' "Test a queue pop" sends through every channel that is on).
   async function alert(key, title, body, what, opts = {}) {
     const cfg = ctx.getConfig();
-    if (!opts.test && !((cfg.alert_events || {})[key] ?? (key === "queue_pop" || key === "game_plan"))) return;
+    // DONI-594: each game ticks its own events; champ select and game plan are League's, a disconnect is the client's.
+    const game = ["champ_select", "locked_pick", "game_plan", "disconnect"].includes(key) ? "league" : (opts.game || notifier.game || "league");
+    if (!opts.test && !(forGame(cfg, game).alert_events[key] ?? (key === "queue_pop" || key === "game_plan"))) return;
     if (cfg.desktop_notifications) desktop(title, body, what);
     if (cfg.ntfy && cfg.ntfy.enabled) ntfy(key, title, body, what); // not awaited: Discord and ntfy don't wait on each other
     if (cfg.discord_enabled ?? true) await discord(key, body, opts, what);
   }
 
-  return { lastSent, desktop, discord, testDiscord, alert, ntfy };
+  const notifier = { lastSent, desktop, discord, testDiscord, alert, ntfy, game: null }; // game: the match in progress (host sets it at the pop)
+  return notifier;
 }
 
 module.exports = { buildDiscordPayload, createNotifier, isWebhook, buildNtfyRequest };

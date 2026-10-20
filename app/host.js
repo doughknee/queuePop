@@ -15,6 +15,7 @@ const { attachRecap } = require("./recap");
 const { attachRecorder } = require("./recorder");
 const { createVideo } = require("./recorder-video");
 const config = require("./config");
+const { gameOfQueue, forGame } = require("./champ-config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
 if (!app.requestSingleInstanceLock()) app.exit(0);
@@ -110,11 +111,12 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       if (e.data.playerResponse !== "None" || popAlerted) return;
       popAlerted = true;
       const lobby = await lcu.request("get", "/lol-lobby/v2/lobby").catch(() => null);
-      const qid = lobby && lobby.data && lobby.data.gameConfig ? lobby.data.gameConfig.queueId : null;
+      const gc = lobby && lobby.data && lobby.data.gameConfig, qid = gc ? gc.queueId : null;
       const allowed = loadConfig().allowed_queue_ids || [];
       if (allowed.length && !allowed.includes(qid)) return; // main.js already logged the skip
       queueName = QUEUE_ID_MAP[qid] || (qid ? `Queue ${qid}` : "Unknown");
-      const auto = state.away || loadConfig().auto_accept !== false; // DONI-351: say what will actually happen
+      notifier.game = gameOfQueue(qid, gc && gc.gameMode); // DONI-594: later alerts for this match use this game's settings
+      const auto = state.away || forGame(loadConfig(), notifier.game).auto_accept; // DONI-351: say what will actually happen
       notifier.alert("queue_pop", "Queue Popped!", auto ? "Accepting your match automatically, get back to your PC!" : "Accept it in the client, auto-accept is off!", "Queue pop", { queue: queueName });
     } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && e.eventType !== "Delete") {
       if (e.data === "ChampSelect") notifier.alert("champ_select", "⚔️ Champ select started", "Champ select has started.", "Champ select", { queue: queueName });

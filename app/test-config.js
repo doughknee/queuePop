@@ -54,4 +54,17 @@ console.log("test-config ntfy ok");
 // DONI-523: the recorder is off by default and its settings survive normalize.
 assert.deepStrictEqual(normalizeConfig({}).recorder, { enabled: false, video: false, preset: "1080p60", folder: "", cap_gb: 50 });
 assert.strictEqual(normalizeConfig({ recorder: { enabled: true, preset: "x", cap_gb: 0 } }).recorder.cap_gb, 1);
+// DONI-594: TFT has its own copy of the queue, alert and record settings; an old config starts it as League's.
+{
+  const { forGame, gameOfQueue } = require("./champ-config");
+  const old = normalizeConfig({ auto_accept: false, accept_delay_seconds: 3, alert_events: { queue_pop: true, game_start: true, champ_select: true }, recorder: { enabled: true } });
+  assert.deepStrictEqual(old.tft, { auto_accept: false, accept_delay_seconds: 3, alert_events: { queue_pop: true, timeline: false, game_start: true }, record: true });
+  const split = normalizeConfig({ ...old, auto_accept: true, tft: { ...old.tft, auto_accept: false } });
+  assert.strictEqual(forGame(split, "league").auto_accept, true);
+  assert.strictEqual(forGame(split, "tft").auto_accept, false); // changing League leaves TFT alone
+  assert.strictEqual(forGame(split, "tft").alert_events.champ_select, undefined); // TFT has no champ select alert
+  assert.strictEqual(gameOfQueue(1100), "tft");
+  assert.strictEqual(gameOfQueue(420, "CLASSIC"), "league");
+  assert.strictEqual(gameOfQueue(9999, "TFT"), "tft"); // a new TFT queue is still TFT
+}
 console.log("test-config recorder ok");

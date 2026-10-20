@@ -8,7 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
-const TFT_QUEUES = new Set([1090, 1100, 1130, 1160, 1220]);
+const { TFT_QUEUES, forGame } = require("./champ-config");
 const OBJECTIVES = { DragonKill: "dragon", BaronKill: "baron", HeraldKill: "herald", HordeKill: "voidgrubs", TurretKilled: "turret", InhibKilled: "inhibitor" };
 
 // Riot live events → our markers for the active player `me`. Pure; app/test-recorder.js checks it.
@@ -57,7 +57,7 @@ function liveGet(p, timeout = 1500) {
 function attachRecorder(ctx) {
   const live = ctx.live || liveGet;
   let rec = null, timer = null, seen = new Set(), me = null, detached = false, misses = 0;
-  const enabled = () => !!((ctx.getConfig().recorder || {}).enabled);
+  const enabled = () => { const c = ctx.getConfig(); return forGame(c, "league").record || forGame(c, "tft").record; }; // DONI-594: each game has its own switch
   const file = (id) => path.join(ctx.dir, `${String(id).replace(/[^\w-]/g, "_")}.json`);
   const save = () => { if (!rec) return; try { fs.mkdirSync(ctx.dir, { recursive: true }); fs.writeFileSync(file(rec.matchId), JSON.stringify(rec)); } catch (e) { ctx.log("recorder: save", e.message); } };
 
@@ -67,8 +67,10 @@ function attachRecorder(ctx) {
     const gd = (s && s.data && s.data.gameData) || {}, queueId = gd.queue && gd.queue.id;
     const platform = (await Promise.resolve(ctx.platform && ctx.platform()).catch(() => "")) || "";
     const gameId = gd.gameId || Date.now();
+    const game = TFT_QUEUES.has(queueId) || gd.queue?.gameMode === "TFT" ? "tft" : "league";
+    if (!forGame(ctx.getConfig(), game).record) return; // this game's recording is off
     rec = { matchId: platform ? `${String(platform).toUpperCase()}_${gameId}` : String(gameId), gameId, queueId: queueId || null,
-      game: TFT_QUEUES.has(queueId) || gd.queue?.gameMode === "TFT" ? "tft" : "league", startedAt: Date.now(), endedAt: null, champion: null, result: null, events: [] };
+      game, startedAt: Date.now(), endedAt: null, champion: null, result: null, events: [] };
     seen = new Set(); me = null; detached = false; misses = 0;
     ctx.log(`recorder: recording ${rec.game} ${rec.matchId}`);
     ctx.onGame && ctx.onGame(rec, "start");

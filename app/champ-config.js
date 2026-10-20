@@ -204,6 +204,29 @@ function cleanGames(v) {
   return list.length ? list : [...GAMES];
 }
 
+// DONI-594: League and TFT keep their own queue, alert and recording settings. League's are the original top-level
+// keys (auto_accept, accept_delay_seconds, alert_events, recorder.enabled); TFT's live under `tft`. A config from
+// before this starts TFT as a copy of League's, so nothing changes until you change it.
+const TFT_QUEUES = new Set([1090, 1100, 1130, 1160, 1220]);
+const TFT_EVENTS = ["queue_pop", "timeline", "game_start"];
+const gameOfQueue = (queueId, mode) => (TFT_QUEUES.has(Number(queueId)) || String(mode || "").toUpperCase() === "TFT" ? "tft" : "league");
+function normalizeTft(t, data, alerts) {
+  t = or(t, {});
+  const ev = or(t.alert_events, {});
+  return {
+    auto_accept: T(getd(t, "auto_accept", getd(data, "auto_accept", true))),
+    accept_delay_seconds: acceptDelay(getd(t, "accept_delay_seconds", data.accept_delay_seconds)),
+    alert_events: Object.fromEntries(TFT_EVENTS.map((k) => [k, T(getd(ev, k, getd(alerts, k, k === "queue_pop")))])),
+    record: T(getd(t, "record", getd(or(data.recorder, {}), "enabled", false))),
+  };
+}
+// The settings that apply to one game: { auto_accept, accept_delay_seconds, alert_events, record }.
+function forGame(cfg, game) {
+  cfg = or(cfg, {});
+  if (game === "tft") return normalizeTft(cfg.tft, cfg, or(cfg.alert_events, {}));
+  return { auto_accept: cfg.auto_accept !== false, accept_delay_seconds: acceptDelay(cfg.accept_delay_seconds), alert_events: or(cfg.alert_events, {}), record: !!or(cfg.recorder, {}).enabled };
+}
+
 function normalizeConfig(data) {
   data = or(data, {});
   const webhook = String(data.webhook_url || "").trim();
@@ -235,6 +258,7 @@ function normalizeConfig(data) {
     ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.25, // DONI-516 Text size (zoom factor)
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),
     companion: normalizeCompanion(data.companion),
+    tft: normalizeTft(data.tft, data, alerts),
     champ_select: normalizeChampSelect(data.champ_select),
     window: cleanWindow(data.window),
   };
@@ -261,4 +285,5 @@ function mergeForSave(newConfig, prev) {
 module.exports = {
   ROLES, ARAM_ROLE, EDITOR_ROLES, ROLE_LABELS, DEFAULT_LOCK_SECONDS, ARAM_MODES, ROLE_MODES, SUMMONER_SPELLS,
   RUNE_PAGE_NAME, T, or, getd, pyInt, pyFloat, normalizeConfig, mergeForSave, UI_SCALES, cleanGames,
+  TFT_QUEUES, gameOfQueue, forGame,
 };
