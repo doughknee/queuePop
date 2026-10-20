@@ -473,11 +473,11 @@ window.createTftView = function (host) {
     if (parse().p !== 'leaderboard') return;
     const ps = d.players || [];
     page.querySelector('.ts-state').textContent = ps.length ? '' : 'No ladder for this region yet.';
-    page.querySelector('.ts-ladder').innerHTML = ps.length ? `<table class="ts-table ts-ladder-table"><thead><tr><th>#</th><th>Player</th><th>Rank</th><th>LP</th><th>Top 1 rate</th><th>Games</th><th>Our boards: avg place</th><th>Top 4</th></tr></thead><tbody>
+    page.querySelector('.ts-ladder').innerHTML = ps.length ? `<table class="ts-table ts-ladder-table"><thead><tr><th>#</th><th>Player</th><th>Rank</th><th>LP</th><th title="Riot counts a top-4 finish as a ranked win">Top 4 rate</th><th>Games</th><th>Our boards: avg place</th><th>Our top 4</th></tr></thead><tbody>
       ${ps.map((p) => `<tr><td>${p.rank}</td><td>${p.riotId ? `<a href="#/tft/player/${slugOf(p.riotId)}/${p.region}">${esc(p.riotId.split('#')[0])}</a> <small class="ts-quiet">#${esc(p.riotId.split('#')[1] || '')}</small>` : '<span class="ts-quiet">Name not crawled yet</span>'}</td>
         <td>${tierWord(p.tier)}${p.division ? ' ' + p.division : ''}</td><td>${p.lp.toLocaleString()}</td><td>${heat(p.winRate, 0.5, 0.12, p.games, pct(p.winRate))}</td><td>${p.games.toLocaleString()}</td>
         <td>${p.crawled ? heat(p.crawled.avgPlacement, 4.5, 0.8, p.crawled.games, p.crawled.avgPlacement.toFixed(2), true) + ` <small class="ts-quiet">${p.crawled.games}</small>` : '–'}</td><td>${p.crawled ? pct(p.crawled.top4Rate) : '–'}</td></tr>`).join('')}
-    </tbody></table><p class="ts-quiet">Riot's ladder counts first places as wins (Top 1 rate). Average place and top 4 come from the boards the crawler holds for that player.</p>` : '';
+    </tbody></table><p class="ts-quiet">Top 4 rate is Riot's ladder record (a top-4 finish counts as a win). Average place and our top 4 come from the boards the crawler holds for that player.</p>` : '';
   }
   async function playerPage(slug, region) {
     const riot = idOf(slug);
