@@ -227,6 +227,14 @@ function forGame(cfg, game) {
   return { auto_accept: cfg.auto_accept !== false, accept_delay_seconds: acceptDelay(cfg.accept_delay_seconds), alert_events: or(cfg.alert_events, {}), record: !!or(cfg.recorder, {}).enabled };
 }
 
+// Bookmarks bar: up to 30 in-app pages (#/…), each {href, label, game}.
+const MARK_GAMES = ["league", "tft", "deadlock", "settings", "recordings", "home"];
+function cleanBookmarks(v) {
+  const seen = new Set();
+  return (Array.isArray(v) ? v : []).filter((b) => b && /^#\//.test(String(b.href || "")) && !seen.has(b.href) && seen.add(b.href))
+    .slice(0, 30).map((b) => ({ href: String(b.href).slice(0, 300), label: String(b.label || "Page").slice(0, 60), game: MARK_GAMES.includes(b.game) ? b.game : "home" }));
+}
+
 function normalizeConfig(data) {
   data = or(data, {});
   const webhook = String(data.webhook_url || "").trim();
@@ -259,6 +267,7 @@ function normalizeConfig(data) {
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),
     companion: normalizeCompanion(data.companion),
     tft: normalizeTft(data.tft, data, alerts),
+    bookmarks: cleanBookmarks(data.bookmarks), // the title bar's pinned pages
     champ_select: normalizeChampSelect(data.champ_select),
     window: cleanWindow(data.window),
   };

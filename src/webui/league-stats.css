@@ -27,12 +27,12 @@
 .lg-rule p{margin:4px 0 0;max-width:120ch}
 
 /* Tier badge: the band colour is the first read. */
-.lg-tier{display:inline-flex;align-items:center;justify-content:center;width:34px;height:18px;vertical-align:middle;font:700 11px/1 var(--mono);color:var(--bg);background:var(--grey)}
-.lg-tier sup{align-self:flex-start;margin:1px 0 0 1px;font-size:10px;line-height:1}
+.lg-tier{display:inline-flex;align-items:center;justify-content:flex-start;padding-left:7px;box-sizing:border-box;width:34px;height:18px;vertical-align:middle;font:700 11px/1 var(--mono);color:var(--bg);background:var(--grey)}
+/* Brandon: S+ / A- read inline on one baseline, left-aligned like Lolalytics (no raised superscript). */
 .lg-tier.t-S{background:var(--green)}.lg-tier.t-A{background:var(--blue)}.lg-tier.t-B{background:var(--grey)}
 .lg-tier.t-C{background:var(--amber)}.lg-tier.t-D{background:var(--neg)}
 .lg-tier[class*=t-]{color:var(--bg)} /* outranks tft-view.css's global .t-S/.t-A/.t-B text colours */
-.lg-tier-none{display:inline-block;width:34px;text-align:center;color:var(--muted)}
+.lg-tier-none{display:inline-block;width:34px;padding-left:7px;box-sizing:border-box;text-align:left;color:var(--muted)}
 
 /* The art band: champion art under a black scrim, a lime hairline, the page's title in Anton and its first numbers. */
 .lg-band{position:relative;padding:8px 14px;margin-bottom:6px;border-top:1px solid var(--accent);
@@ -88,7 +88,7 @@
 
 /* Tables: 22 px rows, no zebra, the colour is the stripe. */
 .lg-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.lg-table thead{position:sticky;top:48px;z-index:3}
+.lg-table thead{position:sticky;top:calc(var(--marks-h, 0px) + 49px);z-index:3}
 .lg-table thead th{background:var(--bg);box-shadow:inset 0 -1px var(--line);text-align:left;padding:0;font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
 .lg-table th button{width:100%;text-align:inherit;background:none;border:0;padding:5px 6px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit}
 .lg-table th[aria-sort=ascending] button,.lg-table th[aria-sort=descending] button{color:var(--accent)}
