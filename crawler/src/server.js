@@ -28,7 +28,18 @@ const MODE_NAMES = ["flex", "aram", "normal", "swift"];
 const QUEUE_SFX = { ...MODES, ranked: "", solo: "", ...Object.fromEntries(MODE_NAMES.map((m) => [m, "-" + m])) };
 const SFX_QUEUE = { "-flex": 440, "-aram": 450, "-normal": 400, "-swift": 480 };
 const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATCHES[game]) || [...list].sort((x, y) => counts[y] - counts[x])[0] || null;
+// Cached until stats_lol_matches or stats_tft_boards change (max rowid, count, sum: a few hundred rows): every stats request calls it,
+// and its two GROUP BYs took seconds while a retirement and a pass were writing (2026-10-20 22:00Z).
+const patchesCache = new WeakMap();
 function patches(db) {
+  const ver = JSON.stringify(db.prepare("SELECT (SELECT max(rowid) || ':' || count(*) || ':' || sum(matches) FROM stats_lol_matches) l, (SELECT max(rowid) || ':' || count(*) || ':' || sum(boards) FROM stats_tft_boards) t").get());
+  const c = patchesCache.get(db);
+  if (c?.ver === ver) return c.v;
+  const v = patchesUncached(db);
+  patchesCache.set(db, { ver, v });
+  return v;
+}
+function patchesUncached(db) {
   const counts = (t, col, per) => Object.fromEntries(db.prepare(`SELECT patch, sum(${col}) n FROM ${t} GROUP BY patch`).all()
     .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
   // League modes live under "<patch>-<mode>" (D13, DONI-596): lol is solo/duo; flex, aram, normal and swift are listed apart,
