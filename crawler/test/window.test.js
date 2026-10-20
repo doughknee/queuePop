@@ -47,3 +47,22 @@ test("length buckets and depth on the champion page; backfill-length fills durat
   aggregate(db, () => now, true);
   assert.deepStrictEqual(lolChampion(db, 7, {}).length.at(-1), { bucket: 9, from: 45, to: null, games: 1, winRate: 0, share: 0.3333 });
 });
+
+test("/status: per-patch aggregation time and every endpoint's freshness", () => {
+  const db = build();
+  const { createServer } = require("../src/server");
+  const agg = require("../src/db").getMeta(db, "aggregates");
+  assert.ok(agg.patches["16.20"].at > 0 && agg.ms >= 0 && agg.dirty.includes("16.20"));
+  return new Promise((resolve, reject) => {
+    const api = createServer({ db, version: "t" }).listen(0, "127.0.0.1", async () => {
+      try {
+        const s = await (await fetch(`http://127.0.0.1:${api.address().port}/status`)).json();
+        const tiers = s.endpoints.find((e) => e.path === "/lol/tiers");
+        assert.deepStrictEqual([tiers.patch, tiers.updatedAt], ["16.20", agg.patches["16.20"].at]);
+        assert.strictEqual(s.endpoints.find((e) => e.path === "/tft/player/{riotId}").live, true);
+        assert.ok(s.aggregates.ms >= 0);
+        resolve();
+      } catch (e) { reject(e); } finally { api.close(); }
+    });
+  });
+});
