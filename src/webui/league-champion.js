@@ -15,7 +15,8 @@ function lgPick(icons, label, e, extra = '') {
   return `<div class="lg-pick${e.lowSample ? ' low' : ''}"><span class="lg-pick-icons">${icons}</span><span class="lg-pick-label">${label}${extra}</span><b>${lgPct(e.winRate)}</b><small>${lgPct(e.pickRate)} · ${lgN(e.games)}</small></div>`;
 }
 const lgBlock = (title, note, body, cls = '') => `<article class="lg-block${cls ? ' ' + cls : ''}"><header><h3>${title}</h3>${note ? `<small>${note}</small>` : ''}</header><div class="lg-block-head" aria-hidden="true"><span></span><span></span><span>Win</span><span>Pick · games</span></div>${body || '<p class="lg-wait">No data yet.</p>'}</article>`;
-const lgDelta = x => x == null ? '–' : `<span class="${x >= 0 ? 'up' : 'down'}">${x >= 0 ? '+' : '−'}${Math.abs(x * 100).toFixed(1)}</span>`;
+// Deltas are fractions; colored around 0 (DONI-516's lgHeat), printed in points.
+const lgDelta = (x, spread, games) => lgHeat(x, 0, spread, games, x == null ? '' : lgSign(x * 100));
 const lgSection = (title, note, body) => `<section class="lg-section"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
 const lgTop = (arr, n, f) => (arr || []).slice(0, n).map(f).join('');
 
@@ -98,10 +99,11 @@ function lgObjectives(d) {
   const rows = Object.keys(LG_OBJ).map(k => (d.objectives || []).find(o => o.objective === k)).filter(o => o && o.games);
   if (!rows.length && !d.sides) return '<p class="lg-wait">No objective data yet (the crawler reads it from match JSON on its next aggregation).</p>';
   const side = (name, x) => x ? `<div class="${x.games < d.minGames ? 'low' : ''}"><dt>${name} side</dt><dd>${lgPct(x.winRate)}</dd><dd class="lg-sub">${lgN(x.games)} games</dd></div>` : '';
-  const cell = (rate, wr, n) => `<td class="num">${lgPct(rate)}</td><td class="num">${wr == null ? '–' : `${lgBar(wr)}${lgPct(wr)}`}</td><td class="num">${lgN(n)}</td>`;
+  const avg = d.strip?.winRate, sp = Math.max(lgSpread(rows, o => o.securedWinRate, avg), lgSpread(rows, o => o.yieldedWinRate, avg));
+  const cell = (rate, wr, n) => `<td class="num">${lgPct(rate)}</td><td class="num">${lgHeat(wr, avg, sp, n, lgPct(wr))}</td><td class="num">${lgN(n)}</td>`;
   return `${d.sides ? `<dl class="lg-sides">${side('Blue', d.sides.blue)}${side('Red', d.sides.red)}</dl>` : ''}
     <table class="lg-table lg-obj"><thead><tr><th class="num">Objective</th><th class="num">Secured</th><th class="num">Win when secured</th><th class="num">Games</th><th class="num">Yielded</th><th class="num">Win when yielded</th><th class="num">Games</th></tr></thead>
-    <tbody>${rows.map(o => `<tr class="${o.lowSample ? 'low' : ''}"><td>${LG_OBJ[o.objective]}</td>${cell(o.securedRate, o.securedWinRate, o.secured)}${cell(o.yieldedRate, o.yieldedWinRate, o.yielded)}</tr>`).join('')}</tbody></table>`;
+    <tbody>${rows.map(o => `<tr class="${o.lowSample ? 'low' : ''}"><td>${LG_OBJ[o.objective]}</td>${cell(o.securedRate, o.securedWinRate, o.secured)}${cell(o.yieldedRate, o.yieldedWinRate, o.yielded)}</tr>`).join('')}</tbody></table>${lgLegend("the champion's own win rate in this role")}`;
 }
 
 // --- Counters: lane opponents, sortable (win, delta 1, delta 2, pick, games) ---
@@ -109,20 +111,21 @@ const LG_MU_COLS = [['name', 'Opponent'], ['winRate', 'Win'], ['delta1', 'Delta 
 function lgMatchups(d) {
   const rows = lgSortRows((d.matchups || []).map(m => ({ ...m, delta1: m.delta1 ?? null, delta2: m.delta2 ?? null })), lg.msort, lg.mdir, r => lgChamp(r.opponent).name);
   const th = ([k, t]) => `<th class="${k === 'name' ? '' : 'num'}" aria-sort="${lg.msort === k ? (lg.mdir < 0 ? 'descending' : 'ascending') : 'none'}"><button data-lg-msort="${k}">${t}${lg.msort === k ? (lg.mdir < 0 ? ' ▾' : ' ▴') : ''}</button></th>`;
-  const role = lgRoleOf(d.role);
+  const role = lgRoleOf(d.role), avg = lgMean(rows, 'winRate'), S = { win: lgSpread(rows, r => r.winRate, avg), d1: lgSpread(rows, r => r.delta1, 0), d2: lgSpread(rows, r => r.delta2, 0) };
   return lgSection('Counters', `${LG_ROLE[role] || ''} lane opponent · Delta 1 = win vs them − your average · Delta 2 = also corrected for their average`,
-    rows.length ? `<table class="lg-table lg-mu-table"><thead><tr>${LG_MU_COLS.map(th).join('')}</tr></thead><tbody>${rows.map(m => `<tr class="${m.lowSample ? 'low' : ''}" data-lg-go="#/league/champion/${m.opponent}/${role}"><td class="lg-name"><a href="#/league/champion/${m.opponent}/${role}">${lgIcon(m.opponent)}<span>${lgEsc(lgChamp(m.opponent).name)}</span></a></td><td class="num">${lgBar(m.winRate)}${lgPct(m.winRate)}</td><td class="num">${lgDelta(m.delta1)}</td><td class="num">${lgDelta(m.delta2)}</td><td class="num">${m.pickRate == null ? '–' : lgPct(m.pickRate)}</td><td class="num">${lgN(m.games)}</td></tr>`).join('')}</tbody></table>` : '<p class="lg-wait">No matchups recorded yet.</p>');
+    rows.length ? `<table class="lg-table lg-mu-table"><thead><tr>${LG_MU_COLS.map(th).join('')}</tr></thead><tbody>${rows.map(m => `<tr class="${m.lowSample ? 'low' : ''}" data-lg-go="#/league/champion/${m.opponent}/${role}"><td class="lg-name"><a href="#/league/champion/${m.opponent}/${role}">${lgIcon(m.opponent)}<span>${lgEsc(lgChamp(m.opponent).name)}</span></a></td><td class="num">${lgHeat(m.winRate, avg, S.win, m.games, lgPct(m.winRate))}</td><td class="num">${lgDelta(m.delta1, S.d1, m.games)}</td><td class="num">${lgDelta(m.delta2, S.d2, m.games)}</td><td class="num">${m.pickRate == null ? '–' : lgPct(m.pickRate)}</td><td class="num">${lgN(m.games)}</td></tr>`).join('')}</tbody></table>${lgLegend('the average win rate across these matchups (Win) or zero (deltas)')}` : '<p class="lg-wait">No matchups recorded yet.</p>');
 }
 
 // --- Synergies: most common teammates, best and worst by Delta 2 (full-sample rows first) ---
 function lgSynergies(d) {
   const all = d.synergies || [];
   if (!all.length) return lgSection('Synergies', '', '<p class="lg-wait">No teammate data yet.</p>');
-  const row = s => `<a class="lg-syn${s.lowSample ? ' low' : ''}" href="#/league/champion/${s.ally}/${lgRoleOf(s.role)}">${lgIcon(s.ally)}<span>${lgEsc(lgChamp(s.ally).name)}<small>${LG_ROLE[lgRoleOf(s.role)] || s.role}</small></span><b>${lgPct(s.winRate)}</b>${lgDelta(s.delta2)}<small>${lgN(s.games)}</small></a>`;
+  const avg = lgMean(all, 'winRate'), sw = lgSpread(all, s => s.winRate, avg), sd = lgSpread(all, s => s.delta2, 0);
+  const row = s => `<a class="lg-syn${s.lowSample ? ' low' : ''}" href="#/league/champion/${s.ally}/${lgRoleOf(s.role)}">${lgIcon(s.ally)}<span>${lgEsc(lgChamp(s.ally).name)}<small>${LG_ROLE[lgRoleOf(s.role)] || s.role}</small></span><b>${lgHeat(s.winRate, avg, sw, s.games, lgPct(s.winRate))}</b><span>${lgDelta(s.delta2, sd, s.games)}</span><small>${lgN(s.games)}</small></a>`;
   const ranked = [...all].filter(s => s.delta2 != null).sort((a, b) => (a.lowSample - b.lowSample) || b.delta2 - a.delta2);
   const col = (t, list) => `<article class="lg-block"><header><h3>${t}</h3></header><div class="lg-syn-head" aria-hidden="true"><span></span><span>Win</span><span>Δ2</span><span>Games</span></div>${list.map(row).join('') || '<p class="lg-wait">No data yet.</p>'}</article>`;
   return lgSection('Synergies', 'same-team champions · win together · Delta 2 vs what both averages predict',
-    `<div class="lg-sheet lg-syn-sheet">${col('Common teammates', all.slice(0, 8))}${col('Good synergy', ranked.slice(0, 8))}${col('Bad synergy', ranked.slice(-8).reverse())}</div>`);
+    `<div class="lg-sheet lg-syn-sheet">${col('Common teammates', all.slice(0, 8))}${col('Good synergy', ranked.slice(0, 8))}${col('Bad synergy', ranked.slice(-8).reverse())}</div>${lgLegend('the average win rate with these teammates (Win) or zero (Δ2)')}`);
 }
 
 // --- Best players on this champion (DONI-506's /lol/champion/{id}/players); "coming soon" until the crawler serves it ---
@@ -135,7 +138,8 @@ async function lgFillPlayers(token, id) {
   if (!data) { el().innerHTML = '<p class="lg-wait">Coming soon: the stats crawler does not rank players on a champion yet.</p>'; return; }
   if (!ps.length) { el().innerHTML = `<p class="lg-wait">Nobody has ${lgN(data.minPlayerGames || 20)}+ games on this champion under these filters yet.</p>`; return; }
   const tier = p => p.tier ? `${p.tier.charAt(0)}${p.tier.slice(1).toLowerCase()} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(p.tier) ? '' : p.division || ''}` : '';
-  el().innerHTML = `<table class="lg-table lg-best"><thead><tr><th class="num">#</th><th class="num">Player</th><th class="num">Rank</th><th class="num">Win</th><th class="num">Games</th></tr></thead><tbody>${ps.slice(0, 10).map((p, i) => `<tr><td class="num">${i + 1}</td><td>${lgEsc(p.riotId || 'Unknown')} <small>${lgEsc((p.region || '').toUpperCase())}</small></td><td>${lgEsc(tier(p))}${p.lp != null ? ` <small>${lgN(p.lp)} LP</small>` : ''}</td><td class="num">${lgBar(p.winRate)}${lgPct(p.winRate)}</td><td class="num">${lgN(p.games)}</td></tr>`).join('')}</tbody></table>`;
+  const avg = lgMean(ps, 'winRate'), sp = lgSpread(ps, p => p.winRate, avg);
+  el().innerHTML = `<table class="lg-table lg-best"><thead><tr><th class="num">#</th><th class="num">Player</th><th class="num">Rank</th><th class="num">Win</th><th class="num">Games</th></tr></thead><tbody>${ps.slice(0, 10).map((p, i) => `<tr><td class="num">${i + 1}</td><td>${lgEsc(p.riotId || 'Unknown')} <small>${lgEsc((p.region || '').toUpperCase())}</small></td><td>${lgEsc(tier(p))}${p.lp != null ? ` <small>${lgN(p.lp)} LP</small>` : ''}</td><td class="num">${lgHeat(p.winRate, avg, sp, p.games, lgPct(p.winRate))}</td><td class="num">${lgN(p.games)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 let lgChampData = null, lgChampL = null;
