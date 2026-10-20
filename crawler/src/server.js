@@ -129,15 +129,23 @@ function tftComp(db, id, q = {}) {
   return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment, activeTraits: parts.trait };
 }
 
+// count(*) over ~1M players takes ~0.5 s; /status is polled, so the counts are kept a minute.
+let playersCache = { at: 0, v: null };
+function playerCounts(db) {
+  if (Date.now() - playersCache.at > 60000) playersCache = { at: Date.now(), v: Object.fromEntries(db.prepare("SELECT game, count(*) n FROM players GROUP BY game").all().map((r) => [r.game, r.n])) };
+  return playersCache.v;
+}
+
 function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
   const k = riotKey(db, envKey);
   const size = (f) => { try { return dbPath && dbPath !== ":memory:" ? fs.statSync(f).size : null; } catch { return null; } };
-  const raw = db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get();
+  // rawStats is measured by the aggregation worker (agg-worker.js); null until its first pass.
+  const raw = getMeta(db, "rawStats") || { bytes: null, n: null };
   const matches = {};
   for (const r of db.prepare("SELECT game, status, count(*) n FROM matches GROUP BY 1, 2").all()) (matches[r.game] ??= {})[r.status] = r.n;
   return {
     matches,
-    players: Object.fromEntries(db.prepare("SELECT game, count(*) n FROM players GROUP BY game").all().map((r) => [r.game, r.n])),
+    players: playerCounts(db),
     lastFetch: db.prepare("SELECT max(fetched_at) t FROM matches").get().t,
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),

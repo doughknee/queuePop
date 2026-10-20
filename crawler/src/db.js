@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS matches (
   id TEXT PRIMARY KEY, game TEXT, region TEXT, bracket TEXT, status TEXT DEFAULT 'new',
   queue INT, patch TEXT, started_at INT, fetched_at INT, raw BLOB);
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
+-- /status lastFetch and the aggregation dirty check (max / > fetched_at), leaderboard freshness (max seeded_at)
+CREATE INDEX IF NOT EXISTS matches_fetched ON matches (fetched_at);
+CREATE INDEX IF NOT EXISTS players_seeded ON players (game, seeded_at);
 CREATE TABLE IF NOT EXISTS lol_participants (
   match_id TEXT, puuid TEXT, team INT, champion INT, role TEXT, win INT, tier TEXT,
   items TEXT, keystone INT, runes TEXT, spells TEXT, skills TEXT);
