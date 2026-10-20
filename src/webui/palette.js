@@ -28,7 +28,7 @@
   // Q queue 5: TFT units from the crawler's /tft/meta (any set's key: TFT16_…, DA_18_…), each opening its unit page; the
   // board-only ones (no traits: golems, dummies, minions) are left out. Recordings: one row each, by recFacts' title.
   window.qpUnitItems = m => { const seen = new Set(), out = [];
-    for (const [key, u] of Object.entries((m && m.units) || {})) if (u.cost >= 1 && u.cost <= 5 && (u.traits || []).length && !seen.has(u.name)) { seen.add(u.name); out.push({ kind: 'unit', label: u.name, sub: `${u.cost} cost · ${u.traits.join(', ')}`, href: '#/tft/unit/' + encodeURIComponent(key), icon: u.icon }); }
+    for (const [key, u] of Object.entries((m && m.units) || {})) if (u.cost >= 1 && u.cost <= 5 && (u.traits || []).length && !seen.has(u.name)) { seen.add(u.name); out.push({ kind: 'unit', label: u.name, sub: `${u.cost} cost · ${u.traits.map(t => (m.traits && m.traits[t] && m.traits[t].name) || t).join(', ')}`, href: '#/tft/unit/' + encodeURIComponent(key), icon: u.icon }); }
     return out.sort((a, b) => a.label.localeCompare(b.label)); };
   window.qpRecordingItems = (list, facts, when) => (list || []).map(r => { const f = facts(r);
     return { kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: '#/recordings' }; });

@@ -1,7 +1,7 @@
 // node test-recorder-video.js — ffmpeg command builders, clip windows and the size cap (app/recorder-video.js, DONI-523 Q21).
 // Never runs a capture.
 const assert = require("assert");
-const { captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder } = require("./recorder-video");
+const { captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, ownVideos } = require("./recorder-video");
 
 assert.strictEqual(pickEncoder(" V....D h264_amf  AMD AMF H.264\n V....D h264_nvenc NVIDIA NVENC H.264"), "h264_nvenc");
 assert.strictEqual(pickEncoder(" V....D h264_qsv  H.264 (Intel Quick Sync)"), "h264_qsv");
@@ -30,4 +30,7 @@ assert.deepStrictEqual(clipArgs("in.mkv", 110, 129, "out.mp4"), ["-hide_banner",
 const GB = 1024 ** 3;
 assert.deepStrictEqual(chooseDeletions([{ path: "new", size: 3 * GB, mtime: 3 }, { path: "old", size: 2 * GB, mtime: 1 }, { path: "mid", size: 2 * GB, mtime: 2 }], 4 * GB), ["old", "mid"]);
 assert.deepStrictEqual(chooseDeletions([{ path: "a", size: GB, mtime: 1 }], 4 * GB), []);
+// The size cap only sees the recorder's own videos (the folder may be your Videos folder).
+assert.deepStrictEqual(ownVideos(["NA1_1.json", "NA1_1.mkv", "NA1_1-clip2.mp4", "obs 2024.mkv", "NA1_2.mkv", "x.json", "x.mp4", "555.json", "555.mkv"]),
+  ["NA1_1.mkv", "NA1_1-clip2.mp4", "555.mkv"]);
 console.log("test-recorder-video ok");

@@ -22,8 +22,8 @@ console.log("test-palette ok");
 
 // Q queue 5: units from /tft/meta (set 18 keys too), board-only units left out, one row per name; recordings by recFacts.
 const J2 = (x) => JSON.parse(JSON.stringify(x));
-const units = J2(ctx.window.qpUnitItems({ units: {
-  DA_18_Azir: { name: "Azir", cost: 4, traits: ["Emperor", "Invoker"], icon: "a.png" },
+const units = J2(ctx.window.qpUnitItems({ traits: { DA_18_Emperor: { name: "Emperor" } }, units: {
+  DA_18_Azir: { name: "Azir", cost: 4, traits: ["DA_18_Emperor", "Invoker"], icon: "a.png" },
   TFT16_Ahri: { name: "Ahri", cost: 2, traits: ["Arcana"] },
   TFT_BlueGolem: { name: "Golem", cost: 1, traits: [] },
   DA_18_Azir_Alt: { name: "Azir", cost: 4, traits: ["Emperor"] },
