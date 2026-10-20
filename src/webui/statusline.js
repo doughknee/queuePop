@@ -45,8 +45,10 @@
   let misses = 0, keyAt = 0;
   async function checkCrawler(force) {
     if (!['league', 'tft', 'home'].includes(game()) || (!force && Date.now() - crawlerAt < 60000)) return;
+    // Not before the config has loaded: it would probe the default address instead of yours (W, 2026-10-20).
+    if (!(window.QP && QP.store && QP.store.config)) return;
     crawlerAt = Date.now();
-    const c = (window.QP && QP.store && QP.store.config) || {};
+    const c = QP.store.config;
     const base = String(c.crawler_url || 'http://10.205.0.81:47900').replace(/\/+$/, '');
     const get = (path, ms) => fetch(base + path, { signal: AbortSignal.timeout(ms), cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
     try {
@@ -90,7 +92,8 @@
       const up = !!(st && st.connected), away = !!(st && st.stepping_away && st.stepping_away.on);
       if (up !== facts.client || away !== facts.away) { facts.client = up; facts.away = away; if (away) hidden.delete('away'); draw(); }
     });
-    QP.bus.on('config:changed', ({ path }) => { if (path === 'crawler_url') refresh(true); });
+    QP.bus.on('config:changed', ({ path }) => { if (path === 'crawler_url') { misses = 0; keyAt = 0; refresh(true); } });
+    QP.bus.on('config:loaded', () => { crawlerAt = 0; refresh(false); });
   }
   addEventListener('hashchange', () => refresh(false));
   addEventListener('popstate', () => draw());
