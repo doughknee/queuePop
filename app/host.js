@@ -20,7 +20,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window"];
+  "minimize_window", "resize_window", "test_alert"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -28,10 +28,15 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   app.on("before-quit", () => { quitting = true; });
   app.on("second-instance", () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); });
 
-  // Close hides to the tray; only tray Exit / app.quit() really closes.
-  win.on("close", (e) => { if (!quitting) { e.preventDefault(); win.hide(); } });
-  const tray = createTray({ win, icon: ICON, state, push, quit });
+  // Close hides to the tray unless Settings > App says the ✕ quits (close_to_tray false); tray Quit always quits.
+  win.on("close", (e) => { if (!quitting && loadConfig().close_to_tray !== false) { e.preventDefault(); win.hide(); } else quitting = true; });
   if (loadConfig().start_minimized) win.hide();
+  // Launch at login (DONI-544): applied at start and whenever Settings saves it. A dev run registers electron.exe + this app.
+  const loginItem = (on) => {
+    try { app.setLoginItemSettings(app.isPackaged ? { openAtLogin: !!on } : { openAtLogin: !!on, path: process.execPath, args: [app.getAppPath()] }); }
+    catch (e) { log("launch at login:", e.message); }
+  };
+  if (app.getLoginItemSettings().openAtLogin !== !!loadConfig().launch_at_login) loginItem(loadConfig().launch_at_login);
 
   const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
   const companion = createCompanion({
@@ -50,6 +55,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     } catch (e) { log("could not save", key, e.message); }
   };
   const account = createAccount({ lcu, getConfig: loadConfig, setConfigKey, push });
+  const tray = createTray({ win, icon: ICON, state, push, quit, lcu, getConfig: loadConfig, startQueue: account.startQueue, names: QUEUE_ID_MAP });
 
   // --- alerts, driven by LCU events (a mock run emits these on `lcu` directly) ---
   let queueName = null;
@@ -102,6 +108,15 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return r;
     },
     test_companion: () => { push("Test phone alert", "danger", "queue_pop"); return { ok: true, running: companion.isRunning() }; },
+    // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
+    test_alert: async () => {
+      const cfg = loadConfig(), channels = [];
+      if (cfg.desktop_notifications) channels.push("Windows");
+      if (cfg.webhook_url && (cfg.discord_enabled ?? true)) channels.push("Discord");
+      if (companion.isRunning()) { channels.push("your phone"); push("Test queue pop", "danger", "queue_pop"); }
+      await notifier.alert("queue_pop", "Queue Popped! (test)", "This is what a queue pop looks like. Nothing was accepted.", "Test queue pop", { test: true, queue: "Test" });
+      return { ok: channels.length > 0, channels };
+    },
     get_companion_info: async () => {
       const port = companion.boundPort() || Number(cfgComp().port) || DEFAULT_PORT;
       const ip = await lanIp();
@@ -125,7 +140,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         filters: [{ name: "Audio Files", extensions: ["mp3", "ogg", "wav", "m4a"] }, { name: "All files", extensions: ["*"] }] });
       return r.canceled || !r.filePaths[0] ? { ok: false } : { ok: true, path: r.filePaths[0], name: path.basename(r.filePaths[0]) };
     },
-    hide_window: () => { win.hide(); return true; },
+    hide_window: () => { win.close(); return true; }, // the close handler above hides to the tray or quits (close_to_tray)
     minimize_window: () => { win.minimize(); return true; },
     resize_window: (width, height, edge = "se") => {
       const b = win.getBounds(), [minW, minH] = win.getMinimumSize();
@@ -135,10 +150,13 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return true;
     },
   };
-  // The phone companion applies at once: turning it on/off or changing its port in Settings restarts the server (Q7).
+  // Settings apply at once: the phone companion restarts when it's switched or its port changes (DONI-543), launch at login
+  // follows its switch (DONI-544).
   const saveConfig = impl.save_config;
   if (saveConfig) mine.save_config = async (c) => {
     const before = cfgComp(), r = await saveConfig(c), after = cfgComp();
+    const cfg = loadConfig();
+    if (app.getLoginItemSettings().openAtLogin !== !!cfg.launch_at_login) loginItem(cfg.launch_at_login);
     if (!!before.enabled !== !!after.enabled || Number(before.port) !== Number(after.port)) {
       companion.stop();
       if (after.enabled) await companion.start();
