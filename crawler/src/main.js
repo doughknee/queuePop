@@ -61,7 +61,8 @@ const onAuthFail = (status, msg) => { if (db_.keyHealth(db, cfg.key).valid) log(
 const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
-createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
+const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: () => db_.keyHealth(db, cfg.key).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
+createServer({ db, limiter, version, lookup, defaultRegion: cfg.regions[0], adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
 // Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops.
 async function forever(name, step, idle) {

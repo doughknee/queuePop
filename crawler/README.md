@@ -24,6 +24,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | var | default | |
 |---|---|---|
 | `RIOT_API_KEY` | none | personal key. Without it (and without one posted to `/admin/key`) the service only serves the existing DB |
+| `LOOKUPS_PER_MIN` | 3 | uncached `/lol/summoner` + `/tft/player` lookups allowed per minute (each costs up to ~23 Riot requests) |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
@@ -107,6 +108,21 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   the scope's `winRate`; `champions` = the top 5 champions finishing with it. `/lol/runes` → same head plus `keystones`, `runes`
   (every rune incl. keystones) and `shards` (stat-mod triples); `/lol/spells` → `spells` (keys `"4,14"`). Rolled up at read time
   from `stats_lol_build` / `stats_lol_shards` and memoised until the next aggregation pass.
+- `GET /lol/leaderboard?region&limit` and `GET /tft/leaderboard?region&limit` (DONI-508/512) → `{ game, region, players: [{ rank, riotId,
+  region, tier, division, lp, wins, losses, games, winRate, updatedAt }] }`, ladder order (tier, division, LP), `limit` default 100, max 500.
+  From the `players` table: the daily ladder walk plus a re-read of the three apex ladders every 30 min (`meta apex:<game>:<region>`),
+  so Master+ LP is at most 30 min old; `division` is null for Master+. TFT rows add `crawled: { games, avgPlacement, top4Rate }` over
+  every board we hold for that player (null when none). Riot ids come from `lol_names` (both games; null until we crawled one of their
+  matches). `/lol/leaderboard?champion=<id>[&role]` is the champion leaderboard (same as `/lol/champion/{id}/players`).
+- `GET /lol/summoner/{riotId}?region=na1` and `GET /tft/player/{riotId}?region=na1` (riotId `Name#TAG` URL-encoded, or `Name-TAG`;
+  region defaults to the first of REGIONS) → on-demand from Riot: account-v1, league entries by puuid, last 20 match ids, and each
+  match from our DB when we still hold its raw JSON, else from Riot (~23 requests worst case). League:
+  `{ game, riotId, puuid, region, level, iconId, ranked: [{ queue, tier, division, lp, wins, losses }], matches: [{ id, queueId, startedAt,
+  duration, champion, role, win, kills, deaths, assists, cs, gold, items, spells, keystone }], fetchedAt }`; TFT: same head (no level/icon),
+  `matches: [{ id, queueId, startedAt, length, placement, level, traits: [[name, tier]], units: [[unit, star, [items]]], augments }]`.
+  Cached 10 min per game+region+id (case-insensitive); at most `LOOKUPS_PER_MIN` (default 3) uncached lookups a minute, beyond that
+  429 with `Retry-After`; 404 unknown Riot id, 400 bad id/region, 503 while the key is invalid. The app's `get_match_history` uses
+  this to back-fill a short League history (DONI-524).
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, carry, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units`, `augments` and `activeTraits` (key `"<trait>:<tier_current>"`):

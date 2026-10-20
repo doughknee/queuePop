@@ -102,7 +102,10 @@
 - Deadlock landing ("The city", DONI-482) is stats-first: player card, hero tier list (rank/patch/window filters,
   rows expand to top items + worst matchups), links; search (heroes, items, players) at the top of the content area,
   not the nav row. `window.DEADLOCK_PAGES` ([{hash, label}]) is the page list for the shell sidebar. Styles in
-  `src/webui/deadlock/city.css` (linked into the shadow root). Account id: config key `deadlock_account_id` via bridge
+  `src/webui/deadlock/city.css` (linked into the shadow root). DONI-540 (2026-10-20): the street-poster look is retired; the
+  shadow-root CSS (one JSON string on line 18 of `deadlock-view.js`) and city.css use theme.css tokens only (custom properties inherit
+  into the shadow root; it no longer redefines --muted/--green/--display), no paper/ink textures, no poster tilts, Anton uppercase,
+  defeat in --neg, tier badges S green, A blue, B grey, C amber, D red like League and TFT. Account id: config key `deadlock_account_id` via bridge
   `get_deadlock_account` / `set_deadlock_account` (`app/deadlock-api.js`), localStorage fallback. All calls go from the
   renderer to `https://api.deadlock-api.com/v1`: `/analytics/hero-stats` (tier list; `min/max_average_badge` = rank
   tier*10..tier*10+6, `min/max_unix_timestamp` from patch title dates), `/analytics/item-stats`,
