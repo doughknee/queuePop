@@ -19,3 +19,19 @@ assert.deepStrictEqual(qpRank(items, "display").map((x) => x.label), ["Text size
 assert.strictEqual(qpRank(items, "  ").length, 0);
 assert.strictEqual(qpRank(items, "a", 1).length, 1);
 console.log("test-palette ok");
+
+// Q queue 5: units from /tft/meta (set 18 keys too), board-only units left out, one row per name; recordings by recFacts.
+const J2 = (x) => JSON.parse(JSON.stringify(x));
+const units = J2(ctx.window.qpUnitItems({ units: {
+  DA_18_Azir: { name: "Azir", cost: 4, traits: ["Emperor", "Invoker"], icon: "a.png" },
+  TFT16_Ahri: { name: "Ahri", cost: 2, traits: ["Arcana"] },
+  TFT_BlueGolem: { name: "Golem", cost: 1, traits: [] },
+  DA_18_Azir_Alt: { name: "Azir", cost: 4, traits: ["Emperor"] },
+} }));
+assert.deepStrictEqual(units.map((u) => [u.label, u.href]), [["Ahri", "#/tft/unit/TFT16_Ahri"], ["Azir", "#/tft/unit/DA_18_Azir"]]);
+assert.strictEqual(units[1].sub, "4 cost · Emperor, Invoker");
+assert.deepStrictEqual(J2(ctx.window.qpUnitItems(null)), []);
+const recs = J2(ctx.window.qpRecordingItems([{ startedAt: 1 }], () => ({ title: "Ahri", result: "Win", facts: "3 / 1 / 7" }), () => "Mon 9:00"));
+assert.deepStrictEqual(recs, [{ kind: "recording", label: "Ahri", sub: "Mon 9:00 · Win · 3 / 1 / 7", href: "#/recordings" }]);
+assert.deepStrictEqual(qpRank(recs, "ahri").length, 1);
+console.log("test-palette sources ok");
