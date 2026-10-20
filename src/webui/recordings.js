@@ -12,6 +12,17 @@
     return ev.map(e => ({ left: Math.round((e.t / len) * 1000) / 10, type: e.type, label: `${mmss(e.t)} ${e.label}`, t: e.t, clip: e.clip || null }));
   }
   window.recStripMarkers = stripMarkers;
+  // One recording's title and facts line. Pure; app/test-recorder.js checks it.
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+  function recFacts(r) {
+    const c = r.counts || {}, ord = n => `${n}${['th', 'st', 'nd', 'rd'][n] || 'th'}`; // TFT places are 1-8
+    if (r.game === 'tft') return { title: `TFT${r.placement ? ` · ${ord(r.placement)} place` : ''}`, result: r.result ? (r.result === 'win' ? 'Top 4' : 'Bottom 4') : '', facts: '' };
+    const facts = [`${c.kill || 0} / ${c.death || 0} / ${c.assist || 0}`];
+    if (c.multikill) facts.push(plural(c.multikill, 'multikill'));
+    if (c.objective) facts.push(plural(c.objective, 'objective'));
+    return { title: r.champion || 'League', result: r.result ? (r.result === 'win' ? 'Win' : 'Loss') : '', facts: facts.join(' · ') };
+  }
+  window.recFacts = recFacts;
   window.recStrip = rec => `<div class="rec-strip" role="img" aria-label="${E(stripMarkers(rec).length)} moments">${stripMarkers(rec).map(m =>
     `<i class="rec-m rec-${m.type}" style="left:${m.left}%" title="${E(m.label)}"></i>`).join('')}</div>`;
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return;
@@ -25,14 +36,14 @@
     const head = `<header class="rec-head"><p class="eyebrow">Recorder (beta)</p><h1>Recordings</h1>
       <p>${on ? 'Every League and TFT game is recorded while queuePop runs: your kills, deaths, assists, multikills, objectives and the result, with their game time.' : 'The recorder is off. Turn it on in Settings to keep a timeline of every game.'}
       <a href="#/settings#recorder" data-rec-settings>Recorder settings ↗</a></p></header>`;
-    if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<p class="rec-empty">${on ? 'No recordings yet. Play a game and it shows up here.' : 'Nothing recorded yet.'}</p></section>`; return; }
+    // Off: the fix is one click away, right here (it applies at once, like every Settings control).
+    if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
     host.innerHTML = `<section class="rec-page">${head}<ol class="rec-list">${list.slice(0, 30).map((r, i) => {
-      const rec = full[i] || r, c = r.counts || {};
-      const title = r.game === 'tft' ? `TFT${r.placement ? ` · ${r.placement}${['th', 'st', 'nd', 'rd'][r.placement] || 'th'} place` : ''}` : r.champion || 'League';
-      const facts = r.game === 'tft' ? '' : `${c.kill || 0} / ${c.death || 0} / ${c.assist || 0}${c.multikill ? ` · ${c.multikill} multikill${c.multikill > 1 ? 's' : ''}` : ''}${c.objective ? ` · ${c.objective} objectives` : ''}`;
-      return `<li class="rec-row ${r.result || ''}"><div class="rec-meta"><b>${E(title)}</b><small>${E(when(r.startedAt))}${r.result ? ` · ${r.game === 'tft' ? (r.result === 'win' ? 'Top 4' : 'Bottom 4') : r.result === 'win' ? 'Win' : 'Loss'}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
-        ${window.recStrip(rec)}<span class="rec-act"><button type="button" class="st-btn" data-rec-del="${E(r.matchId)}">Delete</button></span></li>`; }).join('')}</ol>
+      const rec = full[i] || r, f = recFacts(r), title = f.title, facts = f.facts;
+      const strip = stripMarkers(rec).length ? window.recStrip(rec) : `<span class="rec-nostrip">${r.game === 'tft' ? 'Placement only for TFT' : 'No moments recorded'}</span>`;
+      return `<li class="rec-row ${r.result || ''}"><div class="rec-meta"><b>${E(title)}</b><small>${E(when(r.startedAt))}${f.result ? ` · ${f.result}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
+        ${strip}<span class="rec-act"><button type="button" class="rec-del" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></span></li>`; }).join('')}</ol>
       <p class="rec-legend">${Object.entries(KIND).map(([k, l]) => `<span><i class="rec-m rec-${k}"></i>${l}</span>`).join('')}</p></section>`;
   }
   document.addEventListener('click', async e => {
@@ -40,6 +51,8 @@
     // Deleting is for good, so the first click asks (inline, no dialog) and the second deletes.
     if (del && !del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Delete for good?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Delete'; } }, 4000); return; }
     if (del) { del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main')); }
+    const on = e.target.closest && e.target.closest('[data-rec-on]');
+    if (on) { QP.store.set('recorder.enabled', true); render(document.getElementById('main')); }
     const s = e.target.closest && e.target.closest('[data-rec-settings]');
     if (s) setTimeout(() => window.qpSearch && qpSearch.focusSetting('recorder.enabled'), 120);
   });
@@ -52,5 +65,10 @@
     a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>';
     gear.before(a);
   }
+  // The sidebar icon wears a small lime dot while the recorder is on.
+  const mark = () => { const on = !!(QP.store.config && QP.store.config.recorder && QP.store.config.recorder.enabled), a = document.querySelector('#qp-sidebar .sb-rec');
+    if (a) { a.classList.toggle('on', on); a.title = on ? 'Recordings (recorder on)' : 'Recordings'; } };
+  if (window.QP && QP.bus) { QP.bus.on('config:loaded', mark); QP.bus.on('config:changed', ({ path }) => { if (String(path).startsWith('recorder')) mark(); }); }
+  mark();
   window.recordingsView = { render };
 })();

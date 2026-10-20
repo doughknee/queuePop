@@ -89,7 +89,8 @@
   addEventListener('click', () => setTimeout(() => { if (location.hash !== synced) window.syncSidebar(); }));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
   for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
-  // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
+  // The skip link is the first Tab stop (it sat after the window buttons), and it lands on Settings too (worlds.js focuses it).
+  const skip = document.querySelector('a.skip'); if (skip && document.body.firstElementChild !== skip) document.body.prepend(skip);
   document.getElementById('settings-view')?.setAttribute('tabindex', '-1');
 })();
 
