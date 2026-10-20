@@ -132,3 +132,8 @@
 /* Mockup filler retired (the app footer carries the Valve line; the companion here is a demo): the bar keeps the real overlay status + launch */
 .page-colophon,.companion-bar .companion-label,.companion-bar #queue-status,.companion-bar [data-open=companion]{display:none}
 .companion-bar:not(:has(.overlay-launch:not([hidden]))){justify-content:flex-start}
+/* First screen at Brandon's 1024 x 576: the page row already names the page, so the breadcrumb goes; on short windows the
+   kicker goes and the headline steps down so the tier list starts in view */
+.page-breadcrumb{display:none}
+@media (max-height:760px){.archive-intro .sheet-kicker,.archive-intro .archive-count,.archive-intro .archive-count+*{display:none}.archive-intro.archive-intro h1{font-size:36px}
+  .city-searchbar.city-searchbar{position:absolute;right:0;z-index:2}.search-results.search-results{margin-top:64px}}
