@@ -156,6 +156,7 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
     key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey) }, // never the key itself
     aggregates: getMeta(db, "aggregates"),
+    backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
   };
 }

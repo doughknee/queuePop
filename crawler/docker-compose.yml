@@ -9,3 +9,4 @@ services:
       - "47900:47900"
     volumes:
       - ./data:/data
+      - ./backups:/backups # nightly VACUUM INTO, newest 3 (BACKUP_KEEP); host dir owned by uid 1000 like ./data
