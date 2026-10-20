@@ -116,12 +116,26 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   newest crawled set (Community Dragon `cdragon/tft/en_us.json`, setData `TFTSet<N>`; icons are CDragon PNG URLs). Fetched at
   most once a day and kept in `meta.tftMeta`; on a CDragon failure the last copy is served with `stale: true` (503 when none).
 
+TFT stat pages (DONI-510/511), all `?patch&region&bracket&min_games`, every row `{ games, avgPlacement, top4Rate, winRate, frequency, lowSample }`
+(`frequency` = games / boards in scope unless noted). Read from `stats_tft_{unit,unit_item,item,augment,trait}`, built from
+`tft_participants.board` (`[[unit, star, [items]]]`), `traits` and `augments`; memoised until the next aggregation.
+- `GET /tft/units` → `{ ..., boards, units: [{ key, ...row, stars: [{ star, ...row }], items: [{ key, games, avgPlacement }] (top 3) }] }` by games.
+  A unit fielded twice on one board counts twice.
+- `GET /tft/unit/{key}` → the unit row plus `stars`, `items` (top 40 single items), `itemSets` (top 20 full sets, sorted keys joined
+  by `,`, `""` = no items) and `comps` (top 20 `{ id, games, frequency, avgPlacement, top4Rate, lowSample }`); for these three
+  `frequency` is out of the unit's own games. 404 when the unit has no games in scope.
+- `GET /tft/items` → `items: [{ key, ...row, units: [{ unit, games, avgPlacement, top4Rate }] (top 5 holders) }]`; a row counts item copies.
+- `GET /tft/augments` → `augments: [{ key, ...row, stages: [{ stage: "2-1"|"3-2"|"4-2", ...row }] }]` (stage = pick order). Riot's
+  tft-match-v1 sends no augments for set 18 (0 of 318,648 boards on 2026-10-20), so the list is empty and the response carries `note`.
+- `GET /tft/traits` → `traits: [{ key, ...row, tiers: [{ tier, ...row }] }]`, tier = `tier_current` (breakpoint index; unit counts per
+  breakpoint are in `/tft/meta` `traits[key].breakpoints`).
+
 **TFT comp rule (DONI-502):** a comp id is `"<top trait>,<carry unit>"`, e.g. `DA_18_Invoker,DA_18_Ahri`
 (`traits: [top trait]`, `carry`). Top trait: the active
 trait (`tier_current >= 1`) that is not a one-unit unique trait (`tier_total > 1`), by highest `tier_current`, then most units,
 then name; `none` when there is none. Carry: the unit holding the most items, then highest star, then highest cost, then name.
 Deterministic. On 3,200 live boards (16.20) it put 0% in `none` (the old "traits at tier >= 2" rule: 22.5%) and explained
-2.7x more placement variance. After a rule change run `npm run -s backfill-comps` (re-keys boards from raw JSON; boards
+2.7x more placement variance. After a rule change run `npm run -s backfill-comps` (re-keys boards and rewrites `board` from raw JSON; boards
 whose raw retention already dropped keep their old trait-only id), then `npm run -s aggregate`.
 
 **Players (DONI-506, `src/agg-players.js`):** `lol_names` (puuid → latest Riot id `name#tag`, region) is written for every
