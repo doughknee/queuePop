@@ -20,6 +20,13 @@ function lgPick(icons, label, e, extra = '') {
 const lgBlock = (title, note, body, cls = '') => `<article class="lg-block${cls ? ' ' + cls : ''}"><header><h3>${title}</h3>${note ? `<small>${note}</small>` : ''}</header>${body ? `<div class="lg-block-head" aria-hidden="true"><span></span><span></span><span>Win</span><span>Pick · games</span></div>${body}` : '<p class="lg-wait">No games with this yet.</p>'}</article>`;
 // Deltas are fractions; colored around 0 (DONI-516's lgHeat), printed in points.
 const lgDelta = (x, spread, games) => lgHeat(x, 0, spread, games, x == null ? '' : lgSign(x * 100));
+// DONI-513: win rate per 5-minute game-length bucket (crawler length[]), a column each: the bar is the share of games,
+// the number is the win rate tinted against the champion's own average, fainter on small buckets.
+function lgLength(buckets, cwr) {
+  const max = Math.max(...buckets.map(b => b.share || 0)) || 1;
+  return `<div class="lg-length">${buckets.map(b => `<div class="lg-len${b.games < 20 ? ' low' : ''}" title="${lgN(b.games)} games, ${lgPct(b.share)} of all">
+    <span class="lg-len-bar" style="--h:${((b.share || 0) / max * 100).toFixed(0)}%"></span>${lgHeat(b.winRate, cwr, 0.06, b.games, lgPct(b.winRate))}<small>${b.from}${b.to == null ? '+' : '–' + b.to} min</small></div>`).join('')}</div>`;
+}
 const lgSection = (title, note, body) => `<section class="lg-section"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
 const lgTop = (arr, n, f) => (arr || []).slice(0, n).map(f).join('');
 
@@ -173,12 +180,14 @@ async function lgFillChampion(token, id) {
       + cell('Tier', me ? lgTier(me.tier, me.lowSample) : '–', rank ? `#${rank} of ${banded.length}` : R)
       + cell('Pick', lgMag(s.pickRate, lgSpread(banded, r => r.pickRate, 0), lgPct(s.pickRate)), `${lgN(s.matches)} matches`)
       + cell('Ban', lgMag(s.banRate, lgSpread(banded, r => r.banRate, 0), lgPct(s.banRate)), lgEsc(d.patch))
-      + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} with timeline`);
+      + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} with timeline`)
+      + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} games each`) : '');
     box().innerHTML = `
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
       ${lgSection('Objectives', 'your team took it first (secured) or the enemy did (yielded); rates out of all games', lgObjectives(d))}
+      ${(d.length || []).some(b => b.games) ? lgSection('Game length', 'win rate by game length · share of games', lgLength(d.length, s.winRate)) : ''}
       <div class="lg-duo">${lgMatchups(d)}${lgSynergies(d)}</div>
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
     lgFillPlayers(token, id);

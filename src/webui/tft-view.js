@@ -99,12 +99,20 @@ window.createTftView = function (host) {
     const w = 0.15 + 0.85 * Math.min(1, Math.max(0, Math.log(n / 20) / Math.log(100))), d = (x - centre) * (lowerIsBetter ? -1 : 1);
     return `<span class="ts-v ${d >= 0 ? 'vg' : 'vb'}" style="--k:${(Math.min(1, Math.abs(d) / spread) * w).toFixed(2)}">${text}</span>`;
   };
+  // DONI-513: average place over the window's days (crawler ?trend=1 daily[]); green when the last day places better than the first.
+  const spark = (daily) => {
+    const d = (daily || []).filter((x) => x.games > 0 && x.avgPlacement != null);
+    if (d.length < 2) return '';
+    const v = d.map((x) => x.avgPlacement), lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 0.05, w = 34, h = 11;
+    const pts = v.map((x, i) => `${(i / (v.length - 1) * w).toFixed(1)},${((x - lo) / span * h).toFixed(1)}`).join(' ');
+    return `<svg class="ts-spark ${v[v.length - 1] <= v[0] ? 'up' : 'down'}" viewBox="-1 -1 ${w + 2} ${h + 2}" width="${w}" height="${h}"><title>${d.map((x) => `${x.day}: ${x.avgPlacement.toFixed(2)} avg (${x.games})`).join('\n')}</title><polyline points="${pts}"/></svg>`;
+  };
   const mag = (x, p90, text) => `<span class="ts-v vn" style="--k:${Math.sqrt(Math.min(1, x / (p90 || 1))).toFixed(2)}">${text}</span>`;
   const games = (n) => `<span class="ts-games">${n.toLocaleString()} games</span>`;
 
-  const filters = { patch: '', region: 'all', bracket: 'all' };
+  const filters = { patch: '', region: 'all', bracket: 'all', days: '' };
   let rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
-  const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}`;
+  const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
   const detail = (id) => S.get(`/tft/comp/${enc(id)}?${qs()}`);
   const known = new Map(); // comp id → its loaded unit keys (search matches unit names through these)
 
@@ -113,7 +121,7 @@ window.createTftView = function (host) {
     try {
       if (!patches) [patches, regions] = await Promise.all([S.get('/patches').then((p) => p.tft || []), S.regions()]);
       if (!filters.patch) filters.patch = patches[0] || '';
-      rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}`)) : [];
+      rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}&trend=1`)) : [];
     } catch (_) { offline = true; rows = []; }
   }
   // Fill unit icons for rows on screen, six requests at a time (the crawler is on the LAN).
@@ -150,6 +158,7 @@ window.createTftView = function (host) {
     const opt = (v, l, cur) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${l}</option>`;
     return `<div class="ts-filters"><label>Patch <select data-f="patch">${(patches || []).map((p) => opt(p, p, filters.patch)).join('') || '<option value="">None yet</option>'}</select></label>
       <div class="ts-seg" role="group" aria-label="Region">${[['all', 'All regions'], ...regions.map((r) => [r, S.regionLabel(r)])].map(([v, l]) => `<button data-region="${v}" aria-pressed="${filters.region === v}">${l}</button>`).join('')}</div>
+      <label>Window <select data-f="days">${[['', 'Whole patch'], ['7', 'Last 7 days'], ['3', 'Last 3 days'], ['1', 'Today']].map(([v, l]) => opt(v, l, filters.days)).join('')}</select></label>
       <label>Rank <select data-f="bracket">${[['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+']].map(([v, l]) => opt(v, l, filters.bracket)).join('')}</select></label></div>`;
   }
   function stateLine() {
@@ -170,7 +179,7 @@ window.createTftView = function (host) {
     list.innerHTML = !vis.length ? (rows.length ? `<p class="ts-quiet">No comps match “${esc(query)}”.</p>` : '') :
       `<div class="ts-head" aria-hidden="true"><span>Tier</span><span>Comp</span><span>Units</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Pick</span><span>Games</span></div>`
       + slice.map((r) => `<div class="ts-row ${r.lowSample ? 'low' : ''} ${open === r.id ? 'open' : ''}" data-row="${esc(r.id)}"${r.lowSample ? ' title="Low sample: under ' + r.games + ' games is not enough to trust"' : ''}>
-        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}</span>
+        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}</span>
         <span class="ts-units" data-units="${esc(r.id)}"></span><span class="ts-num">${heat(r.avgPlacement, 4.5, 0.8, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.15, r.games, pct(r.top4Rate))}</span>
         <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.pickRate, 0.05, pct(r.pickRate))}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
         ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')

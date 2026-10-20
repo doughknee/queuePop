@@ -166,3 +166,14 @@
 .lg-ago small{display:block}
 .lg-ladder .lg-name a{display:flex;gap:4px;align-items:baseline}
 .lg-ladder tbody tr{cursor:default}
+
+/* DONI-513: trend sparkline in the tier list, game-length columns on the champion page */
+.lg-spark{flex:none;margin-left:auto;fill:none;stroke-width:1.5}
+.lg-spark.up{stroke:var(--green)}.lg-spark.down{stroke:var(--neg)}
+.lg-tiers .lg-name a{width:100%}
+.lg-length{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:4px;align-items:end}
+.lg-len{display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:center}
+.lg-len-bar{display:block;height:70px;position:relative;background:var(--line)}
+.lg-len-bar:after{content:'';position:absolute;left:0;right:0;bottom:0;height:var(--h);background:var(--edge)}
+.lg-len .lg-v{display:block;padding:2px 0}
+.lg-len small{color:var(--muted);font-size:10px}

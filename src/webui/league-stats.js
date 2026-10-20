@@ -5,9 +5,9 @@
 const LG_ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 const LG_ROLE = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'Bot', utility: 'Support' };
 const LG_KEY = 'queuepop-league-stats-v1';
-const lg = { patch: '', region: 'all', bracket: 'all', role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
-try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
-const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
+const lg = { patch: '', region: 'all', bracket: 'all', days: '', role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
+try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'days', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
+const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, days: lg.days, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
 
 const lgPct = x => x == null ? '–' : (x * 100).toFixed(1) + '%';
 const lgN = n => Number(n || 0).toLocaleString();
@@ -35,7 +35,7 @@ const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/posit
 async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
-const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, role });
+const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, role });
 const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} Check its address in <a href="#/settings#crawler">Settings ↗</a>. The rest of the League world still works.</p>`;
 
 // --- Search: champions jump to their page, a Riot ID opens your account page or anyone's summoner page (league-players.js) ---
@@ -100,14 +100,25 @@ const LG_TKEY = 'queuepop-league-tiers-v1';
 const lgt = { minLane: 5, minPick: 0, minGames: 200, regions: [] }; // min lane % and min pick % in percent
 try { const s = JSON.parse(localStorage.getItem(LG_TKEY) || '{}'); for (const k of ['minLane', 'minPick', 'minGames']) if (Number.isFinite(s[k]) && s[k] >= 0) lgt[k] = s[k]; if (Array.isArray(s.regions)) lgt.regions = s.regions.filter(r => typeof r === 'string'); } catch {}
 const lgtSave = () => { try { localStorage.setItem(LG_TKEY, JSON.stringify(lgt)); } catch {} };
+// DONI-513: the crawler's daily snapshots let the tier list and champion strip read the last N days of the patch.
+const LG_WINDOWS = [['', 'Whole patch'], ['7', 'Last 7 days'], ['3', 'Last 3 days'], ['1', 'Today']];
+// A win-rate sparkline over the window's days (crawler ?trend=1 daily[]), green when the last day beats the first.
+function lgSpark(daily) {
+  const d = (daily || []).filter(x => x.games > 0 && x.winRate != null);
+  if (d.length < 2) return '';
+  const v = d.map(x => x.winRate), lo = Math.min(...v), hi = Math.max(...v), span = hi - lo || 0.01, w = 34, h = 11;
+  const pts = v.map((x, i) => `${(i / (v.length - 1) * w).toFixed(1)},${(h - (x - lo) / span * h).toFixed(1)}`).join(' ');
+  const up = v[v.length - 1] >= v[0];
+  return `<svg class="lg-spark ${up ? 'up' : 'down'}" viewBox="-1 -1 ${w + 2} ${h + 2}" width="${w}" height="${h}" aria-label="Win rate ${lgPct(v[0])} to ${lgPct(v[v.length - 1])} over ${d.length} days"><title>${d.map(x => `${x.day}: ${lgPct(x.winRate)} (${lgN(x.games)})`).join('\n')}</title><polyline points="${pts}"/></svg>`;
+}
 const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+'], ['grandmaster', 'Grandmaster+'], ['challenger', 'Challenger']];
 // Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
 function lgFilters(withRole = true, lead = '', nums = withRole) {
-  const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank', days: 'Window' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
   return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
-    ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}
+    ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}${sel('days', LG_WINDOWS)}
     ${nums ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
@@ -167,7 +178,7 @@ function lgTierTable(data) {
     <tr><th class="num">#</th>${LG_COLS.map(th).join('')}</tr></thead><tbody>${rows.map((r, i) => {
     const c = lgChamp(r.champion), role = lgRoleOf(r.role), href = `#/league/champion/${r.champion}/${role}`, b = r.best;
     return `<tr class="${r.lowSample ? 'low' : ''}" data-lg-go="${href}"><td class="num">${i + 1}</td><td>${lgTier(r.tier, r.lowSample)}</td>
-      <td class="lg-name"><a href="${href}">${lgIcon(r.champion)}<span>${lgEsc(c.name)}</span>${lg.role === 'all' ? lgRoleIcon(role) : ''}</a></td>
+      <td class="lg-name"><a href="${href}">${lgIcon(r.champion)}<span>${lgEsc(c.name)}</span>${lg.role === 'all' ? lgRoleIcon(role) : ''}${lgSpark(r.daily)}</a></td>
       <td class="num">${r.laneShare == null ? '–' : lgPct(r.laneShare)}</td><td class="num">${lgHeat(r.winRate, avg, S.win, r.games, lgPct(r.winRate))}</td><td class="num">${lgHeat(r.delta, 0, S.delta, r.games, lgSign(r.delta * 100))}</td>
       <td class="num">${lgMag(r.pickRate, S.pick, lgPct(r.pickRate))}</td><td class="num">${lgMag(r.banRate, S.ban, lgPct(r.banRate))}</td><td class="num">${lgHeat(r.pbi, 0, S.pbi, r.games, r.pbi == null ? '' : lgSign(r.pbi, 2))}</td><td class="num">${lgN(r.games)}</td>
       <td class="num lg-best-first">${b ? lgHeat(b.winRate, avg, S.best, b.games, lgPct(b.winRate)) : '–'}</td><td class="num">${b ? `${lgN(b.games)}<small> · ${b.players}p</small>` : '–'}</td><td class="num" title="${b?.avgTier ?? ''}">${b ? lgRankLabel(b.avgTier) : '–'}</td></tr>`;
@@ -179,7 +190,7 @@ async function lgFillTiers(token, retried = false) {
   let data;
   try {
     // DONI-515: Data Dragon names are a nicety (rows fall back to ids); only the crawler decides "offline", and it gets one retry.
-    [data] = await Promise.all([statsApi.tiers({ ...lgParams(), min_games: String(lgt.minGames) }), lgNames(lg.patch).catch(() => null)]);
+    [data] = await Promise.all([statsApi.tiers({ ...lgParams(), min_games: String(lgt.minGames), trend: '1' }), lgNames(lg.patch).catch(() => null)]);
   } catch (e) {
     if (!retried) { await new Promise(r => setTimeout(r, 2000)); return lgFillTiers(token, true); }
     if (box()) { box().innerHTML = lgOffline('the stats crawler did not answer.'); document.getElementById('lg-meta').textContent = 'Stats offline'; }

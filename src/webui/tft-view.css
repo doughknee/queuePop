@@ -155,3 +155,6 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-unit-cell{display:inline-flex;flex-direction:column;align-items:center}
 .ts-unit-cell .ts-stars{line-height:1}
 .ts-ladder-table :is(th,td):nth-child(2),.ts-ladder-table :is(th,td):nth-child(3){text-align:left}
+/* DONI-513: placement sparkline in the comps tier list (lower is better, drawn upward) */
+.ts-spark{flex:none;fill:none;stroke-width:1.5;margin-left:6px}
+.ts-spark.up{stroke:var(--green)}.ts-spark.down{stroke:var(--neg)}
