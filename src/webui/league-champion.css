@@ -39,6 +39,9 @@
 .lg-msort button{background:none;border:1px solid #c8aa6e33;color:var(--lg-muted);padding:1px 7px;font:11px 'Segoe UI',sans-serif}
 .lg-msort button[aria-pressed=true]{color:var(--lg-ivory);border-color:var(--lg-gold)}
 
+/* Skills & spells, runes, items: three columns, the left skills column stacks priority over spells. */
+.lg-sheet3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lg-stack-col{display:grid;gap:8px}
 /* Skills */
 .lg-sheet-skills{grid-template-columns:minmax(240px,1fr) minmax(0,2.6fr)}
 .lg-sk-grid{display:grid;gap:1px;margin:4px 0 6px;overflow-x:auto}
@@ -53,10 +56,6 @@
 .lg-stack{position:relative;display:inline-flex}
 .lg-stack i{position:absolute;right:-2px;bottom:-3px;font:700 10px 'Segoe UI',sans-serif;font-style:normal;color:var(--lg-ivory);background:var(--lg-obsidian);padding:0 2px}
 .lg-arrow{color:var(--lg-muted);font-style:normal;align-self:center;margin:0 1px}
-.lg-alts{margin-top:8px}
-.lg-alt-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 16px}
-.lg-alt .lg-kicker{margin:2px 0 0}
-.lg-or{display:block;font:600 9px/1 'Segoe UI',sans-serif;letter-spacing:1.4px;text-transform:uppercase;color:var(--lg-muted);text-align:center}
 
 /* Objectives */
 .lg-sides{display:flex;margin:0 0 6px;border:1px solid var(--lg-line);width:max-content;max-width:100%}
@@ -66,11 +65,13 @@
 .lg-sides dd{margin:0;font:18px Marcellus,serif}
 .lg-champ-page .lg-table th.num:first-child{text-align:left}
 .lg-obj tbody tr,.lg-best tbody tr{cursor:default}
+.lg-best th{padding:5px 6px}
 .lg-obj td:nth-child(5),.lg-obj th:nth-child(5){border-left:1px solid var(--lg-line)}
 .lg-obj th.num{white-space:normal}
 
-/* Counters */
-.lg-mu-table td:first-child{width:40%}
+/* Counters (left) beside synergies (right, stacked) */
+.lg-duo{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+.lg-syn-sheet{grid-template-columns:1fr}
 
 /* Synergies */
 .lg-syn-head,.lg-syn{display:grid;grid-template-columns:minmax(0,1fr) 54px 50px 44px;align-items:center;gap:6px}
@@ -80,7 +81,8 @@
 .lg-syn>span:nth-child(2){font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lg-champ-page .lg-syn>span small{margin-left:6px}
 .lg-syn:hover>span:nth-child(2){color:var(--lg-gold)}
-@media(min-width:1100px){.lg-syn-sheet{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-@media(max-width:1100px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch}.lg-strip{justify-content:flex-start}.lg-sheet-skills{grid-template-columns:1fr}}
-@media(max-width:700px){.lg-alt-cols{grid-template-columns:1fr}}
+@media(max-width:1100px){.lg-strip>div{padding:0 9px}.lg-strip dd{font-size:19px}.lg-champ-band h1{font-size:30px}}
+@media(max-width:800px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch}.lg-strip{justify-content:flex-start}.lg-sheet-skills{grid-template-columns:1fr}}
+@media(max-width:1000px){.lg-sheet3,.lg-duo{grid-template-columns:1fr 1fr}.lg-duo{grid-template-columns:1fr}}
+@media(max-width:700px){.lg-sheet3{grid-template-columns:1fr}}
