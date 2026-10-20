@@ -188,9 +188,10 @@ window.homeContinue = (() => {
     box.querySelectorAll('[data-comp]').forEach(el => { if (window.tftStats) el.querySelector('b').textContent = el.dataset.comp.split(',').map(k => tftStats.info(k).name).join(' · '); });
   }
   function html() {
-    const tiles = resumeTiles(window.qpLast ? qpLast() : {}, window.qpGames ? qpGames() : [], pages()).slice(0, 4);
+    // DONI-595: a game's tier list is already a quick link above, so only deeper pages (a champion, a comp, history…) show here.
+    const tiles = resumeTiles(window.qpLast ? qpLast() : {}, window.qpGames ? qpGames() : [], pages()).filter(t => !/^#\/(league|tft|deadlock)\/?$/.test(t.href)).slice(0, 4);
     setTimeout(fill);
-    if (!tiles.length) return '<p class="eyebrow hc-first">Pick a game to start</p>';
+    if (!tiles.length) return '';
     return `<section class="hc" id="home-continue" aria-label="Pick up where you left off"><p class="eyebrow">Pick up where you left off</p><div class="hc-row">${tiles.map(t =>
       `<a class="hc-tile" href="${E(t.href)}" data-game="${t.game}"${t.champion ? ` data-champ="${E(t.champion)}"` : ''}${t.comp ? ` data-comp="${E(t.comp)}"` : ''}><img src="${LOGO[t.game]}" alt=""><span><small>${E(NAME[t.game])}${t.detail || t.champion || t.comp ? ' · ' + E(t.page) : ''}</small><b>${E(t.detail || (t.champion ? 'Champion ' + t.champion : t.comp ? 'Comp' : t.page))}</b></span><i aria-hidden="true">↗</i></a>`).join('')}</div></section>`;
   }

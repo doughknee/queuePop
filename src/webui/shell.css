@@ -304,8 +304,7 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 @media (prefers-reduced-motion:reduce){.sb-block.sb-in>a,#world-nav.sb-in>a{animation:none}}
 .sb-block a.sb-set{display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
 .sb-cog{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7}
-#world-nav a.sb-set{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
-#world-nav a.sb-set .sb-cog{width:13px;height:13px}
+#world-nav#world-nav a.sb-set{display:none} /* Settings lives in the sidebar; the row is the game's pages */
 /* DONI-595: Home quick links: the tier list of each game you play, and Settings. Game color on hover. */
 .theme-home .hq{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:28px 5% 0}
 .hq-link{--gc:var(--accent);display:flex;align-items:center;gap:14px;min-height:84px;padding:14px 18px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .15s}
