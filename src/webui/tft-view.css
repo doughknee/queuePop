@@ -197,3 +197,11 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-mt-rec{margin:0 0 12px}
 /* 1024 px (Brandon's window at 125 %): narrower number columns leave the last column room for two breakpoint chips a line */
 @media (max-width:1150px) and (min-width:901px){.ts-head.ts-head-list,.ts-row-list{grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(52px,60px)) minmax(0,1.6fr)}}
+/* Short windows (Brandon's 1024 x 576): title, last 10 and rank on one line so the comps start in view */
+@media (max-height:760px){
+  .ts-band{flex-wrap:nowrap;padding:10px 16px 12px;gap:10px 24px}.ts-band-title{margin-right:0}.ts-band-title h1{font-size:32px}
+  .ts-band .ts-form{order:1;margin-right:auto}.ts-band .ts-rank{order:2}.ts-band .ts-place{width:24px;height:30px;font-size:17px}
+  .ts-search{padding:6px 24px}
+  .ts-band .ts-places{flex-wrap:nowrap;gap:3px}.ts-band .ts-place.ts-place{width:24px;height:30px;font-size:17px}
+  .ts-band-meta,.ts-band .ts-rank small{white-space:nowrap}
+}
