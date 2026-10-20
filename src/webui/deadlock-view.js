@@ -435,7 +435,7 @@ async function loadHeroNumbers(hero) {
     const vs = counters.filter(c => c.hero_id === hero.hid && heroById(c.enemy_hero_id) && c.matches_played >= 100).map(c => ({ e:heroById(c.enemy_hero_id), wr:c.wins / c.matches_played })).sort((a, b) => b.wr - a.wr);
     const link = list => list.map(x => `<button class="back-link hero-vs" data-goto-hero="${x.e.id}" title="${pct(x.wr)}% win">${esc(x.e.name)}</button>`).join(', ');
     const cell = (k, v, sub) => `<div><dt>${k}</dt><dd>${v}</dd>${sub ? `<dd class="hn-sub">${sub}</dd>` : ''}</div>`;
-    el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1} of ${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
+    el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1}&nbsp;of&nbsp;${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
       + ((k => k ? `<p class="hn-read">Best into ${link(vs.slice(0, k))}. Struggles into ${link(vs.slice(-k).reverse())}.</p>` : '')(Math.min(3, vs.length >> 1))); // review #119: never the same hero twice
   } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">deadlock-api error: ${esc(e.message)}</p>`; }
 }

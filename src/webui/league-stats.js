@@ -281,7 +281,7 @@ async function lgFillHistoryBuilds(token) {
     if (!el) continue;
     const min = m.duration ? m.duration / 60 : 0;
     el.innerHTML = `<span class="lg-hist-items">${(m.items || []).filter(Boolean).map(i => lgImg(lgDD(`item/${i}.png`), '', 'lg-ico')).join('')}</span>`
-      + `<small>${m.cs != null && min ? `${m.cs} CS · ${(m.cs / min).toFixed(1)}/m · ` : ''}${min ? Math.round(min) + ' min' : ''}</small>`;
+      + `<small>${m.cs != null && min ? `${m.cs}&nbsp;CS · ${(m.cs / min).toFixed(1)}/m<br>` : ''}${min ? Math.round(min) + '&nbsp;min' : ''}</small>`;
   }
 }
 async function lgExpandMatch(btn) {
