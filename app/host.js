@@ -3,7 +3,6 @@
 const fs = require("fs");
 const path = require("path");
 const { app, Notification, dialog, shell } = require("electron");
-const QRCode = require("qrcode");
 const { createNotifier } = require("./notifications");
 const { createCompanion, lanIp, DEFAULT_PORT } = require("./companion");
 const { createUpdater } = require("./updater");
@@ -107,7 +106,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       const port = companion.boundPort() || Number(cfgComp().port) || DEFAULT_PORT;
       const ip = await lanIp();
       const url = `http://${ip}:${port}`;
-      return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url, running: companion.isRunning(), qr: await QRCode.toDataURL(url).catch(() => "") };
+      return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url, running: companion.isRunning(), qr: await require("qrcode").toDataURL(url).catch(() => "") }; // qrcode loads on first use, ~35 ms off startup (DONI-539)
     },
     get_update_status: () => updater.status(),
     check_for_update: () => updater.check(true),

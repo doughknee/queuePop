@@ -36,4 +36,19 @@ assert.deepStrictEqual(vals(unset), ["Set your Deadlock account in Settings"]);
 assert.strictEqual(unset.href, "#/settings#account");
 // Loaded but no games: the strip says so instead of dashes.
 assert.deepStrictEqual(vals(homePages({ info: { ranked: {} }, lol: [] })[0]), ["Solo=Unranked", "Flex=Unranked", "Last 10=", "Win rate=—"]);
+// DONI-539: where you are → what the app remembers (last route, per world, last League champion).
+const J = (o) => JSON.parse(JSON.stringify(o));
+let last = {};
+last = ctx.qpLastNext(last, "#/league/champion/103/middle");
+assert.deepStrictEqual(J(last), { route: "#/league/champion/103/middle", worlds: { league: "#/league/champion/103/middle" }, champion: "103" });
+last = ctx.qpLastNext(last, "#/tft/comp/x");
+assert.deepStrictEqual(J(last.worlds), { league: "#/league/champion/103/middle", tft: "#/tft/comp/x" });
+assert.strictEqual(last.champion, "103");
+const same = ctx.qpLastNext(last, "#/tft/comp/x");
+assert.strictEqual(same, last); // nothing changed → same object, no write
+const st = ctx.qpLastNext(last, "#/settings#alerts");
+assert.strictEqual(st.route, "#/settings#alerts");
+assert.strictEqual(st.worlds.settings, undefined); // Settings is not a world
+assert.strictEqual(ctx.qpLastNext(last, ""), last);
+assert.strictEqual(ctx.qpLastNext(last, "#/").route, "#/");
 console.log("test-home: ok");
