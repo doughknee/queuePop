@@ -4,12 +4,14 @@
    Loaded by shell.js. The old bottom-left update banner is retired in favour of this line (shell.css). */
 (function () {
   // Facts → problems, most important first. Pure; app/test-status.js checks it.
-  // f = { game, client: true|false|undefined, crawler: 'ok'|'down'|undefined, key: {valid, reason}|undefined, update: {available, latest}|undefined }
+  // f = { game, client: true|false|undefined, crawler: 'ok'|'down'|undefined, stale: a page is showing its last good copy, key: {valid, reason}|undefined, update: {available, latest}|undefined }
   function statusIssues(f) {
     const stats = ['league', 'tft', 'home'].includes(f.game), play = ['league', 'tft'].includes(f.game), out = [];
     if (f.away) out.push({ id: 'away', level: 'info', text: 'You’re stepping away: auto-accept and auto pick and ban are on, locking in with 3 s left.', fix: 'I’m back', act: 'back' }); // DONI-424
     if (stats && f.crawler === 'ok' && f.key && f.key.valid === false) out.push({ id: 'key', level: 'bad', text: `The stats crawler’s Riot key was rejected${f.key.reason ? ` (${f.key.reason})` : ''}, so stats stopped updating.`, fix: 'Replace the key', href: '#/settings#crawler', focus: 'st-cr-key' });
-    if (stats && f.crawler === 'down') out.push({ id: 'crawler', level: 'bad', text: 'The stats crawler isn’t answering, so League and TFT stats can’t load.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
+    // Down after a page had loaded: it keeps its numbers (stats-api serves the last good copy), so say so quietly.
+    if (stats && f.stale && f.crawler !== 'ok') out.push({ id: 'crawler', level: 'warn', text: 'The stats crawler stopped answering. Showing what was already loaded; retrying.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
+    else if (stats && f.crawler === 'down') out.push({ id: 'crawler', level: 'bad', text: 'The stats crawler isn’t answering, so League and TFT stats can’t load.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
     if (play && f.client === false) out.push({ id: 'client', level: 'warn', text: 'The League client isn’t running: no auto-accept, no live data.', fix: 'Open League', act: 'launch', retry: true });
     if ((f.game === 'home' || f.game === 'settings') && f.update && f.update.available && f.update.latest) out.push({ id: 'update:' + f.update.latest, level: 'info', text: `queuePop v${f.update.latest} is out.`, fix: 'Get it', act: 'update' });
     return out;
@@ -95,6 +97,7 @@
     QP.bus.on('config:changed', ({ path }) => { if (path === 'crawler_url') { misses = 0; keyAt = 0; refresh(true); } });
     QP.bus.on('config:loaded', () => { crawlerAt = 0; refresh(false); });
   }
+  addEventListener('qp:crawler-stale', e => { facts.stale = !!e.detail; if (facts.stale) refresh(true); else draw(); });
   addEventListener('hashchange', () => refresh(false));
   addEventListener('popstate', () => draw());
   setInterval(() => refresh(false), 60000);
