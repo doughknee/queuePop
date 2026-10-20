@@ -135,8 +135,18 @@ window.createTftView = function (host) {
         known.set(id, d.units.map((u) => u.key));
         const el = page.querySelector(`[data-units="${CSS.escape(id)}"]`);
         if (el) el.innerHTML = d.units.slice(0, 9).map((u) => icon(u.key)).join('');
+        const ch = page.querySelector(`[data-chips="${CSS.escape(id)}"]`);
+        if (ch) ch.innerHTML = traitChips(d.activeTraits);
       }));
     }
+  }
+  // DONI-561: MetaTFT's active-trait chips: per trait, the highest breakpoint at least half the boards reach, as icon + unit
+  // count (breakpoints from /tft/meta), most units first, one-unit uniques left out; the title says how often.
+  function traitChips(active) {
+    const best = new Map();
+    for (const t of active || []) { const [k, tier] = t.key.split(':'); if (t.frequency >= 0.5 && +tier > (best.get(k)?.tier || 0)) best.set(k, { tier: +tier, f: t.frequency }); }
+    return [...best].map(([k, b]) => ({ k, b, n: (S.info(k).breakpoints || [])[b.tier - 1] || b.tier })).filter((x) => x.n > 1).sort((x, y) => y.n - x.n).slice(0, 6)
+      .map(({ k, b, n }) => `<span class="ts-chip" title="${esc(name(k))} ${n} · ${pct(b.f)} of these boards">${icon(k, 'ts-ico-trait')}${n}</span>`).join('');
   }
   const matches = (r) => !query || (compName(r.id) + ' ' + (known.get(r.id) || []).map(name).join(' ')).toLowerCase().includes(query);
 
@@ -182,7 +192,7 @@ window.createTftView = function (host) {
     list.innerHTML = !vis.length ? (rows.length ? `<p class="ts-quiet">No comps match “${esc(query)}”.</p>` : '') :
       `<div class="ts-head" aria-hidden="true"><span>Tier</span><span>Comp</span><span>Units</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Pick</span><span>Games</span></div>`
       + slice.map((r) => `<div class="ts-row ${r.lowSample ? 'low' : ''} ${open === r.id ? 'open' : ''}" data-row="${esc(r.id)}"${r.lowSample ? ' title="Low sample: under ' + r.games + ' games is not enough to trust"' : ''}>
-        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}</span>
+        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}<span class="ts-chips" data-chips="${esc(r.id)}"></span></span>
         <span class="ts-units" data-units="${esc(r.id)}"></span><span class="ts-num">${heat(r.avgPlacement, 4.5, 0.8, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.15, r.games, pct(r.top4Rate))}</span>
         <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.pickRate, 0.05, pct(r.pickRate))}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
         ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')

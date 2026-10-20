@@ -158,3 +158,8 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 /* DONI-513: placement sparkline in the comps tier list (lower is better, drawn upward) */
 .ts-spark{flex:none;fill:none;stroke-width:1.5;margin-left:6px}
 .ts-spark.up{stroke:var(--green)}.ts-spark.down{stroke:var(--neg)}
+/* DONI-561: active-trait chips under each comp's name */
+.ts-chips{display:flex;flex-wrap:wrap;gap:2px 6px;flex-basis:100%;font-size:10px;color:var(--muted);line-height:14px}
+.ts-chips:empty{display:none}
+.ts-chip{display:inline-flex;align-items:center;gap:2px}
+.ts-chip .ts-ico-trait{width:12px;height:12px}
