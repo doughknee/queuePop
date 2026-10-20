@@ -146,7 +146,8 @@ function memoizer(db) {
   };
 }
 
-function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays }) {
+// lookup: src/lookup.js createLookup() (absent in tests that don't need Riot); defaultRegion for lookups without ?region.
+function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays, lookup = null, defaultRegion = "na1" }) {
   const memo = memoizer(db);
   return http.createServer((req, res) => {
     const send = (code, body) => {
@@ -189,6 +190,17 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if ((m = /^\/tft\/unit\/([^/]+)$/.exec(p))) {
         const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, decodeURIComponent(m[1]), q));
         return r ? send(200, r) : send(404, { error: "no such unit on this patch/filter" });
+      }
+      if ((m = /^\/(lol|tft)\/leaderboard$/.exec(p))) {
+        if (m[1] === "lol" && q.champion) return send(200, require("./agg-players").championPlayers(db, head, where, Number(q.champion), q));
+        return send(200, memo(req.url, () => require("./lookup").leaderboard(db, m[1], q)));
+      }
+      if ((m = /^\/(?:lol\/summoner|tft\/player)\/([^/]+)$/.exec(p))) {
+        if (!lookup) return send(503, { error: "lookups are not enabled" });
+        return lookup.player(p.startsWith("/lol") ? "lol" : "tft", m[1], (q.region || defaultRegion).toLowerCase()).then((r) => send(200, r), (e) => {
+          if (e.retryAfter) res.setHeader("retry-after", String(e.retryAfter));
+          send(e.status || 502, { error: e.message });
+        });
       }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {

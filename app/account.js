@@ -224,7 +224,28 @@ function createAccount(ctx) {
       out.push({ gameId: g.gameId, position: matchPosition(g.mapId, tl.lane, tl.role), championId: part.championId, win: !!st.win, kills: st.kills ?? 0,
         deaths: st.deaths ?? 0, assists: st.assists ?? 0, queueId: g.queueId, ts: (g.gameCreation || 0) / 1000 });
     }
-    return puuid ? mergeHistory(puuid, out).slice(0, count) : out;
+    if (!puuid) return out;
+    let list = mergeHistory(puuid, out);
+    if (list.length < count && Date.now() - backfillAt > 600000) {
+      backfillAt = Date.now();
+      const more = await crawlerHistory(me.data).catch(() => []);
+      if (more.length) list = mergeHistory(puuid, more);
+    }
+    return list.slice(0, count);
+  }
+
+  // Back-fill from the stats crawler's on-demand lookup (crawler/src/lookup.js: Riot match-v5, last 20 games). Tried at most
+  // every 10 min; any failure (crawler off, key expired, lookup cap) just leaves the local history as it is.
+  let backfillAt = 0;
+  async function crawlerHistory(s) {
+    if (!s.gameName || !s.tagLine) return [];
+    const rr = await get("/riotclient/region-locale");
+    const plat = platform((rr && rr.status === 200 && rr.data.region) || "");
+    const base = (ctx.getConfig().crawler_url || "http://10.205.0.81:47900").replace(/\/+$/, "");
+    const r = await fetch(`${base}/lol/summoner/${encodeURIComponent(`${s.gameName}#${s.tagLine}`)}?region=${plat}`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return [];
+    return ((await r.json()).matches || []).map((m) => ({ gameId: Number(String(m.id).split("_")[1]), position: m.role ? m.role.toLowerCase() : null,
+      championId: m.champion, win: !!m.win, kills: m.kills, deaths: m.deaths, assists: m.assists, queueId: m.queueId, ts: m.startedAt / 1000 }));
   }
 
   // TFT games live under their own product: /lol-match-history/v1/products/tft/{puuid}/matches (checked on the live client
