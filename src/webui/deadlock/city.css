@@ -96,3 +96,17 @@
 .tier-row{padding:0;font-size:13px}
 .tier-row img{width:26px;height:26px}
 .archive-page:has(.city-tiers) .page-heading{padding-top:8px!important;min-height:0!important;padding-bottom:12px!important}
+
+/* DONI-562: the hero dossier's numbers */
+.hero-numbers{margin:18px 0 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0}
+.hn-strip{display:flex;flex-wrap:wrap;margin:0}
+.hn-strip>div{padding:0 16px;border-left:1px solid var(--line)}
+.hn-strip>div:first-child{padding-left:0;border-left:0}
+.hn-strip dt{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.hn-strip dd{margin:0;font:700 20px/1.2 var(--mono);color:var(--fg)}
+.hn-strip dd.hn-sub{font:400 11px var(--mono);color:var(--muted)}
+.hn-strip .up{color:var(--green)}.hn-strip .down{color:var(--neg)}
+.hn-strip .tier-badge{display:inline-block}
+.hn-read{margin:10px 0 0;font:12px/1.6 var(--mono);color:var(--fg)}
+.hn-read .hero-vs{font:inherit;padding:0;color:var(--fg);text-decoration:underline;text-decoration-color:var(--edge);text-underline-offset:2px;background:none;border:0;min-height:0;text-transform:none;letter-spacing:0}
+.hn-read .hero-vs:hover{color:var(--accent)}
