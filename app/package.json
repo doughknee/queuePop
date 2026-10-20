@@ -4,7 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-lcu.js && node test-notify.js && node test-champ.js && node test-overlay.js && node test-deadlock.js && node test-league.js && node test-tft.js && node test-home.js && node test-assets.js",
+    "test": "node test-lcu.js && node test-notify.js && node test-champ.js && node test-overlay.js && node test-deadlock.js && node test-league.js && node test-tft.js && node test-home.js && node test-assets.js && node test-account.js",
     "dist": "electron-builder --win nsis zip"
   },
   "dependencies": {
