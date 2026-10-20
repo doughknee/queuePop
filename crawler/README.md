@@ -183,7 +183,8 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 - `GET /lol/leaderboard?region&limit` and `GET /tft/leaderboard?region&limit` (DONI-508/512) → `{ game, region, players: [{ rank, riotId,
   region, tier, division, lp, wins, losses, games, winRate, updatedAt }] }`, ladder order (tier, division, LP), `limit` default 100, max 500.
   From the `players` table: the daily ladder walk plus a re-read of the three apex ladders every 30 min (`meta apex:<game>:<region>`),
-  so Master+ LP is at most 30 min old; `division` is null for Master+. TFT rows add `crawled: { games, avgPlacement, top4Rate }` over
+  so Master+ LP is at most 30 min old; `division` is null for Master+. For TFT, Riot's ladder `wins` are top-4 finishes and `losses`
+  bottom-4, so a TFT row's `winRate` is the ladder **top-4 rate** (not 1st places); `crawled.top4Rate` is the same from our boards. TFT rows add `crawled: { games, avgPlacement, top4Rate }` over
   every board we hold for that player (null when none). Riot ids come from `lol_names` (both games; null until we crawled one of their
   matches). `/lol/leaderboard?champion=<id>[&role]` is the champion leaderboard (same as `/lol/champion/{id}/players`).
 - `GET /lol/summoner/{riotId}?region=na1` and `GET /tft/player/{riotId}?region=na1` (riotId `Name#TAG` URL-encoded, or `Name-TAG`;
