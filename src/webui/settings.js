@@ -34,6 +34,7 @@
         ${sw('champ_select.trades.enabled', 'Champion trades', 'Asks teammates to swap when they have a champion you ranked higher.')}
         ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
         ${num('champ_select.aram.bench_delay', 'Bench grab delay', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3)}
+        ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer. Drag it anywhere; it remembers.')}
         ${sw('champ_select.auto_runes', 'Auto runes', 'Applies the recommended rune page when you lock in.')}`) +
       card('alerts', 'Alerts', `
         <div class="st-row"><span class="st-lbl">Test a queue pop<small>Sends exactly what a real queue pop sends, through every channel that is on. Nothing is accepted.</small></span><span class="st-act"><button class="st-btn st-gold" data-do="test-alert">Test a queue pop</button><span class="st-msg" data-msg="test-alert"></span></span></div>
@@ -107,7 +108,7 @@
     const c = QP.store.config || {};
     root.querySelectorAll('[data-k]').forEach(el => {
       let v = QP.store.get(el.dataset.k);
-      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray') v = v ?? true;
+      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray' || el.dataset.k === 'float_window') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'companion.sound') v = v || 'chime';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;

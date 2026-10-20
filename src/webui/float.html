@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>queuePop suggestions</title>
+  <!-- DONI-346: the always-on-top suggestions window during champ select (app/float.js). Lime system via theme.css. -->
+  <link rel="stylesheet" href="theme.css" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.35 var(--mono); overflow: hidden; user-select: none; }
+    body { display: flex; flex-direction: column; border: 1px solid var(--accent); }
+    header { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+    header b { font: 20px/1 var(--display); text-transform: uppercase; }
+    header b i { color: var(--accent); font-style: normal; }
+    #phase { flex: 1; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #timer { font: 22px/1 var(--display); color: var(--accent); }
+    #close { -webkit-app-region: no-drag; border: 0; background: none; color: var(--muted); font: 16px var(--mono); width: 32px; height: 32px; cursor: pointer; }
+    #close:hover, #close:focus-visible { color: var(--fg); outline: 1px solid var(--edge); }
+    main { flex: 1; overflow-y: auto; padding: 6px 12px 10px; }
+    .k { margin: 6px 0 2px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+    ol { list-style: none; margin: 0; padding: 0; }
+    li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+    li:first-child { border-top: 0; }
+    li .n { flex: none; width: 14px; color: var(--accent); font: 18px/1 var(--display); }
+    li img { flex: none; width: 30px; height: 30px; object-fit: cover; }
+    li span { min-width: 0; display: flex; flex-direction: column; }
+    li b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    li small { color: var(--muted); font-size: 12px; }
+    li.low { opacity: .6; }
+    #empty { color: var(--muted); margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header><b>Queue<i>Pop</i></b><span id="phase">Champ select</span><span id="timer"></span><button id="close" type="button" aria-label="Hide until the next champ select" title="Hide until the next champ select">✕</button></header>
+  <main><p class="k" id="title">Best picks for you</p><ol id="list"></ol><p id="empty" hidden>Waiting for champ select…</p></main>
+  <script src="draft-advice.js"></script>
+  <script src="float.js"></script>
+</body>
+</html>

@@ -215,6 +215,9 @@
 - Draft suggestions (DONI-553): `src/webui/draft-advice.js` (loaded by shell.js) turns get_champ_select into a `/lol/draft` query
   (role, enemies, allies, bans; memoised per draft state) and gives the live view (`js/pages/live.js` `draftPanel`) its top 5 and a
   why line. Crawler rates/deltas are fractions. No answer → the older rule-based `pick_suggestions` panel. Tested by `app/test-draft.js`.
+- Suggestions float (DONI-346): `app/float.js` opens `src/webui/float.html` (+`float.js`) always-on-top and unfocused when gameflow
+  enters ChampSelect (config `float_window`, default on; Settings > League), closes after; bounds in userData `float-state.json`;
+  ✕ (`close_float`) hides it until the next champ select. The bridge guard lets the float call only `FLOAT_METHODS` (read-only).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
