@@ -68,7 +68,7 @@ function renderSpellSlots(lo) {
     if (id) {
       btn.innerHTML =
         `<img src="${spellIcon(id)}" alt="${spellName(id)}" ` +
-        `onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'lo-slot-empty',textContent:'+'}))" />`;
+        `data-fb-class="lo-slot-empty" data-fb-text="+" />`;
       btn.title = spellName(id);
     } else {
       btn.innerHTML = `<span class="lo-slot-empty">+</span>`;
@@ -273,7 +273,7 @@ async function renderSkinGrid(lo) {
       const dim = hasPick && !sel ? " dim" : "";
       return (
         `<div class="lo-skin-cell${sel ? " on" : ""}${dim}" data-sid="${s.id}" title="${s.name}">` +
-          `<img src="assets/skins/tiles/${s.id}.jpg" onerror="this.style.visibility='hidden'" />` +
+          `<img src="assets/skins/tiles/${s.id}.jpg" data-fb="hide" />` +
           `<span class="lo-skin-name">${s.name}</span>` +
         `</div>`
       );

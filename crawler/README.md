@@ -48,6 +48,22 @@ sliding-window log per host (app limit) and per host+method (method limit), pads
 ever holds more than 100 calls. Throughput is about 0.83 requests/s per host: roughly 70k match
 fetches a day per regional host (`euw1` and `eun1` share `europe`).
 
+Measured 2026-10-20 05:00–08:00 UTC from the DB (`players.ids_at`, `matches.fetched_at`, `lol_timeline`; per routing host, per hour,
+the window includes ~25 min of deploy downtime):
+
+| host (region) | ids calls | match fetches (LoL + TFT) | timelines | total | per hour of uptime |
+|---|---|---|---|---|---|
+| europe (euw1) | 293 | 2,064 | 99 | 2,457 | ~2,850 |
+| asia (kr) | 273 | 2,066 | 110 | 2,449 | ~2,840 |
+| americas (na1) | 299 | 2,044 | 92 | 2,434 | ~2,830 |
+| sea (oc1) | 916 | 1,456 | 52 | 2,424 | ~2,810 |
+
+The ceiling is 3,000/h (100 per 120 s, padded), so every host runs at ~95%: the crawl is quota-bound, and the `new` backlog stays
+under ~30 per region because fetches keep up with discovery. A timeline costs one match fetch, so `TIMELINE_SAMPLE` stays at 0.1
+(~100 timelines/h per host, ~10k a day across four hosts); raising it would slow match fetches one for one. Revisit with a production
+key (much higher limits; the limiter adopts them from the headers). oc1 spends more on `ids` because its ladder is small and most
+players have nothing new each hour.
+
 ## Endpoints
 
 All `GET` except the admin key POST below, JSON, CORS `*`, no auth (loopback/LAN only). Common query params:

@@ -101,7 +101,7 @@ function buildChampTab() {
     const icon =
       r.key === "aram"
         ? `<span class="role-ico">${ARAM_ICON}</span>`
-        : `<span class="role-ico"><img src="assets/positions/${r.key}.svg" onerror="this.style.display='none'" /></span>`;
+        : `<span class="role-ico"><img src="assets/positions/${r.key}.svg" data-fb="none" /></span>`;
     b.innerHTML =
       icon +
       `<span class="role-label">${short}</span>` +
@@ -574,7 +574,7 @@ function applyGate() {
   const isAram = activeRole === "aram";
   $("champ-gate-ico").innerHTML = isAram
     ? ARAM_ICON
-    : `<img src="assets/positions/${activeRole}.svg" style="width:100%;height:100%" onerror="this.style.display='none'" />`;
+    : `<img src="assets/positions/${activeRole}.svg" style="width:100%;height:100%" data-fb="none" />`;
   $("champ-gate-title").textContent = isAram
     ? "ARAM auto-pilot is off"
     : "Auto Pick / Ban is off";
@@ -612,7 +612,7 @@ function traySlotHtml(name, idx, kind) {
   const isBan = kind === "bans";
   const hasLo = !isBan && id && !!(plan[activeRole].loadouts || {})[String(id)];
   const media = id
-    ? `<img src="${champBase}/${id}.png" draggable="false" onerror="this.style.visibility='hidden'" />`
+    ? `<img src="${champBase}/${id}.png" draggable="false" data-fb="hide" />`
     : `<span class="tray-initials">${initials(name)}</span>`;
   return (
     `<div class="tray-slot${isBan ? " ban" : ""}" draggable="true" ` +
@@ -977,7 +977,7 @@ function renderGrid(filter) {
         : c.name;
     cell.draggable = true; // drag straight into the picks/bans trays
     cell.innerHTML =
-      `<img src="${champBase}/${c.id}.png" width="128" height="128" draggable="false" onerror="this.style.visibility='hidden'" />` +
+      `<img src="${champBase}/${c.id}.png" width="128" height="128" draggable="false" data-fb="hide" />` +
       cellMeta(c.id);
     frag.appendChild(cell);
   });
