@@ -221,6 +221,9 @@
 - Game plan (DONI-347): `app/game-plan.js` asks the crawler `/lol/plan/{champion}?role&enemies` when you lock (again when the known
   enemies change), names from Data Dragon, `planLines` (pure, `app/test-plan.js`) → ≤ 6 lines. Bridge `get_game_plan` (live view card,
   float), companion status `plan` (phone panel); once all ten are known, the feed + `notifier.alert("game_plan")` (on by default).
+- Draft recap (DONI-349): `app/recap.js` notes /lol/draft's top pick for your role when you lock and pairs it at EndOfGame with
+  `/lol-end-of-game/v1/eog-stats-block`; rows (newest 200) in userData `draft-recaps.json`; feed "Recap: …"; bridge
+  `get_draft_recaps` → `{rows (last 20, newest first, with gameId), record: {followed, ignored}}`; phone "Following the suggestions".
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
