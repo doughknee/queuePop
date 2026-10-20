@@ -30,4 +30,9 @@ assert.strictEqual(whyLine(resp.candidates[0], name), "+3.1 vs Caitlyn, good wit
 assert.strictEqual(whyLine(resp.candidates[3], name), "49.7 % over 2,100 games"); // a 0.4 point edge isn't worth a line
 assert.strictEqual(whyLine({ components: [] }, name), "");
 assert.strictEqual(topCandidates(null, c).length, 0);
+// The crawler's live components shape (D8): {base, lane, enemies[], allies[]}, null values for unseen pairs.
+const liveCand = { champion: 79, score: 0.0436, games: 271, winRate: 0.5904, components: { base: { value: 0.0904, games: 271 }, lane: { champion: 51, value: 0.031, games: 120 },
+  enemies: [{ champion: 99, value: null, games: 0 }], allies: [{ champion: 412, value: 0.012, games: 26 }] } };
+assert.strictEqual(whyLine(liveCand, name), "+3.1 vs Caitlyn, 59.0 % over 271 games"); // 26 games with Thresh isn't enough to say
+assert.strictEqual(ctx.window.draftAdvice.componentList({ components: { base: { value: 0.1 }, lane: null, enemies: [], allies: [] } }).length, 0);
 console.log("test-draft ok");
