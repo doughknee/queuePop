@@ -236,6 +236,7 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey),
       games: Object.fromEntries(GAMES.map((g) => { const x = riotKey(db, envKey, g); return [g, { source: x.source, set_at: x.set_at, ...keyHealth(db, envKey, g) }]; })) },
     aggregates: getMeta(db, "aggregates"),
+    aggPause: getMeta(db, "aggPause"), // { passMs, pausedMs, locks }: how long the last pass held the crawl (main.js periodic)
     backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
     health: getMeta(db, "health"), // written by the aggregation worker (agg-worker.js)

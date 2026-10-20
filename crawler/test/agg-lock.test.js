@@ -24,6 +24,6 @@ test("another connection writes main while a patch is computed; stats land via l
     jobs.aggregate(db, Date.now, true, (fn) => { inLock++; locks++; try { return fn(); } finally { inLock--; } });
   } finally { players.aggregatePatch = real; }
   assert.strictEqual(wrote, 1, "the crawl connection wrote during the compute phase (would be SQLITE_BUSY under the old one-transaction pass)");
-  assert.strictEqual(locks, 3, "raw ingest, one swap per patch, the meta stamps");
+  assert.strictEqual(locks, 3, "raw ingest, one swap group (a small patch), the meta stamps");
   assert.strictEqual(lolTiers(db, {}).matches, 1, "stats reached main and this connection reads main again");
 });

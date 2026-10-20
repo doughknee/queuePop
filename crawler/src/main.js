@@ -155,17 +155,21 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
   setTimeout(() => {
     let failed = false;
     const t = Date.now(), lock = new Int32Array(new SharedArrayBuffer(4));
+    let pausedMs = 0, locks = 0, since = 0; // how long this pass held the crawl (meta aggPause, /status)
     passing = true;
     try {
       new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, lock: lock.buffer } })
         .on("message", async (m) => {
           if (m?.lock === true) {
-            aggregating = true;
+            aggregating = true; since = Date.now(); locks++;
             // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
             for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
             Atomics.store(lock, 0, 1); Atomics.notify(lock, 0);
-          } else if (m?.lock === false) aggregating = false;
-          else log(`aggregated ${m} patches in ${Date.now() - t} ms`);
+          } else if (m?.lock === false) { aggregating = false; pausedMs += Date.now() - since; }
+          else {
+            log(`aggregated ${m} patches in ${Date.now() - t} ms; the crawl paused ${Math.round(pausedMs / 1000)} s over ${locks} swaps`);
+            try { db_.setMeta(db, "aggPause", { at: Date.now(), passMs: Date.now() - t, pausedMs, locks }); } catch (e) { log(`aggPause: ${e.message}`); }
+          }
         })
         .once("error", (e) => { failed = true; log(`aggregate: ${e.message}`); })
         .once("exit", () => { aggregating = passing = false; periodic(failed ? 60000 : 0); });

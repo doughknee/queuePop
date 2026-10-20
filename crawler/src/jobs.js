@@ -407,6 +407,7 @@ function backfillModes(db) {
 // Write lock (2026-10-20, DONI-596): each patch is computed into same-named TEMP stats_* tables, which shadow main's on this
 // connection, so the minutes of GROUP BYs only read main and the crawl keeps writing. Only the writes to main (raw ingest, each
 // patch's swap from temp, the meta stamps) run inside locked(fn); the worker passes one that pauses the crawl loops around them.
+const SWAP_ROWS = 250000;
 function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
   const cut = now(); // DONI-568: stamped as aggregatedAt, so a match committed after the dirty query is dirty next pass
   const last = getMeta(db, "aggregatedAt");
@@ -461,9 +462,16 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
       require("./agg-players").aggregatePatch(db, patch);
     });
     const t2 = Date.now();
-    locked(() => tx(db, () => {
-      for (const t of tables) { db.prepare(`DELETE FROM main.${t} WHERE patch = ?`).run(patch); db.exec(`INSERT INTO main.${t} SELECT * FROM temp.${t}`); }
-    }));
+    // Swapped in groups of ~SWAP_ROWS new rows, one locked transaction each: as one, 16.20's took 94 s of crawl pause (21:48Z,
+    // ~3M rows); per table, each lock's drain of the in-flight crawl steps (~1-2 s) times ~40 tables cost as much. The crawl
+    // runs between groups (API readers may see one table a pass ahead of another for seconds).
+    const swap = (group) => locked(() => tx(db, () => { for (const t of group) { db.prepare(`DELETE FROM main.${t} WHERE patch = ?`).run(patch); db.exec(`INSERT INTO main.${t} SELECT * FROM temp.${t}`); } }));
+    let group = [], rows = 0;
+    for (const t of tables) {
+      group.push(t); rows += db.prepare(`SELECT count(*) n FROM temp.${t}`).get().n;
+      if (rows >= SWAP_ROWS) { swap(group); group = []; rows = 0; }
+    }
+    if (group.length) swap(group);
     log.patches[patch] = { at: now(), ms: Date.now() - t1, swapMs: Date.now() - t2 };
   }
   locked(() => tx(db, () => {
