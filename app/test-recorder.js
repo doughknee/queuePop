@@ -53,6 +53,8 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(m)).map((x) => [x.left, x.type,
   assert.strictEqual(list[0].result, "win");
   assert.deepStrictEqual(list[0].counts, { kill: 1, death: 1, assist: 1, multikill: 1, objective: 1, end: 1 });
   assert.strictEqual(r.get("NA1_555").clock.gameTime, 30);
+  assert.strictEqual(r.get("555").matchId, "NA1_555"); // bare id finds the platform-prefixed recording
+  assert.strictEqual(r.get("EUW1_555").matchId, "NA1_555");
   assert.strictEqual(r.remove("NA1_555").ok, true);
   assert.strictEqual(r.list().length, 0);
   fs.rmSync(dir, { recursive: true });
