@@ -95,9 +95,9 @@
     if (el.dataset.num !== undefined) { if (v === '') return; v = Math.min(+el.max, Math.max(+el.min, Math.round(+v) || 0)); }
     if (el.dataset.scale !== undefined) return setScale(Number(v));
     if (el.dataset.digits !== undefined) v = String(v).replace(/\D/g, '');
-    if (el.dataset.url !== undefined) { v = String(v).trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) return; }
-    if (k === 'companion.port' && e.type === 'input') return;   // commit on blur/enter, not per keystroke
-    if (k === 'accept_delay_seconds' && e.type === 'input') return;
+    if (el.dataset.url !== undefined) { v = String(v).trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) v = 'http://' + v; }
+    // Typed fields commit on blur/Enter ('change'), never per keystroke: a half-typed URL must not be saved or fetched.
+    if (e.type === 'input' && el.tagName === 'INPUT' && el.type !== 'checkbox') return;
     QP.store.set(k, typeof v === 'string' && !el.dataset.url && el.tagName === 'INPUT' ? v.trim() : v);
     if (k === 'crawler_url') loadCrawler();
     hydrate();
@@ -209,7 +209,12 @@
   // --- route entry -----------------------------------------------------------
   async function show(section) {
     if (!built) build();
-    if (!QP.store.config) { try { await QP.store.load(); } catch {} }
+    if (!QP.store.config) { try { await QP.store.load(); } catch (err) { console.error('settings: config load', err); } }
+    // Without a config every edit would be dropped, so say so instead of looking editable.
+    const lead = root.querySelector('.st-head p');
+    lead.textContent = QP.store.config ? 'Everything queuePop can be told, in one place. Changes save as you make them.' : 'Couldn’t read your settings, so changes won’t save right now. Reopen Settings to try again.';
+    lead.classList.toggle('bad', !QP.store.config);
+    root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
     if (bridge()) { loadAccount(); loadCompanion(); loadCrawler(); loadAbout(); }
     clearInterval(timer); timer = setInterval(() => { if (!root.hidden) loadCrawler(); }, 15000);

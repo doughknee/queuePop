@@ -165,3 +165,5 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .theme-home .hub-bottom p{color:var(--muted)}
 .theme-home .little-sigil{color:var(--accent)}
 .theme-home :focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+/* worlds.js render(): a page builder that throws shows this instead of the previous page (DONI-529). */
+.page-error{max-width:720px;margin:96px auto;padding:0 32px;font-family:var(--mono);color:var(--fg)}.page-error h1{font:48px/1 var(--display);text-transform:uppercase;margin:0 0 16px}.page-error p{color:var(--muted)}.page-error a{color:var(--accent)}
