@@ -77,13 +77,40 @@ function lolTiers(db, q = {}) {
     GROUP BY champion, role ORDER BY games DESC`).all(...a, ...C.da, ...(q.role ? [q.role.toUpperCase()] : []));
   // players / gamesPerPlayer (depth) are per patch even with ?days; trend=1 adds the per-day series.
   const depth = win.depthMap(db, w, a), series = q.trend ? win.daily(db, w, a, q, "lol_champ", "champion, role", "sum(games) games, sum(wins) wins") : null;
-  return { ...h, role: q.role || "all", matches, champions: rows.map((r) => {
+  const wt = regionWeighted(db, q, w, a, M, B, C);
+  return { ...h, role: q.role || "all", matches, ...(wt && { weighting: wt.weights }), champions: rows.map((r) => {
     const players = depth.get(`${r.champion}|${r.role}`) || null;
+    const v = wt && wt.rates(r.champion, r.role);
     return { champion: r.champion, role: r.role, games: r.games, wins: r.wins,
-      winRate: r4(r.wins / r.games), pickRate: r4(r.games / matches), banRate: r4((bans.get(r.champion) || 0) / matches), lowSample: r.games < h.minGames,
+      winRate: v ? v.winRate : r4(r.wins / r.games), pickRate: v ? v.pickRate : r4(r.games / matches), banRate: v ? v.banRate : r4((bans.get(r.champion) || 0) / matches), lowSample: r.games < h.minGames,
       players, gamesPerPlayer: players ? r4(r.games / players) : null,
       ...(series && { daily: (series.get(`${r.champion}|${r.role}`) || []).map((d) => ({ day: d.day, games: d.games, winRate: r4(d.wins / d.games) })) }) };
   }) };
+}
+
+// Region weighting (2026-10-20 accuracy audit): with region=all and more than one region, the tier list's win/pick/ban rates are
+// each region's rates weighted by its share of seeded League players (meta.regionWeights, written by the aggregation worker), the
+// way Lolalytics' global view weighs regions by volume. Unweighted, oc1 (5% of players) counted as much as euw1 (40%).
+// games/wins stay the raw totals (the sample). Returns null when it doesn't apply.
+function regionWeighted(db, q, w, a, M, B, C) {
+  if (q.region && q.region !== "all") return null;
+  const pop = getMeta(db, "regionWeights")?.lol;
+  const mt = Object.fromEntries(db.prepare(`SELECT region, sum(matches) n FROM ${M.t} WHERE ${w}${M.d} GROUP BY region`).all(...a, ...M.da).map((r) => [r.region, r.n]));
+  const regions = Object.keys(mt).filter((r) => mt[r] > 0 && pop?.[r]);
+  if (regions.length < 2) return null;
+  const tot = regions.reduce((s, r) => s + pop[r], 0), weights = Object.fromEntries(regions.map((r) => [r, r4(pop[r] / tot)]));
+  const key = (c, r, x) => `${c}|${r}|${x}`, g = new Map(), b = new Map();
+  for (const x of db.prepare(`SELECT champion, role, region, sum(games) games, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d} GROUP BY 1, 2, 3`).all(...a, ...C.da)) g.set(key(x.champion, x.role, x.region), x);
+  for (const x of db.prepare(`SELECT champion, region, sum(bans) n FROM ${B.t} WHERE ${w}${B.d} GROUP BY 1, 2`).all(...a, ...B.da)) b.set(`${x.champion}|${x.region}`, x.n);
+  return { weights, rates(champion, role) {
+    let pick = 0, ban = 0, win = 0;
+    for (const r of regions) {
+      const x = g.get(key(champion, role, r)), wr = weights[r] / mt[r];
+      if (x) { pick += wr * x.games; win += wr * x.wins; }
+      ban += wr * (b.get(`${champion}|${r}`) || 0);
+    }
+    return { pickRate: r4(pick), banRate: r4(ban), winRate: pick ? r4(win / pick) : 0 };
+  } };
 }
 
 function lolChampion(db, champion, q = {}) {
@@ -111,7 +138,9 @@ function lolChampion(db, champion, q = {}) {
   const matchups = db.prepare(`SELECT opponent, sum(games) games, sum(wins) wins FROM stats_lol_matchup WHERE ${w} AND champion = ? AND role = ?
     GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games), lowSample: r.games < h.minGames }));
   return { ...h, champion, role: role ?? null, roles: roles.map((r) => ({ role: r.role, games: r.games })),
-    strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames },
+    // same region weighting as the tier list row (regionWeighted), so the strip and the list agree
+    strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames,
+      ...(() => { const wt = s.games && regionWeighted(db, q, w, a, M, B, C); return wt ? { ...wt.rates(champion, role), weighting: wt.weights } : {}; })() },
     builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s: sPatch, minGames: h.minGames, matchups }), ...win.champion(db, w, a, champion, role ?? "") };
 }
 

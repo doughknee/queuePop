@@ -34,3 +34,13 @@ test("slots and core skip components and starters", () => {
   assert.deepStrictEqual(rows.map((r) => [r.slot, String(r.key)]), [[0, "3009,3190,3041"], [1, "3009"], [2, "3190"], [3, "3041"], [4, "6697"]]);
   assert.strictEqual(rows[0].secs, 900, "core timed at its third item");
 });
+
+test("timeline: a completed item that later auto-upgraded (tier-2 boots) stays in the build", () => {
+  const { parseTimeline } = require("../src/timeline");
+  const ev = (t, itemId) => ({ type: "ITEM_PURCHASED", participantId: 1, itemId, timestamp: t });
+  const tl = { info: { participants: [{ participantId: 1, puuid: "a" }], frames: [{ events: [ev(100000, 1001), ev(400000, 3009), ev(600000, 3190), ev(700000, 3067)] }] } };
+  // final inventory holds the tier-3 boots 3170 (auto-upgraded, never purchased) and Locket
+  const fin = { a: [3170, 3190] };
+  assert.deepStrictEqual(parseTimeline(tl, fin).a.build.map((x) => x[0]), [3190], "without the completed list: boots lost");
+  assert.deepStrictEqual(parseTimeline(tl, fin, new Set(completedIds(DD))).a.build.map((x) => x[0]), [3009, 3190], "with it: Swiftness kept, Kindlegem (sold component) still out");
+});

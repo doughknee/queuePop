@@ -140,6 +140,10 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- Region weighting (2026-10-20 accuracy audit): `/lol/tiers` with `region=all` (default) and two or more regions returns win, pick and ban
+  rates as the regions' rates weighted by their share of seeded League players (`weighting: { region: share }` in the response, from
+  `meta.regionWeights`, refreshed after each aggregation pass), like Lolalytics' global view. `games`/`wins` stay raw totals. Before,
+  every region counted equally (oc1 has ~5% of the players and ~25% of our sample).
 - Windows and trends (DONI-513 data side): `?days=N` (1..90, or `patch` = the default whole patch) on `/lol/tiers`,
   `/lol/champion/{id}` (strip and roles only; builds, matchups and depth blocks stay per patch), `/tft/comps` and `/tft/comp/{id}`
   (the comp row; units/augments/traits stay per patch) reads the last N UTC days of the patch (today counts as one) from
@@ -279,6 +283,93 @@ npm run aggregate        # rebuild all stats now (every patch) (in Docker: docke
 1. Sign in at https://developer.riotgames.com with the Riot account that owns the project.
 2. Register Product → Personal API Key; describe queuePop's stats crawler for personal use.
 3. The key arrives on the dashboard once approved; it does not expire. One key per product, never more.
+
+## Accuracy check, 2026-10-20
+
+Ours (patch 16.20, all four regions, after the 09:12Z pass) against lolalytics.com (champion pages, Master+, 16.20, global) and
+metatft.com (units and comps, Platinum+, last 3 days, 18.4b), read 08:10–09:30Z. Lolalytics' rates average 52.37% at Master+
+(they count the bracket's own players; we count all ten), so their win rate is shown normalised to a 50% average
+(theirs − 2.37). Noise = 1 SE of our win rate, √(p(1−p)/n); "noise" = within 2 SE.
+
+**First finding (fixed, #127): our "Emerald+" was Master+.** The crawl asked the oldest-asked player first, highest tier among
+equals, so after two days 95% of 16.20's League matches were Master+ (participants: Master 299k, GM 63k, Challenger 22k, Diamond
+49k, Emerald 20k). Against Lolalytics' Emerald+ our win/pick/ban were off by several points; against its Master+ (below) win rates
+agree within noise. Sampling now targets each tier's population share (floored at 4%), so the default bracket converges on real
+Emerald+ within about a day; 16.20's Master+-heavy rows stay until the patch turns over. Until then compare against Master+.
+
+League, the 15 most-played champions in their main role:
+
+| Champion | our games | win ours / theirs (norm.) | Δ (1 SE) | pick ours / theirs | ban ours / theirs | keystone | core (our games) | worst counters ours / theirs |
+|---|---|---|---|---|---|---|---|---|
+| Jhin bottom | 9,887 | 49.5 / 49.4 | +0.1 (±0.5) noise | 20.0 / 18.33 | 2.2 / 1.65 | Fleet Footwork / Fleet Footwork ✓ | Hubris › Phantom Dancer › Infinity Edge (156) / Hubris › Boots of Swiftness › Phantom Dancer: 2/3 | Swain (115), Corki (178) / Aurelion Sol, Yasuo: 0/2 |
+| Lee Sin jungle | 8,135 | 50.4 / 49.6 | +0.8 (±0.6) noise | 16.4 / 15.93 | 22.6 / 20.87 | Conqueror / Conqueror ✓ | Eclipse › Black Cleaver › Mercury's Treads (55) / Eclipse › Plated Steelcaps › Black Cleaver: 2/3 | Skarner (150), Zyra (115) / Zyra, Rammus: 1/2 |
+| Kai'Sa bottom | 7,240 | 49.6 / 49.8 | -0.3 (±0.6) noise | 14.6 / 18.5 | 1.8 / 3.03 | Lethal Tempo / Lethal Tempo ✓ | Kraken Slayer › Guinsoo's Rageblade › Terminus (195) / Kraken Slayer › Guinsoo's Rageblade › Gluttonous Greaves: 2/3 | Swain (83), Lucian (303) / Swain, Kog'Maw: 1/2 |
+| Nautilus utility | 6,729 | 50.3 / 49.0 | +1.3 (±0.6) **out** | 13.6 / 11.28 | 11.6 / 13.5 | Aftershock / Aftershock ✓ | Locket of the Iron Solari › Plated Steelcaps › Knight's Vow (52) / Celestial Opposition › Locket of the Iron Solari › Boots of Swiftness: 1/3 | Pantheon (140), Neeko (75) / Rell, Renata Glasc: 0/2 |
+| Tristana bottom | 6,789 | 51.6 / 51.2 | +0.4 (±0.6) noise | 13.7 / 11.77 | 16.2 / 10.87 | Lethal Tempo / Lethal Tempo ✓ | Yun Tal Wildarrows › Infinity Edge › Navori Flickerblade (137) / Yun Tal Wildarrows › Infinity Edge › Berserker's Greaves: 2/3 | Xayah (311), Lucian (307) / Hwei, Corki: 1/2 |
+| Thresh utility | 6,902 | 52.9 / 52.5 | +0.4 (±0.6) noise | 13.9 / 15.72 | 12.0 / 12.91 | Aftershock / Aftershock ✓ | Boots of Swiftness › Locket of the Iron Solari › Knight's Vow (101) / Solstice Sleigh › Boots of Swiftness › Locket of the Iron Solari: 2/3 | Zilean (84), Poppy (87) / Janna, Rell: 0/2 |
+| Lulu utility | 6,261 | 50.5 / 49.7 | +0.8 (±0.6) noise | 12.7 / 13.99 | 14.6 / 15.15 | Summon Aery / Summon Aery ✓ | Ardent Censer › Ionian Boots of Lucidity › Mikael's Blessing (59) / Dream Maker › Ardent Censer › Ionian Boots of Lucidity: 2/3 | Senna (228), Sona (168) / Vel'Koz, Taric: 0/2 |
+| Jinx bottom | 5,838 | 51.7 / 52.1 | -0.4 (±0.7) noise | 11.8 / 14.16 | 3.8 / 5.1 | Lethal Tempo / Lethal Tempo ✓ | Hexoptics C44 › Runaan's Hurricane › Infinity Edge (117) / Hexoptics C44 › Berserker's Greaves › Runaan's Hurricane: 2/3 | Smolder (62), Twitch (124) / Twitch, Ziggs: 1/2 |
+| Yunara bottom | 5,494 | 49.8 / 49.5 | +0.3 (±0.7) noise | 11.1 / 11.37 | 7.5 / 7.45 | Lethal Tempo / Lethal Tempo ✓ | Yun Tal Wildarrows › Runaan's Hurricane › Infinity Edge (117) / Yun Tal Wildarrows › Gluttonous Greaves › Runaan's Hurricane: 2/3 | Draven (131), Caitlyn (355) / Veigar, Tristana: 1/2 |
+| Ezreal bottom | 5,176 | 45.7 / 45.8 | -0.1 (±0.7) noise | 10.5 / 11 | 4.5 / 4.37 | Lethal Tempo / Lethal Tempo ✓ | Trinity Force › Endless Hunger › Spear of Shojin (34) / Trinity Force › Ionian Boots of Lucidity › Manamune: 1/3 | Twitch (90), Kalista (176) / Yasuo, Hwei: 0/2 |
+| Caitlyn bottom | 5,138 | 48.4 / 49.2 | -0.8 (±0.7) noise | 10.4 / 11.4 | 11.4 / 16.85 | Lethal Tempo / Lethal Tempo ✓ | Hexoptics C44 › Infinity Edge › Lord Dominik's Regards (82) / Hexoptics C44 › Berserker's Greaves › Infinity Edge: 2/3 | Viktor (84), Kai'Sa (284) / Hwei, Syndra: 0/2 |
+| Locke middle | 4,982 | 50.1 / 49.8 | +0.3 (±0.7) noise | 10.1 / 8.99 | 36.8 / 36.57 | Electrocute / Electrocute ✓ | Lich Bane › Shadowflame › Zhonya's Hourglass (50) / Lich Bane › Sorcerer's Shoes › Shadowflame: 2/3 | Zoe (106), Irelia (75) / Akshan, Yone: 0/2 |
+| Alistar utility | 4,904 | 52.2 / 52.1 | +0.1 (±0.7) noise | 9.9 / 7.48 | 3.6 / 2.73 | Aftershock / Aftershock ✓ | Boots of Swiftness › Zeke's Convergence › Knight's Vow (40) / Celestial Opposition › Boots of Swiftness › Zeke's Convergence: 2/3 | Galio (54), Neeko (73) / Taric, Janna: 1/2 |
+| Graves jungle | 4,802 | 49.1 / 49.5 | -0.3 (±0.7) noise | 9.7 / 9.09 | 11.3 / 11.89 | Dark Harvest / Dark Harvest ✓ | Hubris › The Collector › Lord Dominik's Regards (94) / Hubris › The Collector › Lord Dominik's Regards: 3/3 | Shyvana (64), Zac (51) / Naafiri, Sejuani: 0/2 |
+| Syndra middle | 4,792 | 51.1 / 50.1 | +1.0 (±0.7) noise | 9.7 / 8.26 | 15.9 / 10.2 | Arcane Comet / Arcane Comet ✓ | Blackfire Torch › Cosmic Drive › Rabadon's Deathcap (21) / Luden's Echo › Sorcerer's Shoes › Shadowflame: 0/3 | Cassiopeia (48), Yasuo (158) / Katarina, Fizz: 0/2 |
+
+**Verdicts, League.** Win rate: 14 of 15 within 2 SE; Nautilus is 2.2 SE (+1.3 points), about what one row in fifteen does by
+chance. Keystone: 15/15. Pick and ban: systematic, not a counting bug: we weight our four regions equally (oc1 gets a quarter of
+the sample although it is a small server), Lolalytics weights every region by volume; per region they agree (KR Lee Sin pick ours
+26.7% vs 24.7%). Core: 2/3 items in common for 11 of 15; the third is almost always boots. Two causes, both found here:
+components and starters took build slots (fixed, #130: only completed items count) and tier-2 boots auto-upgrade to tier 3 late
+in the game with no purchase event, so they fell out of the final-inventory filter (fixed going forward in this PR; timelines
+already stored keep the old gap). Still open: support quest finals (Solstice Sleigh, Celestial Opposition) upgrade from World
+Atlas without any purchase event, so support cores start at the second completed item; Syndra's 0/3 rests on 21 games.
+Counters: our "worst two" are lane opponents (same role) with 50–350 games each, ±3–7 points per matchup, so their order is
+inside noise; Lolalytics also counts non-lane enemies (Lux and Aurelion Sol against Jhin).
+
+TFT, the 15 most-played units (ours count a unit once per board since #132) and our top 10 comps:
+
+| Unit | our boards | avg place ours / MetaTFT | Δ | frequency ours / MetaTFT |
+|---|---|---|---|---|
+| Sentinel | 150,928 | 4.33 / 4.27 | +0.06 | 39.1% / 38.9% |
+| Amumu | 113,046 | 4.43 / 4.35 | +0.08 | 29.3% / 29.6% |
+| Fiddlesticks | 111,444 | 4.46 / 4.45 | +0.01 | 28.8% / 25.7% |
+| Diana | 100,983 | 4.42 / 4.47 | -0.05 | 26.1% / 26.5% |
+| Taric | 85,700 | 3.93 / 3.89 | +0.04 | 22.2% / 25.6% |
+| Krug | 79,888 | 4.41 / 4.37 | +0.04 | 20.7% / 17% |
+| Ornn | 77,577 | 4.45 / 4.56 | -0.11 | 20.1% / 18.6% |
+| Soraka | 73,103 | 4.29 / 4.15 | +0.14 | 18.9% / 16.8% |
+| Vi | 71,371 | 4.61 / 4.63 | -0.02 | 18.5% / 17.6% |
+| Hecarim | 70,095 | 4.56 / 4.61 | -0.05 | 18.1% / 19% |
+| Ezreal | 68,024 | 4.31 / 4.29 | +0.02 | 17.6% / 17.2% |
+| Aphelios | 65,932 | 4.25 / 4.21 | +0.04 | 17.1% / 16.6% |
+| Kennen | 65,304 | 3.96 / 3.95 | +0.01 | 16.9% / 20.2% |
+| Gnar | 64,851 | 3.80 / 3.77 | +0.03 | 16.8% / 17.8% |
+| Sett | 63,892 | 4.48 / 4.50 | -0.02 | 16.5% / 12.9% |
+
+| Comp (ours: trait + carry) | our boards | avg place ours / MetaTFT (same carry) | board share ours / MetaTFT |
+|---|---|---|---|
+| Rapidfire Aphelios | 35,884 | 4.33 / 4.31 | 9.3% / 7.3% |
+| Spellweaver Ahri | 29,592 | 4.71 / 4.46 | 7.7% / 3.6% |
+| Executioner Azir | 21,990 | 3.95 / 4.17 | 5.7% / 7.5% |
+| Riftbeast Krug | 16,461 | 3.72 / no comp with that carry | 4.3% / — |
+| Spellweaver Cassiopeia | 12,746 | 4.00 / no comp with that carry | 3.3% / — |
+| Brawler Alistar | 12,397 | 3.84 / 4.24 | 3.2% / 0.9% |
+| Riftbeast Elder Dragon | 12,022 | 3.55 / 4.50 | 3.1% / 9.9% |
+| Blackthorn Malphite | 11,565 | 4.97 / 4.60 | 3.0% / 2.0% |
+| Vanguard Alune | 11,079 | 3.25 / 4.29 | 2.9% / 1.5% |
+| Executioner Ezreal | 10,093 | 5.40 / no comp with that carry | 2.6% / — |
+
+**Verdicts, TFT.** Units: average placement within ±0.15 for all 15 (11 within ±0.06), frequency within 3 points except Krug and
+Sett (+4) and Kennen/Taric (−3); MetaTFT is Platinum+ over the last 3 days, we are Emerald+ (Master+-heavy, see above) over the
+whole patch, which moves both. Comps: the first rule (each board's top trait) split one carry by how far the board got, e.g.
+Executioner Azir 3.01 vs Flora Fatalis Azir 5.03 against MetaTFT's 4.10; one comp per carry (#132) brings Azir to 3.95 vs 4.17
+(all of MetaTFT's Azir comps, board-weighted) and Aphelios to 4.33 vs 4.31. Still outside: comps carried by a 5-cost (Elder Dragon
+3.55 vs 4.50, Alune 3.25 vs 4.29, Alistar 3.84 vs 4.24). Our carry is the unit holding the most items, and a 5-cost only holds
+the most items on boards that lasted long, so for those carries the label still encodes the outcome. MetaTFT clusters whole
+boards by composition, which our deterministic rule can't match; follow-up issue DONI-577 (composition clustering). Until then
+read the avg place of a 5-cost-carry comp as optimistic.
 
 ## Deploy to Unraid
 

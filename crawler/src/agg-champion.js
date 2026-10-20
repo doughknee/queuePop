@@ -21,9 +21,18 @@ CREATE TABLE IF NOT EXISTS stats_lol_synergy (patch TEXT, region TEXT, bracket T
 const TABLES = ["lol_starting", "lol_build_order", "lol_skills", "lol_objectives", "lol_shards", "lol_synergy"];
 const SKILL_LEVELS = [6, 10, 15];
 
+// meta.lolItems.completed as a Set, re-read when the item list changes version
+let completedCache = { v: null, set: null };
+function completedSet(db) {
+  const m = require("./db").getMeta(db, "lolItems");
+  if (!m) return null;
+  if (completedCache.v !== m.version) completedCache = { v: m.version, set: new Set(m.completed) };
+  return completedCache.set;
+}
+
 function storeTimeline(db, id, tl) {
   const fin = Object.fromEntries(db.prepare("SELECT puuid, items FROM lol_participants WHERE match_id = ?").all(id).map((r) => [r.puuid, JSON.parse(r.items || "[]")]));
-  const parsed = parseTimeline(tl, fin);
+  const parsed = parseTimeline(tl, fin, completedSet(db));
   const ins = db.prepare("INSERT INTO lol_timeline VALUES (?, ?, ?, ?, ?, ?)");
   tx(db, () => {
     db.prepare("DELETE FROM lol_timeline WHERE match_id = ?").run(id);
