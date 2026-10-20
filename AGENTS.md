@@ -155,6 +155,17 @@
   utilities overridden at its end). Dropped: the armory, chronicle and battle-report interiors (unreachable), league-armory.css,
   league-interiors.css, league-home.css. Do not bring back gold, arches, torn-paper clip-paths or italics in League.
 
+## Shell QoL (overnight track Q, 2026-10-20)
+- Global search (DONI-537): `src/webui/palette.js` (loaded by `shell.js`, styles at the end of `shell.css`) opens one sheet under the
+  page row on Ctrl+K, `/`, or the sidebar's Search entry. Sources: sidebar pages, `settingsView.sections` + `settingsView.index()`
+  (every Settings control; Enter focuses it), a few commands, League champions (`statsApi.ddChampions`), TFT comps/traits
+  (`tftStats` crawler `/tft/comps`), TFT units only when searching from `#/tft` (Community Dragon is 24 MB), Deadlock heroes
+  (deadlock-api `/assets/heroes`). Ranking `window.qpRank` / `qpFuzzy`, tested by `app/test-palette.js`; recent picks in
+  localStorage `queuepop-palette-recent-v1`. `#qp-search` is in theme.css's token-redeclare list.
+- Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
+  browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
+  `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
+
 ## Settings
 - `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the
   sidebar gear; sections (account, league, alerts, companion, crawler, about) are cards with jump links in the page row

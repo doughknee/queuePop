@@ -6,7 +6,7 @@
 @font-face{font-family:Anton;font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/anton-400.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/spacemono-400.woff2) format("woff2")}
 @font-face{font-family:"Space Mono";font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/spacemono-700.woff2) format("woff2")}
-:root:root,#qp-sidebar,#world-nav,.win-controls,.qp-footer,#settings-view{
+:root:root,#qp-sidebar,#world-nav,.win-controls,.qp-footer,#settings-view,#qp-search{
   --bg:#0A0A0A;--fg:#F2F2F2;--accent:#C6FF3D;--muted:#8A8A8A;--line:#2A2A2A;--dim:#555;--neg:#FF5C5C;
   /* data colours */
   --green:#4FBF7A;--amber:#E3B24B;--purple:#C08BF0;--blue:#5AAEE8;--grey:#A3ADAF;
