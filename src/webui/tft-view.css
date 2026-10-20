@@ -124,7 +124,7 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 /* DONI-510 / DONI-511: Units, Items, Traits lists and the unit page. Unit frames carry lowroll's cost ladder. */
 .ts-list-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .ts-list-head a{margin-left:auto;font-size:11px;text-transform:uppercase;letter-spacing:.1em;text-decoration:none}
-.ts-head-list,.ts-row-list{display:grid;grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(56px,76px)) minmax(0,1.6fr);gap:8px;align-items:center}
+.ts-head.ts-head-list,.ts-row-list{display:grid;grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(56px,76px)) minmax(0,1.6fr);gap:8px;align-items:center}
 .ts-head-list span:nth-child(n+2):nth-child(-n+6){text-align:right}
 .ts-row-list{min-height:34px;padding:2px 8px}
 .ts-row-list:hover{background:var(--wash)}
@@ -143,7 +143,7 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-comp-head .ts-unit-name .ts-ico{width:56px;height:56px}
 .ts-table td .ts-ico-item{margin-right:2px}
 .ts-table .ts-v{display:inline-block;margin:0;padding:0 6px;line-height:22px}
-@media (max-width:900px){.ts-head-list,.ts-row-list{grid-template-columns:minmax(130px,1fr) repeat(4,minmax(48px,64px)) minmax(0,1fr)}.ts-head-list span:nth-child(5),.ts-row-list>span:nth-child(5){display:none}}
+@media (max-width:900px){.ts-head.ts-head-list,.ts-row-list{grid-template-columns:minmax(130px,1fr) repeat(4,minmax(48px,64px)) minmax(0,1fr)}.ts-head-list span:nth-child(5),.ts-row-list>span:nth-child(5){display:none}}
 
 /* DONI-512: leaderboard and player pages */
 .ts-seg a.ts-seg-a{display:flex;align-items:center;height:26px;padding:0 10px;border-right:1px solid var(--line);color:var(--muted);font:11px var(--mono);text-decoration:none}
