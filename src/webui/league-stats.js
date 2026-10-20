@@ -175,10 +175,18 @@ function lgTierTable(data) {
   }).join('')}</tbody></table>${note}`;
 }
 let lgTierData = null;
-async function lgFillTiers(token) {
+async function lgFillTiers(token, retried = false) {
   const box = () => token === lg.token && document.getElementById('lg-tiers');
+  let data;
   try {
-    const [data] = await Promise.all([statsApi.tiers({ ...lgParams(), min_games: String(lgt.minGames) }), lgNames(lg.patch)]);
+    // DONI-515: Data Dragon names are a nicety (rows fall back to ids); only the crawler decides "offline", and it gets one retry.
+    [data] = await Promise.all([statsApi.tiers({ ...lgParams(), min_games: String(lgt.minGames) }), lgNames(lg.patch).catch(() => null)]);
+  } catch (e) {
+    if (!retried) { await new Promise(r => setTimeout(r, 2000)); return lgFillTiers(token, true); }
+    if (box()) { box().innerHTML = lgOffline('the stats crawler did not answer.'); document.getElementById('lg-meta').textContent = 'Stats offline'; }
+    return;
+  }
+  try {
     if (!box()) return;
     lgTierData = data;
     if (Array.isArray(data.regions) && data.regions.join() !== lgt.regions.join()) {
@@ -189,8 +197,9 @@ async function lgFillTiers(token) {
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
     document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
-  } catch {
-    if (box()) { box().innerHTML = lgOffline('the stats crawler did not answer.'); document.getElementById('lg-meta').textContent = 'Stats offline'; }
+  } catch (e) {
+    console.error('tier list render failed', e);
+    if (box()) box().innerHTML = '<p class="lg-offline">The tier list could not be drawn from this answer. Change a filter to try again.</p>';
   }
 }
 // Min lane % / min pick % re-filter the loaded rows; min games is the crawler's low-sample line, so it refetches.
