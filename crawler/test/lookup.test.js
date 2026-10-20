@@ -1,7 +1,7 @@
 // DONI-508/512: leaderboards from the players table, on-demand League/TFT lookups through the mock Riot API.
 const test = require("node:test");
 const assert = require("node:assert");
-const { open } = require("../src/db");
+const { open, getMeta } = require("../src/db");
 const { Limiter } = require("../src/limiter");
 const { createClient } = require("../src/riot");
 const { createServer } = require("../src/server");
@@ -32,7 +32,7 @@ test("leaderboards: ladder order with wins/losses, TFT rows carry crawled boards
   try {
     let clock = Date.now();
     const ctx = { db: t.db, riot: t.riot, minTier: "DIAMOND", queues: [420, 1100], now: () => clock };
-    for (const g of ["lol", "tft"]) await seed(ctx, g, "na1");
+    for (const g of ["lol", "tft"]) while (!getMeta(t.db, `seed:${g}:na1`)?.doneAt) await seed(ctx, g, "na1");
     const [, lol] = await t.get("/lol/leaderboard?region=na1&limit=5");
     assert.strictEqual(lol.players.length, 5);
     assert.strictEqual(lol.players[0].tier, "CHALLENGER");

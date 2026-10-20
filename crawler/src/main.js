@@ -88,21 +88,22 @@ if (process.argv[2] === "vacuum") {
 
 const limiter = new Limiter();
 const onAuthFail = (status, msg, used) => {
-  if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`);
+  if (db_.keyHealth(db, cfg.key).valid) log(`A Riot key was rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`);
   try { db_.markKeyBad(db, cfg.key, `${status} ${msg}`, Date.now(), used); } catch (e) { log(`key health: ${e.message}`); }
 };
-const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, shares: cfg.shares, timelineSample: cfg.timelineSample };
+const ctx = { db, riot: createClient({ key: (game) => db_.riotKey(db, cfg.key, game).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, shares: cfg.shares, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
-const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: () => db_.keyHealth(db, cfg.key).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
+const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: (game) => db_.keyHealth(db, cfg.key, game).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
 createServer({ db, limiter, version, lookup, defaultRegion: cfg.regions[0], adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
-// Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops.
-async function forever(name, step, idle) {
+// Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops; and one loop per
+// game, so League and TFT each spend their own key's allowance once they have their own keys.
+async function forever(name, game, step, idle) {
   for (;;) {
     try {
-      // No key, or Riot rejected this one (401/403): wait for a key via POST /admin/key instead of hammering Riot.
-      if (!db_.keyHealth(db, cfg.key).valid) { await sleep(10000); continue; }
+      // No key, or Riot rejected this game's (401/403): wait for a key via POST /admin/key instead of hammering Riot.
+      if (!db_.keyHealth(db, cfg.key, game).valid) { await sleep(10000); continue; }
       // The aggregation worker holds the write lock for minutes; wait instead of failing on "database is locked".
       if (aggregating) { await sleep(5000); continue; }
       inflight++;
@@ -110,7 +111,7 @@ async function forever(name, step, idle) {
       try { did = await step(); } finally { inflight--; }
       if (!did) await sleep(idle);
     } catch (e) {
-      if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid)) { log(`${name}: stored puuids belong to another Riot app (key changed apps): players retired, re-seeding from the ladders`); continue; }
+      if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid, e.game)) { log(`${name}: stored ${e.game} puuids belong to another Riot app (the key changed apps): those players retired, re-seeding from the ladders`); continue; }
       if (!e.auth && !e.decrypt) log(`${name}: ${e.message}`);
       await sleep(10000);
     }
@@ -119,19 +120,11 @@ async function forever(name, step, idle) {
 
 if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is posted to /admin/key");
 {
-  for (const region of cfg.regions) {
-    forever(`seed ${region}`, async () => {
-      let did = false;
-      for (const g of games) did = (await jobs.seed(ctx, g, region)) || did;
-      return did;
-    }, 600000);
-    forever(`matches ${region}`, async () => {
-      let did = false;
-      // A match per game per pass; only ask for new ranked ids when there's nothing left to fetch. Capped modes go first so they don't
-      // depend on the ranked queue running dry (DONI-596); each is gated to one call per region and queue a minute, and by share.
-      for (const g of games) did = (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)) || did;
-      return did;
-    }, 60000);
+  for (const region of cfg.regions) for (const g of games) {
+    forever(`seed ${g} ${region}`, g, () => jobs.seed(ctx, g, region), 600000);
+    // A match per pass; only ask for new ranked ids when there's nothing left to fetch. Capped modes go first so they don't
+    // depend on the ranked queue running dry (DONI-596); each is gated to one call per region and queue a minute, and by share.
+    forever(`matches ${g} ${region}`, g, async () => (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)), 60000);
   }
 }
 

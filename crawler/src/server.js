@@ -5,7 +5,7 @@ const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
 const { TIERS, nextAggregation, MODES, MODE_RE, basePatch } = require("./jobs");
-const { getMeta, setMeta, riotKey, keyHealth } = require("./db");
+const { getMeta, setMeta, riotKey, setKey, keyHealth, GAMES } = require("./db");
 const champ = require("./agg-champion");
 const win = require("./agg-window");
 
@@ -212,7 +212,7 @@ function playerCounts(db) {
 }
 
 function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
-  const k = riotKey(db, envKey);
+  const k = riotKey(db, envKey, "lol");
   const size = (f) => { try { return dbPath && dbPath !== ":memory:" ? fs.statSync(f).size : null; } catch { return null; } };
   // rawStats is measured by the aggregation worker (agg-worker.js); null until its first pass.
   const raw = getMeta(db, "rawStats") || { bytes: null, n: null };
@@ -225,13 +225,16 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
     rateLimits: limiter ? limiter.state() : {},
-    puuidsRetired: getMeta(db, "puuidsRetired"), // the last key change across Riot apps (jobs.retirePuuids)
+    puuidsRetired: Object.fromEntries(GAMES.map((g) => [g, getMeta(db, `puuidsRetired:${g}`)])), // the last key change across Riot apps per game (jobs.retirePuuids)
     requests: limiter ? limiter.requests() : {}, // sent in the last 60 min per host and method: is every bucket spent, and on what
     nextAggregation: nextAggregation(db, aggregateEveryMin),
     aggregateEveryMin,
     retentionDays,
     disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
-    key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey) }, // never the key itself
+    // never the key itself. Top level: League's key and the worse health of the two (what the app's status line reads);
+    // games: each game's key, which differ once a personal key is registered per product.
+    key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey),
+      games: Object.fromEntries(GAMES.map((g) => { const x = riotKey(db, envKey, g); return [g, { source: x.source, set_at: x.set_at, ...keyHealth(db, envKey, g) }]; })) },
     aggregates: getMeta(db, "aggregates"),
     backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
@@ -317,16 +320,17 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       let body = "";
       req.on("data", (c) => { if ((body += c).length > 4096) req.destroy(); });
       return req.on("end", () => {
-        let key;
-        try { key = JSON.parse(body).key; } catch {}
+        let key, game;
+        try { ({ key, game } = JSON.parse(body)); } catch {}
         if (typeof key !== "string" || !KEY_RE.test(key)) return send(400, { error: "key must look like RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" });
+        // game: "lol" | "tft" sets that game's key (a personal key per product); absent: the key both games use unless they have their own
+        if (game != null && !GAMES.includes(game)) return send(400, { error: 'game must be "lol", "tft" or absent (both)' });
         const set_at = Date.now();
         // DONI-568: while the aggregation worker holds the write lock this waits busy_timeout and throws; answer 503, never crash.
         try {
-          setMeta(db, "riotKey", { key, set_at });
-          db.prepare("DELETE FROM meta WHERE k = 'keyBad'").run(); // a posted key is trusted until Riot rejects it again
+          setKey(db, key, game, set_at);
         } catch (e) { return send(503, { error: `database busy (${e.message}); try again in a minute` }); }
-        send(200, { ok: true, source: "meta", set_at });
+        send(200, { ok: true, source: game ? `meta:${game}` : "meta", set_at });
       });
     }
     if (req.method !== "GET") return send(405, { error: "read-only" });

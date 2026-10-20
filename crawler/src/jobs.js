@@ -36,7 +36,8 @@ const upsertPlayer = (db) => db.prepare(`INSERT INTO players (puuid, game, regio
   division = excluded.division, lp = excluded.lp, seeded_at = excluded.seeded_at, wins = excluded.wins, losses = excluded.losses`);
 const playerRow = (e, game, region, s, t) => [e.puuid, game, region, s.tier, TIERS.indexOf(s.tier), e.rank || s.div || "I", e.leaguePoints ?? 0, t, e.wins ?? null, e.losses ?? null];
 
-// Walks the whole ladder once a day, saving its place after every page. Between walks, refreshes the apex ladders.
+// Walks the whole ladder once a day, one page per call (so the crawl loop can pause between pages for the aggregation's
+// swaps), saving its place after every page. Between walks, refreshes the apex ladders.
 async function seed(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
   const key = `seed:${game}:${region}`;
@@ -44,10 +45,9 @@ async function seed(ctx, game, region) {
   if (st.doneAt && now() - st.doneAt < DAY) return refreshApex(ctx, game, region);
   if (st.doneAt) st = {};
   const steps = ladderSteps(game, ctx.minTier);
-  const upsert = upsertPlayer(db);
   let i = st.step || 0, page = st.page || 1;
-  while (i < steps.length) {
-    const s = steps[i];
+  if (i < steps.length) {
+    const s = steps[i], upsert = upsertPlayer(db);
     const res = await riot.get(region, s.paged ? s.path + page : s.path, s.method);
     const entries = (s.paged ? res : res?.entries) || [];
     tx(db, () => {
@@ -55,6 +55,7 @@ async function seed(ctx, game, region) {
       if (s.paged && entries.length) page++; else { i++; page = 1; }
       setMeta(db, key, { step: i, page });
     });
+    if (i < steps.length) return true;
   }
   setMeta(db, key, { doneAt: now() });
   setMeta(db, `apex:${game}:${region}`, now());
@@ -119,20 +120,21 @@ async function capped(ctx, region) {
   return false;
 }
 
-// Key changed apps (a personal key replacing a development key, 2026-10-20): Riot encrypts puuids per app, so every stored
-// puuid now answers 400 "Exception decrypting". When the failing puuid is one the crawl still asks (players / mode_players),
-// every player row is kept but retired (game "lol" -> "lol-stale", so ids(), leaderboards and stats joins stop using it;
-// aggregatePatch still reads its rank for the matches it played), mode_players likewise, and the ladder walk restarts:
-// Master+ (three requests per region) comes back with fresh puuids within minutes. Match ids aren't encrypted, so matches
-// and stats stay. Returns whether it retired anything (a late error for an already-retired puuid is a no-op).
-function retirePuuids(db, puuid, now = Date.now) {
-  const live = db.prepare("SELECT 1 FROM players WHERE puuid = ? AND game IN ('lol', 'tft') UNION ALL SELECT 1 FROM mode_players WHERE puuid = ? AND region NOT LIKE '%-stale'").get(puuid, puuid);
+// Key changed apps (a personal key replacing a development key, 2026-10-20): Riot encrypts puuids per app (and a personal key
+// is registered per product, so League and TFT each get their own), so every stored puuid of that game now answers 400
+// "Exception decrypting". When the failing puuid is one the crawl still asks (players / mode_players of that game), that game's
+// player rows are kept but retired (game "lol" -> "lol-stale", so ids(), leaderboards and stats joins stop using them;
+// aggregatePatch still reads their rank for the matches they played), League's mode_players likewise, and that game's ladder
+// walk restarts: Master+ (three requests per region) comes back with fresh puuids within minutes. Match ids aren't
+// encrypted, so matches and stats stay. Returns whether it retired anything (a late error for a retired puuid is a no-op).
+function retirePuuids(db, puuid, game, now = Date.now) {
+  const live = db.prepare("SELECT 1 FROM players WHERE puuid = ? AND game = ? UNION ALL SELECT 1 FROM mode_players WHERE ? = 'lol' AND puuid = ? AND region NOT LIKE '%-stale'").get(puuid, game, game, puuid);
   if (!live) return false;
   tx(db, () => {
-    db.exec("UPDATE OR REPLACE players SET game = game || '-stale' WHERE game IN ('lol', 'tft')");
-    db.exec("UPDATE mode_players SET region = region || '-stale' WHERE region NOT LIKE '%-stale'");
-    db.exec("DELETE FROM meta WHERE k LIKE 'seed:%' OR k LIKE 'apex:%'");
-    setMeta(db, "puuidsRetired", { at: now(), puuid });
+    db.prepare("UPDATE OR REPLACE players SET game = game || '-stale' WHERE game = ?").run(game);
+    if (game === "lol") db.exec("UPDATE mode_players SET region = region || '-stale' WHERE region NOT LIKE '%-stale'");
+    db.prepare("DELETE FROM meta WHERE k LIKE ? OR k LIKE ?").run(`seed:${game}:%`, `apex:${game}:%`);
+    setMeta(db, `puuidsRetired:${game}`, { at: now(), puuid });
   });
   tierCache.clear();
   return true;

@@ -83,7 +83,7 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   draws one sparkline per region, the default patch's row count and its share under 200 games, plus the last backup; computed by the aggregation worker after each pass, `health.at`)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
-- `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
+- `POST /admin/key` `{ "key": "RGAPI-…", "game"?: "lol" | "tft" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table: with `game`, that game's own key (Riot registers a personal key per product, each with its own puuid encryption and rate limits; League and TFT calls then use separate limiter lanes, `americas/lol`, `americas/tft`); without, the key both games use unless they have their own. `/status` `key.games.{lol,tft}` shows each. When a key changes Riot apps, stored puuids answer 400 "Exception decrypting": that game's players are retired (`game` `lol-stale` / `tft-stale`, kept) and its ladder walk restarts (`/status puuidsRetired`).
   The Riot client reads it (meta first, `RIOT_API_KEY` second) on every request, so no restart. 401 bad/missing token,
   400 malformed key, 503 no `ADMIN_TOKEN` configured. The key is never logged or returned; `/status` shows
   `key: { source: "meta"|"env"|"none", set_at, valid, reason, since }`. `/` and `/admin/*` answer only loopback and private-LAN

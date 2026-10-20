@@ -74,27 +74,39 @@ function tx(db, fn) {
 const getMeta = (db, k) => { const r = db.prepare("SELECT v FROM meta WHERE k = ?").get(k); return r ? JSON.parse(r.v) : null; };
 const setMeta = (db, k, v) => db.prepare("INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v").run(k, JSON.stringify(v));
 
-// The Riot key: one pasted via POST /admin/key (meta) wins over RIOT_API_KEY (env).
-function riotKey(db, envKey) {
+// The Riot key per game: Riot registers a personal key per product (League, TFT), each its own app with its own puuid
+// encryption and rate limits. meta riotKey:<game> (POST /admin/key { game }) wins over meta riotKey (POST /admin/key without a
+// game: both games, e.g. one development key), then RIOT_API_KEY. Without a game: the shared key.
+const GAMES = ["lol", "tft"];
+function riotKey(db, envKey, game) {
+  const g = game && getMeta(db, `riotKey:${game}`);
+  if (g?.key) return { key: g.key, source: `meta:${game}`, set_at: g.set_at };
   const m = getMeta(db, "riotKey");
   if (m?.key) return { key: m.key, source: "meta", set_at: m.set_at };
   return envKey ? { key: envKey, source: "env", set_at: null } : { key: "", source: "none", set_at: null };
 }
+function setKey(db, key, game, now = Date.now()) {
+  setMeta(db, game ? `riotKey:${game}` : "riotKey", { key, set_at: now });
+  const bad = badKeys(db); delete bad[keyHash(key)]; setMeta(db, "keyBad", bad); // a posted key is trusted until Riot rejects it again
+}
 
-// Key health (D2): meta keyBad = { hash, reason, since } is written when Riot answers 401/403. The key is bad while the
-// current key hashes the same; posting a new key changes the hash, so health (and the crawl) comes back on its own.
+// Key health (D2): meta keyBad = { <hash>: { reason, since } }, written when Riot answers 401/403 for a key. A game's key is bad
+// while its current key hashes to an entry; posting a new key changes the hash, so health (and the crawl) comes back on its own.
 const keyHash = (k) => require("crypto").createHash("sha256").update(k).digest("hex").slice(0, 16);
-function keyHealth(db, envKey) {
-  const k = riotKey(db, envKey), bad = getMeta(db, "keyBad");
+const badKeys = (db) => { const b = getMeta(db, "keyBad") || {}; return b.hash ? { [b.hash]: { reason: b.reason, since: b.since } } : b; }; // before per-game keys: one { hash, reason, since }
+function keyHealth(db, envKey, game) {
+  if (!game) { const hs = GAMES.map((g) => keyHealth(db, envKey, g)); return hs.find((h) => !h.valid) || hs[0]; } // both: the worse
+  const k = riotKey(db, envKey, game);
   if (!k.key) return { valid: false, reason: "no key set", since: null };
-  return bad && bad.hash === keyHash(k.key) ? { valid: false, reason: bad.reason, since: bad.since } : { valid: true, reason: null, since: null };
+  const bad = badKeys(db)[keyHash(k.key)];
+  return bad ? { valid: false, reason: bad.reason, since: bad.since } : { valid: true, reason: null, since: null };
 }
 // usedKey: the key the rejected request carried (DONI-568: a 403 for the old key arriving after a new key was posted must not
-// mark the new one bad). Defaults to the current key.
+// mark the new one bad). Defaults to the shared key.
 function markKeyBad(db, envKey, reason, now = Date.now(), usedKey = riotKey(db, envKey).key) {
   if (!usedKey) return;
-  const h = keyHash(usedKey), bad = getMeta(db, "keyBad");
-  if (bad?.hash !== h) setMeta(db, "keyBad", { hash: h, reason, since: now });
+  const h = keyHash(usedKey), bad = badKeys(db);
+  if (!bad[h]) setMeta(db, "keyBad", { ...bad, [h]: { reason, since: now } });
 }
 
-module.exports = { open, tx, getMeta, setMeta, riotKey, keyHealth, markKeyBad };
+module.exports = { open, tx, getMeta, setMeta, riotKey, setKey, keyHealth, markKeyBad, GAMES };
