@@ -194,7 +194,9 @@ window.createTftView = function (host) {
   }
   function compDetail(d) {
     const table = (list, label) => list.length ? `<table class="ts-table"><thead><tr><th>${label}</th><th>Played</th><th>Avg place</th><th>Top 4</th><th>Games</th></tr></thead><tbody>${list.map((u) => `<tr class="${u.lowSample ? 'low' : ''}"><td>${icon(u.key)}${esc(name(u.key))}</td><td>${mag(u.frequency, 1, pct(u.frequency))}</td><td>${heat(u.avgPlacement, 4.5, 0.6, u.games, u.avgPlacement.toFixed(2), true)}</td><td>${heat(u.top4Rate, 0.5, 0.12, u.games, pct(u.top4Rate))}</td><td>${u.games.toLocaleString()}</td></tr>`).join('')}</tbody></table>` : `<p class="ts-quiet">No ${label.toLowerCase()} recorded.</p>`;
-    return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${d.augments.length ? table(d.augments, 'Augment') : `<p class="ts-quiet">${esc(augmentNote || 'No augments recorded for this comp.')}</p>`}</div></div>`;
+    // No augments (Riot sends none for this set): the units table takes the width and one quiet line says why.
+    if (!d.augments.length) return `<div><h3>Units</h3>${table(d.units, 'Unit')}<p class="ts-quiet">${augmentNote ? 'Augments: Riot sends no augment data for this set, so there is nothing to rank.' : 'No augments recorded for this comp.'}</p></div>`;
+    return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${table(d.augments, 'Augment')}</div></div>`;
   }
   function renderList() {
     const list = page.querySelector('.ts-list');
