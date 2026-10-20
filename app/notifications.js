@@ -11,6 +11,7 @@ const KINDS = {
   disconnect: ["🔌 Client disconnected", 0xe74c3c],
   test: ["✅ queuePop test", GOLD],
   timeline: ["⏱ Queue timeline", 0x5aaee8],
+  game_plan: ["🗺 Game plan", 0xc6ff3d],
 };
 const DDRAGON = "https://ddragon.leagueoflegends.com";
 const dd = { version: null, byId: {}, byName: {} };
@@ -115,7 +116,7 @@ function createNotifier(ctx) {
   // opts.test skips the per-event filter (Settings' "Test a queue pop" sends through every channel that is on).
   async function alert(key, title, body, what, opts = {}) {
     const cfg = ctx.getConfig();
-    if (!opts.test && !((cfg.alert_events || {})[key] ?? key === "queue_pop")) return;
+    if (!opts.test && !((cfg.alert_events || {})[key] ?? (key === "queue_pop" || key === "game_plan"))) return;
     if (cfg.desktop_notifications) desktop(title, body, what);
     if (cfg.discord_enabled ?? true) await discord(key, body, opts, what);
   }

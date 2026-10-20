@@ -4,7 +4,7 @@
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
   const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
-  const EVENTS = [['timeline', 'Queue timeline (ETA, game start, come back)'], ['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
+  const EVENTS = [['game_plan', 'Game plan at lock-in'], ['timeline', 'Queue timeline (ETA, game start, come back)'], ['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const bridge = () => window.pywebview && window.pywebview.api;

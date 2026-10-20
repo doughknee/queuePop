@@ -195,8 +195,8 @@ function normalizeConfig(data) {
     user_id: String(data.user_id || "").trim(),
     discord_enabled: T(getd(data, "discord_enabled", !!webhook)),
     desktop_notifications: T(getd(data, "desktop_notifications", true)),
-    alert_events: Object.fromEntries(["queue_pop", "champ_select", "game_start", "disconnect", "locked_pick", "timeline"]
-      .map((k) => [k, T(getd(alerts, k, k === "queue_pop"))])),
+    alert_events: Object.fromEntries(["queue_pop", "champ_select", "game_start", "disconnect", "locked_pick", "timeline", "game_plan"]
+      .map((k) => [k, T(getd(alerts, k, k === "queue_pop" || k === "game_plan"))])), // game plan on by default (DONI-347)
     allowed_queue_ids: cleanQueueIds(data.allowed_queue_ids),
     accept_delay_seconds: acceptDelay(data.accept_delay_seconds),
     favorite_queue_ids: cleanQueueIds(data.favorite_queue_ids, true),
