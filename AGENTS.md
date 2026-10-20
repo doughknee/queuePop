@@ -229,6 +229,9 @@
   in user copy); **accept** / **auto-accept**; **lock in** (verb) and **lock-in** (noun); **pick** / **ban**; **champ select**;
   **phone companion** (the page) and **your phone**; **Windows notification** (not desktop notification / toast); **Discord alert**;
   **ntfy push**; **queue names** (Ranked Solo/Duo), never queue ids; **Settings > Card > Row** for places; no em dashes.
+- Fake League client (dev): `QP_FAKE_CS=draft` (ranked draft, you are cell 2 mid; your pick turn at ~29 s, the client locks your hover
+  at ~59 s) or `QP_FAKE_CS=aram` (bench) before `npm start` replays a scripted client through the real handlers (`app/fake-lcu.js`):
+  queue pop + auto-accept, champ select session events, your PATCH hovers/locks, game start, end of game (win). No real client needed.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

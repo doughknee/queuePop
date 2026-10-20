@@ -199,7 +199,9 @@ app.whenReady().then(() => {
   win.loadFile(WEBUI);
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   assets.check(); // never awaited: icons fill in as they land
-  lcu.start();
+  // Dev: QP_FAKE_CS=draft|aram replays a scripted League client through the same handlers (app/fake-lcu.js).
+  if (process.env.QP_FAKE_CS) require("./fake-lcu").install(lcu, process.env.QP_FAKE_CS === "aram" ? "aram" : "draft", log);
+  else lcu.start();
   powerMonitor.on("resume", () => { log("system resumed, checking the League client"); lcu.recheck(); }); // DONI-532
   log("Searching for League client...");
 });
