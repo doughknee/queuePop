@@ -22,7 +22,8 @@ const cfg = {
   minTier: (env.MIN_TIER || "EMERALD").toUpperCase(),
   dbPath: env.DB_PATH || "data/crawler.db",
   port: Number(env.PORT) || 47900,
-  queues: (env.QUEUES || "420,440,1100").split(",").map(Number),
+  queues: (env.QUEUES || "420,440,450,1100").split(",").map(Number), // 450 = ARAM (D13), capped by ARAM_SHARE
+  aramShare: Number(env.ARAM_SHARE ?? 0.1),
   aggregateEveryMin: Number(env.AGGREGATE_EVERY_MIN ?? 60),
   retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
@@ -73,7 +74,7 @@ if (process.argv[2] === "vacuum") {
 
 const limiter = new Limiter();
 const onAuthFail = (status, msg) => { if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`); db_.markKeyBad(db, cfg.key, `${status} ${msg}`); };
-const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
+const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, aramShare: cfg.aramShare, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
 const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: () => db_.keyHealth(db, cfg.key).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
@@ -103,7 +104,7 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
     forever(`matches ${region}`, async () => {
       let did = false;
       // A match per game per pass; only ask for new ids when there's nothing left to fetch.
-      for (const g of games) did = (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)) || did;
+      for (const g of games) did = (await jobs.fetchOne(ctx, g, region)) || (g === "lol" && (await jobs.aramIds(ctx, region))) || (await jobs.ids(ctx, g, region)) || did;
       return did;
     }, 60000);
   }
