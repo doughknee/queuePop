@@ -263,8 +263,26 @@ async function lgFillHistory(token) {
     + (rec && (rec.followed.games || rec.ignored.games) ? ` · following queuePop's pick ${rs(rec.followed) || '0 games'}, ignoring it ${rs(rec.ignored) || '0 games'}` : '');
   box().innerHTML = games.map((g, i) => {
     const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts), go = `data-lg-goto="#/league/champion/${g.championId}${g.position ? '/' + g.position : ''}" title="Open ${lgEsc(c.name)}'s stats"`;
-    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}${(r => r && r.suggested ? ` · ${r.followed ? 'took the suggestion' : 'suggested ' + lgEsc(r.suggested)}` : '')(recapBy.get(Number(g.gameId)))}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
+    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}${(r => r && r.suggested ? ` · ${r.followed ? 'took the suggestion' : 'suggested ' + lgEsc(r.suggested)}` : '')(recapBy.get(Number(g.gameId)))}</small></span><span class="lg-hist-build" data-hist="${g.gameId}"></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
   }).join('');
+  lgFillHistoryBuilds(token);
+}
+// The history rows' middle: items, CS/min and length from the crawler's cached lookup of your own account (/lol/summoner,
+// 10 min cache, one of its few lookups a minute); rows it doesn't hold stay as they are.
+async function lgFillHistoryBuilds(token) {
+  for (let i = 0; i < 30 && !leagueLive.summoner?.name && token === lg.token; i++) await new Promise(r => setTimeout(r, 500)); // the client connects after launch
+  const s = leagueLive.summoner;
+  if (!s?.name || !window.statsApi?.summoner || token !== lg.token) return;
+  let d;
+  try { d = await statsApi.summoner(`${s.name}#${s.tag}`, lgMyPlatform()); } catch { return; }
+  if (token !== lg.token) return;
+  for (const m of d.matches || []) {
+    const el = document.querySelector(`[data-hist="${String(m.id).split('_')[1]}"]`);
+    if (!el) continue;
+    const min = m.duration ? m.duration / 60 : 0;
+    el.innerHTML = `<span class="lg-hist-items">${(m.items || []).filter(Boolean).map(i => lgImg(lgDD(`item/${i}.png`), '', 'lg-ico')).join('')}</span>`
+      + `<small>${m.cs != null && min ? `${m.cs} CS · ${(m.cs / min).toFixed(1)}/m · ` : ''}${min ? Math.round(min) + ' min' : ''}</small>`;
+  }
 }
 async function lgExpandMatch(btn) {
   const open = btn.getAttribute('aria-expanded') !== 'true', more = btn.nextElementSibling, g = lgGames[+btn.dataset.lgMatch];
