@@ -140,6 +140,10 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- Region weighting (2026-10-20 accuracy audit): `/lol/tiers` with `region=all` (default) and two or more regions returns win, pick and ban
+  rates as the regions' rates weighted by their share of seeded League players (`weighting: { region: share }` in the response, from
+  `meta.regionWeights`, refreshed after each aggregation pass), like Lolalytics' global view. `games`/`wins` stay raw totals. Before,
+  every region counted equally (oc1 has ~5% of the players and ~25% of our sample).
 - Windows and trends (DONI-513 data side): `?days=N` (1..90, or `patch` = the default whole patch) on `/lol/tiers`,
   `/lol/champion/{id}` (strip and roles only; builds, matchups and depth blocks stay per patch), `/tft/comps` and `/tft/comp/{id}`
   (the comp row; units/augments/traits stay per patch) reads the last N UTC days of the patch (today counts as one) from

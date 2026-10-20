@@ -11,6 +11,10 @@ if (workerData.task === "retain") {
 } else {
   const n = require("./jobs").aggregate(db);
   setMeta(db, "health", require("./server").health(db));
+  // seeded players per game and region, the population weights for region=all rates (server.js regionWeighted)
+  const rw = {};
+  for (const r of db.prepare("SELECT game, region, count(*) n FROM players GROUP BY 1, 2").all()) (rw[r.game] ??= {})[r.region] = r.n;
+  setMeta(db, "regionWeights", rw);
   setMeta(db, "rawStats", { ...db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get(), at: Date.now() });
   parentPort.postMessage(n);
 }
