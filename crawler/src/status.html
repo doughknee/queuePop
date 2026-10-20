@@ -2,13 +2,18 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>queuePop crawler</title>
 <style>
-body{margin:0 auto;max-width:560px;padding:16px;background:#14161a;color:#e6e1d3;font:18px/1.5 system-ui,sans-serif}
-h1{color:#c8a85a;font-size:24px}h2{color:#c8a85a;font-size:16px;margin:20px 0 4px}
-.bar{background:#2a2d33;height:10px;border-radius:5px}.bar i{display:block;height:10px;border-radius:5px;background:#c8a85a}
-input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font-size:18px;border-radius:6px;border:1px solid #3a3d44;background:#1d2025;color:inherit}
-button{background:#c8a85a;color:#14161a;border:0;font-weight:700}table{width:100%;border-collapse:collapse;font-size:15px}td{padding:2px 6px 2px 0;border-bottom:1px solid #2a2d33}td:last-child{text-align:right;white-space:nowrap}#msg.err,.bad{color:#e5736a}.bad{font-weight:700}#msg.ok{color:#7fcf8a}
+/* the app's lime system (src/webui/theme.css, DONI-525): tokens only, system mono instead of the self-hosted fonts */
+:root{--bg:#0A0A0A;--fg:#F2F2F2;--accent:#C6FF3D;--muted:#8A8A8A;--line:#2A2A2A;--neg:#FF5C5C;--green:#4FBF7A}
+body{margin:0 auto;max-width:600px;padding:16px;background:var(--bg);color:var(--fg);font:16px/1.5 ui-monospace,"Space Mono",Consolas,monospace}
+h1{font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin:8px 0 12px}h1 b{color:var(--accent)}
+h2{color:var(--muted);font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:22px 0 6px;border-top:1px solid var(--line);padding-top:12px}
+small{color:var(--muted)}.bar{background:var(--line);height:8px}.bar i{display:block;height:8px;background:var(--accent)}
+input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font:inherit;border:1px solid var(--line);background:#141414;color:inherit}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px}button{background:var(--accent);color:var(--bg);border:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line)}td:last-child{text-align:right;white-space:nowrap;color:var(--muted)}
+.ok,#msg.ok{color:var(--green)}#msg.err{color:var(--neg)}.bad{background:var(--neg);color:var(--bg);font-weight:700;padding:10px;margin:8px 0}
 </style>
-<h1>queuePop crawler</h1>
+<h1>QUEUE<b>POP</b> crawler</h1>
 <div id="s">loading…</div>
 <h2>Replace Riot key</h2>
 <form id="f"><input id="k" type="password" placeholder="RGAPI-…" autocomplete="off" required>
@@ -19,17 +24,19 @@ const $ = (id) => document.getElementById(id);
 const ago = (t) => { if (!t) return "never"; const s = Math.round((Date.now() - t) / 1000); return s < 90 ? s + " s ago" : s < 5400 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago"; };
 const sum = (o, k) => Object.values(o).reduce((n, g) => n + (g[k] || 0), 0);
 const mb = (b) => b == null ? "—" : (b / 1048576).toFixed(1) + " MB";
+const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const when = (t) => t ? new Date(t).toLocaleString() : "—";
 async function load() {
   try {
     const s = await (await fetch("/status")).json();
+    document.title = (s.key.valid === false ? "KEY INVALID · " : "") + "queuePop crawler";
     const bars = Object.entries(s.rateLimits).flatMap(([b, v]) => v.limits.filter((l) => l.windowSec >= 120).map((l) =>
       `<div>${b} <small>${l.used}/${l.limit} per ${l.windowSec}s${v.blockedSec ? " · blocked " + v.blockedSec + "s" : ""}</small><div class="bar"><i style="width:${Math.min(100, 100 * l.used / l.limit)}%"></i></div></div>`));
-    $("s").innerHTML = `<div>Players: ${Object.values(s.players).reduce((a, b) => a + b, 0)}</div>
+    $("s").innerHTML = `${s.key.valid === false ? `<div class="bad">Riot key invalid: ${esc(s.key.reason)}${s.key.since ? " since " + when(s.key.since) : ""}. Crawl and lookups are paused; paste a new key below and they resume on their own.</div>` : ""}<div>Players: ${Object.values(s.players).reduce((a, b) => a + b, 0)}</div>
 <div>Matches: ${sum(s.matches, "done")} done · ${sum(s.matches, "new")} new · ${sum(s.matches, "skip")} skip</div>
 <div>Last fetch: ${ago(s.lastFetch)}</div><div>Aggregated: ${when(s.aggregatedAt)}</div><div>Next aggregation: ${when(s.nextAggregation)} (every ${s.aggregateEveryMin} min)</div>
 <div>DB: ${mb(s.disk.dbBytes)} + WAL ${mb(s.disk.walBytes)} · raw JSON ${mb(s.disk.rawBytes)} in ${s.disk.rawMatches} matches (kept ${s.retentionDays} d)</div>
-<div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""}</div>${s.key.valid === false ? `<div class="bad">Key invalid: ${s.key.reason}${s.key.since ? " since " + when(s.key.since) : ""}. Crawl paused; paste a new key below.</div>` : ""}<div>Last aggregation pass: ${s.aggregates ? (s.aggregates.ms / 1000).toFixed(1) + " s (" + (s.aggregates.dirty || []).join(", ") + ")" : "—"}</div>
+<div>Key: ${s.key.source}${s.key.set_at ? " (set " + ago(s.key.set_at) + ")" : ""} ${s.key.valid === false ? "" : "<span class=ok>valid</span>"}</div><div>Last aggregation pass: ${s.aggregates ? (s.aggregates.ms / 1000).toFixed(1) + " s (" + (s.aggregates.dirty || []).join(", ") + ")" : "—"}</div>
 <h2>Endpoints</h2><table>${(s.endpoints || []).map((e) => `<tr><td>${e.path}</td><td>${e.patch || ""}</td><td>${e.live ? "live" : ago(e.updatedAt)}</td></tr>`).join("")}</table>
 <h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
   } catch (e) { $("s").textContent = "status failed: " + e.message; }
@@ -45,5 +52,5 @@ $("f").onsubmit = async (e) => {
     if (r.ok) { $("k").value = ""; load(); }
   } catch (x) { m.className = "err"; m.textContent = x.message; }
 };
-load(); setInterval(load, 10000);
+load().then(() => { if (document.querySelector(".bad")) $("k").focus(); }); setInterval(load, 10000);
 </script>

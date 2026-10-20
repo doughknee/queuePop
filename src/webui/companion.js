@@ -194,6 +194,18 @@ function connectStream() {
   es.onerror = () => setConn(false, "Reconnecting…"); // EventSource auto-retries
 }
 
+// DONI-423: a live countdown to the next moment the PC told us about (ETA in queue, game start, come back).
+let timeline = null;
+function drawTimeline() {
+  const box = $("tl"), left = timeline ? Math.round((timeline.until - Date.now()) / 1000) : null;
+  box.hidden = !timeline || left < -5;
+  if (box.hidden) return;
+  $("tl-text").textContent = timeline.text;
+  const s = Math.max(0, left);
+  $("tl-count").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+setInterval(drawTimeline, 1000);
+
 async function pollStatus() {
   try {
     const res = await fetch(withToken("/api/status"), { cache: "no-store" });
@@ -205,6 +217,7 @@ async function pollStatus() {
       customBuffer = null; // sound changed, re-fetch on demand
     }
     ensureCustomSound();
+    timeline = s.timeline || null; drawTimeline();
   } catch (_) {
     setConn(false, "Offline");
   }

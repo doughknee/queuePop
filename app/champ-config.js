@@ -195,7 +195,7 @@ function normalizeConfig(data) {
     user_id: String(data.user_id || "").trim(),
     discord_enabled: T(getd(data, "discord_enabled", !!webhook)),
     desktop_notifications: T(getd(data, "desktop_notifications", true)),
-    alert_events: Object.fromEntries(["queue_pop", "champ_select", "game_start", "disconnect", "locked_pick"]
+    alert_events: Object.fromEntries(["queue_pop", "champ_select", "game_start", "disconnect", "locked_pick", "timeline"]
       .map((k) => [k, T(getd(alerts, k, k === "queue_pop"))])),
     allowed_queue_ids: cleanQueueIds(data.allowed_queue_ids),
     accept_delay_seconds: acceptDelay(data.accept_delay_seconds),
@@ -208,6 +208,7 @@ function normalizeConfig(data) {
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
     crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),
+    timeline_load_seconds: Math.min(300, Math.max(0, pyInt(getd(data, "timeline_load_seconds", 60)) ?? 60)), // DONI-423
     games_enabled: cleanGames(data.games_enabled), // DONI-522: which worlds show in the sidebar and on home
     ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.25, // DONI-516 Text size (zoom factor)
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),

@@ -10,6 +10,7 @@ const KINDS = {
   game_end: ["🏁 Game over", 0x95a5a6],
   disconnect: ["🔌 Client disconnected", 0xe74c3c],
   test: ["✅ queuePop test", GOLD],
+  timeline: ["⏱ Queue timeline", 0x5aaee8],
 };
 const DDRAGON = "https://ddragon.leagueoflegends.com";
 const dd = { version: null, byId: {}, byName: {} };
