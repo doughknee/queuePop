@@ -39,3 +39,30 @@ test("lol rollups: games, win, pick, delta, top champions, role filter, memo unt
     assert.strictEqual((await get("/lol/items")).items.length, 1);
   } finally { api.close(); }
 });
+
+test("tier list region weighting: region=all weighs each region's rates by its player share", () => {
+  const { lolTiers } = require("../src/server");
+  const d = open(":memory:");
+  // big region: champion 1 in 10% of 100 matches; small region: 50% of 100 matches. Players 9:1.
+  d.prepare("INSERT INTO stats_lol_matches VALUES ('16.20', 'big', 'DIAMOND', 100), ('16.20', 'small', 'DIAMOND', 100)").run();
+  d.prepare("INSERT INTO stats_lol_champ VALUES ('16.20', 'big', 'DIAMOND', 'MIDDLE', 1, 10, 5), ('16.20', 'small', 'DIAMOND', 'MIDDLE', 1, 50, 40)").run();
+  d.prepare("INSERT INTO stats_lol_bans VALUES ('16.20', 'small', 'DIAMOND', 1, 20)").run();
+  setMeta(d, "regionWeights", { lol: { big: 900, small: 100 } });
+  const t = lolTiers(d, {});
+  const c = t.champions[0];
+  assert.deepStrictEqual(t.weighting, { big: 0.9, small: 0.1 });
+  assert.deepStrictEqual([c.games, c.pickRate, c.banRate], [60, 0.14, 0.02]); // 0.9*0.1 + 0.1*0.5; 0.1*0.2
+  assert.strictEqual(c.winRate, 0.6071); // (0.9*5 + 0.1*40)/100 / 0.14
+  const one = lolTiers(d, { region: "small" }).champions[0];
+  assert.deepStrictEqual([one.pickRate, one.winRate, lolTiers(d, { region: "small" }).weighting], [0.5, 0.8, undefined]);
+});
+
+test("champion strip uses the same region weighting as its tier list row", () => {
+  const { lolTiers, lolChampion } = require("../src/server");
+  const d = open(":memory:");
+  d.prepare("INSERT INTO stats_lol_matches VALUES ('16.20', 'big', 'DIAMOND', 100), ('16.20', 'small', 'DIAMOND', 100)").run();
+  d.prepare("INSERT INTO stats_lol_champ VALUES ('16.20', 'big', 'DIAMOND', 'MIDDLE', 1, 10, 5), ('16.20', 'small', 'DIAMOND', 'MIDDLE', 1, 50, 40)").run();
+  setMeta(d, "regionWeights", { lol: { big: 900, small: 100 } });
+  const row = lolTiers(d, {}).champions[0], strip = lolChampion(d, 1, {}).strip;
+  assert.deepStrictEqual([strip.winRate, strip.pickRate, strip.banRate, strip.games], [row.winRate, row.pickRate, row.banRate, 60]);
+});
