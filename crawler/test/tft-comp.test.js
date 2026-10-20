@@ -77,3 +77,15 @@ test("composition clustering: a board joins the comp it overlaps most, whoever h
   assert.strictEqual(assign.get("My|p"), "Arcana,Lux");
   assert.strictEqual(assign.get("Ma0|p"), "Flora,Azir");
 });
+
+test("boards sharing one puuid in a match (placeholder ids) each get a comp; the pass doesn't fail (2026-10-20 regression)", () => {
+  const { CENTROID_MIN } = require("../src/tft-comps");
+  const db = open(":memory:");
+  db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, fetched_at) VALUES ('M', 'tft', 'na1', 'DIAMOND', 'done', '16.20', 1)").run();
+  const ins = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, comp, traits, units, augments) VALUES ('M', ?, ?, 'Azir', '[[\"Flora\",2]]', '[\"Azir\",\"Zyra\"]', '[]')");
+  for (let i = 0; i < CENTROID_MIN; i++) ins.run("p" + i, 1 + (i % 8));
+  ins.run("BOT", 2); ins.run("BOT", 6); // same (match_id, puuid) twice
+  aggregate(db);
+  const c = tftComps(db).comps;
+  assert.deepStrictEqual([c.length, c[0].id, c[0].games], [1, "Flora,Azir", CENTROID_MIN + 2]);
+});
