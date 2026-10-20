@@ -60,3 +60,19 @@ test("/tft/meta: ranked set data, icon URLs, cached a day, stale copy on a CDrag
   assert.strictEqual(stale.stale, true);
   await assert.rejects(tftMeta(db, 17, { fetchJson: async () => { throw new Error("down"); } }), (e) => e.status === 503);
 });
+
+test("composition clustering: a board joins the comp it overlaps most, whoever holds the items (DONI-577)", () => {
+  const { cluster, CENTROID_MIN } = require("../src/tft-comps");
+  const mk = (i, carry, units, traits) => ({ match_id: "M" + i, puuid: "p", carry, units, traits });
+  const boards = [];
+  for (let i = 0; i < CENTROID_MIN; i++) boards.push(mk("a" + i, "Azir", ["Azir", "Rammus", "Zyra", "Soraka"], [["Flora", 2]]));
+  for (let i = 0; i < CENTROID_MIN; i++) boards.push(mk("e" + i, "Elder", ["Elder", "Krug", "Gnar", "Taric"], [["Riftbeast", 2]]));
+  // Elder holds the items, but the board is an Azir board -> Azir's comp; one with nothing in common keeps its carry comp
+  boards.push(mk("x", "Elder", ["Azir", "Rammus", "Zyra", "Elder"], [["Flora", 1]]));
+  boards.push(mk("y", "Lux", ["Lux", "Varus"], [["Arcana", 2]]));
+  const { assign, centroids } = cluster(boards);
+  assert.deepStrictEqual(centroids.map((c) => c.id).sort(), ["Flora,Azir", "Riftbeast,Elder"]);
+  assert.strictEqual(assign.get("Mx|p"), "Flora,Azir");
+  assert.strictEqual(assign.get("My|p"), "Arcana,Lux");
+  assert.strictEqual(assign.get("Ma0|p"), "Flora,Azir");
+});
