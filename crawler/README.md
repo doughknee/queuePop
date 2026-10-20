@@ -32,7 +32,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `DB_PATH` | `data/crawler.db` | `/data/crawler.db` in the image |
 | `PORT` | `47900` | |
 | `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order, starting/early items, build order); each costs one more request |
-| `AGGREGATE_EVERY_MIN` | `60` | minutes between aggregation passes; one runs on start if the last is older. Only patches with new matches are recomputed |
+| `AGGREGATE_EVERY_MIN` | `60` | minutes between aggregation passes; one runs on start if the last is older. Only patches with new matches are recomputed. The pass runs in a worker thread (`src/agg-worker.js`, own connection): the API keeps answering from the previous stats, the crawl loops pause until it commits (DONI-547) |
 | `RAW_RETENTION_DAYS` | `7` | see Retention |
 | `RIOT_BASE_URL` | Riot | point at the mock server instead |
 

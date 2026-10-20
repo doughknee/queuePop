@@ -32,6 +32,7 @@ if (!jobs.TIERS.includes(cfg.minTier)) throw new Error(`MIN_TIER must be one of 
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let aggregating = false; // true while the aggregation worker runs (see periodic below)
 const db = db_.open(cfg.dbPath);
 
 if (process.argv[2] === "aggregate") {
@@ -75,6 +76,8 @@ async function forever(name, step, idle) {
     try {
       // No key, or Riot rejected this one (401/403): wait for a key via POST /admin/key instead of hammering Riot.
       if (!db_.keyHealth(db, cfg.key).valid) { await sleep(10000); continue; }
+      // The aggregation worker holds the write lock for minutes; wait instead of failing on "database is locked".
+      if (aggregating) { await sleep(5000); continue; }
       if (!(await step())) await sleep(idle);
     } catch (e) { if (!e.auth) log(`${name}: ${e.message}`); await sleep(10000); }
   }
@@ -97,16 +100,24 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
   }
 }
 
-// Aggregate on start if due, then every AGGREGATE_EVERY_MIN; unchanged patches are skipped.
-(function periodic() {
+// Aggregate on start if due, then every AGGREGATE_EVERY_MIN; unchanged patches are skipped. The pass runs in a worker thread
+// with its own connection, so the API keeps answering (WAL readers see the previous stats until it commits) while the crawl
+// loops pause. ponytail: an in-memory DB (tests) can't be shared with a worker; tests call jobs.aggregate directly.
+(function periodic(minDelay = 0) {
   setTimeout(() => {
-    try { const t = Date.now(); const n = jobs.aggregate(db); log(`aggregated ${n} patches in ${Date.now() - t} ms`); } catch (e) { log(`aggregate: ${e.message}`); }
-    periodic();
-  }, jobs.nextAggregation(db, cfg.aggregateEveryMin) - Date.now());
+    let failed = false;
+    aggregating = true;
+    const t = Date.now();
+    new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath } })
+      .once("message", (n) => log(`aggregated ${n} patches in ${Date.now() - t} ms`))
+      .once("error", (e) => { failed = true; log(`aggregate: ${e.message}`); })
+      .once("exit", () => { aggregating = false; periodic(failed ? 60000 : 0); });
+  }, Math.max(minDelay, jobs.nextAggregation(db, cfg.aggregateEveryMin) - Date.now()));
 })();
 
 // Raw JSON retention: a minute after start (so a pass has happened), then daily.
 function retain() {
+  if (aggregating) return log("retention: skipped, aggregation running");
   try { log(`retention: nulled raw on ${jobs.retain(db, cfg.retentionDays)} matches`); } catch (e) { log(`retention: ${e.message}`); }
 }
 setTimeout(retain, 60000).unref();

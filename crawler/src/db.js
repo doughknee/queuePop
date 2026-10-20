@@ -38,7 +38,8 @@ function open(file) {
   if (file !== ":memory:") fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   const db = new DatabaseSync(file);
   // auto_vacuum only takes effect on a new file (or after `npm run vacuum`); it must precede the first table.
-  db.exec("PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
+  // busy_timeout first: the aggregation worker opens a second connection while the crawl writes.
+  db.exec("PRAGMA busy_timeout = 5000; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL;");
   db.exec(SCHEMA);
   require("./agg-players").migrate(db); // DONI-506: lol_names + stats_lol_player_champ
   db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables
