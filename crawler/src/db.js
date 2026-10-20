@@ -54,7 +54,9 @@ function open(file) {
   const db = new DatabaseSync(file);
   // auto_vacuum only takes effect on a new file (or after `npm run vacuum`); it must precede the first table.
   // busy_timeout first: the aggregation worker opens a second connection while the crawl writes.
-  db.exec("PRAGMA busy_timeout = 5000; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL;");
+  // synchronous NORMAL (WAL's usual setting): no fsync per commit, still never corrupt; a power cut can drop the last commits.
+  // FULL fsynced every commit, and on Unraid's FUSE share that was 78% of the API thread (live profile 2026-10-20 22:12Z).
+  db.exec("PRAGMA busy_timeout = 5000; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
   db.exec(SCHEMA);
   require("./agg-players").migrate(db); // DONI-506: lol_names + stats_lol_player_champ
   db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables

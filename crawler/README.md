@@ -396,6 +396,18 @@ curl http://127.0.0.1:47900/status
 docker compose logs -f
 ```
 
+On Unraid, mount the cache pool directly, not the FUSE user share: `/mnt/user` (shfs) made every SQLite commit's sync slow enough to
+hold the API thread (2026-10-20). With `appdata` cache-only, the same files are at `/mnt/cache/appdata/...`; the host keeps this in a
+`docker-compose.override.yml` next to the compose file (not in the repo, so updates don't touch it):
+
+```yaml
+services:
+  crawler:
+    volumes: !override
+      - /mnt/cache/appdata/queuepop-crawler/data:/data
+      - /mnt/cache/appdata/queuepop-crawler/backups:/backups
+```
+
 Updates (from the repo root on the dev PC; never copies `.env`, `data/` or `backups/`). `backfill-comps` rewrites every TFT board and took
 ~10 min of downtime on 2026-10-20 (2.2 GB DB); `backfill-length`/`backfill-players` 2-3 min each.
 
