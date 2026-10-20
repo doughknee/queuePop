@@ -417,9 +417,27 @@ function renderHero(id) {
   document.title = `${hero.name} dossier · Deadlock · QueuePop`;
   dossier.innerHTML = `<div class="file-register"><span><span class="register-dot" aria-hidden="true"></span>Personnel file <b>${String(index+1).padStart(2,'0')}</b><small>of ${String(heroes.length).padStart(2,'0')}</small></span><nav class="file-paging" aria-label="Browse dossiers"><button data-file-step="previous" data-file="${previous.id}" aria-label="Previous dossier: ${previous.name}" title="Previous: ${previous.name}">←</button><button data-file-step="next" data-file="${next.id}" aria-label="Next dossier: ${next.name}" title="Next: ${next.name}">→</button></nav></div>
     <div class="dossier-feature"><div class="portrait-evidence"><div class="portrait-plate"><span class="portrait-ring" aria-hidden="true"></span><svg class="subject-sigil" viewBox="0 0 100 100" aria-hidden="true">${art.mark}</svg><img src="${heroImg(hero)}" alt="${hero.name}" width="280" height="380"><span class="portrait-caption">${art.label}</span></div><span class="evidence-note" aria-hidden="true">${art.note}</span></div><div class="dossier-lede"><div class="sheet-kicker">${hero.role}</div><h2 class="hero-name" tabindex="-1">${hero.name}</h2><p class="hero-intro">${hero.intro}</p><p>${hero.story}</p><div class="hero-choice"><button class="action choose-hero" data-select="${hero.id}" aria-pressed="${selectedHero === id}">${selectedHero === id ? `${hero.name} selected ✓` : `Choose ${hero.name}`}</button><span>${selectedHero === id ? 'Your person at the city desk' : 'Make this your person at the city desk'}</span></div></div></div>
+    <section class="hero-numbers" id="hero-numbers" aria-label="${hero.name} in numbers"><p class="ledger-msg">Reading ${hero.name}'s numbers…</p></section>
     <div class="dossier-notes"><section><span class="note-label">Field observation</span><h3>Your opening</h3><p>${hero.strength}</p></section><section><span class="note-label">A word of caution</span><h3>Keep in mind</h3><p>${hero.caution}</p></section></div>
     <div class="dossier-foot"><span>${hero.img ? 'Hero blurb · deadlock-api' : 'Playstyle notes · QueuePop'}</span><button class="back-link" data-hero-build="${hero.id}">Explore the build ledger ↗</button></div><button class="directory-return" data-directory-return>↑ Back to the directory</button>`;
   for(const button of document.querySelectorAll('[data-hero]')) button.setAttribute('aria-pressed',String(button.dataset.hero === id));
+  if(hero.hid != null) loadHeroNumbers(hero);
+}
+// DONI-562: the dossier's numbers, Statlocker/Lolalytics style: tier and rank among heroes, win, pick, KDA, souls and games
+// (same query as the city tier list), then the three heroes it beats hardest and loses to hardest (100+ matches each).
+async function loadHeroNumbers(hero) {
+  const el = () => { const n = document.querySelector('#hero-numbers'); return n && document.querySelector('#dossier')?.dataset.subject === hero.id ? n : null; };
+  try {
+    const q = tierQuery(), [stats, counters] = await Promise.all([cached('/analytics/hero-stats', q), cached('/analytics/hero-counter-stats', {...q, min_matches:100})]);
+    const rows = window.deadlockTierRows(stats), r = rows.find(x => x.hid === hero.hid);
+    if(!el()) return;
+    if(!r) { el().innerHTML = '<p class="ledger-msg">Not enough games for this hero in the current window.</p>'; return; }
+    const vs = counters.filter(c => c.hero_id === hero.hid && heroById(c.enemy_hero_id) && c.matches_played >= 100).map(c => ({ e:heroById(c.enemy_hero_id), wr:c.wins / c.matches_played })).sort((a, b) => b.wr - a.wr);
+    const link = list => list.map(x => `<button class="back-link hero-vs" data-goto-hero="${x.e.id}" title="${pct(x.wr)}% win">${esc(x.e.name)}</button>`).join(', ');
+    const cell = (k, v, sub) => `<div><dt>${k}</dt><dd>${v}</dd>${sub ? `<dd class="hn-sub">${sub}</dd>` : ''}</div>`;
+    el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1} of ${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
+      + (vs.length ? `<p class="hn-read">Best into ${link(vs.slice(0, 3))}. Struggles into ${link(vs.slice(-3).reverse())}.</p>` : '');
+  } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">deadlock-api error: ${esc(e.message)}</p>`; }
 }
 function inspectHero(id, step) {
   if(!heroes.some(hero => hero.id === id)) return;
