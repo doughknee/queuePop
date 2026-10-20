@@ -262,6 +262,11 @@
   the old `#tab-alerts`/`#tab-about` markup stays hidden because `notifications.js`/`update.js` bind to its ids.
 
 ## Stats crawler
+- Stats smoke (2026-10-20, after #137/#151): `node scripts/smoke-stats.js` opens every League champion page, TFT comp and Deadlock hero in
+  the running host (`cd app && npx electron . --remote-debugging-port=9333`) and exits 1 if any says "Stats offline" while the crawler's
+  `/status` answers, or "Something broke". `npm test` can't run it (needs the window and the crawler); run it before merging page changes.
+  Fetch wrappers (`js/stats-api.js`, `js/tft-stats-api.js`, deadlock-view.js `get`) mark failures `e.fetch = true`; page catches use
+  `lgFail` / `dlErr` so a render bug says "Something broke on this page" and logs the stack instead of blaming the crawler.
 - `crawler/` is a standalone Node 24 service (own `package.json`, no deps, `node:sqlite`): one Riot personal key crawls
   ranked League/TFT matches per region, aggregates per-patch stats into `stats_*`, and serves them on port 47900
   (`/lol/tiers`, `/lol/champion/{id}`, `/tft/comps`, `/tft/comp/{id}`, `/patches`, `/status`). JSON shapes are in

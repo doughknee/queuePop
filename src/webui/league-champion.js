@@ -205,8 +205,7 @@ async function lgFillChampion(token, id) {
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
     lgFillPlayers(token, id);
   } catch (e) {
-    console.error('champion page', e); // a render error must not read as "crawler offline" again
-    if (box()) box().innerHTML = lgOffline('the stats crawler did not answer.');
+    if (box()) box().innerHTML = lgFail('champion page', e); // a render error must not read as "crawler offline" again
   }
 }
 document.addEventListener('click', e => {

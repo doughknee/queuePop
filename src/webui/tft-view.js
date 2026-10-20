@@ -220,9 +220,10 @@ window.createTftView = function (host) {
       detail(id).then((d) => {
         const el = page.querySelector(`[data-detail="${CSS.escape(id)}"]`);
         if (el) el.innerHTML = compDetail(d) + `<a class="ts-link" href="#/tft/comp/${enc(id)}">Open the comp page ↗</a>`;
-      }).catch(() => {
+      }).catch((e) => {
         const el = page.querySelector(`[data-detail="${CSS.escape(id)}"]`);
-        if (el) el.innerHTML = '<p class="ts-quiet">Stats offline: could not load this comp.</p>';
+        if (!e?.fetch) console.error('tft comp row', e); // a render bug must not read as "offline"
+        if (el) el.innerHTML = `<p class="ts-quiet">${e?.fetch ? 'Stats offline: could not load this comp.' : 'Something broke on this comp. Reload with Ctrl+R.'}</p>`;
       });
     }
   }
