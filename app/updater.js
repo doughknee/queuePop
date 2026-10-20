@@ -31,7 +31,10 @@ function createUpdater({ version, push }) {
       const req = https.get({ host: "api.github.com", path, headers: { "User-Agent": ua, Accept: "application/vnd.github+json" }, timeout: 12000 }, (res) => {
         let text = "";
         res.on("data", (c) => (text += c));
-        res.on("end", () => res.statusCode === 200 ? resolve(JSON.parse(text)) : reject(Object.assign(new Error(`HTTP ${res.statusCode}`), { code: res.statusCode })));
+        res.on("end", () => {
+          if (res.statusCode !== 200) return reject(Object.assign(new Error(`HTTP ${res.statusCode}`), { code: res.statusCode }));
+          try { resolve(JSON.parse(text)); } catch { reject(new Error("bad JSON from GitHub")); } // a throw here was uncaught
+        });
       });
       req.on("timeout", () => req.destroy(new Error("timed out")));
       req.on("error", reject);

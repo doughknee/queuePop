@@ -45,7 +45,8 @@ function createCompanion(ctx) {
   }
 
   function handler(req, res) {
-    const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    let p; // a malformed escape (GET /%) from anyone on the LAN threw here and took the whole host down (DONI-529)
+    try { p = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400); return res.end(); }
     if (p === "/api/stream") return stream(req, res);
     if (p === "/api/status") {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -53,7 +54,7 @@ function createCompanion(ctx) {
     }
     if (p === "/api/sound") {
       const c = cfgComp();
-      if (c.sound === "custom" && c.sound_file && fs.existsSync(c.sound_file)) return fs.createReadStream(c.sound_file).pipe(res);
+      if (c.sound === "custom" && /\.(mp3|ogg|wav|m4a)$/i.test(c.sound_file || "") && fs.existsSync(c.sound_file)) return fs.createReadStream(c.sound_file).pipe(res);
       res.writeHead(404); return res.end();
     }
     const file = path.join(ctx.webRoot, p === "/" ? "companion.html" : p);

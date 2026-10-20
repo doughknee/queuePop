@@ -40,7 +40,9 @@ class LCU extends EventEmitter {
     if (this.creds) return;
     // ponytail: the client recreates the lockfile on launch; we only shell out to PowerShell when the cached dir has none.
     let file = path.join(this.dir, "lockfile");
-    if (!fs.existsSync(file)) {
+    // Asking PowerShell spawns a process (~0.3 s CPU), so while no client runs it happens every 15 s, not every 3 s.
+    if (!fs.existsSync(file) && Date.now() - (this._askedAt || 0) >= 15000) {
+      this._askedAt = Date.now();
       const dir = await clientDir();
       if (dir) { this.dir = dir; file = path.join(dir, "lockfile"); }
     }
