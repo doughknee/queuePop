@@ -84,6 +84,7 @@
     #alarm .mode { color: #fde68a; font-size: 16px; margin-top: 8px; }
     #alarm .decline { display: block; margin: 18px auto 0; border-color: #fff; background: #fff; color: #b91c1c; font-weight: 700; }
     #alarm .decline:disabled { opacity: .6; }
+    .tl-count { font: 700 48px/1.1 ui-monospace, monospace; margin-top: 6px; letter-spacing: .02em; }
     #alarm .decline-msg { min-height: 1.4em; font-size: 15px; }
   </style>
 </head>
@@ -122,6 +123,12 @@
         Alerts fire when your League queue pops. queuePop auto-accepts the match, 
         this is just your nudge to come back.
       </p>
+    </div>
+
+    <div class="panel" id="tl" hidden>
+      <span class="status-txt" style="color:var(--gold);">Your queue</span>
+      <div class="tl-count" id="tl-count">--:--</div>
+      <p class="muted" id="tl-text" style="margin-top:6px;"></p>
     </div>
 
     <div class="panel">
