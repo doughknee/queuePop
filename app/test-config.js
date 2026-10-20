@@ -43,3 +43,7 @@ console.log("test-config token ok");
 // Night review P1: a stale renderer copy can't put an old companion token back.
 assert.strictEqual(mergeForSave({ companion: { token: "aaaaaaaaaaaaaaaaaaaa" } }, { companion: { token: "bbbbbbbbbbbbbbbbbbbb" } }).companion.token, "bbbbbbbbbbbbbbbbbbbb");
 console.log("test-config stale token ok");
+// DONI-351: auto_accept defaults on and survives normalize.
+assert.strictEqual(normalizeConfig({}).auto_accept, true);
+assert.strictEqual(normalizeConfig({ auto_accept: false }).auto_accept, false);
+console.log("test-config auto_accept ok");

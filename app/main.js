@@ -53,6 +53,8 @@ lcu.on("event", (e) => {
 
 async function readyCheck(data) {
   if (state.paused || !data) return;
+  // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
+  if (!state.away && loadConfig().auto_accept === false) return;
   if (data.state !== "InProgress") { state.accepting = false; state.popPushed = false; return; }
   if (data.playerResponse !== "None" || state.accepting) return;
   state.accepting = true;

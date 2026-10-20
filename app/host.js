@@ -102,7 +102,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       const allowed = loadConfig().allowed_queue_ids || [];
       if (allowed.length && !allowed.includes(qid)) return; // main.js already logged the skip
       queueName = QUEUE_ID_MAP[qid] || (qid ? `Queue ${qid}` : "Unknown");
-      notifier.alert("queue_pop", "Queue Popped!", "Accepting your match automatically, get back to your PC!", "Queue pop", { queue: queueName });
+      const auto = state.away || loadConfig().auto_accept !== false; // DONI-351: say what will actually happen
+      notifier.alert("queue_pop", "Queue Popped!", auto ? "Accepting your match automatically, get back to your PC!" : "Accept it in the client, auto-accept is off!", "Queue pop", { queue: queueName });
     } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && e.eventType !== "Delete") {
       if (e.data === "ChampSelect") notifier.alert("champ_select", "⚔️ Champ select started", "Champ select has started.", "Champ select", { queue: queueName });
       else if (e.data === "InProgress") notifier.alert("game_start", "🎮 Game starting", "Your game is starting.", "Game start", { queue: queueName });

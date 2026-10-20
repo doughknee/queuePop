@@ -200,6 +200,7 @@ function normalizeConfig(data) {
       .map((k) => [k, T(getd(alerts, k, k === "queue_pop" || k === "game_plan"))])), // game plan on by default (DONI-347)
     allowed_queue_ids: cleanQueueIds(data.allowed_queue_ids),
     accept_delay_seconds: acceptDelay(data.accept_delay_seconds),
+    auto_accept: T(getd(data, "auto_accept", true)), // DONI-351: kept across restarts (Pause is for now only)
     favorite_queue_ids: cleanQueueIds(data.favorite_queue_ids, true),
     last_queue_id: coerceQueueId(data.last_queue_id),
     show_last_queue: T(getd(data, "show_last_queue", true)),
