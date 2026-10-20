@@ -61,8 +61,12 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
   The Riot client reads it (meta first, `RIOT_API_KEY` second) on every request, so no restart. 401 bad/missing token,
   400 malformed key, 503 no `ADMIN_TOKEN` configured. The key is never logged or returned; `/status` shows
-  `key: { source: "meta"|"env"|"none", set_at }`. `/` and `/admin/*` answer only loopback and private-LAN
+  `key: { source: "meta"|"env"|"none", set_at, valid, reason, since }`. `/` and `/admin/*` answer only loopback and private-LAN
   sources (10/8, 172.16/12, 192.168/16); others get 403.
+- Key health: when Riot answers 401/403 (an expired development key answers 403 Forbidden), the crawler stores
+  `meta.keyBad = { hash, reason, since }`, logs once, and every loop idles (one check per 10 s, no Riot calls) while the
+  current key still has that hash. `/status` `key.valid` is false with `reason` ("403 Forbidden") and `since`; the status
+  page shows it in red. Posting a new key changes the hash, so the crawl resumes by itself on the next loop.
 - `GET /patches` → `{ lol: ["16.20", ...], tft: [...] }` newest first
 - `GET /lol/tiers?patch&region&bracket&role` (role `top|jungle|middle|bottom|utility`) →
   `{ patch, region, bracket, minGames, role, matches, avgWinRate, regions: ["euw1", ...], champions: [{ champion, role, games, wins, winRate,

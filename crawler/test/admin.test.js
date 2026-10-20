@@ -49,3 +49,27 @@ test("admin auth: 401 without token, 400 on a bad key, 503 when ADMIN_TOKEN is u
   const u = await setup("");
   try { assert.strictEqual((await u.post({ key: KEY }, "x")).status, 503); } finally { u.close(); }
 });
+
+test("key health: a 403 marks the key invalid in /status, a posted key makes it valid again", async () => {
+  const mock = await startMock(0, { rejectKey: "RGAPI-env" });
+  const db = open(":memory:");
+  const { keyHealth, markKeyBad } = require("../src/db");
+  const api = createServer({ db, limiter: new Limiter(), version: "test", adminToken: "tok", envKey: "RGAPI-env" });
+  await new Promise((r) => api.listen(0, "127.0.0.1", r));
+  const url = `http://127.0.0.1:${api.address().port}`;
+  try {
+    const riot = createClient({ key: () => riotKey(db, "RGAPI-env").key, base: mock.url, limiter: new Limiter(),
+      onAuthFail: (s, m) => markKeyBad(db, "RGAPI-env", `${s} ${m}`) });
+    await assert.rejects(riot.get("na1", "/lol/match/v5/matches/NA1_520000001", "m"), (e) => e.auth === true);
+    let k = (await (await fetch(url + "/status")).json()).key;
+    assert.deepStrictEqual([k.valid, k.reason], [false, "403 Forbidden"]);
+    assert.ok(k.since > 0);
+    const n = mock.stats.requests;
+    await fetch(url + "/admin/key", { method: "POST", headers: { authorization: "Bearer tok" }, body: JSON.stringify({ key: KEY }) });
+    k = (await (await fetch(url + "/status")).json()).key;
+    assert.deepStrictEqual([k.valid, k.reason, k.source], [true, null, "meta"]);
+    assert.ok(await riot.get("na1", "/lol/match/v5/matches/NA1_520000001", "m"));
+    assert.strictEqual(mock.stats.requests, n + 1, "one request with the new key, no retries");
+    assert.strictEqual(keyHealth(db, "").valid, true);
+  } finally { api.close(); mock.server.close(); }
+});

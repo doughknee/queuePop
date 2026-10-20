@@ -5,7 +5,7 @@ const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
 const { TIERS, nextAggregation } = require("./jobs");
-const { getMeta, setMeta, riotKey } = require("./db");
+const { getMeta, setMeta, riotKey, keyHealth } = require("./db");
 const champ = require("./agg-champion");
 
 const PAGE = fs.readFileSync(path.join(__dirname, "status.html"));
@@ -127,7 +127,7 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregateEveryMin,
     retentionDays,
     disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
-    key: { source: k.source, set_at: k.set_at }, // never the key itself
+    key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey) }, // never the key itself
   };
 }
 
