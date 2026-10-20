@@ -130,6 +130,7 @@ window.createTftView = function (host) {
       S.get('/tft/augments').then((a) => { augmentNote = a.note || ''; }).catch(() => {}); // D15: Riot's own reason when there are none
       if (!filters.patch) filters.patch = defaultPatch || patches[0] || ''; // D15: the crawler's default waits on patch day
       rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}&trend=1`)) : [];
+      for (const r of rows) if (Array.isArray(r.units)) known.set(r.id, r.units); // crawler rows carry their top units (D, 2026-10-20)
     } catch (_) { offline = true; rows = []; }
   }
   // Fill unit icons for rows on screen, six requests at a time (the crawler is on the LAN).
@@ -203,7 +204,7 @@ window.createTftView = function (host) {
       `<div class="ts-head" aria-hidden="true"><span>Tier</span><span>Comp</span><span>Units</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Pick</span><span>Games</span></div>`
       + slice.map((r) => `<div class="ts-row ${r.lowSample ? 'low' : ''} ${open === r.id ? 'open' : ''}" data-row="${esc(r.id)}"${r.lowSample ? ' title="Low sample: under ' + r.games + ' games is not enough to trust"' : ''}>
         <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}<span class="ts-chips" data-chips="${esc(r.id)}"></span></span>
-        <span class="ts-units" data-units="${esc(r.id)}"></span><span class="ts-num">${heat(r.avgPlacement, 4.5, 0.8, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.15, r.games, pct(r.top4Rate))}</span>
+        <span class="ts-units" data-units="${esc(r.id)}">${(known.get(r.id) || []).slice(0, 9).map((k) => icon(k)).join('')}</span><span class="ts-num">${heat(r.avgPlacement, 4.5, 0.8, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.15, r.games, pct(r.top4Rate))}</span>
         <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.pickRate, 0.05, pct(r.pickRate))}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
         ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')
       + (vis.length > shown ? `<button class="ts-more" data-more>Show ${Math.min(30, vis.length - shown)} more of ${vis.length - shown}</button>` : '');
@@ -318,7 +319,8 @@ window.createTftView = function (host) {
     renderResults(); renderList();
     // Unit names match through each comp's loaded units; load the rest once.
     // ponytail: one request per comp (<= 200, cached); add units to /tft/comps if that gets slow.
-    if (!searchedAll) { searchedAll = true; await fillUnits(rows.map((r) => r.id).filter((id) => !known.has(id))); renderResults(); renderList(); }
+    // Only rows without crawler units (an older crawler) need their detail fetched to search by unit name.
+    if (!searchedAll) { searchedAll = true; const missing = rows.map((r) => r.id).filter((id) => !known.has(id)); if (missing.length) { await fillUnits(missing); renderResults(); renderList(); } }
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { input.value = ''; input.dispatchEvent(new Event('input')); }
