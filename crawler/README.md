@@ -373,6 +373,11 @@ the most items on boards that lasted long, so for those carries the label still 
 boards by composition, which our deterministic rule can't match; follow-up issue DONI-577 (composition clustering). Until then
 read the avg place of a 5-cost-carry comp as optimistic.
 
+**Update 10:25Z (DONI-577 live, #160 + #170):** comps are now clustered by board composition. Avg place vs MetaTFT: Azir 4.30 vs
+4.17, Alistar 4.27 vs 4.24, Malphite 4.71 vs 4.60, Ahri 4.53 vs 4.46, Aphelios 4.43 vs 4.31, Elder Dragon 4.18 vs 4.50 (was 3.55),
+Alune 3.88 vs 4.29 (was 3.25); the remaining 0.3–0.4 on the 5-cost comps is mostly tier mix (16.20 is Master+-heavy here,
+MetaTFT is Platinum+). League `region=all` rates are now population-weighted (#158; euw1 42%, kr 38%, na1 18%, oc1 2%).
+
 ## Deploy to Unraid
 
 First install:
