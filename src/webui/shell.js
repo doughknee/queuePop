@@ -129,9 +129,8 @@ window.homeSetupItems = function ({ games, dlId, crawler, dismissed = [] }) {
 window.homeSetup = (() => {
   const KEY = 'queuepop-setup-dismissed-v1';
   let dismissed = []; try { dismissed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
-  let crawler, checkedAt = 0;
   const E = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
-  const facts = () => { const c = (window.QP && QP.store && QP.store.config) || null; return { games: qpGames(), dlId: c ? String(c.deadlock_account_id || '') : undefined, crawler, dismissed }; };
+  const facts = () => { const c = (window.QP && QP.store && QP.store.config) || null; return { games: qpGames(), dlId: c ? String(c.deadlock_account_id || '') : undefined, dismissed }; };
   function html() {
     const items = dismissed.includes('all') ? [] : homeSetupItems(facts());
     if (!items.length) return '<div id="home-setup" hidden></div>';
@@ -140,20 +139,13 @@ window.homeSetup = (() => {
       <button type="button" class="su-hide" data-setup-dismiss="all">Hide set-up</button></div>`;
   }
   function refresh() { const el = document.getElementById('home-setup'); if (el) el.outerHTML = html(); }
-  async function check() {
-    if (Date.now() - checkedAt < 60000) return; checkedAt = Date.now();
-    const c = (window.QP && QP.store && QP.store.config) || {};
-    const base = String(c.crawler_url || 'http://10.205.0.81:47900').replace(/\/+$/, '');
-    crawler = await fetch(base + '/status', { signal: AbortSignal.timeout(5000), cache: 'no-store' }).then(r => r.ok ? 'ok' : 'down', () => 'down');
-    refresh();
-  }
   document.addEventListener('click', e => {
     const d = e.target.closest && e.target.closest('[data-setup-dismiss]');
     if (d) { dismissed = [...new Set([...dismissed, d.dataset.setupDismiss])]; try { localStorage.setItem(KEY, JSON.stringify(dismissed)); } catch {} refresh(); return; }
     const a = e.target.closest && e.target.closest('[data-setup-focus]');
     if (a && a.dataset.setupFocus) setTimeout(() => window.qpSearch && qpSearch.focusSetting(a.dataset.setupFocus), 120);
   });
-  return { html: () => { check(); return html(); }, refresh, recheck: () => { checkedAt = 0; check(); }, reset: () => { dismissed = []; try { localStorage.removeItem(KEY); } catch {} refresh(); } };
+  return { html, refresh, reset: () => { dismissed = []; try { localStorage.removeItem(KEY); } catch {} refresh(); } };
 })();
 
 // Home's "Pick up where you left off" (Q7): one tile per world you've been in, most recent first, opening the exact page you
