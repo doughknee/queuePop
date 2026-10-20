@@ -84,7 +84,9 @@ function lolChampion(db, champion, q = {}) {
     builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }) };
 }
 
-const comp = (r, boards, minGames) => ({ id: r.comp, traits: r.comp === "none" ? [] : r.comp.split(","), games: r.games,
+// id "<trait>|<carry>" (DONI-502); ids from the old rule ("A,B" or "none") have no carry.
+const compKey = (id) => { const [t, c] = id.split("|"); return { traits: t === "none" ? [] : t.split(","), carry: c || null }; };
+const comp = (r, boards, minGames) => ({ id: r.comp, ...compKey(r.comp), games: r.games,
   avgPlacement: r4(r.ps / r.games), top4Rate: r4(r.top4 / r.games), winRate: r4(r.wins / r.games), pickRate: r4(r.games / boards), lowSample: r.games < minGames });
 
 function tftComps(db, q = {}) {
@@ -102,12 +104,13 @@ function tftComp(db, id, q = {}) {
   const boards = db.prepare(`SELECT sum(boards) n FROM stats_tft_boards WHERE ${w}`).get(...a).n || 0;
   const r = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM stats_tft_comp WHERE ${w} AND comp = ? GROUP BY comp`).get(...a, id);
   if (!r) return null;
-  const parts = { unit: [], augment: [] };
+  const parts = { unit: [], augment: [], trait: [] };
   for (const p of db.prepare(`SELECT kind, key, sum(games) games, sum(placement_sum) ps, sum(top4) top4 FROM stats_tft_part WHERE ${w} AND comp = ?
     GROUP BY kind, key ORDER BY games DESC`).all(...a, id)) {
     if (parts[p.kind].length < 30) parts[p.kind].push({ key: p.key, games: p.games, frequency: r4(p.games / r.games), avgPlacement: r4(p.ps / p.games), top4Rate: r4(p.top4 / p.games), lowSample: p.games < h.minGames });
   }
-  return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment };
+  // activeTraits: key "<trait>:<tier_current>" (DONI-502), how often the comp runs each trait at each tier.
+  return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment, activeTraits: parts.trait };
 }
 
 function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
@@ -168,6 +171,7 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, require("./agg-players").championPlayers(db, head, where, Number(m[1]), q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));
       if (p === "/tft/comps") return send(200, tftComps(db, q));
+      if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
         const c = tftComp(db, decodeURIComponent(m[1]), q);
         return c ? send(200, c) : send(404, { error: "no such comp on this patch/filter" });
