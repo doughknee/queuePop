@@ -241,3 +241,5 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .theme-home .worlds{margin-top:28px}
 .theme-home .world-gate{height:clamp(300px,42vh,440px)}
 @media (prefers-reduced-motion:reduce){.hc-tile,.theme-home .world-gate{transition:none}.theme-home .world-gate:hover{transform:none}}
+/* A page row that scrolls sideways fades out at the right edge (under the window buttons) while more is hidden there. */
+#world-nav#world-nav.more-right::after,.city-nav.city-nav.more-right::after{content:'';position:fixed;top:0;right:0;width:184px;height:47px;pointer-events:none;background:linear-gradient(90deg,transparent,var(--bg) 56px)} /* both rows sit at the top (sticky), so the fade can be pinned to the window's corner */
