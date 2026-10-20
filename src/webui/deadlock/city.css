@@ -118,3 +118,5 @@
 .tier-table tbody tr{border-bottom:1px solid var(--line)}
 .tier-table tbody tr:hover{background:var(--wash)}
 .ledger-controls label{color:var(--muted)}
+/* DONI-571: Field guide lives in the sidebar; the row keeps the four stats pages so it fits at 1280 */
+.city-nav.city-nav.city-nav a[data-open=guides]{display:none}
