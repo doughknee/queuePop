@@ -326,6 +326,7 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .theme-league .qp-play{--logo:url(assets/logos/league.svg)}
 .theme-tft .qp-play{--logo:url(assets/logos/tft.png)}
 .theme-deadlock .qp-play{--logo:url(assets/logos/deadlock.png)}
+.theme-deadlock .qp-play-logo{-webkit-mask:none;mask:var(--logo) center/contain no-repeat;mask-mode:luminance} /* the emblem is a filled disc: its light parts make the shape */
 .qp-play-caret{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;display:none}
 .qp-play[data-mode=queue] .qp-play-caret{display:block}
 .qp-play.menu-open .qp-play-caret{transform:rotate(180deg)}
