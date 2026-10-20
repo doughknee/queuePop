@@ -60,6 +60,7 @@
   });
   document.addEventListener('mouseup', e => { if (e.button === 3) history.back(); else if (e.button === 4) history.forward(); });
   document.addEventListener('pointerdown', e => { if (!sheet.hidden && !sheet.contains(e.target)) help(false); });
+  sheet.addEventListener('focusout', e => { if (!sheet.hidden && e.relatedTarget && !sheet.contains(e.relatedTarget)) { sheet.hidden = true; } });
   addEventListener('hashchange', () => help(false));
 
   // The sidebar's resize grip, by keyboard: focus it and use ← / → (Home/End for the ends). shell.js owns the width.
