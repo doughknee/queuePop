@@ -53,6 +53,8 @@
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
   addEventListener('click', () => setTimeout(window.syncSidebar));
+  // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
+  document.body.append(Object.assign(document.createElement('script'), { src: 'palette.js' }));
 })();
 
 /* Home's paged bar (DONI-527) on scrollr's Pages model (myscrollr docs/CHIP_SPEC.md §P): a 192 px band with the game's
