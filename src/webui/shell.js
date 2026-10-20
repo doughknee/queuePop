@@ -164,7 +164,7 @@ window.resumeTiles = function (last, games, pages) {
     const t = { game: g, href, page: page ? page.label : 'Overview' };
     let m;
     if ((m = /^#\/league\/champion\/(\d+)/.exec(href))) { t.page = 'Champion'; t.champion = m[1]; }
-    else if ((m = /^#\/deadlock\/heroes\/([\w-]+)/.exec(href))) t.detail = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    else if ((m = /^#\/deadlock\/heroes\/([\w-]+)/.exec(href))) t.page = 'Hero', t.detail = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     else if ((m = /^#\/tft\/comp\/(.+)$/.exec(href))) { t.page = 'Comp'; t.comp = decodeURIComponent(m[1]); }
     return t;
   });

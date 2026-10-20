@@ -71,7 +71,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #world-nav,.city-nav{overflow-x:auto;scrollbar-width:none} /* DONI-516: the row scrolls sideways at large Text sizes */
 #world-nav a,#world-nav>[data-keep]{-webkit-app-region:no-drag}
 #world-nav#world-nav,.city-nav.city-nav{display:flex;align-items:center;justify-content:flex-start;gap:2px;height:auto;min-height:48px;padding:0 136px 0 16px;background:var(--bg);background-image:none;border-bottom:1px solid var(--line);box-shadow:none}
-#world-nav#world-nav:not(:has(a)){min-height:32px;background:none;border-bottom:0} /* home: just the drag strip */
+#world-nav#world-nav:not(:has(a)):not(:has(#league-dock:not([hidden]))){min-height:32px;background:none;border-bottom:0} /* nothing in it: just the drag strip */
 #world-nav#world-nav::before{content:none}
 .city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
 .city-nav.city-nav::before{background-image:url(assets/logos/deadlock.png)}
@@ -323,10 +323,11 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 #world-nav#world-nav .qp-play:disabled{opacity:.6;cursor:default}
 #world-nav#world-nav .qp-play[data-mode=cancel],#world-nav#world-nav .qp-play[data-mode=live]{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .qp-play-logo{width:22px;height:22px;flex:none;background:currentColor;-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat}
-.theme-league .qp-play{--logo:url(assets/logos/league.svg)}
-.theme-tft .qp-play{--logo:url(assets/logos/tft.png)}
-.theme-deadlock .qp-play{--logo:url(assets/logos/deadlock.png)}
-.theme-deadlock .qp-play-logo{-webkit-mask:none;mask:var(--logo) center/contain no-repeat;mask-mode:luminance} /* the emblem is a filled disc: its light parts make the shape */
+.qp-play[data-game=league]{--logo:url(assets/logos/league.svg)}
+.qp-play[data-game=tft]{--logo:url(assets/logos/tft.png)}
+.qp-play[data-game=home]{--logo:url(assets/queuepop.svg)}
+.qp-play[data-game=deadlock]{--logo:url(assets/logos/deadlock.png)}
+.qp-play[data-game=deadlock] .qp-play-logo{-webkit-mask:none;mask:var(--logo) center/contain no-repeat;mask-mode:luminance} /* the emblem is a filled disc: its light parts make the shape */
 .qp-play-caret{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;display:none}
 .qp-play[data-mode=queue] .qp-play-caret{display:block}
 .qp-play.menu-open .qp-play-caret{transform:rotate(180deg)}

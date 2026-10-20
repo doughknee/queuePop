@@ -136,7 +136,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     get_status: () => {
       const cfg = loadConfig();
       return {
-        connected: lcu.connected, gameflow_phase: state.phase, paused: state.paused,
+        connected: lcu.connected, gameflow_phase: state.phase, paused: state.paused, client_game: state.game, queue_id: state.queueId,
         webhook_configured: !!cfg.webhook_url, user_id: cfg.user_id || "", desktop_notifications: !!cfg.desktop_notifications,
         champ_select_enabled: !!(cfg.champ_select || {}).enabled, allowed_queue_count: (cfg.allowed_queue_ids || []).length,
         champions_loaded: 0, companion_enabled: !!cfgComp().enabled, companion_running: companion.isRunning(),
