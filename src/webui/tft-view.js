@@ -44,12 +44,12 @@ window.createTftView = function (host) {
   // --- Field Guide frame ---------------------------------------------------
   // DONI-531: the live comps tier list (#/tft) is the one comps page; #/tft/comps redirects there. The guide's practice
   // comps stay inside the Planner (its own links), so every guide page reports as Planner except the library on home.
-  const GUIDE = { planner: 'playground', champions: 'home', items: 'home' };
+  const GUIDE = { planner: 'playground', champions: 'home', 'item-library': 'home' };
   const parse = () => { const [p = '', id = ''] = location.hash.replace(/^#\/tft\/?/, '').split('/'); return { p, id: decodeURIComponent(id) }; };
   // The sidebar's Champions / Items open the guide's own library panel; Comps and Planner close it (DONI-531).
   function openLibrary() {
     const { p } = parse(), doc = frame.contentDocument;
-    if (p === 'champions' || p === 'items') doc?.querySelector(`[data-library="${p}"]`)?.click();
+    if (p === 'champions' || p === 'item-library') doc?.querySelector(`[data-library="${p === 'item-library' ? 'items' : p}"]`)?.click();
     else if (doc?.querySelector('#fieldLibrary') && !doc.querySelector('#fieldLibrary').hidden) doc.querySelector('#libraryClose')?.click();
   }
   function showGuide(p, focus) {
@@ -65,7 +65,7 @@ window.createTftView = function (host) {
         frame.contentWindow.addEventListener('hashchange', () => {
           if (frame.hidden) return;
           const hash = frame.contentWindow.location.hash.slice(1), { p } = parse();
-          if (hash === 'home' && (p === 'champions' || p === 'items')) return; // the library sits on the guide's home
+          if (hash === 'home' && (p === 'champions' || p === 'item-library')) return; // the library sits on the guide's home
           history.replaceState(null, '', '#/tft/planner');
           window.syncSidebar?.();
         });
@@ -297,6 +297,8 @@ window.createTftView = function (host) {
   page.addEventListener('click', (e) => {
     const o = e.target.closest('[data-open]');
     if (o) { open = open === o.dataset.open ? null : o.dataset.open; renderList(); page.querySelector(`[data-open="${CSS.escape(o.dataset.open)}"]`)?.focus(); return; }
+    const cb = e.target.closest('[data-cost]');
+    if (cb) { costFilter = +cb.dataset.cost; statsList('units'); return; }
     const r = e.target.closest('[data-region]');
     if (r) { filters.region = r.dataset.region; refilter(); return; }
     if (e.target.closest('[data-more]')) { shown += 30; renderList(); return; }
@@ -305,11 +307,72 @@ window.createTftView = function (host) {
   });
   page.addEventListener('change', (e) => { if (e.target.dataset.f) { filters[e.target.dataset.f] = e.target.value; refilter(); } });
   async function refilter() {
+    if (LISTS[parse().p]) return statsList(parse().p);
     open = null; shown = 30; known.clear(); searchedAll = false;
     page.querySelector('.ts-state').textContent = 'Loading comps…';
     await loadComps();
     page.querySelector('.ts-filter-slot').innerHTML = filterStrip();
     renderList();
+  }
+
+
+  // --- DONI-510 / DONI-511: MetaTFT's Units, Items and Traits stat pages, and a page per unit ----------------------------
+  // #/tft/units (cost filter), #/tft/unit/{key}, #/tft/items, #/tft/traits on the crawler's /tft/units, /tft/unit/{key},
+  // /tft/items, /tft/traits (same patch/region/rank filters as the tier list). Lobby averages colour the numbers: 4.5 place,
+  // 50 % top 4, 12.5 % win; frequency tints purple. The field guide's libraries stay at #/tft/champions and #/tft/item-library.
+  const LISTS = { units: 'Units', items: 'Items', traits: 'Traits' };
+  let costFilter = 0;
+  const qsAll = () => `${qs()}`;
+  const cells = (r) => `<span class="ts-num">${heat(r.avgPlacement, 4.5, 0.6, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.12, r.games, pct(r.top4Rate))}</span>
+    <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.frequency, 0.3, pct(r.frequency))}</span><span class="ts-num">${r.games.toLocaleString()}</span>`;
+  const costOf = (key) => S.info(key).cost || 0;
+  const unitLink = (key, extra = '') => `<a class="ts-unit-link cost${costOf(key)}" href="#/tft/unit/${enc(key)}" title="${esc(name(key))}${extra}">${icon(key)}</a>`;
+  async function statsList(kind) {
+    document.title = LISTS[kind] + ' · TFT · QueuePop';
+    const libs = kind === 'units' ? '<a href="#/tft/champions">Champion library ↗</a>' : kind === 'items' ? '<a href="#/tft/item-library">Item library ↗</a>' : '';
+    page.innerHTML = `<div class="ts-wrap"><header class="ts-list-head"><h1>${LISTS[kind]}</h1><span class="ts-quiet ts-meta"></span>${libs}</header><div class="ts-filter-slot"></div><p class="ts-state" role="status">Loading ${kind}…</p><div class="ts-list"></div></div>`;
+    if (!patches) await loadComps();
+    if (parse().p !== kind) return;
+    page.querySelector('.ts-filter-slot').innerHTML = filterStrip() + (kind === 'units' ? `<div class="ts-seg ts-costs" role="group" aria-label="Cost">${[0, 1, 2, 3, 4, 5].map((c) => `<button data-cost="${c}" aria-pressed="${costFilter === c}">${c ? c + ' gold' : 'All costs'}</button>`).join('')}</div>` : '');
+    let d;
+    try { d = await S.get(`/tft/${kind}?${qsAll()}`); } catch (_) {
+      page.querySelector('.ts-state').textContent = 'Stats offline: the queuePop crawler did not answer.'; return;
+    }
+    if (parse().p !== kind) return;
+    const rows = (d[kind] || []).filter((r) => kind !== 'units' || !costFilter || costOf(r.key) === costFilter)
+      .sort((a, b) => a.lowSample - b.lowSample || a.avgPlacement - b.avgPlacement);
+    page.querySelector('.ts-state').textContent = rows.length ? '' : 'Nothing recorded for these filters yet.';
+    page.querySelector('.ts-meta').textContent = `${d.boards.toLocaleString()} boards · patch ${d.patch} · best average place first`;
+    const extraHead = { units: 'Popular items', items: 'Best holders', traits: 'By breakpoint (avg place · games)' }[kind];
+    const extra = (r) => kind === 'units' ? `<span class="ts-units">${(r.items || []).map((i) => `<span title="${esc(name(i.key))} · ${i.avgPlacement.toFixed(2)} avg · ${i.games.toLocaleString()} games">${icon(i.key, 'ts-ico-item')}</span>`).join('')}</span>`
+      : kind === 'items' ? `<span class="ts-units">${(r.units || []).map((u) => unitLink(u.unit, ` · ${u.avgPlacement.toFixed(2)} avg · ${u.games.toLocaleString()} games`)).join('')}</span>`
+      : `<span class="ts-tiers">${(r.tiers || []).map((t) => `<span class="${t.lowSample ? 'low' : ''}" title="Breakpoint ${t.tier}: ${t.games.toLocaleString()} games, ${pct(t.top4Rate)} top 4">${t.tier} ${heat(t.avgPlacement, 4.5, 0.6, t.games, t.avgPlacement.toFixed(2), true)}</span>`).join('')}</span>`;
+    const lead = (r) => kind === 'units' ? `<a class="ts-name ts-unit-name cost${costOf(r.key)}" href="#/tft/unit/${enc(r.key)}">${icon(r.key)}<span>${esc(name(r.key))}</span></a>`
+      : `<span class="ts-name">${icon(r.key, kind === 'traits' ? 'ts-ico-trait' : 'ts-ico-item')}<span>${esc(name(r.key))}</span></span>`;
+    page.querySelector('.ts-list').innerHTML = `<div class="ts-head ts-head-list" aria-hidden="true"><span>${LISTS[kind].replace(/s$/, '')}</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Frequency</span><span>Games</span><span>${extraHead}</span></div>`
+      + rows.map((r) => `<div class="ts-row ts-row-list ${r.lowSample ? 'low' : ''}">${lead(r)}${cells(r)}${extra(r)}</div>`).join('');
+  }
+  async function unitPage(key) {
+    document.title = name(key) + ' · TFT · QueuePop';
+    page.innerHTML = '<div class="ts-wrap"><a class="ts-back" href="#/tft/units">← All units</a><p class="ts-state" role="status">Loading unit…</p></div>';
+    if (!patches) await loadComps();
+    let d;
+    try { d = await S.get(`/tft/unit/${enc(key)}?${qsAll()}`); } catch (e) {
+      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this unit with these filters.' : 'Stats offline: the queuePop crawler did not answer.'; return;
+    }
+    if (parse().id !== key) return;
+    const tbl = (head, rows, f) => rows.length ? `<table class="ts-table"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(f).join('')}</tbody></table>` : '<p class="ts-quiet">None recorded.</p>';
+    const num = (r) => `<td>${heat(r.avgPlacement, 4.5, 0.6, r.games, r.avgPlacement.toFixed(2), true)}</td><td>${r.top4Rate == null ? '–' : pct(r.top4Rate)}</td><td>${r.games.toLocaleString()}</td>`;
+    page.querySelector('.ts-wrap').innerHTML = `<a class="ts-back" href="#/tft/units">← All units</a>
+      <header class="ts-comp-head ${d.lowSample ? 'low' : ''}"><span class="ts-unit-name cost${costOf(key)}">${icon(key)}</span><div><h1>${esc(name(key))}</h1><div class="ts-name">${costOf(key) ? costOf(key) + ' gold · ' : ''}${(S.info(key).traits || []).map((t) => `<span class="ts-trait">${esc(t)}</span>`).join(' · ')}</div></div></header>
+      <div class="ts-stats">${[['Avg place', d.avgPlacement.toFixed(2)], ['Top 4', pct(d.top4Rate)], ['Win', pct(d.winRate)], ['Frequency', pct(d.frequency)], ['Games', d.games.toLocaleString()]].map(([l, v]) => `<div><small>${l}</small><strong>${v}</strong></div>`).join('')}</div>
+      <p class="ts-quiet">Patch ${esc(d.patch)} · ${d.region === 'all' ? 'all regions' : esc(d.region.toUpperCase())} · ${d.bracket === 'all' ? 'all ranks' : esc(d.bracket) + '+'}</p>
+      <div class="ts-detail-grid">
+        <div><h3>By star level</h3>${tbl(['Star', 'Avg place', 'Top 4', 'Games'], d.stars || [], (s) => `<tr class="${s.lowSample ? 'low' : ''}"><td>${stars(s.star)}</td>${num(s)}</tr>`)}
+          <h3>Comps it plays in</h3>${tbl(['Comp', 'Avg place', 'Top 4', 'Games'], (d.comps || []).slice(0, 12), (c) => `<tr class="${c.lowSample ? 'low' : ''}"><td><a href="#/tft/comp/${enc(c.id)}">${esc(compName(c.id))}</a></td>${num(c)}</tr>`)}</div>
+        <div><h3>Item sets</h3>${tbl(['Items', 'Avg place', 'Top 4', 'Games'], (d.itemSets || []).slice(0, 12), (s) => `<tr><td>${s.key ? s.key.split(',').map((i) => icon(i, 'ts-ico-item')).join('') : '<span class="ts-quiet">No items</span>'}</td>${num(s)}</tr>`)}
+          <h3>Single items</h3>${tbl(['Item', 'Avg place', 'Top 4', 'Games'], (d.items || []).slice(0, 15), (i) => `<tr><td>${icon(i.key, 'ts-ico-item')}${esc(name(i.key))}</td>${num(i)}</tr>`)}</div>
+      </div>`;
   }
 
   function showStats(p, id) {
@@ -318,6 +381,8 @@ window.createTftView = function (host) {
     function render() {
       const cur = parse();
       if (cur.p === 'comp') compPage(cur.id);
+      else if (cur.p === 'unit') unitPage(cur.id);
+      else if (LISTS[cur.p]) statsList(cur.p);
       else if (cur.p === 'history') historyPage();
       else landing();
     }
