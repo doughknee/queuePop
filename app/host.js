@@ -20,7 +20,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -28,15 +28,30 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   app.on("before-quit", () => { quitting = true; });
   app.on("second-instance", () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); });
 
-  // Close hides to the tray; only tray Exit / app.quit() really closes.
-  win.on("close", (e) => { if (!quitting) { e.preventDefault(); win.hide(); } });
-  const tray = createTray({ win, icon: ICON, state, push, quit });
+  // Close hides to the tray unless Settings > App says the ✕ quits (close_to_tray false); tray Quit always quits.
+  win.on("close", (e) => { if (!quitting && loadConfig().close_to_tray !== false) { e.preventDefault(); win.hide(); } else quitting = true; });
   if (loadConfig().start_minimized) win.hide();
+  // Launch at login (DONI-544): applied at start and whenever Settings saves it. A dev run registers electron.exe + this app.
+  const loginItem = (on) => {
+    try { app.setLoginItemSettings(app.isPackaged ? { openAtLogin: !!on } : { openAtLogin: !!on, path: process.execPath, args: [app.getAppPath()] }); }
+    catch (e) { log("launch at login:", e.message); }
+  };
+  if (app.getLoginItemSettings().openAtLogin !== !!loadConfig().launch_at_login) loginItem(loadConfig().launch_at_login);
 
   const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused }),
+    status: () => ({ connected: lcu.connected, paused: state.paused,
+      ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
+    // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
+    decline: async () => {
+      if (!lcu.connected) return { ok: false, error: "The League client isn't running" };
+      if (!state.ready || state.ready.state !== "InProgress") return { ok: false, error: "There's no match to decline right now" };
+      const r = await lcu.request("post", "/lol-matchmaking/v1/ready-check/decline").catch((e) => ({ status: e.message }));
+      const ok = r.status >= 200 && r.status < 300;
+      push(ok ? "Match declined from your phone" : `Decline from your phone failed (${r.status})`, ok ? "warning" : "danger", "match");
+      return ok ? { ok } : { ok, error: `The client said ${r.status}` };
+    },
   });
   if ((loadConfig().companion || {}).enabled) companion.start();
   const updater = createUpdater({ version, push });
@@ -50,6 +65,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     } catch (e) { log("could not save", key, e.message); }
   };
   const account = createAccount({ lcu, getConfig: loadConfig, setConfigKey, push });
+  const tray = createTray({ win, icon: ICON, state, push, quit, lcu, getConfig: loadConfig, startQueue: account.startQueue, names: QUEUE_ID_MAP });
 
   // --- alerts, driven by LCU events (a mock run emits these on `lcu` directly) ---
   let queueName = null;
@@ -74,6 +90,12 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   lcu.on("disconnect", () => notifier.alert("disconnect", "🔌 Client disconnected", "The League client closed or lost its connection.", "Client disconnected"));
 
   const cfgComp = () => loadConfig().companion || {};
+  // DONI-328: one random token per install (kept in config.json), in every QR link; a new one cuts off every phone.
+  const newToken = () => {
+    try { const cfg = config.get(); cfg.companion = { ...(cfg.companion || {}), token: require("crypto").randomBytes(16).toString("hex") }; config.save(cfg); return true; }
+    catch (e) { log("companion token:", e.message); return false; }
+  };
+  if (!/^[0-9a-f]{16,64}$/.test(String(cfgComp().token || ""))) newToken();
   const mine = {
     get_status: () => {
       const cfg = loadConfig();
@@ -102,10 +124,22 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return r;
     },
     test_companion: () => { push("Test phone alert", "danger", "queue_pop"); return { ok: true, running: companion.isRunning() }; },
+    new_companion_link: () => ({ ok: newToken() }),
+    // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
+    test_alert: async () => {
+      const cfg = loadConfig(), channels = [];
+      if (cfg.desktop_notifications) channels.push("Windows");
+      if (cfg.webhook_url && (cfg.discord_enabled ?? true)) channels.push("Discord");
+      if (companion.isRunning()) { channels.push("your phone"); push("Test queue pop", "danger", "queue_pop"); }
+      await notifier.alert("queue_pop", "Queue Popped! (test)", "This is what a queue pop looks like. Nothing was accepted.", "Test queue pop", { test: true, queue: "Test" });
+      return { ok: channels.length > 0, channels };
+    },
     get_companion_info: async () => {
       const port = companion.boundPort() || Number(cfgComp().port) || DEFAULT_PORT;
       const ip = await lanIp();
-      const url = `http://${ip}:${port}`;
+      // A phone can't reach 127.0.0.1: no link and no QR rather than one that can never work (DONI-328).
+      if (/^127\./.test(ip)) return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url: "", no_lan: true, running: companion.isRunning(), qr: "" };
+      const url = `http://${ip}:${port}/?t=${cfgComp().token || ""}`;
       return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url, running: companion.isRunning(), qr: await require("qrcode").toDataURL(url).catch(() => "") }; // qrcode loads on first use, ~35 ms off startup (DONI-539)
     },
     get_update_status: () => updater.status(),
@@ -125,7 +159,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         filters: [{ name: "Audio Files", extensions: ["mp3", "ogg", "wav", "m4a"] }, { name: "All files", extensions: ["*"] }] });
       return r.canceled || !r.filePaths[0] ? { ok: false } : { ok: true, path: r.filePaths[0], name: path.basename(r.filePaths[0]) };
     },
-    hide_window: () => { win.hide(); return true; },
+    hide_window: () => { win.close(); return true; }, // the close handler above hides to the tray or quits (close_to_tray)
     minimize_window: () => { win.minimize(); return true; },
     resize_window: (width, height, edge = "se") => {
       const b = win.getBounds(), [minW, minH] = win.getMinimumSize();
@@ -135,7 +169,20 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return true;
     },
   };
-  for (const k of Object.keys(mine)) if (!NAMES.includes(k)) throw new Error("host.js: " + k + " missing from NAMES");
+  // Settings apply at once: the phone companion restarts when it's switched or its port changes (DONI-543), launch at login
+  // follows its switch (DONI-544).
+  const saveConfig = impl.save_config;
+  if (saveConfig) mine.save_config = async (c) => {
+    const before = cfgComp(), r = await saveConfig(c), after = cfgComp();
+    const cfg = loadConfig();
+    if (app.getLoginItemSettings().openAtLogin !== !!cfg.launch_at_login) loginItem(cfg.launch_at_login);
+    if (!!before.enabled !== !!after.enabled || Number(before.port) !== Number(after.port)) {
+      companion.stop();
+      if (after.enabled) await companion.start();
+    }
+    return r;
+  };
+  for (const k of Object.keys(mine)) if (k !== "save_config" && !NAMES.includes(k)) throw new Error("host.js: " + k + " missing from NAMES");
   Object.assign(impl, mine);
   return { notifier, companion, updater, tray };
 }

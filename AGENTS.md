@@ -188,6 +188,18 @@
   `/status` `key.valid`) > crawler offline (League/TFT/home) > League client closed (League/TFT) > update out (home/Settings), with
   Retry and a link that focuses the fixing field. `statusIssues` is pure (`app/test-status.js`). It replaces `#upd-banner` (hidden in
   shell.css). worlds.js `toast()` goes through `showToast`. Settings buttons all report into a `[data-msg]` (or `data-msg-alias`).
+- Home + Settings deck-out (DONI-543, 2026-10-20; decided, don't bring back): home is bar → set-up strip → "Pick up where you left off"
+  (`resumeTiles`, pure, from `queuepop-last-v1` `recent`/`worlds`/`champion`; names filled from Data Dragon / tftStats) → the game
+  cards, whose line says what's inside. The mockup hero ("Different worlds"), sigil, champ-select "resume" link and "Go live a little"
+  footer are gone. Settings: a "Find a setting" box (Ctrl+F) filters rows by every typed word (a card title keeps its card);
+  crawler URL lives in the Stats crawler card, Start in the tray in "App & display", alarm sound in Phone companion; the Riot-key
+  form is folded (opens itself when the key is rejected or missing); the companion restarts on save (host.js wraps `save_config`).
+- Tray + window (DONI-544): `app/tray.js` `trayItems` (pure, `app/test-tray.js`) builds the menu on each right click: Open, enabled
+  worlds, Queue again / Start a queue (League + TFT ids, needs the client), Auto-accept paused, Quit. Config `launch_at_login`
+  (`app.setLoginItemSettings`, applied at start and on save) and `close_to_tray` (default on; off makes ✕ quit; `hide_window` now
+  calls `win.close()` and the close handler decides). Bridge `test_alert` sends a test queue pop through every channel that is on.
+- Accessibility (DONI-545): shell text is never under 12 px; `--dim`/`--line` are never text (2.7:1 / 1.4:1); `app/test-contrast.js`
+  checks every text token at AA on `--bg` and `--bg` on lime. Reduced motion stops the home bar's clock (pills still turn it).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

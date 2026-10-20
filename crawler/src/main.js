@@ -2,6 +2,7 @@
 //   node src/main.js             crawl + serve
 //   node src/main.js aggregate   rebuild all stats_* now and exit
 //   node src/main.js backfill-patch  re-parse patch/set from stored raw for '?' rows, drop stale '?' stats, exit
+//   node src/main.js backfill-length  matches.duration from stored raw (D6 length buckets), exit
 //   node src/main.js backfill-comps  re-key TFT boards with the current comp rule from stored raw (DONI-502), exit
 //   node src/main.js backfill-players  Riot ids from stored raw into lol_names (DONI-506), exit
 //   node src/main.js vacuum      one-time VACUUM that enables auto_vacuum on an old DB, then exit
@@ -42,6 +43,10 @@ if (process.argv[2] === "backfill-patch") {
   log("backfill-patch", JSON.stringify(jobs.backfillPatch(db)), "- now run: npm run aggregate");
   process.exit(0);
 }
+if (process.argv[2] === "backfill-length") {
+  log("backfill-length", JSON.stringify(jobs.backfillDuration(db)), "- now run: npm run aggregate");
+  process.exit(0);
+}
 if (process.argv[2] === "backfill-comps") {
   log("backfill-comps", JSON.stringify(jobs.backfillComps(db)), "- now run: npm run aggregate");
   process.exit(0);
@@ -61,7 +66,8 @@ const onAuthFail = (status, msg) => { if (db_.keyHealth(db, cfg.key).valid) log(
 const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
-createServer({ db, limiter, version, adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
+const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: () => db_.keyHealth(db, cfg.key).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
+createServer({ db, limiter, version, lookup, defaultRegion: cfg.regions[0], adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
 // Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops.
 async function forever(name, step, idle) {

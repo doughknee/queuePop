@@ -18,7 +18,7 @@ function lanIp() {
   });
 }
 
-// ctx: { webRoot, events (shared array, ascending ids), getConfig, status: () => ({connected, paused}), push }
+// ctx: { webRoot, events (shared array, ascending ids), getConfig, status: () => ({connected, paused, ready}), push, decline }
 function createCompanion(ctx) {
   let server = null;
   let boundPort = null;
@@ -27,7 +27,9 @@ function createCompanion(ctx) {
   const write = (res, e) => res.write(`id: ${e.id}\nevent: log\ndata: ${JSON.stringify(e)}\n\n`);
   const cfgComp = () => ctx.getConfig().companion || {};
 
+  const MAX_CLIENTS = 8; // a phone or two in practice; a cap keeps a stuck LAN client from piling up timers (DONI-534)
   function stream(req, res) {
+    if (clients >= MAX_CLIENTS) { res.writeHead(503, { "Retry-After": "30" }); return res.end(); }
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
     clients++;
     const url = new URL(req.url, "http://x");
@@ -41,13 +43,34 @@ function createCompanion(ctx) {
       for (const e of fresh) { write(res, e); after = e.id; }
       if (!fresh.length && ++beats % 15 === 0) res.write(": ping\n\n");
     }, 1000);
-    req.on("close", () => { clearInterval(timer); clients = Math.max(0, clients - 1); });
+    let done = false;
+    const stop = () => { if (done) return; done = true; clearInterval(timer); clients = Math.max(0, clients - 1); };
+    req.on("close", stop);
+    res.on("error", stop); // a write to a phone that vanished mid-stream
+    res.on("close", stop);
   }
 
+  // DONI-328: the QR link carries ?t=<token>; opening it sets a year-long cookie, so the page, its feed and a home-screen
+  // install keep working. Static files stay public (a browser fetches the manifest without cookies); only /api/* needs it.
+  const tokenOf = (req, url) => url.searchParams.get("t") || ((req.headers.cookie || "").match(/(?:^|;\s*)qp_t=([0-9a-f]+)/) || [])[1] || "";
+  const authorised = (req, url) => { const want = cfgComp().token; return !!want && tokenOf(req, url) === want; };
+
   function handler(req, res) {
-    let p; // a malformed escape (GET /%) from anyone on the LAN threw here and took the whole host down (DONI-529)
-    try { p = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400); return res.end(); }
+    let p, url; // a malformed escape (GET /%) from anyone on the LAN threw here and took the whole host down (DONI-529)
+    try { url = new URL(req.url, "http://x"); p = decodeURIComponent(url.pathname); } catch { res.writeHead(400); return res.end(); }
+    if (p.startsWith("/api/") && !authorised(req, url)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "token", message: "Scan the QR code in queuePop's Settings again." }));
+    }
+    if (url.searchParams.get("t") && authorised(req, url) && (p === "/" || p.endsWith(".html"))) {
+      res.setHeader("Set-Cookie", `qp_t=${cfgComp().token}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict`);
+    }
     if (p === "/api/stream") return stream(req, res);
+    if (p === "/api/decline") {
+      if (req.method !== "POST" || !ctx.decline) { res.writeHead(405); return res.end(); }
+      return Promise.resolve(ctx.decline()).catch((e) => ({ ok: false, error: e.message }))
+        .then((r) => { res.writeHead(r.ok ? 200 : 409, { "Content-Type": "application/json" }); res.end(JSON.stringify(r)); });
+    }
     if (p === "/api/status") {
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ ...ctx.status(), sound: cfgComp().sound || "chime" }));

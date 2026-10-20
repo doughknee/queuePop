@@ -10,6 +10,9 @@
 // or a switched-away app still can't be woken, that genuinely needs push.
 
 const $ = (id) => document.getElementById(id);
+// DONI-328: the QR link's ?t=<token> (the server also set a cookie, which covers a home-screen launch without it).
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const withToken = (u) => (TOKEN ? u + (u.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(TOKEN) : u);
 
 let lastId = 0; // highest event id seen (also the SSE resume cursor)
 let primed = false; // true after first 'synced', suppresses alarms on backlog
@@ -51,7 +54,7 @@ function startKeepAlive() {
 async function ensureCustomSound() {
   if (currentSound !== "custom" || customBuffer || !audioCtx) return;
   try {
-    const res = await fetch("/api/sound", { cache: "no-store" });
+    const res = await fetch(withToken("/api/sound"), { cache: "no-store" });
     if (!res.ok) return;
     customBuffer = await audioCtx.decodeAudioData(await res.arrayBuffer());
   } catch (_) {}
@@ -128,6 +131,7 @@ document.addEventListener("visibilitychange", () => {
 function startAlarm(mode) {
   if (alarming) return;
   alarming = true;
+  $("decline-msg").textContent = "";
   $("alarm-mode").textContent = mode ? `Mode: ${mode}` : "";
   $("alarm").classList.add("show");
   initAudio();
@@ -151,6 +155,20 @@ function stopAlarm() {
 }
 $("silence").addEventListener("click", stopAlarm);
 
+// DONI-337: decline from the phone. Penalty-free in the client; auto-accept stands down on its own.
+$("decline").addEventListener("click", async () => {
+  const b = $("decline"), msg = $("decline-msg");
+  b.disabled = true; msg.textContent = "Declining…";
+  try {
+    const res = await fetch(withToken("/api/decline"), { method: "POST" });
+    const r = await res.json().catch(() => ({}));
+    if (res.status === 403) msg.textContent = "Scan the QR code in queuePop again";
+    else if (r.ok) { msg.textContent = "Declined. No penalty."; setTimeout(stopAlarm, 1500); }
+    else msg.textContent = r.error || "Couldn't decline";
+  } catch (_) { msg.textContent = "Couldn't reach your PC"; }
+  b.disabled = false;
+});
+
 // --- Activity stream (SSE) --------------------------------------------------
 function onLog(e) {
   let ev;
@@ -167,8 +185,9 @@ function onLog(e) {
   }
 }
 
+
 function connectStream() {
-  const es = new EventSource(`/api/stream?after=${lastId}`);
+  const es = new EventSource(withToken(`/api/stream?after=${lastId}`));
   es.addEventListener("log", onLog);
   es.addEventListener("synced", () => (primed = true));
   es.onopen = () => setConn(true, "Watching");
@@ -177,7 +196,8 @@ function connectStream() {
 
 async function pollStatus() {
   try {
-    const res = await fetch("/api/status", { cache: "no-store" });
+    const res = await fetch(withToken("/api/status"), { cache: "no-store" });
+    if (res.status === 403) return setConn(false, "Scan the QR code in queuePop again");
     const s = await res.json();
     setConn(!!s.connected, s.connected ? (s.paused ? "Paused" : "Watching") : "Client closed");
     if (s.sound && s.sound !== currentSound) {

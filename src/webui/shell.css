@@ -28,8 +28,8 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-pages{display:none} /* the source lists; shell.js copies the current game's into .sb-block (DONI-527) */
 .sb-block{display:flex;flex-direction:column;gap:1px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)}
 .sb-block:empty{display:none}
-.sb-block::before{content:attr(data-label);padding:0 8px 6px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-block a{padding:6px 8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-block::before{content:attr(data-label);padding:0 8px 6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-block a{padding:6px 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #qp-sidebar [aria-current="page"]{background:var(--wash);color:var(--accent);box-shadow:inset 2px 0 var(--accent)}
 .sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid var(--line)}
 .sb-user .summoner{right:auto;flex:1;min-width:0;padding:4px;gap:10px;color:var(--fg)}
@@ -39,7 +39,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-user .summoner-portrait img,.sb-user .summoner-portrait .ph{border-color:var(--bg);background:var(--bg);color:var(--muted)}
 .sb-user .summoner-meta{top:0;min-width:0}
 .sb-user .summoner-name{font:700 12px var(--mono);color:var(--fg);max-width:100%}
-.sb-user .summoner-level,.sb-user .summoner-rank{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.sb-user .summoner-level,.sb-user .summoner-rank{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 .sb-user .summoner-level{color:var(--muted)}
 .sb-resize{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize}
 .sb-resize:hover,.sb-dragging .sb-resize{background:var(--accent)}
@@ -56,7 +56,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #qp-sidebar .sb-gear[aria-current]{color:var(--accent)}
 .sb-scroll::-webkit-scrollbar{width:4px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:var(--line)}
 .qp-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
-.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid var(--line);color:var(--muted);font:11px var(--mono);text-transform:uppercase;letter-spacing:.1em;background:var(--bg)}.qp-footer i{color:var(--accent);font-style:normal;margin:0 12px}
+.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid var(--line);color:var(--muted);font:12px var(--mono);text-transform:uppercase;letter-spacing:.1em;background:var(--bg)}.qp-footer i{color:var(--accent);font-style:normal;margin:0 12px}
 
 /* Window chrome: the buttons sit at the top right over the page row; drag areas are .sb-top, #world-nav, .city-nav. */
 .win-controls,.resize-grip,.league-dock{-webkit-app-region:no-drag}
@@ -92,7 +92,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #world-nav#world-nav #tft-play.queued{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 #world-nav#world-nav #tft-play:focus-visible,.city-nav.city-nav .dl-play:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 #world-nav#world-nav #tft-play[hidden],#world-nav#world-nav .league-dock[hidden]{display:none}
-#tft-play .tp-ico,.city-nav.city-nav .dl-play b{font-size:11px;color:inherit}
+#tft-play .tp-ico,.city-nav.city-nav .dl-play b{font-size:12px;color:inherit}
 #world-nav#world-nav .league-dock{position:static}
 #world-nav .play-btn,#world-nav .play-svg{height:34px}
 #world-nav#world-nav .play-svg path{fill:var(--accent);animation:none}
@@ -130,40 +130,28 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .hp-value small{font:700 12px/1 var(--mono);letter-spacing:.04em}
 @container (max-width:180px){.hp-col .hp-strip i{font-size:0}.hp-col{gap:3px}.hp-value{flex-direction:column;align-items:flex-start;gap:3px;font-size:clamp(16px,19cqi,22px)}} /* narrow (1280 at 150 %): LP and W/L go under the figure */
 .hp-strip{display:flex;gap:2px;align-self:center;width:100%;max-width:220px}
-.hp-strip i{flex:0 1 20px;min-width:0;height:20px;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;border:1px solid var(--bg);font:700 11px/1 var(--mono);font-style:normal}
+.hp-strip i{flex:0 1 20px;min-width:0;height:20px;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;border:1px solid var(--bg);font:700 12px/1 var(--mono);font-style:normal}
 .hp-strip i.up{background:var(--bg);color:var(--accent)}
 .hp-note{align-self:flex-start;font:12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
 @keyframes hp-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes hp-up{from{transform:translateY(100%);opacity:0}}
 @keyframes hp-in{from{transform:translateX(100%)}}@keyframes hp-out{to{transform:translateX(-100%)}}
 @keyframes hp-in-back{from{transform:translateX(-100%)}}@keyframes hp-out-back{to{transform:translateX(100%)}}
-@media (prefers-reduced-motion:reduce){.hp-page.enter,.hp-id{animation:none}.hp-page.leave{display:none}}
+@media (prefers-reduced-motion:reduce){.hp-page.enter,.hp-id{animation:none}.hp-page.leave{display:none}.hp-pill span{animation:none}} /* no fill = no clock: pages turn only when you pick a pill (DONI-545) */
 .qp-rise{animation:qp-rise .7s cubic-bezier(.2,.9,.2,1) both}
-.theme-home .hub-intro{padding:48px 5% 40px}
 .theme-home .eyebrow{color:var(--muted);font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase}
 .theme-home .eyebrow:before{content:'// '}
-.theme-home .hub-intro h1{font:clamp(56px,6vw,104px)/.9 var(--display);letter-spacing:.01em;text-transform:uppercase;color:var(--fg)}
-.theme-home .hub-intro p:not(.eyebrow){color:var(--muted);font-size:13px}
-.theme-home .home-sigil{opacity:1}
-.theme-home .home-sigil:before,.theme-home .home-sigil:after,.theme-home .home-sigil div{border-color:var(--line)}
-.theme-home .resume{border-left:1px solid var(--accent);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
-.theme-home .resume strong{font:28px/1 var(--display);color:var(--fg)}
-.theme-home .resume:hover strong,.theme-home .resume:hover b{color:var(--accent)}
 .theme-home .worlds{gap:16px}
 .theme-home .world-gate{margin-top:0;border:1px solid var(--line);background:var(--bg)}
 .theme-home .world-gate:hover{transform:translateY(-4px);border-color:var(--accent)}
 .theme-home .world-gate:after{background:linear-gradient(0deg,var(--bg) 6%,color-mix(in srgb,var(--bg) 55%,transparent) 55%,transparent)}
-.theme-home .world-number{padding:4px 8px;background:var(--bg);color:var(--accent);font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.theme-home .world-number{padding:4px 8px;background:var(--bg);color:var(--accent);font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase}
 .theme-home .gate-logo{width:44px;height:44px;object-fit:contain;margin-bottom:14px}
 .theme-home .world-gate h2{font:clamp(40px,3.6vw,64px)/.9 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--fg);text-shadow:none}
 .theme-home .world-gate h2 small{font:12px var(--mono);letter-spacing:.2em;color:var(--accent);margin-top:10px}
 .theme-home .world-gate p{color:var(--fg);font-size:13px;margin-top:18px}
-.theme-home .gate-entry{border-top:1px solid var(--accent);color:var(--fg);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.theme-home .gate-entry{border-top:1px solid var(--accent);color:var(--fg);font-size:12px;text-transform:uppercase;letter-spacing:.1em}
 .theme-home .world-gate:hover .gate-entry{color:var(--accent)}
-.theme-home .hub-bottom{border-top:1px solid var(--line)}
-.theme-home .hub-bottom h3{font:32px/.9 var(--display);text-transform:uppercase;color:var(--fg)}
-.theme-home .hub-bottom p{color:var(--muted)}
-.theme-home .little-sigil{color:var(--accent)}
 .theme-home :focus-visible{outline:2px solid var(--accent);outline-offset:4px}
 /* worlds.js render(): a page builder that throws shows this instead of the previous page (DONI-529). */
 .page-error{max-width:720px;margin:96px auto;padding:0 32px;font-family:var(--mono);color:var(--fg)}.page-error h1{font:48px/1 var(--display);text-transform:uppercase;margin:0 0 16px}.page-error p{color:var(--muted)}.page-error a{color:var(--accent)}
@@ -187,7 +175,7 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .qs-box{display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
 .qs-box svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.8}
 .qs-box input{flex:1;min-width:0;height:56px;border:0;background:none;color:var(--fg);font:16px var(--mono);outline:none}
-.qs-box input::placeholder{color:var(--dim)}
+.qs-box input::placeholder{color:var(--muted)}
 .qp-search kbd{display:inline-block;padding:1px 6px;border:1px solid var(--edge);color:var(--muted);font:12px var(--mono)}
 .qs-list{overflow-y:auto;padding:6px 0}
 .qs-head{margin:6px 16px 4px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
@@ -211,8 +199,8 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 :root[data-games]:not([data-games~="league"]) .league-gate,:root[data-games]:not([data-games~="tft"]) .tft-gate,:root[data-games]:not([data-games~="deadlock"]) .deadlock-gate{display:none}
 .theme-home .worlds{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 /* Home's set-up strip (Q5): what's left to set up, each linking to its Settings field; dismissible. */
-.qp-setup{display:grid;grid-template-columns:max-content 1fr max-content;align-items:start;gap:8px 24px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
-.qp-setup .su-items{display:flex;flex-direction:column;gap:4px}
+.qp-setup{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 24px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
+.qp-setup .su-items{flex:1 1 440px;display:flex;flex-direction:column;gap:4px}
 .qp-setup .su-kicker{padding-top:4px;color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
 .qp-setup .su-item{display:inline-flex;align-items:center;gap:10px}
 .qp-setup a{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap}
@@ -237,3 +225,19 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .qp-status .sl-x:hover{color:var(--fg);text-decoration:none}
 .qp-status :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #upd-banner{display:none!important} /* replaced by the status line's update notice */
+/* Home (Q7): pick up where you left off, then the game cards (what's inside each), all above the fold. */
+.theme-home .hc,.theme-home .hc-first{margin:28px 5% 0}
+.theme-home .hc .eyebrow,.theme-home .hc-first{margin:0 0 12px}
+.hc-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.hc-tile{display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s}
+.hc-tile:hover{border-color:var(--accent)}
+.hc-tile img{width:32px;height:32px;flex:none;object-fit:contain}
+.hc-tile img.hc-champ{object-fit:cover}
+.hc-tile span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hc-tile small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-tile b{font:22px/1.05 var(--display);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc-tile i{font-style:normal;color:var(--muted)}
+.hc-tile:hover i,.hc-tile:hover b{color:var(--accent)}
+.theme-home .worlds{margin-top:28px}
+.theme-home .world-gate{height:clamp(300px,42vh,440px)}
+@media (prefers-reduced-motion:reduce){.hc-tile,.theme-home .world-gate{transition:none}.theme-home .world-gate:hover{transform:none}}

@@ -24,6 +24,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | var | default | |
 |---|---|---|
 | `RIOT_API_KEY` | none | personal key. Without it (and without one posted to `/admin/key`) the service only serves the existing DB |
+| `LOOKUPS_PER_MIN` | 3 | uncached `/lol/summoner` + `/tft/player` lookups allowed per minute (each costs up to ~23 Riot requests) |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
@@ -55,7 +56,9 @@ low-sample rows are kept and flagged so the UI greys them, never dropped. Respon
 Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 
 - `GET /health` → `{ ok, version }`
-- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits }`
+- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits,
+  aggregates: { at, ms, dirty: [patch], patches: { patch: { at, ms } } }, endpoints: [{ path, game, patch, updatedAt, live? }] }` (`endpoints`: what each
+  route serves and when that data was last rebuilt; the status page lists it)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
@@ -101,12 +104,36 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- Windows and trends (DONI-513 data side): `?days=N` (1..90, or `patch` = the default whole patch) on `/lol/tiers`,
+  `/lol/champion/{id}` (strip and roles only; builds, matchups and depth blocks stay per patch), `/tft/comps` and `/tft/comp/{id}`
+  (the comp row; units/augments/traits stay per patch) reads the last N UTC days of the patch (today counts as one) from
+  `stats_{lol_matches,lol_champ,lol_bans,tft_boards,tft_comp}_daily`; the response echoes `days` and `since` (YYYY-MM-DD).
+  `?trend=1` adds `daily: [{ day, games, winRate }]` to tier rows and `daily: [{ day, games, avgPlacement }]` to comp rows.
+- Game length and depth (D6): `/lol/champion/{id}` adds `length: [{ bucket, from, to, games, winRate, share }]` (5-minute buckets of
+  `matches.duration`, `to: null` = 45 min and longer) and `depth: { players, gamesPerPlayer }`; `/lol/tiers` rows add `players` and
+  `gamesPerPlayer` (distinct puuids per champion+role; with bracket=all a player seen in two brackets counts twice). Matches stored
+  before the column existed get `duration` from `npm run -s backfill-length` (raw retention window only), then `aggregate`.
 - `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
   items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
   by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −
   the scope's `winRate`; `champions` = the top 5 champions finishing with it. `/lol/runes` → same head plus `keystones`, `runes`
   (every rune incl. keystones) and `shards` (stat-mod triples); `/lol/spells` → `spells` (keys `"4,14"`). Rolled up at read time
   from `stats_lol_build` / `stats_lol_shards` and memoised until the next aggregation pass.
+- `GET /lol/leaderboard?region&limit` and `GET /tft/leaderboard?region&limit` (DONI-508/512) → `{ game, region, players: [{ rank, riotId,
+  region, tier, division, lp, wins, losses, games, winRate, updatedAt }] }`, ladder order (tier, division, LP), `limit` default 100, max 500.
+  From the `players` table: the daily ladder walk plus a re-read of the three apex ladders every 30 min (`meta apex:<game>:<region>`),
+  so Master+ LP is at most 30 min old; `division` is null for Master+. TFT rows add `crawled: { games, avgPlacement, top4Rate }` over
+  every board we hold for that player (null when none). Riot ids come from `lol_names` (both games; null until we crawled one of their
+  matches). `/lol/leaderboard?champion=<id>[&role]` is the champion leaderboard (same as `/lol/champion/{id}/players`).
+- `GET /lol/summoner/{riotId}?region=na1` and `GET /tft/player/{riotId}?region=na1` (riotId `Name#TAG` URL-encoded, or `Name-TAG`;
+  region defaults to the first of REGIONS) → on-demand from Riot: account-v1, league entries by puuid, last 20 match ids, and each
+  match from our DB when we still hold its raw JSON, else from Riot (~23 requests worst case). League:
+  `{ game, riotId, puuid, region, level, iconId, ranked: [{ queue, tier, division, lp, wins, losses }], matches: [{ id, queueId, startedAt,
+  duration, champion, role, win, kills, deaths, assists, cs, gold, items, spells, keystone }], fetchedAt }`; TFT: same head (no level/icon),
+  `matches: [{ id, queueId, startedAt, length, placement, level, traits: [[name, tier]], units: [[unit, star, [items]]], augments }]`.
+  Cached 10 min per game+region+id (case-insensitive); at most `LOOKUPS_PER_MIN` (default 3) uncached lookups a minute, beyond that
+  429 with `Retry-After`; 404 unknown Riot id, 400 bad id/region, 503 while the key is invalid. The app's `get_match_history` uses
+  this to back-fill a short League history (DONI-524).
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, carry, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units`, `augments` and `activeTraits` (key `"<trait>:<tier_current>"`):
@@ -196,13 +223,28 @@ npm run aggregate        # rebuild all stats now (every patch) (in Docker: docke
 
 ## Deploy to Unraid
 
+First install:
+
 ```bash
 scp -r crawler root@unraid:/mnt/user/appdata/queuepop-crawler
 cd /mnt/user/appdata/queuepop-crawler && cp .env.example .env   # paste RIOT_API_KEY, set TZ
+mkdir -p data && chown -R 1000:1000 data   # the image runs as "node" (uid 1000); a root-owned ./data crash-loops with
+                                           # "unable to open database file" (DONI-494)
 docker compose up -d --build
 curl http://127.0.0.1:47900/status
 docker compose logs -f
 ```
+
+Updates (from the repo root on the dev PC; never copies `.env` or `data/`):
+
+```bash
+scp -q -r crawler/Dockerfile crawler/docker-compose.yml crawler/package.json crawler/README.md crawler/src crawler/fixtures crawler/test unraid:/mnt/user/appdata/queuepop-crawler/
+ssh unraid 'cd /mnt/user/appdata/queuepop-crawler && docker compose up -d --build'
+```
+
+A script that writes the DB (`backfill-*`, `aggregate`) runs with the service stopped, so the two never hold write locks at once:
+`docker compose build && docker compose stop && docker compose run --rm --no-deps crawler npm run -s <script> && docker compose up -d`.
+A forced `aggregate` over one full patch took ~6 min on 2026-10-20 (45k League + 39k TFT matches).
 
 ## Production key later
 

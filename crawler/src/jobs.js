@@ -5,6 +5,7 @@ const { tx, getMeta, setMeta } = require("./db");
 const { ROUTING } = require("./riot");
 const champ = require("./agg-champion");
 const tftAgg = require("./agg-tft");
+const win = require("./agg-window");
 
 const TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
 const DAY = 86400000;
@@ -27,29 +28,49 @@ function ladderSteps(game, minTier) {
   return steps;
 }
 
-// Walks the whole ladder once a day, saving its place after every page.
+const APEX_EVERY = 1800000; // the three apex ladders (Master+) are re-read every 30 min so leaderboard LP stays fresh (DONI-508/512)
+
+const upsertPlayer = (db) => db.prepare(`INSERT INTO players (puuid, game, region, tier, tier_n, division, lp, seeded_at, wins, losses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT (puuid, game) DO UPDATE SET region = excluded.region, tier = excluded.tier, tier_n = excluded.tier_n,
+  division = excluded.division, lp = excluded.lp, seeded_at = excluded.seeded_at, wins = excluded.wins, losses = excluded.losses`);
+const playerRow = (e, game, region, s, t) => [e.puuid, game, region, s.tier, TIERS.indexOf(s.tier), e.rank || s.div || "I", e.leaguePoints ?? 0, t, e.wins ?? null, e.losses ?? null];
+
+// Walks the whole ladder once a day, saving its place after every page. Between walks, refreshes the apex ladders.
 async function seed(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
   const key = `seed:${game}:${region}`;
   let st = getMeta(db, key) || {};
-  if (st.doneAt && now() - st.doneAt < DAY) return false;
+  if (st.doneAt && now() - st.doneAt < DAY) return refreshApex(ctx, game, region);
   if (st.doneAt) st = {};
   const steps = ladderSteps(game, ctx.minTier);
-  const upsert = db.prepare(`INSERT INTO players (puuid, game, region, tier, tier_n, division, lp, seeded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT (puuid, game) DO UPDATE SET region = excluded.region, tier = excluded.tier, tier_n = excluded.tier_n,
-    division = excluded.division, lp = excluded.lp, seeded_at = excluded.seeded_at`);
+  const upsert = upsertPlayer(db);
   let i = st.step || 0, page = st.page || 1;
   while (i < steps.length) {
     const s = steps[i];
     const res = await riot.get(region, s.paged ? s.path + page : s.path, s.method);
     const entries = (s.paged ? res : res?.entries) || [];
     tx(db, () => {
-      for (const e of entries) if (e.puuid) upsert.run(e.puuid, game, region, s.tier, TIERS.indexOf(s.tier), e.rank || s.div || "I", e.leaguePoints ?? 0, now());
+      for (const e of entries) if (e.puuid) upsert.run(...playerRow(e, game, region, s, now()));
       if (s.paged && entries.length) page++; else { i++; page = 1; }
       setMeta(db, key, { step: i, page });
     });
   }
   setMeta(db, key, { doneAt: now() });
+  setMeta(db, `apex:${game}:${region}`, now());
+  return true;
+}
+
+// Three requests: challenger, grandmaster, master. Players who dropped out keep their old apex row until the next daily walk.
+async function refreshApex(ctx, game, region) {
+  const { db, riot, now = Date.now } = ctx;
+  const key = `apex:${game}:${region}`;
+  if (now() - (getMeta(db, key) || 0) < APEX_EVERY) return false;
+  const upsert = upsertPlayer(db);
+  for (const s of ladderSteps(game, "MASTER")) {
+    const entries = (await riot.get(region, s.path, s.method))?.entries || [];
+    tx(db, () => { for (const e of entries) if (e.puuid) upsert.run(...playerRow(e, game, region, s, now())); });
+  }
+  setMeta(db, key, now());
   return true;
 }
 
@@ -142,6 +163,14 @@ function compOf(p) {
   return `${top ? top.name : "none"},${carryOf(p.units)}`;
 }
 
+// Game length from stored raw JSON for matches stored before matches.duration existed (D6). Run `aggregate` after it.
+function backfillDuration(db) {
+  const rows = db.prepare("SELECT id, raw FROM matches WHERE status = 'done' AND duration IS NULL AND raw IS NOT NULL").all();
+  const up = db.prepare("UPDATE matches SET duration = ? WHERE id = ?");
+  tx(db, () => { for (const r of rows) up.run(win.durationOf(JSON.parse(zlib.gunzipSync(r.raw)).info), r.id); });
+  return { matches: rows.length };
+}
+
 // Re-derives tft_participants.comp (current rule) and board from stored raw JSON. Rows whose raw was already dropped by
 // retention keep what they had. Run `aggregate` after it.
 function backfillComps(db) {
@@ -169,9 +198,9 @@ function store(ctx, game, id, m) {
   // Remakes (< 5 min) and unconfigured queues are kept as ids only.
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
-    db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ? WHERE id = ?`).run(
+    db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ?, duration = ? WHERE id = ?`).run(
       ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info), game === "lol" ? null : setOf(info),
-      game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, id);
+      game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, win.durationOf(info), id);
     if (!ok) return;
     if (game === "lol") {
       const ins = db.prepare("INSERT INTO lol_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)");
@@ -183,7 +212,6 @@ function store(ctx, game, id, m) {
       }
       const ban = db.prepare("INSERT INTO lol_bans VALUES (?, ?, ?)");
       for (const t of info.teams) for (const b of t.bans) if (b.championId > 0) ban.run(id, t.teamId, b.championId);
-      require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
     } else {
       const ins = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, tier, comp, traits, units, augments, board) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
       for (const p of info.participants) {
@@ -192,6 +220,8 @@ function store(ctx, game, id, m) {
           JSON.stringify([...new Set(p.units.map((u) => u.character_id))]), JSON.stringify(p.augments || []), tftAgg.boardOf(p));
       }
     }
+    // Riot ids per puuid, both games (TFT since DONI-512, for the leaderboard names).
+    require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
   });
   return ok;
 }
@@ -212,7 +242,7 @@ function backfillPatch(db) {
       up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
       fixed++;
     }
-    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
+    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
   });
   return { scanned: rows.length, fixed, unparsed, sample };
 }
@@ -244,15 +274,22 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
     ...champ.inserts(M, K),
     ...tftAgg.inserts(M, K),
+    ...win.inserts(M, K),
   ].map((q) => db.prepare(q));
   champ.ingestRaw(db);
+  // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
+  const log = getMeta(db, "aggregates") || { patches: {} };
+  const t0 = Date.now();
   tx(db, () => {
     for (const patch of dirty) {
-      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      const t1 = Date.now();
+      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
+      log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
     setMeta(db, "aggregatedAt", now());
+    setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   });
   return dirty.length;
 }
@@ -271,4 +308,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

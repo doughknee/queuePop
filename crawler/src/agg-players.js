@@ -14,7 +14,12 @@ const BEST_MIN = 20; // a "best" player has at least this many games on the cham
 const KEEP_MIN = 3; // ponytail: rows under 3 games are not stored (they can never reach BEST_MIN alone); lower it if a role split ever matters
 const r4 = (x) => Math.round(x * 10000) / 10000;
 
-function migrate(db) { db.exec(SCHEMA); }
+function migrate(db) {
+  db.exec(SCHEMA);
+  // DONI-508/512: ladder wins/losses for the leaderboards
+  const cols = db.prepare("PRAGMA table_info(players)").all().map((c) => c.name);
+  for (const c of ["wins", "losses"]) if (!cols.includes(c)) db.exec(`ALTER TABLE players ADD COLUMN ${c} INT`);
+}
 
 const riotId = (p) => p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagline || ""}` : null;
 function storeNames(db, region, participants) {
@@ -34,9 +39,9 @@ function aggregatePatch(db, patch) {
     GROUP BY m.region, p.puuid, p.role, p.champion HAVING count(*) >= ${KEEP_MIN}`).run(patch);
 }
 
-// Riot ids from the stored raw JSON (only the raw retention window still has it). Run `aggregate` after.
+// Riot ids from the stored raw JSON, League and TFT (only the raw retention window still has it). Run `aggregate` after.
 function backfillPlayers(db) {
-  const rows = db.prepare("SELECT region, raw FROM matches WHERE game = 'lol' AND status = 'done' AND raw IS NOT NULL").all();
+  const rows = db.prepare("SELECT region, raw FROM matches WHERE status = 'done' AND raw IS NOT NULL").all(); // both games (TFT names since DONI-512)
   db.exec("BEGIN");
   try { for (const r of rows) storeNames(db, r.region, JSON.parse(zlib.gunzipSync(r.raw)).info.participants); db.exec("COMMIT"); } catch (e) { db.exec("ROLLBACK"); throw e; }
   return { matches: rows.length, names: db.prepare("SELECT count(*) n FROM lol_names").get().n };
@@ -63,7 +68,8 @@ const best = (ps, wr) => {
 // rate, avg rank_n). Plus regions[] (the crawled regions, for the app's filter).
 function tiersPlus(db, base, where, q = {}) {
   const [w, a] = where(q, base.patch);
-  const all = db.prepare(`SELECT champion, sum(games) g, sum(wins) wins FROM stats_lol_champ WHERE ${w} GROUP BY champion`).all(...a);
+  const C = require("./agg-window").src(q, "lol_champ"); // ?days: lane share and the average follow the window
+  const all = db.prepare(`SELECT champion, sum(games) g, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d} GROUP BY champion`).all(...a, ...C.da);
   const total = new Map(all.map((r) => [r.champion, r.g]));
   const games = all.reduce((s, r) => s + r.g, 0), avg = games ? all.reduce((s, r) => s + r.wins, 0) / games : 0.5;
   const pool = new Map();
