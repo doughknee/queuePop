@@ -19,7 +19,7 @@ Object.defineProperty(state,'savedLeague',{get(){return state.savedChampions.inc
 let currentGame='home',currentPage='',buildStage=0,historyFilter='All',selectedUnit=null,selectedCell=null,queueDemo=false;
 const persist=()=>{state.boards[state.plan]=state.board;try{localStorage.setItem('queuepop-worlds-v1',JSON.stringify(state));}catch{toast('Your browser could not save this preference.');}};
 let noticeTimer;
-function toast(text){$q('#notice').textContent=text;$q('#notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$q('#notice').hidden=true,3500);}
+function toast(text){if(window.showToast){showToast(text);return;}$q('#notice').textContent=text;$q('#notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$q('#notice').hidden=true,3500);} // DONI-541: one toast app-wide
 const icon=(id,extra='')=>`<img class="unit-icon ${extra}" src="${champions[id]?.cid?`assets/champions/${champions[id].cid}.png`:`assets/${id}-icon.png`}" alt="">`;
 const link=(href,text,cls='action')=>`<a class="${cls}" href="${href}">${text}<span aria-hidden="true">↗</span></a>`;
 const saveButton=(saved,action,label)=>`<button class="action secondary" data-action="${action}" aria-pressed="${saved}">${saved?'✓ Saved':label}</button>`;

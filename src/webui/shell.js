@@ -64,7 +64,7 @@
   addEventListener('popstate', window.syncSidebar);
   addEventListener('click', () => setTimeout(window.syncSidebar));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
-  for (const src of ['palette.js', 'keys.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
+  for (const src of ['palette.js', 'keys.js', 'statusline.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
   // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
   document.getElementById('settings-view')?.setAttribute('tabindex', '-1');
 })();
@@ -95,11 +95,10 @@ function applyGames() {
 }
 if (window.QP && QP.bus) { QP.bus.on('config:loaded', applyGames); QP.bus.on('config:changed', ({ path }) => { if (path === 'games_enabled' || path === 'deadlock_account_id' || path === 'crawler_url') applyGames(); }); }
 
-// First-run "set up" strip on home (Q5). Each item links to the Settings field that fixes it and goes away once done or
+// First-run "set up" strip on home (Q5; an offline crawler is the status line's, statusline.js). Each item links to the Settings field that fixes it and goes away once done or
 // dismissed (per item, or the whole strip). Pure; app/test-home.js checks it.
 window.homeSetupItems = function ({ games, dlId, crawler, dismissed = [] }) {
   const items = [];
-  if (crawler === 'down' && (games.includes('league') || games.includes('tft'))) items.push({ id: 'crawler', text: 'League and TFT stats can’t reach the stats crawler.', action: 'Check its address', href: '#/settings#account', focus: 'crawler_url' });
   if (games.includes('deadlock') && dlId === '') items.push({ id: 'deadlock', text: 'Add your Deadlock account to see your own matches.', action: 'Add it', href: '#/settings#account', focus: 'deadlock_account_id' });
   if (games.length === QP_GAMES.length) items.push({ id: 'games', text: 'Only play some of these? Hide the others.', action: 'Choose games', href: '#/settings#games', focus: 'games_enabled.league' });
   return items.filter(i => !dismissed.includes(i.id));
