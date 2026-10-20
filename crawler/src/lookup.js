@@ -80,23 +80,39 @@ function createLookup({ db, riot, keyOk = () => true, perMin = 3, ttl = 600000, 
   }
 
   // game = "lol" | "tft". Rejects with .status 400 (bad id/region), 404 (unknown), 429 (cap, .retryAfter s), 503 (key invalid).
-  async function player(game, riotId, region) {
-    if (!ROUTING[region]) throw err(400, `unknown region ${region}`);
-    const { name, tag } = parseRiotId(riotId);
-    const k = `${game}:${region}:${name.toLowerCase()}#${tag.toLowerCase()}`, hit = cache.get(k);
+  // Cache (ttl) + per-minute cap shared by every on-demand Riot fetch (players, D9 matches). fn() returns a promise.
+  function cached(k, fn) {
+    const hit = cache.get(k);
     if (hit && now() - hit.at < ttl) return hit.p;
-    if (!keyOk()) throw err(503, "Riot key invalid; lookups resume when a new key is posted");
+    if (!keyOk()) return Promise.reject(err(503, "Riot key invalid; lookups resume when a new key is posted"));
     while (recent.length && recent[0] <= now() - 60000) recent.shift();
-    if (recent.length >= perMin) throw err(429, `at most ${perMin} lookups a minute`, { retryAfter: Math.ceil((recent[0] + 60000 - now()) / 1000) });
+    if (recent.length >= perMin) return Promise.reject(err(429, `at most ${perMin} lookups a minute`, { retryAfter: Math.ceil((recent[0] + 60000 - now()) / 1000) }));
     recent.push(now());
-    const p = fetchPlayer(game, region, name, tag);
+    const p = fn();
     cache.set(k, { at: now(), p });
     p.catch(() => cache.delete(k)); // failures are not cached
     for (const [key, v] of cache) if (now() - v.at >= ttl) cache.delete(key);
     return p;
   }
 
-  return { player };
+  async function player(game, riotId, region) {
+    if (!ROUTING[region]) throw err(400, `unknown region ${region}`);
+    const { name, tag } = parseRiotId(riotId);
+    return cached(`${game}:${region}:${name.toLowerCase()}#${tag.toLowerCase()}`, () => fetchPlayer(game, region, name, tag));
+  }
+
+  // A match we don't hold (D9): raw match JSON from Riot, region from the id prefix ("NA1_123" -> na1).
+  async function match(game, id) {
+    const region = id.split("_")[0].toLowerCase();
+    if (!ROUTING[region]) throw err(400, `unknown platform in match id ${id}`);
+    return cached(`match:${id}`, async () => {
+      const m = await riot.get(ROUTING[region], game === "lol" ? `/lol/match/v5/matches/${id}` : `/tft/match/v1/matches/${id}`, `${game} match`);
+      if (!m) throw err(404, "no such match");
+      return m;
+    });
+  }
+
+  return { player, match };
 }
 
 module.exports = { leaderboard, createLookup, parseRiotId };
