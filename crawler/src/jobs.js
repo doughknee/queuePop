@@ -27,29 +27,49 @@ function ladderSteps(game, minTier) {
   return steps;
 }
 
-// Walks the whole ladder once a day, saving its place after every page.
+const APEX_EVERY = 1800000; // the three apex ladders (Master+) are re-read every 30 min so leaderboard LP stays fresh (DONI-508/512)
+
+const upsertPlayer = (db) => db.prepare(`INSERT INTO players (puuid, game, region, tier, tier_n, division, lp, seeded_at, wins, losses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT (puuid, game) DO UPDATE SET region = excluded.region, tier = excluded.tier, tier_n = excluded.tier_n,
+  division = excluded.division, lp = excluded.lp, seeded_at = excluded.seeded_at, wins = excluded.wins, losses = excluded.losses`);
+const playerRow = (e, game, region, s, t) => [e.puuid, game, region, s.tier, TIERS.indexOf(s.tier), e.rank || s.div || "I", e.leaguePoints ?? 0, t, e.wins ?? null, e.losses ?? null];
+
+// Walks the whole ladder once a day, saving its place after every page. Between walks, refreshes the apex ladders.
 async function seed(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
   const key = `seed:${game}:${region}`;
   let st = getMeta(db, key) || {};
-  if (st.doneAt && now() - st.doneAt < DAY) return false;
+  if (st.doneAt && now() - st.doneAt < DAY) return refreshApex(ctx, game, region);
   if (st.doneAt) st = {};
   const steps = ladderSteps(game, ctx.minTier);
-  const upsert = db.prepare(`INSERT INTO players (puuid, game, region, tier, tier_n, division, lp, seeded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT (puuid, game) DO UPDATE SET region = excluded.region, tier = excluded.tier, tier_n = excluded.tier_n,
-    division = excluded.division, lp = excluded.lp, seeded_at = excluded.seeded_at`);
+  const upsert = upsertPlayer(db);
   let i = st.step || 0, page = st.page || 1;
   while (i < steps.length) {
     const s = steps[i];
     const res = await riot.get(region, s.paged ? s.path + page : s.path, s.method);
     const entries = (s.paged ? res : res?.entries) || [];
     tx(db, () => {
-      for (const e of entries) if (e.puuid) upsert.run(e.puuid, game, region, s.tier, TIERS.indexOf(s.tier), e.rank || s.div || "I", e.leaguePoints ?? 0, now());
+      for (const e of entries) if (e.puuid) upsert.run(...playerRow(e, game, region, s, now()));
       if (s.paged && entries.length) page++; else { i++; page = 1; }
       setMeta(db, key, { step: i, page });
     });
   }
   setMeta(db, key, { doneAt: now() });
+  setMeta(db, `apex:${game}:${region}`, now());
+  return true;
+}
+
+// Three requests: challenger, grandmaster, master. Players who dropped out keep their old apex row until the next daily walk.
+async function refreshApex(ctx, game, region) {
+  const { db, riot, now = Date.now } = ctx;
+  const key = `apex:${game}:${region}`;
+  if (now() - (getMeta(db, key) || 0) < APEX_EVERY) return false;
+  const upsert = upsertPlayer(db);
+  for (const s of ladderSteps(game, "MASTER")) {
+    const entries = (await riot.get(region, s.path, s.method))?.entries || [];
+    tx(db, () => { for (const e of entries) if (e.puuid) upsert.run(...playerRow(e, game, region, s, now())); });
+  }
+  setMeta(db, key, now());
   return true;
 }
 
@@ -183,7 +203,6 @@ function store(ctx, game, id, m) {
       }
       const ban = db.prepare("INSERT INTO lol_bans VALUES (?, ?, ?)");
       for (const t of info.teams) for (const b of t.bans) if (b.championId > 0) ban.run(id, t.teamId, b.championId);
-      require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
     } else {
       const ins = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, tier, comp, traits, units, augments, board) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
       for (const p of info.participants) {
@@ -192,6 +211,8 @@ function store(ctx, game, id, m) {
           JSON.stringify([...new Set(p.units.map((u) => u.character_id))]), JSON.stringify(p.augments || []), tftAgg.boardOf(p));
       }
     }
+    // Riot ids per puuid, both games (TFT since DONI-512, for the leaderboard names).
+    require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
   });
   return ok;
 }
