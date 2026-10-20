@@ -80,7 +80,7 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   aggregates: { at, ms, dirty: [patch], patches: { patch: { at, ms } } }, endpoints: [{ path, game, patch, updatedAt, live? }] }` (`endpoints`: what each
   route serves and when that data was last rebuilt; the status page lists it),
   `health: { lol|tft: { patch, hourly: { region: [24 matches per hour, oldest first] }, last24h, rows, lowSampleShare } }` (D16: the status page
-  draws one sparkline per region, the default patch's row count and its share under 200 games, plus the last backup; cached 5 min)
+  draws one sparkline per region, the default patch's row count and its share under 200 games, plus the last backup; computed by the aggregation worker after each pass, `health.at`)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
