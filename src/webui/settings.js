@@ -26,6 +26,7 @@
         <p class="st-hint">Games you switch off leave the sidebar, home and search. Their pages and settings stay as they are.</p>
         ${[['league', 'League of Legends'], ['tft', 'Teamfight Tactics'], ['deadlock', 'Deadlock']].map(([g, l]) => sw('games_enabled.' + g, l, '')).join('')}`) +
       card('league', 'League', `
+        ${sw('auto_accept', 'Auto-accept queue pops', 'Accepts the match for you. Stays as you set it after a restart; the tray’s Pause is for right now only.')}
         ${num('accept_delay_seconds', 'Accept delay', 'Seconds to wait before accepting a queue pop. 0 accepts at once.', 0, 10)}
         <div class="st-row"><span class="st-lbl">Queues to auto-accept<small>Choose them on the Play page.</small></span><span class="st-act"><span id="st-queues" class="st-val"></span><a class="st-btn" href="#/league/play">Play page</a></span></div>
         ${sw('champ_select.enabled', 'Auto pick and ban', 'Hovers, bans, picks and locks in from your champ select plan.')}
@@ -109,7 +110,7 @@
     const c = QP.store.config || {};
     root.querySelectorAll('[data-k]').forEach(el => {
       let v = QP.store.get(el.dataset.k);
-      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray' || el.dataset.k === 'float_window') v = v ?? true;
+      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray' || el.dataset.k === 'float_window' || el.dataset.k === 'auto_accept') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'companion.sound') v = v || 'chime';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
