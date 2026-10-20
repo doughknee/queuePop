@@ -3,11 +3,19 @@
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900', DD = 'https://ddragon.leagueoflegends.com';
   const TTL = 10 * 60 * 1000; // the crawler aggregates hourly; ten minutes keeps a long session fresh enough
-  const memo = new Map();
+  const memo = new Map(), good = new Map(), RETRY = 30000;
+  // Crawler down mid-session (Q queue 5): a refetch that fails on the network, a timeout or a 5xx answers with the last good
+  // copy instead, so a page that re-renders keeps its data; statsApi.stale says so (the status line shows "retrying"), and
+  // that key is tried again after 30 s. A 4xx, or a key never loaded, still fails as before.
+  const setStale = v => { if (api.stale !== v) { api.stale = v; try { window.dispatchEvent(new CustomEvent('qp:crawler-stale', { detail: v })); } catch {} } };
   function once(key, fn, ttl = TTL) {
     const hit = memo.get(key);
     if (hit && Date.now() - hit.t < ttl) return hit.p;
-    const p = fn().catch(e => { memo.delete(key); throw e; }); // failures retry on the next render
+    const p = fn().then(v => { good.set(key, v); if (key[0] === 'c') setStale(false); return v; }, e => {
+      memo.delete(key); // failures retry on the next render
+      if (good.has(key) && !(e.status >= 400 && e.status < 500)) { memo.set(key, { t: Date.now() - ttl + RETRY, p: Promise.resolve(good.get(key)) }); setStale(true); return good.get(key); }
+      throw e;
+    });
     memo.set(key, { t: Date.now(), p });
     return p;
   }
@@ -77,7 +85,7 @@
 
   window.leagueTierRows = leagueTierRows;
   window.leagueSlotAlternatives = leagueSlotAlternatives;
-  window.statsApi = {
+  const api = window.statsApi = { stale: false,
     patches: () => crawler('/patches'),
     tiers: p => crawler('/lol/tiers', p),
     champion: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}`, p),

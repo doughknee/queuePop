@@ -1,6 +1,16 @@
 /* App-level Settings (DONI-489, #/settings[#section]): one page, one card per area. Every control reads
    QP.store.config and writes through QP.store.set (debounced save_config) with the keys the Python-era
    Settings/Alerts pages used. The stats crawler card talks to the crawler straight from the renderer. */
+// The crawler's ~60 Riot rate-limit buckets are almost all idle: list the busy ones, fullest first, and count the rest.
+// Pure; app/test-settings.js checks it.
+window.stBusyBuckets = rl => {
+  const all = Object.entries(rl || {}).map(([name, v]) => { const l = (v && v.limits || [])[0] || {}; return { name, used: l.used || 0, limit: l.limit, windowSec: l.windowSec, pct: l.limit ? Math.min(100, Math.round(100 * (l.used || 0) / l.limit)) : 0 }; });
+  const busy = all.filter(b => b.used > 0).sort((a, b) => b.pct - a.pct || b.used - a.used);
+  return { busy, idle: all.length - busy.length };
+};
+// Settings > Recorder (beta) > ffmpeg: what was found, and why Record video is greyed out (said in the line, not only a hover title).
+window.stFfmpegLine = (f, events) => !f ? 'Couldn’t check.' : !f.found ? 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.'
+  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.${events ? '' : ' Turn on Record game events to record video.'}`;
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
   const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['recorder', 'Recorder (beta)'], ['crawler', 'Stats crawler'], ['display', 'App & display'], ['about', 'Updates & about']];
@@ -231,7 +241,8 @@
       const d = await r.json(), m = d.matches || {}, p = d.players || {}, k = d.key || {}, dk = d.disk || {};
       const sum = o => Object.values(o || {}).reduce((x, y) => x + y, 0);
       const cell = (l, v) => `<div><b>${E(v)}</b><span>${l}</span></div>`;
-      const buckets = Object.entries(d.rateLimits || {}).map(([n, v]) => { const l = (v.limits || [])[0] || {}, pct = l.limit ? Math.min(100, Math.round(100 * l.used / l.limit)) || 0 : 0; return `<div class="st-bk"><span>${E(n)}</span><i><u style="width:${pct}%"></u></i><em>${E(l.used ?? 0)}/${E(l.limit ?? '?')} per ${E(l.windowSec ?? '?')}s</em></div>`; }).join('');
+      const bk = stBusyBuckets(d.rateLimits), buckets = bk.busy.map(b => `<div class="st-bk"><span>${E(b.name)}</span><i><u style="width:${b.pct}%"></u></i><em>${E(b.used)}/${E(b.limit ?? '?')} per ${E(b.windowSec ?? '?')}s</em></div>`).join('')
+        + (bk.idle ? `<p class="st-bk-idle">${bk.busy.length ? `${bk.idle} other rate limits idle` : `All ${bk.idle} rate limits idle`}</p>` : '');
       st.textContent = 'Online'; st.className = 'st-val ok';
       if (k.valid === false || k.source === 'none') root.querySelector('#st-cr-keybox').open = true; // the fix is right there
       grid.innerHTML = cell('Players', `${(p.lol || 0).toLocaleString()} LoL · ${(p.tft || 0).toLocaleString()} TFT`) +
@@ -279,8 +290,8 @@
     const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
     let s = null; try { s = await bridge().recorder_status(); } catch {}
     const f = s && s.ffmpeg;
-    el.textContent = !f ? 'Couldn’t check.' : f.found ? `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.` : 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.';
     const events = !!QP.store.get('recorder.enabled');
+    el.textContent = stFfmpegLine(f, events);
     sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on Record game events first' : '';
   }
   async function loadAbout() {

@@ -4,7 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node test-lcu.js && node test-config.js && node test-notify.js && node test-champ.js && node test-overlay.js && node test-deadlock.js && node test-league.js && node test-tft.js && node test-home.js && node test-assets.js && node test-account.js && node test-palette.js && node test-keys.js && node test-window.js && node test-status.js && node test-tray.js && node test-contrast.js && node test-timeline.js && node test-away.js && node test-draft.js && node test-float.js && node test-plan.js && node test-draft-order.js && node test-recap.js && node test-bench.js && node test-fake-lcu.js && node test-recorder.js && node test-recorder-video.js",
+    "test": "node test-lcu.js && node test-crawler-stale.js && node test-settings.js && node test-config.js && node test-notify.js && node test-champ.js && node test-overlay.js && node test-deadlock.js && node test-league.js && node test-tft.js && node test-home.js && node test-assets.js && node test-account.js && node test-palette.js && node test-keys.js && node test-window.js && node test-status.js && node test-tray.js && node test-contrast.js && node test-timeline.js && node test-away.js && node test-draft.js && node test-float.js && node test-plan.js && node test-draft-order.js && node test-recap.js && node test-bench.js && node test-fake-lcu.js && node test-recorder.js && node test-recorder-video.js",
     "dist": "electron-builder --win nsis zip"
   },
   "dependencies": {
