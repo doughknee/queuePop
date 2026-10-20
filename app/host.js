@@ -24,7 +24,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -149,12 +149,14 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     new_companion_link: () => ({ ok: newToken() }),
     set_stepping_away: (on) => away.set(on),
     get_game_plan: () => plan.get(),
+    test_ntfy: () => notifier.ntfy("test", "queuePop test", "ntfy is working. You'll get a push like this when your queue pops.", "Test message"),
     get_draft_recaps: () => recap.list(),
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];
       if (cfg.desktop_notifications) channels.push("Windows");
       if (cfg.webhook_url && (cfg.discord_enabled ?? true) && require("./notifications").isWebhook(cfg.webhook_url)) channels.push("Discord");
+      if (require("./notifications").buildNtfyRequest(cfg.ntfy, "queue_pop", "t", "t")) channels.push("ntfy");
       if (companion.isRunning()) { channels.push("your phone"); push("Test queue pop", "danger", "queue_pop"); }
       await notifier.alert("queue_pop", "Queue Popped! (test)", "This is what a queue pop looks like. Nothing was accepted.", "Test queue pop", { test: true, queue: "Test" });
       return { ok: channels.length > 0, channels };

@@ -65,6 +65,21 @@ async function loadDdragon() {
   } catch {}
 }
 
+// ntfy push (DONI-425): one POST to {server}/{topic}; the ntfy app buzzes the phone with the screen off, no Discord needed.
+// cfg.ntfy = { enabled, server, topic, token }. Pure; app/test-notify.js checks it. Returns null when it shouldn't send.
+const NTFY_PRIORITY = { queue_pop: 5, game_start: 4, champ_select: 3, disconnect: 3, timeline: 3, game_plan: 3, locked_pick: 3, test: 3 };
+const NTFY_TAGS = { queue_pop: "zap", champ_select: "crossed_swords", game_start: "video_game", disconnect: "electric_plug", timeline: "stopwatch", game_plan: "world_map", test: "white_check_mark" };
+function buildNtfyRequest(n, kind, title, text) {
+  n = n || {};
+  const server = String(n.server || "https://ntfy.sh").trim().replace(/\/+$/, ""), topic = String(n.topic || "").trim();
+  if (!n.enabled || !/^https?:\/\//i.test(server) || !/^[\w-]{1,64}$/.test(topic)) return null;
+  // "90 seconds: come back" is the timeline's urgent one.
+  const priority = kind === "timeline" && /come back/i.test(text) ? 5 : NTFY_PRIORITY[kind] || 3;
+  const headers = { Title: String(title).replace(/[^\x20-\x7e]/g, "").trim() || "queuePop", Priority: String(priority), Tags: NTFY_TAGS[kind] || "bell" };
+  if (n.token) headers.Authorization = "Bearer " + String(n.token).trim();
+  return { url: `${server}/${topic}`, headers, body: String(text) };
+}
+
 // ctx: { getConfig, push, log, icon, Notification } — Notification is injected so tests need no Electron.
 function createNotifier(ctx) {
   const lastSent = {};
@@ -112,16 +127,27 @@ function createNotifier(ctx) {
     } catch (e) { return { ok: false, error: String(e.message || e) }; }
   }
 
+  async function ntfy(kind, title, text, what = "alert") {
+    const req = buildNtfyRequest(ctx.getConfig().ntfy, kind, title, text);
+    if (!req) return { ok: false, error: "ntfy is off or has no topic" };
+    try {
+      const r = await fetch(req.url, { method: "POST", headers: req.headers, body: req.body, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(`ntfy returned ${r.status}`);
+      mark("ntfy", what); return { ok: true };
+    } catch (e) { fail("ntfy", what, e.message || e); return { ok: false, error: String(e.message || e) }; }
+  }
+
   // Fan an event to the enabled + subscribed channels. Queue pop defaults on, the rest off.
   // opts.test skips the per-event filter (Settings' "Test a queue pop" sends through every channel that is on).
   async function alert(key, title, body, what, opts = {}) {
     const cfg = ctx.getConfig();
     if (!opts.test && !((cfg.alert_events || {})[key] ?? (key === "queue_pop" || key === "game_plan"))) return;
     if (cfg.desktop_notifications) desktop(title, body, what);
+    if (cfg.ntfy && cfg.ntfy.enabled) ntfy(key, title, body, what); // not awaited: Discord and ntfy don't wait on each other
     if (cfg.discord_enabled ?? true) await discord(key, body, opts, what);
   }
 
-  return { lastSent, desktop, discord, testDiscord, alert };
+  return { lastSent, desktop, discord, testDiscord, alert, ntfy };
 }
 
-module.exports = { buildDiscordPayload, createNotifier, isWebhook };
+module.exports = { buildDiscordPayload, createNotifier, isWebhook, buildNtfyRequest };
