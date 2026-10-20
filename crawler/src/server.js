@@ -161,12 +161,18 @@ function tftComps(db, q = {}) {
   // units: up to 9 units fielded on >= 30% of the comp's boards, most frequent first (the app's comp-board rule), so a list or
   // search needs no /tft/comp/{id} per row. Shares are out of the comp's patch-wide games.
   const compGames = new Map(db.prepare(`SELECT comp, sum(games) g FROM stats_tft_comp WHERE ${w} GROUP BY comp`).all(...a).map((r) => [r.comp, r.g]));
-  const units = new Map();
-  for (const u of db.prepare(`SELECT comp, key, sum(games) g FROM stats_tft_part WHERE ${w} AND kind = 'unit' GROUP BY comp, key ORDER BY g DESC`).all(...a)) {
-    const l = units.get(u.comp) || units.set(u.comp, []).get(u.comp);
-    if (l.length < 9 && u.g >= 0.3 * (compGames.get(u.comp) || Infinity)) l.push(u.key);
+  const units = new Map(), traits = new Map();
+  for (const u of db.prepare(`SELECT comp, kind, key, sum(games) g FROM stats_tft_part WHERE ${w} AND kind IN ('unit', 'trait') GROUP BY comp, kind, key ORDER BY g DESC`).all(...a)) {
+    if (u.kind === "unit") {
+      const l = units.get(u.comp) || units.set(u.comp, []).get(u.comp);
+      if (l.length < 9 && u.g >= 0.3 * (compGames.get(u.comp) || Infinity)) l.push(u.key);
+    } else {
+      // activeTraits: the comp's 8 most frequent "<trait>:<tier>" (same shape as /tft/comp/{id}), so the list draws trait chips alone
+      const l = traits.get(u.comp) || traits.set(u.comp, []).get(u.comp);
+      if (l.length < 8) l.push({ key: u.key, frequency: r4(u.g / (compGames.get(u.comp) || u.g)) });
+    }
   }
-  return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames), units: units.get(r.comp) || [],
+  return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames), units: units.get(r.comp) || [], activeTraits: traits.get(r.comp) || [],
     ...(series && { daily: (series.get(r.comp) || []).map((d) => ({ day: d.day, games: d.games, avgPlacement: r4(d.ps / d.games) })) }) })) };
 }
 

@@ -132,7 +132,7 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .hp-strip{display:flex;gap:2px;align-self:center;width:100%;max-width:220px}
 .hp-strip i{flex:0 1 20px;min-width:0;height:20px;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;border:1px solid var(--bg);font:700 12px/1 var(--mono);font-style:normal}
 .hp-strip i.up{background:var(--bg);color:var(--accent)}
-.hp-note{align-self:flex-start;font:12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.hp-note{align-self:flex-start;max-width:100%;font:12px/1.25 var(--mono);text-transform:uppercase;letter-spacing:.1em;white-space:normal} /* wraps: one note fills the page, and .hp-col is nowrap (W, 1024 px at 125 %) */
 @keyframes hp-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes hp-up{from{transform:translateY(100%);opacity:0}}
 @keyframes hp-in{from{transform:translateX(100%)}}@keyframes hp-out{to{transform:translateX(-100%)}}
