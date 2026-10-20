@@ -84,8 +84,9 @@ function lolChampion(db, champion, q = {}) {
     builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }) };
 }
 
-// id "<trait>|<carry>" (DONI-502); ids from the old rule ("A,B" or "none") have no carry.
-const compKey = (id) => { const [t, c] = id.split("|"); return { traits: t === "none" ? [] : t.split(","), carry: c || null }; };
+// id "<trait>,<carry>" (DONI-502). ponytail: an id left from the old rule (boards whose raw was gone at backfill-comps) reads as
+// trait + second trait; there were ~45 such matches on 2026-10-20, they age out with the patch.
+const compKey = (id) => { const [t, c] = id.split(","); return { traits: t === "none" ? [] : [t], carry: c || null }; };
 const comp = (r, boards, minGames) => ({ id: r.comp, ...compKey(r.comp), games: r.games,
   avgPlacement: r4(r.ps / r.games), top4Rate: r4(r.top4 / r.games), winRate: r4(r.wins / r.games), pickRate: r4(r.games / boards), lowSample: r.games < minGames });
 

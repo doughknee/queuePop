@@ -110,12 +110,13 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   newest crawled set (Community Dragon `cdragon/tft/en_us.json`, setData `TFTSet<N>`; icons are CDragon PNG URLs). Fetched at
   most once a day and kept in `meta.tftMeta`; on a CDragon failure the last copy is served with `stale: true` (503 when none).
 
-**TFT comp rule (DONI-502):** a comp id is `"<top trait>|<carry unit>"`, e.g. `DA_18_Invoker|DA_18_Ahri`. Top trait: the active
+**TFT comp rule (DONI-502):** a comp id is `"<top trait>,<carry unit>"`, e.g. `DA_18_Invoker,DA_18_Ahri`
+(`traits: [top trait]`, `carry`). Top trait: the active
 trait (`tier_current >= 1`) that is not a one-unit unique trait (`tier_total > 1`), by highest `tier_current`, then most units,
 then name; `none` when there is none. Carry: the unit holding the most items, then highest star, then highest cost, then name.
 Deterministic. On 3,200 live boards (16.20) it put 0% in `none` (the old "traits at tier >= 2" rule: 22.5%) and explained
 2.7x more placement variance. After a rule change run `npm run -s backfill-comps` (re-keys boards from raw JSON; boards
-whose raw retention already dropped keep their old id, which has no `|` and returns `carry: null`), then `npm run -s aggregate`.
+whose raw retention already dropped keep their old trait-only id), then `npm run -s aggregate`.
 
 **Players (DONI-506, `src/agg-players.js`):** `lol_names` (puuid → latest Riot id `name#tag`, region) is written for every
 stored League match; `npm run backfill-players` fills it from the raw JSON still inside the retention window, then run

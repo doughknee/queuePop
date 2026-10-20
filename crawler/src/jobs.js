@@ -127,7 +127,8 @@ const windowsFor = (db, now = Date.now) => {
 };
 const setOf = (info) => info?.tft_set_number ?? null;
 
-// TFT comp rule (DONI-502): "<top trait>|<carry unit>", e.g. "DA_18_Invoker|DA_18_Ahri".
+// TFT comp rule (DONI-502): "<top trait>,<carry unit>", e.g. "DA_18_Invoker,DA_18_Ahri" (comma, so a reader that splits ids
+// on "," and names each part keeps working).
 // Top trait: the active trait (tier_current >= 1) that is not a one-unit unique trait (tier_total > 1), highest tier_current,
 // then most units, then name; "none" when the board has none. Carry: the unit holding the most items, then highest star,
 // then highest cost (rarity), then name. On 3,200 live boards (patch 16.20) this left 0% in "none" (the old "traits at
@@ -137,7 +138,7 @@ const carryOf = (units = []) => [...units].sort((x, y) => (y.itemNames || []).le
   || (y.rarity ?? 0) - (x.rarity ?? 0) || (x.character_id < y.character_id ? -1 : 1))[0]?.character_id || "";
 function compOf(p) {
   const top = (p.traits || []).filter((t) => t.tier_current >= 1 && (t.tier_total ?? 2) > 1).sort(byStrength)[0];
-  return `${top ? top.name : "none"}|${carryOf(p.units)}`;
+  return `${top ? top.name : "none"},${carryOf(p.units)}`;
 }
 
 // Re-derives tft_participants.comp from stored raw JSON with the current rule (after a rule change). Rows whose raw was

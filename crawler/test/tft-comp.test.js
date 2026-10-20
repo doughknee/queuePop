@@ -12,9 +12,9 @@ const U = (character_id, tier, rarity, items = 0) => ({ character_id, tier, rari
 
 test("comp = top non-unique trait | carry unit", () => {
   const p = { traits: [T("Lunar", 3, 2), T("Invoker", 4, 2), T("Unique", 1, 1, 1), T("Off", 1, 0)], units: [U("Varus", 2, 0), U("Ahri", 2, 4, 3), U("Amumu", 3, 3, 3)] };
-  assert.strictEqual(compOf(p), "Invoker|Amumu"); // tie on tier -> more units; tie on items -> higher star
-  assert.strictEqual(compOf({ traits: [T("Inferno", 2, 1), T("Adaptor", 2, 1)], units: [U("A", 2, 1, 1), U("B", 2, 2, 1)] }), "Adaptor|B"); // tier 1 counts; name breaks ties
-  assert.strictEqual(compOf({ traits: [T("Unique", 1, 1, 1)], units: [] }), "none|");
+  assert.strictEqual(compOf(p), "Invoker,Amumu"); // tie on tier -> more units; tie on items -> higher star
+  assert.strictEqual(compOf({ traits: [T("Inferno", 2, 1), T("Adaptor", 2, 1)], units: [U("A", 2, 1, 1), U("B", 2, 2, 1)] }), "Adaptor,B"); // tier 1 counts; name breaks ties
+  assert.strictEqual(compOf({ traits: [T("Unique", 1, 1, 1)], units: [] }), "none,");
   const again = { ...p, units: [...p.units].reverse(), traits: [...p.traits].reverse() };
   assert.strictEqual(compOf(again), compOf(p), "order of the input does not matter");
 });
@@ -25,7 +25,7 @@ test("backfill-comps re-keys boards from raw; rows without raw keep their key", 
   db.prepare("INSERT INTO matches (id, game, region, status, raw) VALUES ('M', 'tft', 'na1', 'done', ?), ('N', 'tft', 'na1', 'done', NULL)").run(zlib.gzipSync(JSON.stringify(raw)));
   db.prepare("INSERT INTO tft_participants (match_id, puuid, comp) VALUES ('M', 'a', 'Invoker'), ('N', 'b', 'old')").run();
   assert.deepStrictEqual(backfillComps(db), { matches: 1, boards: 1 });
-  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id").all().map((r) => r.comp), ["Invoker|Ahri", "old"]);
+  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id").all().map((r) => r.comp), ["Invoker,Ahri", "old"]);
 });
 
 test("/tft/meta: ranked set data, icon URLs, cached a day, stale copy on a CDragon failure", async () => {
