@@ -204,9 +204,9 @@
 .lg-mt-me{background:var(--wash)}
 .lg-mt-dmg{position:relative;min-width:110px;font-variant-numeric:tabular-nums}
 .lg-mt-bar{display:block;height:4px;width:var(--w);background:var(--purple);margin-bottom:2px}
-.lg-mt-build{display:flex;align-items:center;gap:2px}
+.lg-mt-build{line-height:0;padding-left:12px!important}.lg-mt-build .lg-ico{display:inline-block;vertical-align:middle;margin-right:2px} /* a real table cell (display:flex here broke the column grid); icons wrap inside it */
 .lg-mt-build .lg-ico{width:20px;height:20px}
-.lg-mt-items{display:flex;gap:2px;margin-left:6px}
+.lg-mt-items{display:flex;flex-wrap:wrap;gap:2px;margin-top:2px} /* items on their own line under spells + keystone */
 .lg-sum-row .lg-ago a{color:var(--fg)}
 
 /* DONI-565: ARAM has no lanes */
@@ -246,3 +246,9 @@
 /* Narrow windows (Brandon's 1292 x 726 at 125 % is 1024 px): with the sidebar open it already lists every page, so the
    page row keeps Play and the current page; collapse the sidebar and the full row comes back. */
 @media (max-width:1150px){:root:not(.sb-collapsed) #world-nav#world-nav > a:not([aria-current]){display:none}}
+/* Both teams' tables share one column grid so their numbers line up */
+.lg-mt-table{table-layout:fixed;width:100%}
+.lg-mt-table th:nth-child(1){width:19%}.lg-mt-table th:nth-child(2){width:12%}.lg-mt-table th:nth-child(3){width:13%}.lg-mt-table th:nth-child(8){padding-left:12px}
+.lg-mt-table th:nth-child(4){width:9%}.lg-mt-table th:nth-child(5){width:8%}.lg-mt-table th:nth-child(6){width:7%}.lg-mt-table th:nth-child(7){width:6%}
+.lg-mt-dmg{min-width:0}.lg-mt-who{min-width:0;overflow:hidden}.lg-mt-who a,.lg-mt-who small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-mt-table :is(th,td):nth-child(3){padding-left:12px}
