@@ -242,7 +242,7 @@ function leagueRift() {
   lgMount('', t => { lgFillTiers(t); if (leagueLive.summoner) lgFillForm(t); });
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
   return `<div class="lg-page${lg.queue ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Tier list</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>${lgYou()}`)}
-    ${lgFilters()}<div id="lg-tiers"><p class="lg-wait">Loading the tier list…</p></div>${lgTierRule}</div>`;
+    ${lgFilters()}<div id="lg-tiers"><p class="lg-wait">Loading the tier list…</p><div class="qp-skel" aria-hidden="true">${'<i></i>'.repeat(12)}</div></div>${lgTierRule}</div>`;
 }
 
 // --- Match history: real recent matches from the bridge, each row expandable ---

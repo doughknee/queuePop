@@ -252,3 +252,7 @@
 .lg-mt-table th:nth-child(4){width:9%}.lg-mt-table th:nth-child(5){width:8%}.lg-mt-table th:nth-child(6){width:7%}.lg-mt-table th:nth-child(7){width:6%}
 .lg-mt-dmg{min-width:0}.lg-mt-who{min-width:0;overflow:hidden}.lg-mt-who a,.lg-mt-who small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lg-mt-table :is(th,td):nth-child(3){padding-left:12px}
+
+/* Q speed review: skeleton rows while a tier list loads (the table's row height, tokens only; still under reduced motion) */
+.qp-skel{display:grid;gap:4px;margin-top:8px}.qp-skel i{display:block;height:22px;background:var(--line);opacity:.5;animation:qp-skel 1.2s ease-in-out infinite alternate}.qp-skel i:nth-child(odd){opacity:.35}
+@keyframes qp-skel{to{opacity:.15}}@media (prefers-reduced-motion:reduce){.qp-skel i{animation:none}}

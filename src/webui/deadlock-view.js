@@ -567,7 +567,7 @@ document.addEventListener('change', event => {
 });
 setInterval(() => { const clock = document.querySelector('#queue-clock'); if(!host.hidden && !sheet.hidden && activePanel === 'companion' && queueState === 'searching' && clock) clock.textContent = elapsed(); },1000);
 
-loadLive();
+let liveStarted = false; // Q speed review: deadlock-api heroes + items load when the world first opens, not on every app start
 // The account id lives in config (deadlock_account_id); localStorage is the fallback outside the host.
 bridge()?.get_deadlock_account?.().then(id => {
   if(id && id !== account) { const was = viewing === account; account = id; if(was) viewing = id; if(!host.hidden) renderPage(activePanel, false); }
@@ -588,6 +588,7 @@ document.querySelectorAll('.city-nav a span').forEach((el,i) => {el.innerHTML = 
 
   return {
     show(focus = true) {
+      if(!liveStarted) { liveStarted = true; loadLive(); }
       const route = location.hash.replace(/^#\/?/, '').split('/')[0];
       renderPage(pageNames[route] ? route : '', focus);
       syncOverlay();
