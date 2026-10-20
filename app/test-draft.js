@@ -28,6 +28,8 @@ const name = (id) => names[id] || String(id);
 assert.deepStrictEqual(topCandidates(resp, c, 5).map((x) => x.champion), [103, 61, 7]); // gone ones out, low samples last
 assert.strictEqual(whyLine(resp.candidates[0], name), "+3.1 vs Caitlyn, good with Thresh, 52.4 % over 3,961 games");
 assert.strictEqual(whyLine(resp.candidates[3], name), "49.7 % over 2,100 games"); // a 0.4 point edge isn't worth a line
+// W11: a bad matchup comes last, never first.
+assert.strictEqual(whyLine({ winRate: 0.535, games: 654, components: [{ kind: "vs", champion: 412, delta: -0.069 }] }, name), "53.5 % over 654 games · weak into Thresh (−6.9)");
 assert.strictEqual(whyLine({ components: [] }, name), "");
 assert.strictEqual(topCandidates(null, c).length, 0);
 // The crawler's live components shape (D8): {base, lane, enemies[], allies[]}, null values for unseen pairs.

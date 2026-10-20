@@ -16,7 +16,8 @@
     #timer { font: 22px/1 var(--display); color: var(--accent); }
     #close { -webkit-app-region: no-drag; border: 0; background: none; color: var(--muted); font: 16px var(--mono); width: 32px; height: 32px; cursor: pointer; }
     #close:hover, #close:focus-visible { color: var(--fg); outline: 1px solid var(--edge); }
-    main { flex: 1; overflow-y: auto; padding: 6px 12px 10px; }
+    main { flex: 1; overflow-y: auto; padding: 6px 12px 10px; scrollbar-width: thin; scrollbar-color: var(--edge) transparent; }
+    main::-webkit-scrollbar { width: 6px; } main::-webkit-scrollbar-thumb { background: var(--edge); } main::-webkit-scrollbar-track { background: transparent; }
     .k { margin: 6px 0 2px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
     ol { list-style: none; margin: 0; padding: 0; }
     li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
