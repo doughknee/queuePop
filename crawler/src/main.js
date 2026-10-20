@@ -134,6 +134,13 @@ function retireWorker(game) {
     .once("exit", () => retiring.delete(game));
 }
 for (const g of games) if (db_.getMeta(db, `retiring:${g}`)) retireWorker(g);
+// Start draining the WAL now rather than after the next pass (agg-worker.js truncates it after each pass).
+if (cfg.dbPath !== ":memory:") {
+  const t = Date.now();
+  new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "checkpoint" } })
+    .once("message", (r) => log(`wal checkpoint [busy, frames, copied] ${JSON.stringify(r)} in ${Math.round((Date.now() - t) / 1000)} s`))
+    .once("error", (e) => log(`wal checkpoint: ${e.message}`));
+}
 
 if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is posted to /admin/key");
 {

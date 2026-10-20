@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
 -- /status lastFetch and the aggregation dirty check (max / > fetched_at), leaderboard freshness (max seeded_at)
 CREATE INDEX IF NOT EXISTS matches_fetched ON matches (fetched_at);
+-- tierOrder's 24 h bracket mix, per game and region every minute: through matches_fetched it read ~140k wide rows, 5.7 s each,
+-- ~46 s of every minute on the API thread (2026-10-20 22:10Z). Covering: an index range only.
+CREATE INDEX IF NOT EXISTS matches_mix ON matches (game, region, fetched_at, bracket);
 DROP INDEX IF EXISTS matches_patch; -- made the 16.20 pass 3x+ slower (planner drove every join from it); aggregation uses temp.pm
 CREATE INDEX IF NOT EXISTS players_seeded ON players (game, seeded_at);
 -- leaderboards: ladder order per game and per game+region (division sorts as text: I < II < III < IV)

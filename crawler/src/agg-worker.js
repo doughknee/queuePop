@@ -4,7 +4,10 @@
 const { workerData, parentPort } = require("worker_threads");
 const { open, setMeta } = require("./db");
 const db = open(workerData.dbPath);
-if (workerData.task === "retire") {
+if (workerData.task === "checkpoint") {
+  // copies the WAL back into the DB without blocking readers or writers; [busy, log frames, checkpointed frames]
+  parentPort.postMessage(Object.values(db.prepare("PRAGMA wal_checkpoint(PASSIVE)").get()));
+} else if (workerData.task === "retire") {
   // batches of 500 with a 250 ms gap: each holds the write lock ~0.3 s, and a main-thread write waiting on it blocks the API
   const jobs = require("./jobs"), nap = new Int32Array(new SharedArrayBuffer(4));
   let n = 0;
@@ -36,6 +39,10 @@ if (workerData.task === "retire") {
   for (const r of db.prepare("SELECT game, region, count(*) n FROM players GROUP BY 1, 2").all()) (rw[r.game] ??= {})[r.region] = r.n;
   const raw = { ...db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get(), at: Date.now() };
   locked(() => { setMeta(db, "health", health); setMeta(db, "regionWeights", rw); setMeta(db, "rawStats", raw); });
+  // WAL: the pass's long reads keep auto-checkpoints from catching up (5.4 GB at 22:10Z, every read and commit slower). Copy
+  // back what we can without blocking anyone, then reset the file under a short crawl pause.
+  db.exec("PRAGMA wal_checkpoint(PASSIVE)");
+  locked(() => db.exec("PRAGMA wal_checkpoint(TRUNCATE)"));
   parentPort.postMessage(n);
 }
 db.close();
