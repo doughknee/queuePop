@@ -142,3 +142,17 @@
 .lg-match-more a{color:var(--accent)}
 
 @media(max-width:700px){.lg-match-row{grid-template-columns:60px auto minmax(0,1fr) 90px 18px}.lg-match-row>span:nth-child(4),.lg-ago{display:none}.lg-match-more{padding-left:14px}}
+
+/* DONI-509: items, runes and spells pages (league-builds.js) */
+.lg-kinds{margin:0 0 6px;width:max-content;max-width:100%;flex-wrap:wrap}
+.lg-kinds a{min-width:32px;height:28px;display:flex;align-items:center;padding:0 10px;background:var(--bg);border-right:1px solid var(--line);color:var(--muted);font:12px var(--mono);text-decoration:none}
+.lg-kinds a:last-child{border-right:0}
+.lg-kinds a[aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
+.lg-bname{white-space:nowrap}
+.lg-bname,.lg-bname>span{display:flex;align-items:center;gap:6px}
+.lg-bname>span:last-child{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.lg-builds .lg-ico{width:20px;height:20px}
+.lg-bchamps{display:flex;gap:2px}
+.lg-bchamps .lg-icon{width:20px;height:20px}
+.lg-bchamps a:hover .lg-icon{outline:1px solid var(--accent)}
+.lg-builds tbody tr{cursor:default}
