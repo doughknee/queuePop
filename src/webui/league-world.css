@@ -124,62 +124,6 @@
 .theme-league #world-nav a:focus-visible{outline:2px solid #b7dfe1;outline-offset:2px}
 
 .theme-league #world-nav .league-dock{position:static}
-/* DONI-506: tier list with Lolalytics' columns (league-stats.css holds the base table). Selectors carry .lg-table.lg-tiers2 so they win over it. */
-.lg-filters .lg-num input{width:84px;min-height:34px;background:var(--lg-deep);color:var(--lg-ivory);border:1px solid #c8aa6e44;padding:5px 8px;font:13px 'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
-.lg-lanes button{display:flex;gap:6px;align-items:center}
-.lg-lanes button span{font-size:12px}
-.lg-role-txt{font:600 10px 'Segoe UI',sans-serif;letter-spacing:.5px;text-transform:uppercase;color:var(--lg-muted)}
-.lg-lanes .lg-role-txt{display:none} /* the tab already shows its label */
-.lg-table.lg-tiers2{font-size:13px}
-.lg-table.lg-tiers2 td,.lg-table.lg-tiers2 th.num{padding:4px 6px}
-.lg-table.lg-tiers2 th button{padding:7px 6px}
-.lg-table.lg-tiers2 th.num button{text-align:right}
-.lg-table.lg-tiers2 .lg-name{max-width:180px}
-.lg-table.lg-tiers2 .lg-name a{display:flex;align-items:center;gap:8px;min-width:0}
-.lg-table.lg-tiers2 .lg-name a span{overflow:hidden;text-overflow:ellipsis;min-width:0}
-.lg-table.lg-tiers2 .lg-name .lg-role-ico{width:16px;height:16px;flex:none;opacity:.8}.lg-table.lg-tiers2 .lg-name .lg-role-txt{flex:none}
-.lg-table.lg-tiers2 .up{color:var(--lg-spell)}.lg-table.lg-tiers2 .down{color:var(--lg-defeat)}
-.lg-table.lg-tiers2 small{color:var(--lg-muted);font-size:11px}
-.lg-table.lg-tiers2 .lg-best-first{border-left:1px solid var(--lg-line)}
-.lg-table.lg-tiers2 .lg-group th{border-bottom:0;padding:6px 6px 0;font:600 10px 'Segoe UI',sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--lg-gold);text-align:center}
-.lg-tier-none{display:inline-block;width:34px;text-align:center;color:var(--lg-muted)}
-/* Narrow content (1280 px window with a 400 px sidebar): drop the bars and tighten, never scroll sideways. */
-#lg-tiers{container-type:inline-size}
-@container (max-width:900px){.lg-page .lg-table.lg-tiers2 th button{letter-spacing:.3px}.lg-page .lg-table.lg-tiers2 td,.lg-page .lg-table.lg-tiers2 th.num,.lg-page .lg-table.lg-tiers2 th button{padding-left:4px;padding-right:4px}.lg-table.lg-tiers2 .lg-name{max-width:130px}.lg-table.lg-tiers2 small{display:none}}
 /* Page row at 1280 px with a wide sidebar: tighter tabs, and it scrolls inside itself rather than widening the page. */
 @media(max-width:1500px){.theme-league #world-nav a{padding:0 11px}}
 .theme-league #world-nav{overflow-x:auto;scrollbar-width:none}
-/* DONI-516: League tables scan like Lolalytics. Bigger type, tighter rows (compact / comfortable on <html data-lg-density>),
-   sticky headers under the 56 px page row, value-colored numbers (.lg-v, --k from lgHeat), band-colored tier badges. */
-.lg-page{--lg-bad:color-mix(in oklab,var(--lg-defeat) 70%,var(--lg-ivory))} /* defeat hue lifted for 4.5:1 on obsidian */
-.lg-page .lg-table td{padding:5px 8px;font-size:15px;line-height:18px}
-.lg-page .lg-table .lg-name a{font-size:16px;line-height:18px}
-.lg-page .lg-table .lg-tier{display:flex}.lg-page .lg-table .lg-tier-none,.lg-page .lg-table .lg-role-ico{vertical-align:middle}
-.lg-page .lg-table .lg-icon{width:32px;height:32px}
-.lg-page .lg-table .lg-ico,.lg-page .lg-pick .lg-ico{width:30px;height:30px}
-.lg-page .lg-syn .lg-icon,.lg-page .lg-best .lg-icon{width:32px;height:32px}
-.lg-page .lg-table small{font-size:12px}
-.lg-page .lg-table.lg-tiers td:first-child{font-size:13px}
-[data-lg-density=comfortable] .lg-page .lg-table td{padding:4px 8px;line-height:20px}
-.lg-page .lg-table .lg-name{white-space:nowrap}
-[data-lg-density=comfortable] .lg-page .lg-table .lg-icon,[data-lg-density=comfortable] .lg-page .lg-syn .lg-icon{width:40px;height:40px}
-[data-lg-density=comfortable] .lg-page .lg-table .lg-ico,[data-lg-density=comfortable] .lg-page .lg-pick .lg-ico{width:36px;height:36px}
-.lg-page .lg-table th button,.lg-page .lg-table th.num,.lg-champ-page .lg-table th.num{font-size:11px}
-.lg-page .lg-table thead{position:sticky;top:56px;z-index:3}
-.lg-page .lg-table thead th{background:#08141c;box-shadow:inset 0 -1px var(--lg-line)}
-.lg-v{color:color-mix(in oklab,var(--vc) calc(var(--k) * 100%),var(--lg-ivory));font-weight:600}
-.lg-v.vg{--vc:var(--lg-spell)}.lg-v.vb{--vc:var(--lg-bad)}
-.lg-legend{display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:12px;color:var(--lg-muted)}
-.lg-legend i{flex:none;width:72px;height:6px;background:linear-gradient(90deg,var(--lg-bad),var(--lg-ivory),var(--lg-spell))}
-.lg-page .lg-tier{display:inline-flex;align-items:center;justify-content:center;width:34px;height:20px;vertical-align:middle;font:700 13px/1 Cinzel,serif;color:var(--lg-obsidian)}
-.lg-page .lg-tier sup{align-self:flex-start;margin:2px 0 0 1px;font-size:10px;line-height:1}
-.lg-page .lg-tier.t-S{background:var(--lg-gold)}
-.lg-page .lg-tier.t-A{background:var(--lg-spell)}
-.lg-page .lg-tier.t-B{background:#2a3036;color:var(--lg-ivory)}
-.lg-page .lg-tier.t-C{background:var(--lg-muted)}
-.lg-page .lg-tier.t-D{background:var(--lg-defeat);color:var(--lg-ivory)}
-.lg-density{margin-left:4px}
-.lg-page .lg-syn{font-size:15px}.lg-page .lg-syn>span:nth-child(2){font-size:16px}
-/* Narrow content (125-150% Text size): drop the best-on-champion group and lane % before the table would clip. */
-@container (max-width:760px){.lg-table.lg-tiers2 .lg-group,.lg-table.lg-tiers2 :is(td,th):nth-child(n+11),.lg-table.lg-tiers2 :is(td,th):nth-child(4){display:none}}
-.lg-page .lg-obj th.num{white-space:normal}
