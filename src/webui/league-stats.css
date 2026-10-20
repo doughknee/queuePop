@@ -124,6 +124,9 @@
 .lg-match-row{width:100%;display:grid;grid-template-columns:64px auto minmax(0,1fr) 26px 110px 80px 18px;align-items:center;gap:10px;padding:4px 10px;background:none;border:0;color:var(--fg);text-align:left;font:12px var(--mono)}
 .lg-match-row:hover{background:var(--wash)}
 .lg-match-row .lg-icon{width:30px;height:30px}
+.lg-match-row [data-lg-goto]{cursor:pointer}
+.lg-match-row .lg-match-name[data-lg-goto]:hover{color:var(--accent)}
+.lg-match-row .lg-icon[data-lg-goto]:hover{outline:1px solid var(--accent)}
 .lg-result{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
 .loss .lg-result{color:var(--neg)}
 .lg-match-name{font:700 13px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

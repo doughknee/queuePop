@@ -233,8 +233,8 @@ async function lgFillHistory(token) {
   const w = games.filter(g => g.win).length;
   document.getElementById('lg-hist-sum').textContent = `${w}W ${games.length - w}L · ${lgPct(w / games.length)} over your last ${games.length === 1 ? 'game' : games.length + ' games'}`;
   box().innerHTML = games.map((g, i) => {
-    const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts);
-    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId)}<span class="lg-match-name">${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
+    const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts), go = `data-lg-goto="#/league/champion/${g.championId}${g.position ? '/' + g.position : ''}" title="Open ${lgEsc(c.name)}'s stats"`;
+    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Queue ' + g.queueId)}</small></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
   }).join('');
 }
 async function lgExpandMatch(btn) {
@@ -282,6 +282,8 @@ document.addEventListener('click', e => {
   if (msort) { const k = msort.dataset.lgMsort; lg.mdir = lg.msort === k ? -lg.mdir : (k === 'name' ? 1 : -1); lg.msort = k; lgSave(); const sec = msort.closest('.lg-section'); if (lgChampData && sec) sec.outerHTML = lgMatchups(lgChampData); return; }
   const crole = t.closest('[data-lg-crole]');
   if (crole) { const id = location.hash.split('/')[3]; history.replaceState(null, '', `#/league/champion/${id}/${crole.dataset.lgCrole}`); lgRefill(); return; }
+  const goto = t.closest('[data-lg-goto]'); // the champion inside a history row opens its page; the rest of the row expands
+  if (goto) { location.hash = goto.dataset.lgGoto.slice(1); return; }
   const match = t.closest('[data-lg-match]');
   if (match) { lgExpandMatch(match); return; }
   const row = t.closest('tr[data-lg-go]');

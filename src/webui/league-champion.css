@@ -84,6 +84,7 @@
 .lg-syn:hover>span:nth-child(2){color:var(--accent)}
 
 @media(max-width:1100px){.lg-strip>div{padding:0 9px}.lg-strip dd{font-size:19px}.lg-champ-band h1{font-size:30px}}
-@media(max-width:800px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch}.lg-strip{justify-content:flex-start}.lg-sheet-skills{grid-template-columns:1fr}}
+@media(max-width:1100px){.lg-champ-band{grid-template-columns:1fr}.lg-champ-side{align-items:stretch;flex-direction:row-reverse;justify-content:space-between;flex-wrap:wrap}.lg-strip{justify-content:flex-start}.lg-strip>div:first-child{padding-left:0}}
+@media(max-width:800px){.lg-sheet-skills{grid-template-columns:1fr}}
 @media(max-width:1000px){.lg-sheet3,.lg-duo{grid-template-columns:1fr 1fr}.lg-duo{grid-template-columns:1fr}}
 @media(max-width:700px){.lg-sheet3{grid-template-columns:1fr}}
