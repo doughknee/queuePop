@@ -17,7 +17,12 @@ window.qpMarkGame = href => (/^#\/(league|tft|deadlock|settings|recordings)\b/.e
   const list = () => (window.QP && QP.store && QP.store.config && QP.store.config.bookmarks) || [];
   const here = () => (location.hash || '#/').replace(/\/+$/, '') || '#/';
   // The page's own title, without the app and game suffixes: "Ezreal · League of Legends · QueuePop" → "Ezreal".
-  const title = () => (document.title.replace(/\s*·\s*QueuePop$/i, '').split(' · ')[0] || 'Home').trim();
+  // A game's own page keeps its sidebar name ("Tier list", "Match history"; the icon says which game); anything else
+  // (a champion, a comp, a hero) takes the page title's first part.
+  const title = () => {
+    const page = [...document.querySelectorAll('#qp-sidebar .sb-pages a')].find(a => (a.getAttribute('href') || '').replace(/\/+$/, '') === here());
+    return (page ? page.textContent : document.title.replace(/\s*·\s*QueuePop$/i, '').split(' · ')[0].split(' / ')[0] || 'Home').trim();
+  };
   function render() {
     const l = list(), at = here(), on = l.some(b => b.href === at);
     bar.innerHTML = `<button class="qb-star" type="button" aria-pressed="${on}" title="${on ? 'Remove this page from your bookmarks' : 'Bookmark this page'} (Ctrl+D)">${on ? '★' : '☆'}</button>` +
