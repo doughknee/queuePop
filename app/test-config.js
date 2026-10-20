@@ -35,3 +35,8 @@ assert.deepStrictEqual(cleanGames([]), ["league", "tft", "deadlock"]);
 assert.deepStrictEqual(cleanGames(undefined), ["league", "tft", "deadlock"]);
 assert.deepStrictEqual(normalizeConfig({ games_enabled: ["tft"] }).games_enabled, ["tft"]);
 console.log("test-config games ok");
+
+// DONI-328: the companion token survives normalize (else every Settings save would cut the phone off); junk is dropped.
+assert.strictEqual(normalizeConfig({ companion: { token: "0123456789abcdef0123" } }).companion.token, "0123456789abcdef0123");
+assert.strictEqual(normalizeConfig({ companion: { token: "<script>" } }).companion.token, "");
+console.log("test-config token ok");

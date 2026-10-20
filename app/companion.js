@@ -50,9 +50,21 @@ function createCompanion(ctx) {
     res.on("close", stop);
   }
 
+  // DONI-328: the QR link carries ?t=<token>; opening it sets a year-long cookie, so the page, its feed and a home-screen
+  // install keep working. Static files stay public (a browser fetches the manifest without cookies); only /api/* needs it.
+  const tokenOf = (req, url) => url.searchParams.get("t") || ((req.headers.cookie || "").match(/(?:^|;\s*)qp_t=([0-9a-f]+)/) || [])[1] || "";
+  const authorised = (req, url) => { const want = cfgComp().token; return !!want && tokenOf(req, url) === want; };
+
   function handler(req, res) {
-    let p; // a malformed escape (GET /%) from anyone on the LAN threw here and took the whole host down (DONI-529)
-    try { p = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400); return res.end(); }
+    let p, url; // a malformed escape (GET /%) from anyone on the LAN threw here and took the whole host down (DONI-529)
+    try { url = new URL(req.url, "http://x"); p = decodeURIComponent(url.pathname); } catch { res.writeHead(400); return res.end(); }
+    if (p.startsWith("/api/") && !authorised(req, url)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "token", message: "Scan the QR code in queuePop's Settings again." }));
+    }
+    if (url.searchParams.get("t") && authorised(req, url) && (p === "/" || p.endsWith(".html"))) {
+      res.setHeader("Set-Cookie", `qp_t=${cfgComp().token}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict`);
+    }
     if (p === "/api/stream") return stream(req, res);
     if (p === "/api/status") {
       res.writeHead(200, { "Content-Type": "application/json" });

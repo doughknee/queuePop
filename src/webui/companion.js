@@ -51,7 +51,7 @@ function startKeepAlive() {
 async function ensureCustomSound() {
   if (currentSound !== "custom" || customBuffer || !audioCtx) return;
   try {
-    const res = await fetch("/api/sound", { cache: "no-store" });
+    const res = await fetch(withToken("/api/sound"), { cache: "no-store" });
     if (!res.ok) return;
     customBuffer = await audioCtx.decodeAudioData(await res.arrayBuffer());
   } catch (_) {}
@@ -167,8 +167,12 @@ function onLog(e) {
   }
 }
 
+// DONI-328: the QR link's ?t=<token> (the server also set a cookie, which covers a home-screen launch without it).
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const withToken = (u) => (TOKEN ? u + (u.includes("?") ? "&" : "?") + "t=" + encodeURIComponent(TOKEN) : u);
+
 function connectStream() {
-  const es = new EventSource(`/api/stream?after=${lastId}`);
+  const es = new EventSource(withToken(`/api/stream?after=${lastId}`));
   es.addEventListener("log", onLog);
   es.addEventListener("synced", () => (primed = true));
   es.onopen = () => setConn(true, "Watching");
@@ -177,7 +181,8 @@ function connectStream() {
 
 async function pollStatus() {
   try {
-    const res = await fetch("/api/status", { cache: "no-store" });
+    const res = await fetch(withToken("/api/status"), { cache: "no-store" });
+    if (res.status === 403) return setConn(false, "Scan the QR code in queuePop again");
     const s = await res.json();
     setConn(!!s.connected, s.connected ? (s.paused ? "Paused" : "Watching") : "Client closed");
     if (s.sound && s.sound !== currentSound) {

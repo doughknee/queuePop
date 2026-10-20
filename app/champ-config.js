@@ -157,7 +157,8 @@ function normalizeCompanion(comp) {
   let port = pyInt(getd(comp, "port", COMPANION_PORT));
   if (port === null || port < 1024 || port > 65535) port = COMPANION_PORT;
   const sound = ALARM_SOUNDS.has(comp.sound) ? comp.sound : "chime";
-  return { enabled: T(getd(comp, "enabled", false)), port, sound, sound_file: String(comp.sound_file || "").trim() };
+  const token = /^[0-9a-f]{16,64}$/.test(String(comp.token || "")) ? String(comp.token) : ""; // DONI-328: the QR link's secret
+  return { enabled: T(getd(comp, "enabled", false)), port, sound, sound_file: String(comp.sound_file || "").trim(), token };
 }
 
 function cleanQueueIds(ids, keepOrder = false) {
