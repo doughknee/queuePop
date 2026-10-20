@@ -198,7 +198,8 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   this to back-fill a short League history (DONI-524).
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, carry, units, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
-  (`units` = up to 9 units on at least 30% of the comp's boards, most frequent first)
+  (`units` = up to 9 units on at least 30% of the comp's boards, most frequent first; `activeTraits` = its 8 most frequent
+  `{ key: "<trait>:<tier>", frequency }`, the shape of `/tft/comp/{id}`)
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units`, `augments` and `activeTraits` (key `"<trait>:<tier_current>"`):
   `[{ key, games, frequency, avgPlacement, top4Rate, lowSample }]`; 404 when unknown
 - `GET /tft/meta[?set=18]` → `{ set, mutator, fetchedAt, units: { apiName: { name, cost, traits: [traitApiName], icon } },
