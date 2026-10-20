@@ -48,7 +48,12 @@
         ${sw('discord_enabled', 'Discord', 'Posts to a Discord webhook, so Discord pushes it to your phone.')}
         <label class="st-row"><span class="st-lbl">Webhook URL<small>Discord: channel settings › Integrations › Webhooks › Copy URL.</small></span><input class="st-in st-wide" data-k="webhook_url" placeholder="https://discord.com/api/webhooks/…"></label>
         <label class="st-row"><span class="st-lbl">Discord user ID<small>Optional. Adds an @mention so the push is louder.</small></span><input class="st-in" data-k="user_id" placeholder="123456789012345678"></label>
-        <div class="st-row"><span class="st-lbl">Test Discord</span><span class="st-act"><button class="st-btn" data-do="test-discord">Send a test to Discord</button><span class="st-msg" data-msg="test-discord"></span></span></div>`) +
+        <div class="st-row"><span class="st-lbl">Test Discord</span><span class="st-act"><button class="st-btn" data-do="test-discord">Send a test to Discord</button><span class="st-msg" data-msg="test-discord"></span></span></div>
+        ${sw('ntfy.enabled', 'Push with ntfy', 'The free ntfy app buzzes your phone even with the screen off. No Discord, no account.')}
+        <label class="st-row"><span class="st-lbl">ntfy topic<small>Subscribe to this topic in the ntfy app. Anyone who knows it can read your alerts, so keep it random.</small></span><span class="st-act"><input class="st-in" data-k="ntfy.topic" id="st-ntfy-topic" placeholder="queuepop-…"><button class="st-btn" data-do="ntfy-new">New topic</button></span></label>
+        <label class="st-row"><span class="st-lbl">ntfy server<small>Leave as ntfy.sh, or your own server.</small></span><input class="st-in st-wide" data-k="ntfy.server" data-url placeholder="https://ntfy.sh"></label>
+        <label class="st-row"><span class="st-lbl">ntfy access token<small>Only for a protected server.</small></span><input class="st-in st-wide" data-k="ntfy.token" type="password" autocomplete="off"></label>
+        <div class="st-row"><span class="st-lbl">Test ntfy</span><span class="st-act"><button class="st-btn" data-do="test-ntfy">Send a test push</button><span class="st-msg" data-msg="test-ntfy"></span></span></div>`) +
       card('companion', 'Phone companion', `
         ${sw('companion.enabled', 'Alarm my phone when the queue pops', 'A page on your home Wi-Fi. No app, no account.')}
         ${num('companion.port', 'Port', 'Change it only if another program already uses 8420.', 1024, 65535)}
@@ -143,6 +148,7 @@
     if (e.type === 'input' && el.tagName === 'INPUT' && el.type !== 'checkbox') return;
     QP.store.set(k, typeof v === 'string' && !el.dataset.url && el.tagName === 'INPUT' ? v.trim() : v);
     if (k === 'crawler_url') loadCrawler();
+    if (k === 'ntfy.enabled' && v && !QP.store.get('ntfy.topic')) root.querySelector('[data-do="ntfy-new"]').click(); // DONI-425
     if (k === 'webhook_url') say('test-discord', v && !/^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+\/?$/.test(String(v).trim()) ? 'That isn’t a Discord webhook address' : '', false);
     if (k === 'companion.enabled' || k === 'companion.port') setTimeout(loadCompanion, 900); // the host restarts it on save
     hydrate();
@@ -183,6 +189,8 @@
       else if (d === 'crawler-refresh') { await loadCrawler(); }
       else if (d === 'new-link') { const r = await a.new_companion_link(); say('test-companion', r && r.ok ? 'New link made. Scan the new code on your phone' : 'Couldn’t make a new link', r && r.ok); loadCompanion(); }
       else if (d === 'test-alert') { const r = await a.test_alert(); const c = (r && r.channels) || []; say(d, c.length ? 'Sent to ' + (c.length > 1 ? c.slice(0, -1).join(', ') + ' and ' + c[c.length - 1] : c[0]) : 'Nothing is on yet: turn on Windows notifications, Discord or the phone companion', c.length > 0); }
+      else if (d === 'ntfy-new') { const t = 'queuepop-' + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join(''); QP.store.set('ntfy.topic', t); hydrate(); say('test-ntfy', 'New topic made. Subscribe to it in the ntfy app', true); }
+      else if (d === 'test-ntfy') { say(d, 'Sending…', true); const r = await a.test_ntfy(); say(d, r && r.ok ? 'Sent, check your phone' : (r && r.error) || 'Failed', r && r.ok); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
       else if (d === 'reset-setup') { window.homeSetup?.reset(); say(d, 'They’ll show on home', true); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }

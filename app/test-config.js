@@ -47,3 +47,7 @@ console.log("test-config stale token ok");
 assert.strictEqual(normalizeConfig({}).auto_accept, true);
 assert.strictEqual(normalizeConfig({ auto_accept: false }).auto_accept, false);
 console.log("test-config auto_accept ok");
+// DONI-425: ntfy settings survive normalize; junk topic dropped.
+assert.deepStrictEqual(normalizeConfig({ ntfy: { enabled: true, topic: "queuepop-ab", server: "https://n.example/" } }).ntfy, { enabled: true, server: "https://n.example", topic: "queuepop-ab", token: "" });
+assert.strictEqual(normalizeConfig({ ntfy: { topic: "bad topic" } }).ntfy.topic, "");
+console.log("test-config ntfy ok");
