@@ -10,9 +10,9 @@ function build() {
   db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, fetched_at) VALUES ('T', 'tft', 'na1', 'DIAMOND', 'done', '16.20', 1)").run();
   const ins = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, comp, traits, units, augments, board) VALUES ('T', ?, ?, ?, ?, ?, ?, ?)");
   // Ahri 3-star with Shojin+Blue wins; Ahri 2-star with Shojin goes 5th; Krug 2-star in both and on the 8th board.
-  ins.run("a", 1, "Inv,Ahri", '[["Inv",3],["Brawl",1]]', '["Ahri","Krug"]', '["AugA","AugB"]', '[["Ahri",3,["Shojin","Blue"]],["Krug",2,[]]]');
-  ins.run("b", 5, "Inv,Ahri", '[["Inv",2]]', '["Ahri","Krug"]', '["AugA"]', '[["Ahri",2,["Shojin"]],["Krug",2,["Bramble"]]]');
-  ins.run("c", 8, "Brawl,Krug", '[["Brawl",1]]', '["Krug"]', '[]', '[["Krug",1,["Bramble"]]]');
+  ins.run("a", 1, "Ahri", '[["Inv",3],["Brawl",1]]', '["Ahri","Krug"]', '["AugA","AugB"]', '[["Ahri",3,["Shojin","Blue"]],["Krug",2,[]]]');
+  ins.run("b", 5, "Ahri", '[["Inv",2]]', '["Ahri","Krug"]', '["AugA"]', '[["Ahri",2,["Shojin"]],["Krug",2,["Bramble"]]]');
+  ins.run("c", 8, "Krug", '[["Brawl",1]]', '["Krug"]', '[]', '[["Krug",1,["Bramble"]]]');
   aggregate(db, () => 2);
   return db;
 }

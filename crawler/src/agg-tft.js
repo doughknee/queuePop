@@ -19,12 +19,14 @@ function migrate(db) {
 // [[unit, star, [items]]] from a tft-match-v1 participant.
 const boardOf = (p) => JSON.stringify((p.units || []).map((u) => [u.character_id, u.tier, u.itemNames || []]));
 
-// ponytail: a unit fielded twice on one board (two 2-stars) counts twice; MetaTFT dedupes, fine at this sample size.
+// A unit fielded twice on one board counts once in stats_tft_unit (its highest star), like MetaTFT's frequency (D14).
 function inserts(M, K) {
   const P = "count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1)";
   const U = `FROM tft_participants p ${M}, json_each(p.board) u`;
   return [
-    `INSERT INTO stats_tft_unit SELECT ${K}, json_extract(u.value, '$[0]'), json_extract(u.value, '$[1]'), ${P} ${U} GROUP BY 1, 2, 3, 4, 5`,
+    `INSERT INTO stats_tft_unit SELECT patch, region, bracket, unit, star, count(*), sum(placement), sum(placement <= 4), sum(placement = 1)
+      FROM (SELECT ${K}, p.placement, json_extract(u.value, '$[0]') unit, max(json_extract(u.value, '$[1]')) star ${U} GROUP BY p.match_id, p.puuid, unit)
+      GROUP BY 1, 2, 3, 4, 5`,
     `INSERT INTO stats_tft_unit_item SELECT ${K}, json_extract(u.value, '$[0]'), 'item', i.value, ${P} ${U}, json_each(u.value, '$[2]') i GROUP BY 1, 2, 3, 4, 6`,
     // the unit's full item set, sorted, "" when it held none
     `INSERT INTO stats_tft_unit_item SELECT ${K}, json_extract(u.value, '$[0]'), 'set',

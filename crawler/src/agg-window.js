@@ -34,7 +34,7 @@ function inserts(M, K) {
     `INSERT INTO stats_lol_champ_daily SELECT ${D}, ${K}, p.role, p.champion, count(*), sum(p.win) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5, 6`,
     `INSERT INTO stats_lol_bans_daily SELECT ${D}, ${K}, p.champion, count(DISTINCT p.match_id) FROM lol_bans p ${M} GROUP BY 1, 2, 3, 4, 5`,
     `INSERT INTO stats_tft_boards_daily SELECT ${D}, ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4`,
-    `INSERT INTO stats_tft_comp_daily SELECT ${D}, ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4, 5`,
+    `INSERT INTO stats_tft_comp_daily SELECT ${D}, ${K}, ${require("./tft-comps").COMP}, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${require("./tft-comps").JOIN} ${M} GROUP BY 1, 2, 3, 4, 5`,
     `INSERT INTO stats_lol_length SELECT ${K}, p.role, p.champion, min(m.duration / ${BUCKET}, ${LAST_BUCKET}), count(*), sum(p.win) FROM lol_participants p ${M}
       WHERE m.duration IS NOT NULL GROUP BY 1, 2, 3, 4, 5, 6`,
     `INSERT INTO stats_lol_depth SELECT ${K}, p.role, p.champion, count(DISTINCT p.puuid) FROM lol_participants p ${M} GROUP BY 1, 2, 3, 4, 5`,

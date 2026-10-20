@@ -209,13 +209,14 @@ TFT stat pages (DONI-510/511), all `?patch&region&bracket&min_games`, every row 
 - `GET /tft/traits` → `traits: [{ key, ...row, tiers: [{ tier, ...row }] }]`, tier = `tier_current` (breakpoint index; unit counts per
   breakpoint are in `/tft/meta` `traits[key].breakpoints`).
 
-**TFT comp rule (DONI-502):** a comp id is `"<top trait>,<carry unit>"`, e.g. `DA_18_Invoker,DA_18_Ahri`
-(`traits: [top trait]`, `carry`). Top trait: the active
-trait (`tier_current >= 1`) that is not a one-unit unique trait (`tier_total > 1`), by highest `tier_current`, then most units,
-then name; `none` when there is none. Carry: the unit holding the most items, then highest star, then highest cost, then name.
-Deterministic. On 3,200 live boards (16.20) it put 0% in `none` (the old "traits at tier >= 2" rule: 22.5%) and explained
-2.7x more placement variance. After a rule change run `npm run -s backfill-comps` (re-keys boards and rewrites `board` from raw JSON; boards
-whose raw retention already dropped keep their old trait-only id), then `npm run -s aggregate`.
+**TFT comp rule (D14, replaces DONI-502's):** one comp per carry. `tft_participants.comp` stores the board's carry (the unit holding
+the most items, then highest star, then cost, then name); every aggregation pass labels each carry with the non-unique trait active
+on most of its boards in that patch (ties: name; unique = `/tft/meta` breakpoints of length 1), so the id stays `"<trait>,<carry>"`,
+e.g. `DA_Riftbeast18,DA_Krug18`. Why: DONI-502 keyed each board by its own top trait, which split one carry by how far the board
+progressed (within a carry the sub-comps' average placements differed by 0.6 places sd on 3,200 live boards; Executioner Azir 3.01 vs
+Flora Fatalis Azir 5.03 while MetaTFT's Azir comp is 4.10), i.e. it measured the outcome, not the comp. After a rule change run
+`npm run -s backfill-comps` (re-derives from raw JSON; rows past raw retention keep the carry part of an old id), then `npm run -s aggregate`.
+`/tft/units` counts a unit once per board (its highest star), like MetaTFT's frequency.
 
 **Players (DONI-506, `src/agg-players.js`):** `lol_names` (puuid → latest Riot id `name#tag`, region) is written for every
 stored League match; `npm run backfill-players` fills it from the raw JSON still inside the retention window, then run

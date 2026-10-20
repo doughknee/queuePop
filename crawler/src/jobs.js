@@ -212,9 +212,10 @@ const setOf = (info) => info?.tft_set_number ?? null;
 const byStrength = (a, b) => b.tier_current - a.tier_current || b.num_units - a.num_units || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 const carryOf = (units = []) => [...units].sort((x, y) => (y.itemNames || []).length - (x.itemNames || []).length || y.tier - x.tier
   || (y.rarity ?? 0) - (x.rarity ?? 0) || (x.character_id < y.character_id ? -1 : 1))[0]?.character_id || "";
+// Since D14 tft_participants.comp stores the carry only; the comp id "<trait>,<carry>" is labelled per patch at aggregation
+// (src/tft-comps.js). The top trait is kept for /tft/player and match views that show a single board.
 function compOf(p) {
-  const top = (p.traits || []).filter((t) => t.tier_current >= 1 && (t.tier_total ?? 2) > 1).sort(byStrength)[0];
-  return `${top ? top.name : "none"},${carryOf(p.units)}`;
+  return carryOf(p.units) || "none";
 }
 
 // Game length from stored raw JSON for matches stored before matches.duration existed (D6). Run `aggregate` after it.
@@ -240,7 +241,9 @@ function backfillComps(db) {
       }
     });
   }
-  return { matches, boards };
+  // rows whose raw retention already dropped: an old "trait,carry" id becomes its carry (D14)
+  const stripped = Number(db.prepare("UPDATE tft_participants SET comp = substr(comp, instr(comp, ',') + 1) WHERE comp LIKE '%,%'").run().changes);
+  return { matches, boards, stripped };
 }
 
 function store(ctx, game, id, m) {
@@ -322,16 +325,17 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_lol_matchup SELECT ${K}, p.role, p.champion, o.champion, count(*), sum(p.win) FROM lol_participants p
       JOIN lol_participants o ON o.match_id = p.match_id AND o.role = p.role AND o.team <> p.team ${M} WHERE p.role <> '' GROUP BY 1, 2, 3, 4, 5, 6`,
     `INSERT INTO stats_tft_boards SELECT ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3`,
-    `INSERT INTO stats_tft_comp SELECT ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4`,
-    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6`,
-    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'trait', json_extract(j.value, '$[0]') || ':' || json_extract(j.value, '$[1]'), count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.traits) j GROUP BY 1, 2, 3, 4, 6`,
-    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
+    `INSERT INTO stats_tft_comp SELECT ${K}, ${require("./tft-comps").COMP}, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${require("./tft-comps").JOIN} ${M} GROUP BY 1, 2, 3, 4`,
+    `INSERT INTO stats_tft_part SELECT ${K}, ${require("./tft-comps").COMP}, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${require("./tft-comps").JOIN} ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6`,
+    `INSERT INTO stats_tft_part SELECT ${K}, ${require("./tft-comps").COMP}, 'trait', json_extract(j.value, '$[0]') || ':' || json_extract(j.value, '$[1]'), count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${require("./tft-comps").JOIN} ${M}, json_each(p.traits) j GROUP BY 1, 2, 3, 4, 6`,
+    `INSERT INTO stats_tft_part SELECT ${K}, ${require("./tft-comps").COMP}, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${require("./tft-comps").JOIN} ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
     ...champ.inserts(M, K),
     ...tftAgg.inserts(M, K),
     ...win.inserts(M, K),
     ...draftAgg.inserts(M, K),
   ];
   require("./lol-items").loadCompleted(db); // temp.lol_completed before the build-order inserts are prepared
+  require("./tft-comps").init(db); // temp.tft_comp_label, filled per patch below
   const prepared = inserts.map((q) => db.prepare(q));
   champ.ingestRaw(db);
   // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
@@ -341,6 +345,7 @@ function aggregate(db, now = Date.now, force = false) {
     for (const patch of dirty) {
       const t1 = Date.now();
       for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES, ...draftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      require("./tft-comps").labelPatch(db, patch);
       for (const q of prepared) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
       log.patches[patch] = { at: now(), ms: Date.now() - t1 };
