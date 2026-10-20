@@ -10,6 +10,7 @@ const { createAccount, QUEUE_ID_MAP } = require("./account");
 const { createTray } = require("./tray");
 const { attachTimeline } = require("./timeline");
 const { createAway } = require("./stepping-away");
+const { attachGamePlan } = require("./game-plan");
 const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
@@ -22,7 +23,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -44,9 +45,10 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     onClick: () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
   const away = createAway(state, push); // DONI-424
+  const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log }); // DONI-347
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, timeline: timeline.status(), away: away.status().on,
+    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, plan: plan.get(), timeline: timeline.status(), away: away.status().on,
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
     setAway: (on) => away.set(on),
     // DONI-337: champ select on the phone: who you are, the timer, trades waiting for your answer.
@@ -142,6 +144,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     test_companion: () => { push("Test phone alert", "danger", "queue_pop"); return { ok: true, running: companion.isRunning() }; },
     new_companion_link: () => ({ ok: newToken() }),
     set_stepping_away: (on) => away.set(on),
+    get_game_plan: () => plan.get(),
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];

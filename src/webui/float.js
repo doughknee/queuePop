@@ -18,6 +18,12 @@
     for (const p of [...(cs.myTeam || []), ...(cs.theirTeam || [])]) if (p.championId && p.name) names[p.championId] = p.name;
     $('phase').textContent = String(cs.phase || 'Champ select').replace(/_/g, ' ').toLowerCase();
     $('timer').textContent = cs.timer_left != null ? Math.ceil(cs.timer_left) : '';
+    const plan = await a.get_game_plan().catch(() => null); // DONI-347: after you lock, the float shows your plan
+    if (plan && (plan.lines || []).length) {
+      $('title').textContent = `Your game plan${plan.champion ? ' · ' + plan.champion : ''}`;
+      $('list').innerHTML = plan.lines.map(l => `<li><span><small style="color:var(--fg)">${E(l)}</small></span></li>`).join('');
+      return;
+    }
     const ctx = draftAdvice.draftContext(cs);
     let html = '';
     if (ctx.role) {

@@ -258,3 +258,6 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .dr-txt em{margin-left:8px;padding:1px 6px;border:1px solid var(--accent);color:var(--accent);font:12px var(--mono);font-style:normal;text-transform:uppercase;letter-spacing:.06em}
 .dr-txt small{color:var(--muted);font-size:12px}
 .dr-row.low{opacity:.6}
+.dr-lines{margin:0;padding:0 0 0 2px;list-style:none}
+.dr-lines li{padding:5px 0;border-top:1px solid var(--line)}
+.dr-lines li:first-child{border-top:0}

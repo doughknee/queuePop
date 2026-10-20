@@ -6,7 +6,7 @@ const { BrowserWindow, screen, shell } = require("electron");
 const { windowState } = require("./window-state");
 
 // The float may only read: no settings, no actions. Checked by main.js's bridge guard.
-const FLOAT_METHODS = new Set(["get_champ_select", "pick_suggestions", "get_config", "get_champion_catalog", "close_float"]);
+const FLOAT_METHODS = new Set(["get_champ_select", "pick_suggestions", "get_config", "get_champion_catalog", "close_float", "get_game_plan"]);
 
 // ctx: { preload, args, getConfig, userData, log }
 function createFloat(ctx) {

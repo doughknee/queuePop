@@ -264,6 +264,8 @@ async function pollStatus() {
     ensureCustomSound();
     timeline = s.timeline || null; drawTimeline();
     drawAway(!!s.away);
+    const p = s.plan; $("plan").hidden = !(p && p.lines && p.lines.length); // DONI-347
+    if (p && p.lines) { $("plan-title").textContent = "Your game plan" + (p.champion ? " · " + p.champion : ""); $("plan-lines").innerHTML = p.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join(""); }
     if (s.phase === "ChampSelect") startChamp(); else stopChamp();
   } catch (_) {
     setConn(false, "Offline");

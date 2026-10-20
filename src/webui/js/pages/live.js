@@ -69,7 +69,8 @@ async function refreshChampLive() {
   let draft = null;
   const ctx = wantSugg && window.draftAdvice ? draftAdvice.draftContext(cs) : null;
   if (ctx && ctx.role) draft = await draftAdvice.fetch(ctx).then((r) => ({ r, ctx }), () => null);
-  renderChampLive(cs, sugg, draft);
+  const plan = await Promise.resolve(api().get_game_plan && api().get_game_plan()).catch(() => null); // DONI-347
+  renderChampLive(cs, sugg, draft, plan);
 }
 
 // Q10: top 5 for your role from /lol/draft, re-ranked as enemies lock, each with one line saying why.
@@ -192,7 +193,15 @@ const TRADE_WORDS = {
   CANCELLED: "cancelled",
 };
 
-function renderChampLive(cs, sugg, draft) {
+// DONI-347: your game plan once you've locked (from the crawler's /lol/plan, built in app/game-plan.js).
+function planPanel(p) {
+  if (!p || !(p.lines || []).length) return "";
+  return `<section class="dr-panel dr-plan" aria-label="Game plan"><div class="dr-head"><span class="dr-title">Your game plan</span>` +
+    `<span class="dr-sub">${escapeHtml(p.champion || "")}</span></div>` +
+    `<ul class="dr-lines">${p.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul></section>`;
+}
+
+function renderChampLive(cs, sugg, draft, plan) {
   const phase = (cs.phase || "Champ Select").replace(/_/g, " ");
 
   const ticker = lastAutoEv
@@ -245,7 +254,8 @@ function renderChampLive(cs, sugg, draft) {
           : `<div class="text-subText text-sm italic px-2 py-1">Hidden</div>`) +
       `</div>` +
     `</div>` +
-    (draft && draftPanel(draft) || suggPanel(sugg)) +
+    planPanel(plan) +
+    (plan && plan.lines?.length ? "" : draft && draftPanel(draft) || suggPanel(sugg)) + // once you've locked, the plan replaces the picks
     bansStrip + tradesStrip + benchStrip;
 }
 

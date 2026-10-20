@@ -218,6 +218,9 @@
 - Suggestions float (DONI-346): `app/float.js` opens `src/webui/float.html` (+`float.js`) always-on-top and unfocused when gameflow
   enters ChampSelect (config `float_window`, default on; Settings > League), closes after; bounds in userData `float-state.json`;
   ✕ (`close_float`) hides it until the next champ select. The bridge guard lets the float call only `FLOAT_METHODS` (read-only).
+- Game plan (DONI-347): `app/game-plan.js` asks the crawler `/lol/plan/{champion}?role&enemies` when you lock (again when the known
+  enemies change), names from Data Dragon, `planLines` (pure, `app/test-plan.js`) → ≤ 6 lines. Bridge `get_game_plan` (live view card,
+  float), companion status `plan` (phone panel); once all ten are known, the feed + `notifier.alert("game_plan")` (on by default).
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
