@@ -88,3 +88,8 @@
 @media(max-width:800px){.lg-sheet-skills{grid-template-columns:1fr}}
 @media(max-width:1000px){.lg-sheet3,.lg-duo{grid-template-columns:1fr 1fr}.lg-duo{grid-template-columns:1fr}}
 @media(max-width:700px){.lg-sheet3{grid-template-columns:1fr}}
+
+/* DONI-560: the one-sentence read under the name; links are the opponents' pages */
+.lg-champ-id p.lg-verdict{display:block;max-width:62ch;margin:4px 0 2px;font-size:12px;line-height:1.5;color:var(--fg)}
+.lg-champ-id p.lg-verdict a{color:var(--fg);text-decoration:underline;text-decoration-color:var(--edge);text-underline-offset:2px}
+.lg-champ-id p.lg-verdict a:hover{color:var(--accent);text-decoration-color:var(--accent)}

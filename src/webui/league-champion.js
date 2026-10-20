@@ -9,7 +9,7 @@ function leagueChampionPage(id) {
   lgMount('champion', t => lgFillChampion(t, id));
   const c = lgChamp(id), key = Object.keys(champions).find(k => champions[k].cid === c.id);
   const art = `url('${statsApi.DD}/cdn/img/champion/splash/${lgEsc(c.alias || 'Ahri')}_0.jpg')`;
-  return `<div class="lg-page lg-champ-page">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
+  return `<div class="lg-page lg-champ-page">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p class="lg-verdict" id="lg-verdict"></p><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
     <div class="lg-champ-side">${lgSearch()}<dl class="lg-strip" id="lg-champ-strip"></dl></div>`, ' lg-champ-band')}
     ${lgFilters(false, '<nav class="lg-roles lg-croles" id="lg-champ-roles" aria-label="Role"></nav>')}<div id="lg-champ"><p class="lg-wait">Loading ${lgEsc(c.name)}…</p></div></div>`;
 }
@@ -148,9 +148,21 @@ async function lgFillPlayers(token, id) {
   if (!ps.length) { el().innerHTML = `<p class="lg-wait">Nobody has ${lgN(data.minPlayerGames || 20)}+ games on this champion under these filters yet.</p>`; return; }
   const tier = p => p.tier ? `${p.tier.charAt(0)}${p.tier.slice(1).toLowerCase()} ${['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(p.tier) ? '' : p.division || ''}` : '';
   const avg = lgMean(ps, 'winRate'), sp = lgSpread(ps, p => p.winRate, avg);
+  const v = document.getElementById('lg-verdict');
+  if (v && avg != null) v.insertAdjacentHTML('beforeend', ` Its best ${lgN(ps.length)} players win ${lgPct(avg)}.`);
   el().innerHTML = `<table class="lg-table lg-best"><thead><tr><th class="num">#</th><th>Player</th><th>Rank</th><th class="num">Win</th><th class="num">Games</th></tr></thead><tbody>${ps.slice(0, 10).map((p, i) => `<tr><td class="num">${i + 1}</td><td>${lgEsc(p.riotId || 'Unknown')} <small>${lgEsc((p.region || '').toUpperCase())}</small></td><td>${lgEsc(tier(p))}${p.lp != null ? ` <small>${lgN(p.lp)} LP</small>` : ''}</td><td class="num">${lgHeat(p.winRate, avg, sp, p.games, lgPct(p.winRate))}</td><td class="num">${lgN(p.games)}</td></tr>`).join('')}</tbody></table>`;
 }
 
+// DONI-560: Lolalytics' one-sentence read of the champion, from numbers already on the page: rank and tier in the role,
+// the three lanes it beats hardest and loses hardest (matchups with 100+ games by delta, not low sample), linked.
+function lgVerdict(c, d, me, rank, of, R) {
+  const s = d.strip || {}, mus = (d.matchups || []).filter(m => !m.lowSample && m.games >= 100 && m.delta1 != null);
+  const by = [...mus].sort((a, b) => b.delta1 - a.delta1), role = lgRoleOf(d.role);
+  const names = list => list.map(m => `<a href="#/league/champion/${m.opponent}/${role}">${lgEsc(lgChamp(m.opponent).name)}</a>`).join(', ');
+  const strong = by.filter(m => m.delta1 > 0).slice(0, 3), weak = by.filter(m => m.delta1 < 0).slice(-3).reverse();
+  return `${lgEsc(c.name)} ${lgEsc(R)} wins ${lgPct(s.winRate)}${me?.tier ? `, ${lgEsc(me.tier)} tier, #${rank} of ${of}` : ''}.`
+    + (strong.length ? ` Best into ${names(strong)}.` : '') + (weak.length ? ` Struggles into ${names(weak)}.` : '');
+}
 let lgChampData = null, lgChampL = null;
 async function lgFillChampion(token, id) {
   const box = () => token === lg.token && document.getElementById('lg-champ');
@@ -169,7 +181,8 @@ async function lgFillChampion(token, id) {
     const s = d.strip || {}, delta = avg != null && s.games ? (s.winRate - avg) * 100 : null, role = lgRoleOf(d.role), R = LG_ROLE[role] || '';
     document.getElementById('lg-champ-name').textContent = c.name;
     document.getElementById('lg-champ-title').textContent = c.title || 'Champion stats';
-    document.getElementById('lg-champ-roles').innerHTML = (d.roles || []).map(r => `<button data-lg-crole="${lgRoleOf(r.role)}" aria-pressed="${lgRoleOf(r.role) === role}" title="${lgN(r.games)} games as ${LG_ROLE[lgRoleOf(r.role)] || r.role}">${lgRoleIcon(lgRoleOf(r.role))}<span>${LG_ROLE[lgRoleOf(r.role)] || r.role}</span><small>${lgN(r.games)}</small></button>`).join('');
+    document.getElementById('lg-champ-roles').innerHTML = (d.roles || []).map(r => `<button data-lg-crole="${lgRoleOf(r.role)}" aria-pressed="${lgRoleOf(r.role) === role}" title="${lgN(r.games)} games as ${LG_ROLE[lgRoleOf(r.role)] || r.role}">${lgRoleIcon(lgRoleOf(r.role))}<span>${LG_ROLE[lgRoleOf(r.role)] || r.role}</span><small>${lgPct(r.games / ((d.roles || []).reduce((n, x) => n + x.games, 0) || 1)).replace('.0%', '%')}</small></button>`).join('');
+    document.getElementById('lg-verdict').innerHTML = lgVerdict(c, d, me, rank, banded.length, R);
     const strip = document.getElementById('lg-champ-strip');
     if (!s.games) { strip.innerHTML = ''; box().innerHTML = `<p class="lg-wait">No ranked games for ${lgEsc(c.name)} on patch ${lgEsc(d.patch)} with these filters yet.</p>`; return; }
     lg.cwr = s.winRate;
