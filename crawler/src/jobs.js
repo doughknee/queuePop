@@ -100,11 +100,12 @@ async function capped(ctx, region) {
     const f = db.prepare(`SELECT count(*) n, sum(queue IN (${qs})) mine FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
     const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue IN (${qs})`).get(region).n;
     if (f.n && (f.mine || 0) + waiting >= (ctx.shares?.[q] ?? SHARES[q]) * (f.n + waiting)) continue;
+    const fresh = freshFrom(db, "lol"); // during a retirement only players seeded since its epoch
     // a mode player never asked (NULL first) or not asked for 6 h, else a ranked player not yet asked for this queue
     const p = db.prepare(`SELECT x.puuid, x.asked_at, pl.tier FROM mode_players x LEFT JOIN players pl ON pl.puuid = x.puuid AND pl.game = 'lol'
       WHERE x.region = ? AND x.queue = ? AND (x.asked_at IS NULL OR x.asked_at < ?) ORDER BY x.asked_at LIMIT 1`).get(region, q, now() - 6 * IDS_EVERY)
-      || db.prepare(`SELECT puuid, tier FROM players p WHERE game = 'lol' AND region = ? AND coalesce(seeded_at, 0) >= ?
-        AND NOT EXISTS (SELECT 1 FROM mode_players x WHERE x.puuid = p.puuid AND x.queue = ?) LIMIT 1`).get(region, freshFrom(db, "lol"), q);
+      || db.prepare(`SELECT puuid, tier FROM players p ${fresh ? "INDEXED BY players_seeded" : ""} WHERE game = 'lol' AND region = ?${fresh ? " AND seeded_at >= ?" : ""}
+        AND NOT EXISTS (SELECT 1 FROM mode_players x WHERE x.puuid = p.puuid AND x.queue = ?) LIMIT 1`).get(region, ...(fresh ? [fresh] : []), q);
     if (!p) continue;
     modeLast.set(`${region}:${q}`, now());
     const since = Math.floor((p.asked_at || now() - 3 * DAY) / 1000);
@@ -146,8 +147,10 @@ function retirePuuids(db, puuid, game, now = Date.now) {
 function retireBatch(db, game, n = 2000) {
   const r = getMeta(db, `retiring:${game}`);
   if (!r) return false;
-  const moved = Number(db.prepare(`UPDATE OR REPLACE players SET game = game || '-stale' WHERE rowid IN
-    (SELECT rowid FROM players WHERE game = ? AND (seeded_at IS NULL OR seeded_at < ?) LIMIT ${n})`).run(game, r.epoch).changes);
+  // two index ranges on players_seeded (game, seeded_at); an OR of them scanned all 1.5M rows per batch
+  const move = (w) => Number(db.prepare(`UPDATE OR REPLACE players SET game = game || '-stale' WHERE rowid IN
+    (SELECT rowid FROM players INDEXED BY players_seeded WHERE game = ? AND ${w} LIMIT ${n})`).run(game, ...(w.includes("?") ? [r.epoch] : [])).changes);
+  const moved = move("seeded_at < ?") || move("seeded_at IS NULL");
   if (!moved) { db.prepare("DELETE FROM meta WHERE k = ?").run(`retiring:${game}`); tierCache.clear(); }
   return true;
 }
@@ -184,11 +187,12 @@ function tierOrder(db, game, region, now) {
 // Newest ranked match ids for the oldest-asked player of the tier most under its share (see tierOrder).
 async function ids(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
-  const pick = db.prepare(`SELECT puuid, tier, ids_at FROM players WHERE game = ? AND region = ? AND tier = ? AND (ids_at IS NULL OR ids_at < ?)
-    AND coalesce(seeded_at, 0) >= ? ORDER BY ids_at LIMIT 1`);
-  let p = null;
+  // during a retirement only rows seeded since its epoch, read off players_seeded (a few thousand), never the 1.5M stale ones
   const fresh = freshFrom(db, game);
-  for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY, fresh))) break;
+  const pick = db.prepare(`SELECT puuid, tier, ids_at FROM players ${fresh ? "INDEXED BY players_seeded" : ""} WHERE game = ? AND region = ? AND tier = ?
+    AND (ids_at IS NULL OR ids_at < ?)${fresh ? " AND seeded_at >= ?" : ""} ORDER BY ids_at LIMIT 1`);
+  let p = null;
+  for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY, ...(fresh ? [fresh] : [])))) break;
   if (!p) return false;
   const since = Math.floor((p.ids_at || now() - 7 * DAY) / 1000);
   const lolQ = ctx.queues.filter((q) => q === 420 || q === 440);
