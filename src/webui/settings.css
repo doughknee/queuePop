@@ -94,3 +94,16 @@ a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 #settings-view.st-searching .st-notfor,#settings-view.st-searching .st-offnote,#settings-view.st-searching .st-tabhint{display:none}
 @media(max-width:760px){.st-games{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .st-bk-full{color:var(--fg)}
+/* DONI-594: (i) tooltips hold the explanations; a short lead line under some card titles; rows that wait on a switch. */
+.st-lbl{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px}
+.st-lbl small{flex-basis:100%}
+.st-tip{position:relative;display:inline-grid;place-items:center;flex:none;width:17px;height:17px;border:1px solid var(--edge);border-radius:50%;font:700 10px/1 var(--mono);color:var(--muted);cursor:help;user-select:none}
+.st-tip:hover,.st-tip:focus-visible{color:var(--bg);background:var(--gc);border-color:var(--gc);outline:none}
+.st-tip::after{content:attr(data-tip);position:absolute;left:-10px;bottom:calc(100% + 8px);width:max-content;max-width:min(320px,70vw);padding:8px 10px;background:var(--fg);color:var(--bg);font:400 12px/1.45 var(--mono);text-transform:none;letter-spacing:0;text-align:left;white-space:normal;opacity:0;pointer-events:none;transition:opacity .12s .1s;z-index:30}
+.st-tip:hover::after,.st-tip:focus-visible::after{opacity:1}
+.st-desc{margin:0 0 6px;color:var(--muted)}
+.st-desc a{color:var(--gc)}
+#settings-view.st-searching [data-when][hidden]{display:flex}
+#settings-view.st-searching .st-comp[data-when][hidden]{display:flex}
+.st-comp[hidden]{display:none}
+.st-chip span{font-size:13px}

@@ -20,17 +20,15 @@ const L = ctx.window.stFfmpegLine;
 assert.strictEqual(L(null, true), "Couldn’t check.");
 assert.ok(L({ found: false }, true).startsWith("ffmpeg not found"));
 assert.strictEqual(L({ found: true, version: "9.0.1", encoder: "h264_nvenc" }, true), "Found ffmpeg 9.0.1, encoding with your NVIDIA card.");
-assert.ok(L({ found: true, encoder: "libx264" }, false).endsWith("Turn on Record game events to record video."));
-// DONI-590/591: which games each card serves, and which tab a link lands on.
-const cov = (g) => [...ctx.window.stCovers(g)], tabOf = ctx.window.stTabOf, cards = (t) => [...ctx.window.stTabCards(t)];
-assert.deepStrictEqual(cov("deadlock"), ["deadlock"]);
-assert.ok(cov("tft").includes("queue") && !cov("tft").includes("champselect")); // TFT queues through the League client; no champ select
-assert.deepStrictEqual(cards("app"), ["display", "about"]);
-assert.strictEqual(tabOf("tft", "league"), "tft"); // a tab is itself
-assert.strictEqual(tabOf("alerts", "tft"), "tft"); // a shared card stays on the current tab
-assert.strictEqual(tabOf("alerts", "deadlock"), "league"); // else its first game
-assert.strictEqual(tabOf("champselect", "tft"), "league");
-assert.strictEqual(tabOf("about", "league"), "app");
-assert.strictEqual(tabOf("account", "league"), "deadlock"); // pre-591 link
-assert.strictEqual(tabOf("games", "tft"), null); // unknown: keep the current tab
+assert.ok(L({ found: true, encoder: "libx264" }, false).endsWith("Turn on recording in a game’s tab to record video."));
+// DONI-594: every card sits on one tab, and old links land on the right one.
+const tabOf = ctx.window.stTabOf, CT = ctx.window.ST_CARD_TAB;
+assert.strictEqual(tabOf("tft"), "tft"); // a tab is itself
+assert.strictEqual(tabOf("crawler"), "app");
+assert.strictEqual(tabOf("tft-queue"), "tft");
+assert.strictEqual(tabOf("alerts"), "league"); // pre-594 #alerts was League's
+assert.strictEqual(tabOf("account"), "deadlock");
+assert.strictEqual(tabOf("games"), "app");
+assert.strictEqual(tabOf("nope"), null);
+assert.ok(Object.values(CT).every((t) => ctx.window.ST_TABS.includes(t)));
 console.log("test-settings ok");
