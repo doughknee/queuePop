@@ -206,14 +206,14 @@ window.createTftView = function (host) {
     list.innerHTML = !vis.length ? (rows.length ? `<p class="ts-quiet">No comps match “${esc(query)}”.</p>` : '') :
       `<div class="ts-head" aria-hidden="true"><span>Tier</span><span>Comp</span><span>Units</span><span>Avg place</span><span>Top 4</span><span>Win</span><span>Pick</span><span>Games</span></div>`
       + slice.map((r) => `<div class="ts-row ${r.lowSample ? 'low' : ''} ${open === r.id ? 'open' : ''}" data-row="${esc(r.id)}"${r.lowSample ? ' title="Low sample: under ' + r.games + ' games is not enough to trust"' : ''}>
-        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}<span class="ts-chips" data-chips="${esc(r.id)}"></span></span>
+        <button class="ts-main" data-open="${esc(r.id)}" aria-expanded="${open === r.id}">${tierBadge(r.tier)}<span class="ts-name">${traitsMarkup(r.id)}${spark(r.daily)}<span class="ts-chips" data-chips="${esc(r.id)}">${r.activeTraits ? traitChips(r.activeTraits) : ''}</span></span>
         <span class="ts-units" data-units="${esc(r.id)}">${(known.get(r.id) || []).slice(0, 9).map((k) => icon(k)).join('')}</span><span class="ts-num">${heat(r.avgPlacement, 4.5, 0.8, r.games, r.avgPlacement.toFixed(2), true)}</span><span class="ts-num">${heat(r.top4Rate, 0.5, 0.15, r.games, pct(r.top4Rate))}</span>
         <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.pickRate, 0.05, pct(r.pickRate))}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
         ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')
       + (vis.length > shown ? `<button class="ts-more" data-more>Show ${Math.min(30, vis.length - shown)} more of ${vis.length - shown}</button>` : '');
     // Q review: unit icons fill as rows come into view, not 30 comp requests per visit.
     unitWatch?.disconnect();
-    unitWatch = new IntersectionObserver((es) => { const ids = es.filter((e) => e.isIntersecting).map((e) => { unitWatch.unobserve(e.target); return e.target.dataset.units; }); if (ids.length) fillUnits(ids); }, { root: page, rootMargin: '200px' });
+    unitWatch = new IntersectionObserver((es) => { const ids = es.filter((e) => e.isIntersecting).map((e) => { unitWatch.unobserve(e.target); return e.target.dataset.units; }); const need = ids.filter((id) => { const r = rows.find((x) => x.id === id); return !(r && known.has(id) && r.activeTraits); }); if (need.length) fillUnits(need); }, { root: page, rootMargin: '200px' }); // rows that carry units + activeTraits cost no request
     page.querySelectorAll('[data-units]').forEach((el) => unitWatch.observe(el));
     if (open && slice.some((r) => r.id === open)) {
       const id = open;
@@ -229,7 +229,7 @@ window.createTftView = function (host) {
   }
   async function landing() {
     document.title = 'Teamfight Tactics · QueuePop';
-    page.innerHTML = `<div class="ts-wrap">${card()}<div class="ts-filter-slot"></div><p class="ts-state" role="status">Loading comps…</p><div class="ts-list"></div></div>`;
+    page.innerHTML = `<div class="ts-wrap">${card()}<div class="ts-filter-slot"></div><p class="ts-state" role="status">Loading comps…</p><div class="ts-list"><div class="qp-skel" aria-hidden="true">${'<i></i>'.repeat(12)}</div></div></div>`;
     loadCard();
     await loadComps();
     if (parse().p !== '') return;

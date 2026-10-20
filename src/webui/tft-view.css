@@ -205,3 +205,7 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
   .ts-band .ts-places{flex-wrap:nowrap;gap:3px}.ts-band .ts-place.ts-place{width:24px;height:30px;font-size:17px}
   .ts-band-meta,.ts-band .ts-rank small{white-space:nowrap}
 }
+
+/* Q speed review: skeleton rows while a tier list loads (the table's row height, tokens only; still under reduced motion) */
+.qp-skel{display:grid;gap:4px;margin-top:8px}.qp-skel i{display:block;height:22px;background:var(--line);opacity:.5;animation:qp-skel 1.2s ease-in-out infinite alternate}.qp-skel i:nth-child(odd){opacity:.35}
+@keyframes qp-skel{to{opacity:.15}}@media (prefers-reduced-motion:reduce){.qp-skel i{animation:none}}
