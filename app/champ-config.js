@@ -138,6 +138,7 @@ function normalizeChampSelect(cs) {
     show_intent: T(getd(cs, "show_intent", true)),
     show_suggestions: T(getd(cs, "show_suggestions", true)),
     auto_runes: T(getd(cs, "auto_runes", false)),
+    smart_pick: T(getd(cs, "smart_pick", false)), // DONI-348: order your own pick list by the crawler's draft score
     roles,
     trades: { enabled: T(getd(or(cs.trades, {}), "enabled", false)) },
     aram: normalizeAram(aramIn, roles[ARAM_ROLE].mode),
