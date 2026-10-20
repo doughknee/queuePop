@@ -166,6 +166,10 @@
   back/forward history, Ctrl+B sidebar, ? shortcuts sheet (`#qp-keys`, same look as the search sheet). `QP_SHORTCUTS` is the one list
   (sheet + handler), `qpKeyLabel` maps events (`app/test-keys.js`). The sidebar grip is a focusable separator (← → Home End, via
   `window.qpSidebarWidth`). Ctrl+=/-/0 stay in app/main.js. One lime `:focus-visible` ring on shell surfaces; skip link lands on Settings too.
+- State (DONI-539): `app/window-state.js` keeps size/position/maximised in userData `window-state.json` (`fitBounds` drops bounds
+  that no longer land on a screen; `app/test-window.js`). The window is created hidden and shown on `ready-to-show` (5 s fallback),
+  unless `start_minimized`. Startup milestones log as `startup: …`. `shell.js` remembers the route in localStorage `queuepop-last-v1`
+  ({route, worlds, champion} via `qpLastNext`, tested in `app/test-home.js`) and restores it when the app opens with no hash.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

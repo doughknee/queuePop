@@ -1,7 +1,8 @@
 // queuePop Electron host: one window on the existing webui, LCU auto-accept in the main process.
 const fs = require("fs");
 const path = require("path");
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, screen } = require("electron");
+const { windowState } = require("./window-state"); // DONI-539
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
 const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
@@ -116,9 +117,14 @@ ipcMain.handle("api", async (e, name, args) => {
   return METHODS[name];
 });
 
+// Startup timing (DONI-539): seconds since the process started, logged at each milestone so a slow launch shows where.
+const since = () => process.uptime().toFixed(2) + "s";
 app.whenReady().then(() => {
+  log("startup: app ready at", since());
+  const ws = windowState(path.join(app.getPath("userData"), "window-state.json"));
+  // Hidden until the first paint, then shown where it was last time (size, position, maximised); no blank frame.
   win = new BrowserWindow({
-    width: 1280, height: 860, minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#0A0A0A",
+    width: 1280, height: 860, ...ws.options(screen), minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#0A0A0A", show: false,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
   });
   // The window only ever shows src/webui. Links that leave it open in the browser; nothing else may load here,
@@ -146,6 +152,20 @@ app.whenReady().then(() => {
   win.webContents.on("console-message", (e) => {
     if (e.level === "error" || e.level === "warning") log(`renderer ${e.level}:`, e.message);
   });
+  win.once("ready-to-show", () => {
+    log("startup: first paint at", since());
+    if (loadConfig().start_minimized) return; // tray only; the tray's Open shows it
+    if (ws.maximized()) win.maximize();
+    win.show();
+  });
+  // If the first paint never comes (a renderer that crashed on load), show the window anyway after 5 s.
+  setTimeout(() => { if (!win.isVisible() && !loadConfig().start_minimized) { log("startup: no paint after 5 s, showing anyway"); win.show(); } }, 5000).unref?.();
+  win.webContents.once("did-finish-load", () => {
+    log("startup: page loaded at", since());
+    win.webContents.executeJavaScript("JSON.stringify(performance.getEntriesByType('paint').map(e => e.name + ' ' + Math.round(e.startTime) + 'ms'))")
+      .then((p) => log("startup: renderer", p)).catch(() => {});
+  });
+  ws.track(win);
   win.loadFile(WEBUI);
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   assets.check(); // never awaited: icons fill in as they land

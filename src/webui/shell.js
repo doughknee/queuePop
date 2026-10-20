@@ -28,6 +28,14 @@
   grip.addEventListener('pointermove', e => { if (grip.hasPointerCapture(e.pointerId)) { s.w = e.clientX; apply(); } });
   grip.addEventListener('lostpointercapture', () => { root.classList.remove('sb-dragging'); save(); });
 
+  // DONI-539: the app reopens where you left it. Every route you land on is remembered (and per world, plus the last League
+  // champion, for home's "pick up where you left off"); a launch with no address restores the last one before worlds.js renders.
+  const LAST = 'queuepop-last-v1';
+  let last = {}; try { last = JSON.parse(localStorage.getItem(LAST) || '{}') || {}; } catch {}
+  if (!location.hash && typeof last.route === 'string' && /^#\/[\w\/#%,.+-]*$/.test(last.route)) history.replaceState(null, '', last.route);
+  window.qpLast = () => last;
+  const remember = () => { const next = qpLastNext(last, location.hash); if (next !== last) { last = next; try { localStorage.setItem(LAST, JSON.stringify(last)); } catch {} } };
+
   // '#/', '#/deadlock/' and '' all normalise to their unslashed form; the longest matching link is the page.
   const norm = h => h.replace(/\/+$/, '') || '#';
   window.syncSidebar = function () {
@@ -50,6 +58,7 @@
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
     if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
     const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
+    remember();
   };
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
@@ -59,6 +68,18 @@
   // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
   document.getElementById('settings-view')?.setAttribute('tabindex', '-1');
 })();
+
+// Where you are → the remembered state: {route, worlds: {league: '#/league/…', …}, champion: '103'}. Same object back when
+// nothing changed. Pure; app/test-home.js checks it.
+window.qpLastNext = function (last, hash) {
+  const m = /^#\/(league|tft|deadlock|settings)(?=[\/#]|$)/.exec(hash || '');
+  if (!/^#\/./.test(hash || '') && hash !== '#/') return last;
+  const champ = /^#\/league\/champion\/(\d+)/.exec(hash);
+  const next = { ...last, route: hash };
+  if (m && m[1] !== 'settings') next.worlds = { ...(last.worlds || {}), [m[1]]: hash };
+  if (champ) next.champion = champ[1];
+  return JSON.stringify(next) === JSON.stringify(last) ? last : next;
+};
 
 /* Home's paged bar (DONI-527) on scrollr's Pages model (myscrollr docs/CHIP_SPEC.md §P): a 192 px band with the game's
    logo, name and one pill per game, then that game's facts across the rest of the bar in equal columns, shown whole.
