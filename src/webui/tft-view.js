@@ -154,7 +154,8 @@ window.createTftView = function (host) {
   const matches = (r) => !query || (compName(r.id) + ' ' + (known.get(r.id) || []).map(name).join(' ')).toLowerCase().includes(query);
 
   function card() {
-    return `<section class="ts-card" aria-label="Your TFT"><div class="ts-rank"><small>Your TFT</small><strong>Client not connected</strong></div><div class="ts-form"></div></section>`;
+    // Morning pass: the landing opens on a title band like League's (art, lime hairline, Anton), your rank and last ten in it.
+    return `<section class="ts-card ts-band" aria-label="Your TFT"><div class="ts-band-title"><h1>Tier list</h1><span class="ts-quiet ts-band-meta"></span></div><div class="ts-rank"><small>Your TFT</small><strong>Client not connected</strong></div><div class="ts-form"></div></section>`;
   }
   async function loadCard() {
     const el = page.querySelector('.ts-card');
@@ -219,6 +220,8 @@ window.createTftView = function (host) {
     await loadComps();
     if (parse().p !== '') return;
     page.querySelector('.ts-filter-slot').innerHTML = filterStrip();
+    const bm = page.querySelector('.ts-band-meta');
+    if (bm && rows.length) bm.textContent = `${rows.length} comps · patch ${filters.patch} · best first`;
     renderList();
   }
 

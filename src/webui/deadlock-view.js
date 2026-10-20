@@ -286,7 +286,7 @@ async function loadTiers() {
     const q = tierQuery(), stats = await cached('/analytics/hero-stats', q);
     if(my !== T.seq || !msg.isConnected) return;
     T.rows = window.deadlockTierRows(stats);
-    msg.textContent = T.rows.length ? `${Math.round(stats.reduce((n,h) => n + h.matches, 0)/12).toLocaleString()} matches · tier by win rate rank · click a hero for builds and matchups` : 'Not enough games for these filters. Widen the window or rank.';
+    msg.textContent = T.rows.length ? `${Math.round(stats.reduce((n,h) => n + h.matches, 0)/12).toLocaleString()} matches · click a hero for builds and matchups` : 'Not enough games for these filters. Widen the window or rank.';
     document.querySelector('#tier-table').hidden = !T.rows.length;
     renderTierRows();
   } catch(e) { if(my === T.seq && msg.isConnected) msg.textContent = 'deadlock-api error: ' + e.message; }
@@ -296,7 +296,7 @@ function renderTierRows() {
   const tbody = document.querySelector('#tier-table tbody');
   if(!tbody) return;
   tbody.innerHTML = T.rows.map(r => { const hero = heroById(r.hid), open = T.open === r.hid;
-    return `<tr class="${open ? 'is-open' : ''}"><td><button class="tier-row" data-tier-hero="${r.hid}" aria-expanded="${open}"><span class="tier-badge tier-${r.tier}">${r.tier}</span>${hero ? `<img src="${hero.icon || heroImg(hero)}" alt="" width="34" height="34" loading="lazy">` : ''}<span>${esc(hero ? hero.name : 'Hero ' + r.hid)}</span></button></td><td class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}</td><td>${pct(r.pick)}</td><td>${r.kda.toFixed(2)}</td><td>${(r.souls/1000).toFixed(1)}k</td><td>${r.matches.toLocaleString()}</td></tr>${open ? `<tr class="tier-detail"><td colspan="6" id="tier-detail">Reading builds and matchups…</td></tr>` : ''}`; }).join('');
+    return `<tr class="${open ? 'is-open' : ''}"><td><button class="tier-row" data-tier-hero="${r.hid}" aria-expanded="${open}"><span class="tier-badge tier-${r.tier}">${r.tier}</span>${hero ? `<img src="${hero.icon || heroImg(hero)}" alt="" width="34" height="34" loading="lazy">` : ''}<span>${esc(hero ? hero.name : 'Hero ' + r.hid)}</span></button></td><td class="dl-heat" style="--vc:var(${r.wr >= .5 ? '--green' : '--neg'});--k:${Math.min(1, Math.abs(r.wr - .5) / .05).toFixed(2)}">${pct(r.wr)}</td><td class="dl-heat dl-mag" style="--k:${Math.sqrt(Math.min(1, r.pick / .5)).toFixed(2)}">${pct(r.pick)}</td><td>${r.kda.toFixed(2)}</td><td>${(r.souls/1000).toFixed(1)}k</td><td>${r.matches.toLocaleString()}</td></tr>${open ? `<tr class="tier-detail"><td colspan="6" id="tier-detail">Reading builds and matchups…</td></tr>` : ''}`; }).join('');
   if(T.open != null) loadTierDetail(T.open);
 }
 

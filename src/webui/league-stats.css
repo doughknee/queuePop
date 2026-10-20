@@ -214,3 +214,14 @@
 .lg-aram .lg-tiers :is(td,th):nth-child(4){display:none}
 .lg-queues-tabs{margin-right:4px}
 #lg-queues:empty{display:none}
+
+/* Morning pass: the filter strip stays on one line at 1600 / 125 % (lanes, patch, region, rank, window, three numbers) */
+.lg-filters{gap:6px}
+.lg-filters select{padding-right:14px}
+.lg-num{gap:3px;padding:0 5px}
+.lg-num input{width:28px}
+.lg-num input[data-lg-num=minGames]{width:40px}
+#lg-queues:empty,.lg-filters .lg-legend:empty{display:none}
+.lg-lanes button{min-width:30px;padding:0 5px}
+.lg-filters .lg-legend{font-size:10px;gap:4px}
+.lg-filters .lg-legend i{width:40px}

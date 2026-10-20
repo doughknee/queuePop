@@ -191,10 +191,10 @@ async function lgFillChampion(token, id) {
     strip.innerHTML = cell('Win', lgHeat(s.winRate, avg, 0.04, s.games, lgPct(s.winRate)), `${lgN(s.wins)} wins`)
       + cell('Δ', delta == null ? '–' : lgHeat(delta / 100, 0, 0.04, s.games, lgSign(delta)), `vs ${R} ${avg == null ? '' : lgPct(avg)}`)
       + cell('Tier', me ? lgTier(me.tier, me.lowSample) : '–', rank ? `#${rank} of ${banded.length}` : R)
-      + cell('Pick', lgMag(s.pickRate, lgSpread(banded, r => r.pickRate, 0), lgPct(s.pickRate)), `${lgN(s.matches)} matches`)
+      + cell('Pick', lgMag(s.pickRate, lgSpread(banded, r => r.pickRate, 0), lgPct(s.pickRate)), `of ${lgN(s.matches)}`)
       + cell('Ban', lgMag(s.banRate, lgSpread(banded, r => r.banRate, 0), lgPct(s.banRate)), lgEsc(d.patch))
-      + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} with timeline`)
-      + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} games each`) : '');
+      + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} timed`)
+      + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} each`) : '');
     box().innerHTML = `
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
