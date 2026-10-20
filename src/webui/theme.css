@@ -1,0 +1,20 @@
+/* QueuePop theme (DONI-525): lowroll's kinetic system, verbatim. Source of truth:
+   lowroll/design/kinetic-player-page.html (header comment) and lowroll/out/*.html.
+   Every shell colour and font is a token here; shell files use var(--x) only.
+   Tokens are re-declared on the shell containers so a world's own --accent/--muted
+   (worlds.css .theme-league / .theme-tft) never leaks into the sidebar or the page row. */
+@font-face{font-family:Anton;font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/anton-400.woff2) format("woff2")}
+@font-face{font-family:"Space Mono";font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/spacemono-400.woff2) format("woff2")}
+@font-face{font-family:"Space Mono";font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/spacemono-700.woff2) format("woff2")}
+:root:root,#qp-sidebar,#world-nav,.win-controls,.qp-footer,#settings-view{
+  --bg:#0A0A0A;--fg:#F2F2F2;--accent:#C6FF3D;--muted:#8A8A8A;--line:#2A2A2A;--dim:#555;--neg:#FF5C5C;
+  /* data colours */
+  --green:#4FBF7A;--amber:#E3B24B;--purple:#C08BF0;--blue:#5AAEE8;--grey:#A3ADAF;
+  /* lowroll's control border (#333) and placeholder wash (accent at 6 %) */
+  --edge:#333;--wash:rgba(198,255,61,.06);
+  --display:Anton,Impact,sans-serif;--mono:"Space Mono",ui-monospace,monospace;
+}
+html{background:var(--bg)}
+@keyframes qp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes qp-rise{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.qp-ticker .track,.qp-rise{animation:none!important}}

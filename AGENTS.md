@@ -13,7 +13,7 @@
   navigation; static markup in `index.html` `#qp-sidebar`, one group per game with its official logo from
   `assets/logos/` (sources in `SOURCES.md`), collapses to an icon rail, drag-resizes 200-400 px, both kept in
   localStorage `queuepop-sidebar-v1`. DONI-493: `#world-nav` is the current world's sticky page row, filled by
-  `shell.js` from the sidebar's `.sb-pages` and themed in `league-world.css` / `tft-view.css`; empty on home/companion it is
+  `shell.js` from the sidebar's `.sb-pages`, one style for every world in `shell.css` (DONI-525); empty on home/companion it is
   the window's 32 px drag strip. Deadlock keeps its own `.city-nav` row (`worlds.js` makes it drag the window and fills the
   sidebar from `DEADLOCK_PAGES`). Drag areas: `.sb-top`, `#world-nav`, `.city-nav`; their links are `no-drag`), `worlds.js`
   (the mockup's `app.js`: hash router, home, companion) + `worlds.css` (its `styles.css`),
@@ -125,6 +125,21 @@
 
 ## Asset packs
 - `app/assets.js` (DONI-504) downloads the gitignored `src/webui/assets/{champions,spells,positions}` from Data Dragon / Community Dragon after the window opens (never awaited); skins (`skins/manifest.json` + per-champion tiles) lazily on the first `get_champion_skins`. Bridge: `get_asset_status`, `refresh_assets` (force re-download when the patch changed); shown in Settings > Updates & about. `ASSETS_LIVE=1 node app/test-assets.js` runs the real download into a temp dir.
+
+## Theme
+- DONI-525 (2026-10-19): the shell wears Brandon's lowroll kinetic system, verbatim (source: `lowroll/design/kinetic-player-page.html`
+  header + `lowroll/out/*.html`; the old look is tag `snapshot-2026-10-19-league-gold`). `src/webui/theme.css` (loaded first) holds every
+  token and the `@font-face` rules: `--bg #0A0A0A`, `--fg #F2F2F2`, `--accent #C6FF3D` (lime), `--muted #8A8A8A`, `--line #2A2A2A`,
+  `--dim #555`, `--neg #FF5C5C`; data `--green #4FBF7A`, `--amber #E3B24B`, `--purple #C08BF0`, `--blue #5AAEE8`, `--grey #A3ADAF`;
+  `--edge #333` / `--wash` (accent 6 %) from lowroll's borders and placeholders; `--display` Anton (uppercase headlines), `--mono` Space
+  Mono 400/700 (everything else), self-hosted in `assets/fonts/`. Motion is CSS keyframes and respects prefers-reduced-motion.
+- Shell files (`shell.css`, `settings.css`, the chrome/dock rules) use only these tokens. The tokens are re-declared on `#qp-sidebar`,
+  `#world-nav`, `.win-controls`, `.qp-footer`, `#settings-view`, because worlds.css sets its own `--accent`/`--muted` per world.
+- `shell.css` loads last and owns: the sidebar, window buttons, the one page-row style (`#world-nav` and Deadlock's `.city-nav`, which gets
+  `shell.css` linked into its shadow root by `worlds.js`; logo where the row starts, Play as a lime plate, lime underline on the current
+  page), and home (the lime marquee `.qp-ticker` filled by `homeLine()` in `worlds.js` from `get_summoner` / `get_match_history` /
+  `get_tft_match_history`, one fact per item; the game cards). Its row rules use doubled selectors (`#world-nav#world-nav`) to outrank
+  the world files' row CSS; world content (`league-*`, `tft-*`, `deadlock/**`) is not themed yet.
 
 ## Settings
 - `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the

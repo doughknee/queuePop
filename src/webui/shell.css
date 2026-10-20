@@ -1,37 +1,44 @@
-/* Sidebar: neutral QueuePop chrome (charcoal #141618, warm white #EEEAE1, muted gold #D3B981, Segoe UI), not per-world. */
+/* The shell (DONI-525): sidebar, window chrome, the one page row for every world, Play buttons, home.
+   Wears theme.css (lowroll's lime system) and uses its tokens only. Loaded last in index.html so it sits
+   over the world stylesheets; the page row also loads into Deadlock's shadow root (worlds.js) for .city-nav. */
 :root{--sb-w:min(var(--sb-open-w,248px),30vw)} /* DONI-516: at 150% Text size a wide sidebar would take half the window */
 :root.sb-collapsed{--sb-w:56px}
 body{padding-left:var(--sb-w);box-sizing:border-box}
-#qp-sidebar{position:fixed;inset:0 auto 0 0;width:var(--sb-w);z-index:35;display:flex;flex-direction:column;box-sizing:border-box;background:#141618;color:#eeeae1;border-right:1px solid #ffffff12;font:13px/1.3 'Segoe UI',Arial,sans-serif}
-#qp-sidebar a{color:inherit;text-decoration:none}
-#qp-sidebar :focus-visible{outline:2px solid #efca85;outline-offset:-2px}
+#qp-sidebar{position:fixed;inset:0 auto 0 0;width:var(--sb-w);z-index:35;display:flex;flex-direction:column;box-sizing:border-box;background:var(--bg);color:var(--fg);border-right:1px solid var(--line);font:12px/1.3 var(--mono)}
+#qp-sidebar a{text-decoration:none}
+#qp-sidebar :focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 /* Frameless window: the sidebar's top row drags the window, its controls stay clickable. */
 .sb-top{display:flex;align-items:center;justify-content:space-between;gap:8px;height:52px;padding:0 10px 0 14px;-webkit-app-region:drag}
 .sb-top>*{-webkit-app-region:no-drag}
-.sb-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;letter-spacing:-.5px;white-space:nowrap}
-.sb-toggle,.sb-gear{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;border:0;border-radius:6px;background:none;color:#a5a6a6;cursor:pointer}
-.sb-toggle:hover,.sb-gear:hover{background:#ffffff0d;color:#eeeae1}
+.sb-brand{display:flex;align-items:center;gap:10px;font:22px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--accent);white-space:nowrap}
+/* The Q sigil, lime on black: the svg is the mask, the accent is the paint. */
+.sb-brand img,.home-sigil img{object-position:-9999px 0;background:var(--accent);-webkit-mask:url(assets/queuepop.svg) center/contain no-repeat;mask:url(assets/queuepop.svg) center/contain no-repeat}
+.sb-toggle,.sb-gear{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;border:0;border-radius:0;background:none;color:var(--muted);cursor:pointer}
+.sb-toggle:hover,.sb-gear:hover{background:var(--wash);color:var(--accent)}
 .sb-toggle svg,.sb-gear svg{width:18px;height:18px}
 .sb-scroll{flex:1;min-height:0;overflow:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:2px}
 .sb-group{margin-top:8px}
-.sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;border-radius:6px;color:#c9c6bd;white-space:nowrap;overflow:hidden}
-.sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;color:#d3b981}
+.sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden}
+.sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;color:var(--fg)}
 .sb-item>span:last-child{overflow:hidden;text-overflow:ellipsis}
-.sb-item:hover,.sb-pages a:hover{background:#ffffff0a;color:#eeeae1}
-.sb-group.open>.sb-item{color:#eeeae1;font-weight:600}
-.sb-pages{display:none;flex-direction:column;gap:1px;margin:2px 0 4px 18px;padding-left:10px;border-left:1px solid #ffffff14}
+.sb-item:hover,.sb-pages a:hover{background:var(--wash);color:var(--fg)}
+.sb-group.open>.sb-item{color:var(--fg);font-weight:700}
+.sb-pages{display:none;flex-direction:column;gap:1px;margin:2px 0 4px 18px;padding-left:10px;border-left:1px solid var(--line)}
 .sb-group.open>.sb-pages{display:flex}
-.sb-pages a{padding:6px 8px;border-radius:6px;color:#a5a6a6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#qp-sidebar [aria-current="page"]{background:#d3b9811a;color:#eeeae1;box-shadow:inset 2px 0 #d3b981}
-.sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid #ffffff12}
-.sb-user .summoner{right:auto;flex:1;min-width:0;padding:4px;border-radius:6px;gap:10px;color:#eeeae1}
-.sb-user .summoner:hover{background:#ffffff0a}
-.sb-user .summoner-portrait{width:32px;height:32px}
-.sb-user .summoner-portrait img,.sb-user .summoner-portrait .ph{border-color:#141618}
+.sb-pages a{padding:6px 8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#qp-sidebar [aria-current="page"]{background:var(--wash);color:var(--accent);box-shadow:inset 2px 0 var(--accent)}
+.sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid var(--line)}
+.sb-user .summoner{right:auto;flex:1;min-width:0;padding:4px;gap:10px;color:var(--fg)}
+.sb-user .summoner:hover{background:var(--wash)}
+.sb-user .summoner-portrait{width:32px;height:32px;background:var(--edge)}
+.sb-user .summoner:hover:not(.offline) .summoner-portrait{background:var(--accent)}
+.sb-user .summoner-portrait img,.sb-user .summoner-portrait .ph{border-color:var(--bg);background:var(--bg);color:var(--muted)}
 .sb-user .summoner-meta{top:0;min-width:0}
-.sb-user .summoner-name{font:600 13px 'Segoe UI',Arial,sans-serif;color:#eeeae1;max-width:100%}
+.sb-user .summoner-name{font:700 12px var(--mono);color:var(--fg);max-width:100%}
+.sb-user .summoner-level,.sb-user .summoner-rank{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.sb-user .summoner-level{color:var(--muted)}
 .sb-resize{position:absolute;top:0;bottom:0;right:-3px;width:6px;cursor:col-resize}
-.sb-resize:hover,.sb-dragging .sb-resize{background:#d3b98155}
+.sb-resize:hover,.sb-dragging .sb-resize{background:var(--accent)}
 .sb-dragging,.sb-dragging *{cursor:col-resize!important;user-select:none}
 .sb-dragging iframe{pointer-events:none}
 /* Icon rail: logos only; titles give the tooltips. */
@@ -39,20 +46,88 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-collapsed .sb-brand span,.sb-collapsed .sb-item>span:last-child,.sb-collapsed .sb-group>.sb-pages,.sb-collapsed .summoner-meta,.sb-collapsed .sb-resize{display:none}
 .sb-collapsed .sb-scroll{padding:4px 6px}
 .sb-collapsed .sb-item{justify-content:center;padding:0}
-.sb-collapsed .sb-group.open>.sb-item{background:#d3b9811a;box-shadow:inset 2px 0 #d3b981}
+.sb-collapsed .sb-group.open>.sb-item{background:var(--wash);box-shadow:inset 2px 0 var(--accent)}
 .sb-collapsed .sb-user{flex-direction:column;padding:8px 4px}
 .sb-collapsed .sb-user .summoner{flex:none;justify-content:center}
-.qp-dot{width:6px;height:6px;border-radius:50%;background:#a7bcab;display:inline-block}
-.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid #ffffff12;color:#8d9497;font:12px 'Segoe UI',Arial,sans-serif;background:#141618}.qp-footer i{color:#cab183;font-style:normal;margin:0 12px}
-.sb-scroll::-webkit-scrollbar{width:4px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:#ffffff1f}
-/* World page row (#world-nav): sticky over the content, the window's drag strip (32 px when empty);
-   links click, the window buttons keep the top right. Each world themes it (league-world.css, tft-view.css). */
-#world-nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:4px;min-height:32px;padding:0 136px 0 24px;background:var(--ink,#141618);-webkit-app-region:drag}
-#world-nav a{-webkit-app-region:no-drag;text-decoration:none;white-space:nowrap}
-#world-nav:not(:has(a)){background:none}
-#world-nav>[data-keep]{-webkit-app-region:no-drag;flex:none;margin-right:10px}
-.theme-deadlock #world-nav{display:none}
+#qp-sidebar .sb-gear[aria-current]{color:var(--accent)}
+.sb-scroll::-webkit-scrollbar{width:4px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:var(--line)}
+.qp-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+.qp-footer{display:flex;justify-content:space-between;gap:16px;padding:24px 5%;border-top:1px solid var(--line);color:var(--muted);font:11px var(--mono);text-transform:uppercase;letter-spacing:.1em;background:var(--bg)}.qp-footer i{color:var(--accent);font-style:normal;margin:0 12px}
+
+/* Window chrome: the buttons sit at the top right over the page row; drag areas are .sb-top, #world-nav, .city-nav. */
 .win-controls,.resize-grip,.league-dock{-webkit-app-region:no-drag}
-.sb-gear[aria-current]{background:#ffffff14;color:#eeeae1}
-/* DONI-516: at large Text sizes the page row scrolls sideways instead of pushing the page wider. */
-#world-nav{overflow-x:auto;scrollbar-width:none}
+.win-controls .win-btn{color:var(--muted);border-radius:0}
+.win-controls .win-btn:hover{background:var(--wash);color:var(--accent)}
+.win-controls .win-btn:active{background:var(--line)}
+.win-controls .win-btn.close:hover{background:var(--neg);color:var(--bg)}
+
+/* The page row, one style for every world: #world-nav (League, TFT, Settings; shell.js fills it from the sidebar)
+   and Deadlock's own .city-nav (in its shadow root). Logo where the row starts, then Play, then the pages.
+   The doubled selectors outrank each world's own row CSS (league-world.css, tft-view.css, deadlock-view.js). */
+#world-nav{position:sticky;top:0;z-index:30;-webkit-app-region:drag}
+#world-nav,.city-nav{overflow-x:auto;scrollbar-width:none} /* DONI-516: the row scrolls sideways at large Text sizes */
+#world-nav a,#world-nav>[data-keep]{-webkit-app-region:no-drag}
+.theme-deadlock #world-nav#world-nav{display:none}
+#world-nav#world-nav,.city-nav.city-nav{display:flex;align-items:center;justify-content:flex-start;gap:2px;height:auto;min-height:48px;padding:0 136px 0 16px;background:var(--bg);background-image:none;border-bottom:1px solid var(--line);box-shadow:none}
+#world-nav#world-nav:not(:has(a)){min-height:32px;background:none;border-bottom:0} /* home: just the drag strip */
+#world-nav#world-nav::before,.city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
+.theme-league #world-nav#world-nav::before{background-image:url(assets/logos/league.svg)}
+.theme-tft #world-nav#world-nav::before{background-image:url(assets/logos/tft.png)}
+.city-nav.city-nav::before{background-image:url(assets/logos/deadlock.png)}
+#world-nav#world-nav:not(:has(a))::before,.theme-settings #world-nav#world-nav::before{content:none}
+#world-nav#world-nav a,.city-nav.city-nav a{position:relative;display:flex;flex:none;align-items:center;gap:0;height:auto;min-height:48px;padding:0 14px;border:0;border-radius:0;background:none;box-shadow:none;clip-path:none;color:var(--fg);font:400 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;text-decoration:none;white-space:nowrap}
+#world-nav#world-nav a::before,#world-nav#world-nav a::after,.city-nav.city-nav a::after,.city-nav.city-nav a span{display:none;content:none}
+#world-nav#world-nav a:hover,.city-nav.city-nav a:hover{color:var(--accent);background:none}
+#world-nav#world-nav a[aria-current],.city-nav.city-nav a[aria-current],.city-nav.city-nav .nav-current{color:var(--accent);box-shadow:inset 0 -2px var(--accent)}
+#world-nav#world-nav a:focus-visible,.city-nav.city-nav a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+#world-nav#world-nav>[data-keep]{flex:none;margin-right:10px}
+/* Play: a lime plate, Anton caps. TFT's button and Deadlock's are plain buttons; League's is the PLAY svg, recoloured. */
+#world-nav#world-nav #tft-play,.city-nav.city-nav .dl-play{display:flex;align-items:center;gap:8px;height:32px;margin-right:10px;padding:0 16px;border:0;border-radius:0;background:var(--accent);color:var(--bg);box-shadow:none;font:18px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;cursor:pointer;min-height:0;clip-path:none;transform:none;filter:none;background-image:none}
+#world-nav#world-nav #tft-play:hover,.city-nav.city-nav .dl-play:hover{background:var(--fg)}
+#world-nav#world-nav #tft-play:active,.city-nav.city-nav .dl-play:active{transform:none;box-shadow:none}
+#world-nav#world-nav #tft-play.queued{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+#world-nav#world-nav #tft-play:focus-visible,.city-nav.city-nav .dl-play:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+#world-nav#world-nav #tft-play[hidden],#world-nav#world-nav .league-dock[hidden]{display:none}
+#tft-play .tp-ico,.city-nav.city-nav .dl-play b{font-size:11px;color:inherit}
+#world-nav#world-nav .league-dock{position:static}
+#world-nav .play-btn,#world-nav .play-svg{height:34px}
+#world-nav#world-nav .play-svg path{fill:var(--accent);animation:none}
+#world-nav#world-nav .play-svg polygon{fill:var(--bg)}
+#world-nav#world-nav .play-svg .pb-sig-ring{fill:none;stroke:var(--accent)}
+#world-nav#world-nav .play-svg .pb-sig-core{fill:var(--accent);animation:none}
+#world-nav#world-nav .play-svg .pb-coreglow{display:none}
+#world-nav#world-nav .play-svg #play-label{fill:var(--bg);font-family:var(--display);letter-spacing:.5px}
+#world-nav#world-nav .play-btn:hover:not(:disabled) .play-svg path{fill:var(--fg)}
+
+/* Home: the lime marquee is the hero (worlds.js home() fills it with the live line), then the three games. */
+body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
+.qp-ticker{overflow:hidden;padding:14px 0;background:var(--accent);color:var(--bg);border-bottom:1px solid var(--line)}
+.qp-ticker .track{display:flex;width:max-content;animation:qp-marquee var(--dur,40s) linear infinite;font:40px/.9 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.qp-ticker span{padding:0 28px;white-space:nowrap}
+.qp-rise{animation:qp-rise .7s cubic-bezier(.2,.9,.2,1) both}
+.theme-home .hub-intro{padding:48px 5% 40px}
+.theme-home .eyebrow{color:var(--muted);font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.theme-home .eyebrow:before{content:'// '}
+.theme-home .hub-intro h1{font:clamp(56px,6vw,104px)/.9 var(--display);letter-spacing:.01em;text-transform:uppercase;color:var(--fg)}
+.theme-home .hub-intro p:not(.eyebrow){color:var(--muted);font-size:13px}
+.theme-home .home-sigil{opacity:1}
+.theme-home .home-sigil:before,.theme-home .home-sigil:after,.theme-home .home-sigil div{border-color:var(--line)}
+.theme-home .resume{border-left:1px solid var(--accent);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.theme-home .resume strong{font:28px/1 var(--display);color:var(--fg)}
+.theme-home .resume:hover strong,.theme-home .resume:hover b{color:var(--accent)}
+.theme-home .worlds{gap:16px}
+.theme-home .world-gate{margin-top:0;border:1px solid var(--line);background:var(--bg)}
+.theme-home .world-gate:hover{transform:translateY(-4px);border-color:var(--accent)}
+.theme-home .world-gate:after{background:linear-gradient(0deg,var(--bg) 6%,color-mix(in srgb,var(--bg) 55%,transparent) 55%,transparent)}
+.theme-home .world-number{padding:4px 8px;background:var(--bg);color:var(--accent);font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.theme-home .gate-logo{width:44px;height:44px;object-fit:contain;margin-bottom:14px}
+.theme-home .world-gate h2{font:clamp(40px,3.6vw,64px)/.9 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--fg);text-shadow:none}
+.theme-home .world-gate h2 small{font:12px var(--mono);letter-spacing:.2em;color:var(--accent);margin-top:10px}
+.theme-home .world-gate p{color:var(--fg);font-size:13px;margin-top:18px}
+.theme-home .gate-entry{border-top:1px solid var(--accent);color:var(--fg);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.theme-home .world-gate:hover .gate-entry{color:var(--accent)}
+.theme-home .hub-bottom{border-top:1px solid var(--line)}
+.theme-home .hub-bottom h3{font:32px/.9 var(--display);text-transform:uppercase;color:var(--fg)}
+.theme-home .hub-bottom p{color:var(--muted)}
+.theme-home .little-sigil{color:var(--accent)}
+.theme-home :focus-visible{outline:2px solid var(--accent);outline-offset:4px}

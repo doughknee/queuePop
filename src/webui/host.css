@@ -1,9 +1,9 @@
-/* Electron host glue for the three-worlds shell (ported from prototypes/queuepop).
+/* Electron host glue for the three-worlds shell (ported from prototypes/queuepop). The window chrome and the
+   page dock wear theme.css via shell.css (DONI-525); what follows seats the League working pages and stays League.
    The mockup owns home and League world; this file only seats the
    working pages (hextech markup, js/pages/*) inside it in the League tokens:
    obsidian #050D14, deep blue #0D1C25, aged gold #C8AA6E, ivory #F0E6D0,
    spell light #79C9CF. Cinzel names, Marcellus editorial, Segoe UI controls. */
-html { background: #141618; }
 body { min-height: 100vh; overflow-x: hidden; }
 body.theme-league, body.theme-companion { background: #050D14; }
 .win-controls { position: fixed; z-index: 40; }
