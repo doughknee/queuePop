@@ -74,4 +74,8 @@ assert.deepStrictEqual(tiles(lt, ["league"]).map((t) => t.page), ["Tier list", "
 lt = ctx.qpLastNext(lt, "#/league/champion/103/top");
 assert.deepStrictEqual(tiles(lt).map((t) => t.page), ["Champion", "Heroes"]); // already on that champion: no second tile
 assert.strictEqual(tiles(ctx.qpLastNext({}, "#/tft/comp/TFT16_A%2CTFT16_B"))[0].comp, "TFT16_A,TFT16_B");
+// DONI-548: client closed. No games remembered → one plain note per page; games remembered → they show, ranks say why they don't.
+assert.deepStrictEqual(vals(homePages({ offline: true })[0]), ["Open the League client to see your ranks and games"]);
+const offLol = homePages({ offline: true, lol: [{ win: true }, { win: false }] })[0];
+assert.deepStrictEqual(vals(offLol), ["Solo=— client closed", "Flex=— client closed", "Last 10=WL", "Win rate=50% 1W 1L"]);
 console.log("test-home: ok");
