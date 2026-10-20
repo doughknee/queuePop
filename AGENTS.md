@@ -185,7 +185,7 @@
   `/status` `key.valid`) > crawler offline (League/TFT/home) > League client closed (League/TFT) > update out (home/Settings), with
   Retry and a link that focuses the fixing field. `statusIssues` is pure (`app/test-status.js`). It replaces `#upd-banner` (hidden in
   shell.css). worlds.js `toast()` goes through `showToast`. Settings buttons all report into a `[data-msg]` (or `data-msg-alias`).
-- Home + Settings deck-out (Q7, 2026-10-20; decided, don't bring back): home is bar → set-up strip → "Pick up where you left off"
+- Home + Settings deck-out (DONI-543, 2026-10-20; decided, don't bring back): home is bar → set-up strip → "Pick up where you left off"
   (`resumeTiles`, pure, from `queuepop-last-v1` `recent`/`worlds`/`champion`; names filled from Data Dragon / tftStats) → the game
   cards, whose line says what's inside. The mockup hero ("Different worlds"), sigil, champ-select "resume" link and "Go live a little"
   footer are gone. Settings: a "Find a setting" box (Ctrl+F) filters rows by every typed word (a card title keeps its card);

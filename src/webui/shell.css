@@ -199,8 +199,8 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 :root[data-games]:not([data-games~="league"]) .league-gate,:root[data-games]:not([data-games~="tft"]) .tft-gate,:root[data-games]:not([data-games~="deadlock"]) .deadlock-gate{display:none}
 .theme-home .worlds{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 /* Home's set-up strip (Q5): what's left to set up, each linking to its Settings field; dismissible. */
-.qp-setup{display:grid;grid-template-columns:max-content 1fr max-content;align-items:start;gap:8px 24px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
-.qp-setup .su-items{display:flex;flex-direction:column;gap:4px}
+.qp-setup{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 24px;margin:16px 5% 0;padding:12px 16px;border:1px solid var(--accent);background:var(--wash);color:var(--fg);font:13px/1.4 var(--mono)}
+.qp-setup .su-items{flex:1 1 440px;display:flex;flex-direction:column;gap:4px}
 .qp-setup .su-kicker{padding-top:4px;color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.12em}
 .qp-setup .su-item{display:inline-flex;align-items:center;gap:10px}
 .qp-setup a{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap}
