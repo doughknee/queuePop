@@ -224,11 +224,11 @@ async function pollPicks() {
   pickSig = sig;
   box.innerHTML = `<p class="k" style="margin:14px 0 0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em">Your ${escapeHtml(r.role || "")} picks${r.auto ? " · auto pick is on" : ""}</p>` +
     `<div class="picks">${r.picks.map((p) => `<button type="button" data-id="${p.id}" aria-pressed="${p.id === r.hovered}"><img src="assets/champions/${p.id}.png" alt="" onerror="this.style.visibility='hidden'"><span>${escapeHtml(p.name)}</span></button>`).join("")}</div>` +
-    (r.myTurn && r.hovered ? `<button class="btn" id="pick-lock" type="button">Lock in</button>` : "") + `<p class="muted" id="pick-msg" role="status"></p>`;
+    (r.myTurn && r.hovered ? `<button class="btn" id="pick-lock" type="button" data-id="${r.hovered}">Lock in</button>` : "") + `<p class="muted" id="pick-msg" role="status"></p>`;
 }
 $("cs-picks").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b) return;
-  const lock = b.id === "pick-lock", id = lock ? $("cs-picks").querySelector('[aria-pressed="true"]')?.dataset.id : b.dataset.id;
+  const lock = b.id === "pick-lock", id = b.dataset.id; // Lock in carries the hovered id, tile or not
   if (!id) return;
   b.disabled = true;
   try {

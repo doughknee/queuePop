@@ -35,9 +35,9 @@ function planLines(plan, names) {
   return lines.slice(0, 6);
 }
 
-// ctx: { lcu, push, notifier, getConfig, log }
+// ctx: { lcu, push, notifier, getConfig, log, isPaused }
 function attachGamePlan(ctx) {
-  let names = null, current = null, sentFor = null, askedFor = null;
+  let names = null, current = null, currentKey = null, sentFor = null, askedFor = null, failedAt = 0;
   const json = (url) => fetch(url, { signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status} ${url}`))));
   async function loadNames() {
     if (names) return names;
@@ -56,25 +56,26 @@ function attachGamePlan(ctx) {
     const s = e.data, me = (s.myTeam || []).find((p) => p.cellId === s.localPlayerCellId) || {};
     const locked = (s.actions || []).flat().some((a) => a.actorCellId === s.localPlayerCellId && a.type === "pick" && a.completed);
     if (!locked || !me.championId) return;
+    const role = String(me.assignedPosition || "").toLowerCase();
+    if (!role || s.benchEnabled) return; // ARAM / blind: the crawler's plan is Summoner's Rift ranked data
     const enemies = (s.theirTeam || []).map((p) => p.championId).filter((x) => x > 0);
     const key = `${s.gameId || ""}:${me.championId}:${enemies.join(",")}`;
-    if (askedFor !== key) { // ask again only when the enemies we know about changed
+    if (askedFor !== key && Date.now() - failedAt > 15000) { // ask again only when the enemies changed; after a failure, wait 15 s
       askedFor = key;
       try {
-        const role = String(me.assignedPosition || "").toLowerCase();
         const q = new URLSearchParams({ role, enemies: enemies.join(",") }).toString();
         const [plan, nm] = await Promise.all([json(`${base()}/lol/plan/${me.championId}?${q}`), loadNames().catch(() => ({}))]);
         const lines = planLines(plan, nm);
-        current = lines.length ? { champion: (nm.champ || {})[me.championId] || "", lines } : null;
-      } catch (err) { ctx.log("game plan:", err.message); askedFor = null; }
+        if (askedFor === key) { current = lines.length ? { champion: (nm.champ || {})[me.championId] || "", lines } : null; currentKey = key; }
+      } catch (err) { ctx.log("game plan:", err.message); askedFor = null; failedAt = Date.now(); }
     }
     // Phone and Discord once per game, when all ten are in.
     const ten = enemies.length >= 5 && (s.myTeam || []).every((p) => p.championId > 0);
-    if (current && ten && sentFor !== (s.gameId || key)) {
+    if (current && ten && currentKey === key && sentFor !== (s.gameId || key) && !(ctx.isPaused && ctx.isPaused())) {
       sentFor = s.gameId || key;
       const text = current.lines.join("\n");
       ctx.push(`Game plan${current.champion ? ` for ${current.champion}` : ""}: ${current.lines.join(" · ")}`, "info", "game_plan");
-      ctx.notifier.alert("game_plan", `Game plan${current.champion ? `: ${current.champion}` : ""}`, text, "Game plan").catch(() => {});
+      ctx.notifier.alert("game_plan", `Game plan${current.champion ? `: ${current.champion}` : ""}`, text, "Game plan", { mention: "" }).catch(() => {}); // no @ping for a plan
     }
   });
   return { get: () => current };
