@@ -22,28 +22,29 @@ function uniqueTraits(db) {
   return (name) => (t[name] ? (t[name].breakpoints || []).length <= 1 : /unique/i.test(name));
 }
 
-// Pure: boards [{ match_id, puuid, carry, units: [..], traits: [[name, tier]] }] -> Map("match|puuid" -> id), plus the centroids.
-function cluster(boards, isUnique = (n) => /unique/i.test(n)) {
-  const byCarry = new Map();
-  for (const b of boards) (byCarry.get(b.carry) || byCarry.set(b.carry, []).get(b.carry)).push(b);
+// Two passes over any iterable of boards ({ match_id, puuid, carry, units: [..], traits: [[name, tier]] }), so memory is per carry,
+// not per board (holding every board took 527 MB at 400k; Q review 2). makeBoards() returns a fresh iterator each call.
+// emit(match_id, puuid, id) receives each board's comp. Returns the centroids.
+function clusterStream(makeBoards, emit, isUnique = (n) => /unique/i.test(n)) {
+  const stats = new Map(); // carry -> { n, tc: trait counts, uc: unit counts }
+  for (const b of makeBoards()) {
+    const s = stats.get(b.carry) || stats.set(b.carry, { n: 0, tc: new Map(), uc: new Map() }).get(b.carry);
+    s.n++;
+    for (const [t] of b.traits) if (!isUnique(t)) s.tc.set(t, (s.tc.get(t) || 0) + 1);
+    for (const u of new Set(b.units)) s.uc.set(u, (s.uc.get(u) || 0) + 1);
+  }
   const label = new Map(), centroids = [];
-  for (const [carry, bs] of byCarry) {
-    const tc = new Map(), uc = new Map();
-    for (const b of bs) {
-      for (const [t] of b.traits) if (!isUnique(t)) tc.set(t, (tc.get(t) || 0) + 1);
-      for (const u of new Set(b.units)) uc.set(u, (uc.get(u) || 0) + 1);
-    }
-    const trait = [...tc].sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0]?.[0] || "none";
+  for (const [carry, s] of stats) {
+    const trait = [...s.tc].sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0]?.[0] || "none";
     const id = `${trait},${carry}`;
     label.set(carry, id);
-    if (bs.length >= CENTROID_MIN) {
-      const set = new Set([...uc].filter(([, n]) => n >= SHARE * bs.length).sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1)).slice(0, MAX_UNITS).map(([u]) => u));
-      if (set.size) centroids.push({ id, n: bs.length, set });
+    if (s.n >= CENTROID_MIN) {
+      const set = new Set([...s.uc].filter(([, n]) => n >= SHARE * s.n).sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1)).slice(0, MAX_UNITS).map(([u]) => u));
+      if (set.size) centroids.push({ id, n: s.n, set });
     }
   }
   centroids.sort((x, y) => y.n - x.n || (x.id < y.id ? -1 : 1)); // ties resolve to the bigger comp
-  const out = new Map();
-  for (const b of boards) {
+  for (const b of makeBoards()) {
     const us = [...new Set(b.units)];
     let best = null, bj = -1;
     for (const c of centroids) {
@@ -52,19 +53,31 @@ function cluster(boards, isUnique = (n) => /unique/i.test(n)) {
       const j = i / (us.length + c.set.size - i);
       if (j > bj) { bj = j; best = c; }
     }
-    out.set(`${b.match_id}|${b.puuid}`, best && bj >= MIN_JACCARD ? best.id : label.get(b.carry));
+    emit(b.match_id, b.puuid, best && bj >= MIN_JACCARD ? best.id : label.get(b.carry));
   }
-  return { assign: out, centroids };
+  return centroids;
+}
+
+// Array convenience (tests, scripts): -> { assign: Map("match|puuid" -> id), centroids }
+function cluster(boards, isUnique) {
+  const assign = new Map();
+  const centroids = clusterStream(() => boards, (m, p, id) => assign.set(`${m}|${p}`, id), isUnique);
+  return { assign, centroids };
 }
 
 function labelPatch(db, patch) {
   init(db);
   db.exec("DELETE FROM temp.tft_board_comp");
-  const boards = db.prepare(`SELECT p.match_id, p.puuid, p.comp carry, p.units, p.traits FROM tft_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ?`).all(patch)
-    .map((r) => ({ match_id: r.match_id, puuid: r.puuid, carry: r.carry, units: JSON.parse(r.units || "[]"), traits: JSON.parse(r.traits || "[]") }));
-  const { assign, centroids } = cluster(boards, uniqueTraits(db));
+  const q = db.prepare(`SELECT p.match_id, p.puuid, p.comp carry, p.units, p.traits FROM tft_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ?`);
+  function* boards() {
+    for (const r of q.iterate(patch)) yield { match_id: r.match_id, puuid: r.puuid, carry: r.carry, units: JSON.parse(r.units || "[]"), traits: JSON.parse(r.traits || "[]") };
+  }
   const ins = db.prepare("INSERT INTO temp.tft_board_comp VALUES (?, ?, ?)");
-  for (const [k, id] of assign) { const i = k.indexOf("|"); ins.run(k.slice(0, i), k.slice(i + 1), id); }
+  // ponytail: the second pass reads the patch again (~2x the I/O of one pass), in exchange for O(carries) memory
+  const rows = [];
+  const centroids = clusterStream(boards, (m, p, id) => { rows.push(m, p, id); if (rows.length >= 3000) flush(); }, uniqueTraits(db));
+  flush();
+  function flush() { for (let i = 0; i < rows.length; i += 3) ins.run(rows[i], rows[i + 1], rows[i + 2]); rows.length = 0; }
   return centroids.length;
 }
 
@@ -72,4 +85,4 @@ function labelPatch(db, patch) {
 const JOIN = "LEFT JOIN temp.tft_board_comp l ON l.match_id = p.match_id AND l.puuid = p.puuid";
 const COMP = "coalesce(l.id, 'none,' || p.comp)";
 
-module.exports = { init, labelPatch, cluster, JOIN, COMP, CENTROID_MIN };
+module.exports = { init, labelPatch, cluster, clusterStream, JOIN, COMP, CENTROID_MIN };
