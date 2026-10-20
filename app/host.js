@@ -64,6 +64,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         trades: (s.trades || []).filter((t) => t.state === "RECEIVED").map((t) => ({ id: t.id, name: t.name || "a teammate's champion" })) };
     },
     trade: (id, action) => impl.respond_trade(id, action),
+    pickOptions: () => impl.pick_options(), // DONI-549
+    pick: (id, lock) => impl.phone_pick(id, lock),
     // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
     decline: async () => {
       if (!lcu.connected) return { ok: false, error: "The League client isn't running" };

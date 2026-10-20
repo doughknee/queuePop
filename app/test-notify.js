@@ -18,6 +18,7 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
   const events = [{ id: 1, level: "info", message: "old", kind: null, ts: 0 }];
   const comp = createCompanion({ webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: () => ({ companion: { token: TOKEN } }), push: () => {}, decline: async () => ({ ok: true }),
     champ: async () => ({ active: true, trades: [{ id: 7, name: "Ahri" }] }), trade: async (id, action) => ({ ok: id === "7" && action === "accept" }),
+    pickOptions: async () => ({ active: true, picks: [{ id: 103, name: "Ahri" }] }), pick: async (id, lock) => ({ ok: id === "103", lock }),
     status: () => ({ connected: false, paused: false }) });
   assert.ok(await comp.start(0));
   const port = comp.boundPort();
@@ -48,6 +49,11 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
   assert.deepStrictEqual(JSON.parse((await read("/api/champ?t=" + TOKEN))[1]).trades, [{ id: 7, name: "Ahri" }]);
   assert.strictEqual((await post("/api/trade?id=7&action=accept&t=" + TOKEN))[0], 200);
   assert.strictEqual((await post("/api/trade?id=8&action=accept&t=" + TOKEN))[0], 409);
+  // DONI-549: picks from the phone, token-gated.
+  assert.strictEqual((await read("/api/picks"))[0], 403);
+  assert.strictEqual(JSON.parse((await read("/api/picks?t=" + TOKEN))[1]).picks[0].name, "Ahri");
+  assert.deepStrictEqual(JSON.parse((await post("/api/pick?id=103&lock=1&t=" + TOKEN))[1]), { ok: true, lock: true });
+  assert.strictEqual((await post("/api/pick?id=1&t=" + TOKEN))[0], 409);
 
   // Simulated queue pop after the phone connected: must arrive after the 'synced' marker.
   const body = await new Promise((resolve) => {

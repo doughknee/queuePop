@@ -83,6 +83,15 @@ function createCompanion(ctx) {
       return Promise.resolve(ctx.trade(url.searchParams.get("id"), url.searchParams.get("action"))).catch((e) => ({ ok: false, error: e.message }))
         .then((r) => { res.writeHead(r.ok ? 200 : 409, { "Content-Type": "application/json" }); res.end(JSON.stringify(r)); });
     }
+    if (p === "/api/picks" && ctx.pickOptions) { // DONI-549
+      return Promise.resolve(ctx.pickOptions()).catch(() => ({ active: false }))
+        .then((r) => { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(JSON.stringify(r)); });
+    }
+    if (p === "/api/pick") { // POST ?id=<champion>&lock=1
+      if (req.method !== "POST" || !ctx.pick) { res.writeHead(405); return res.end(); }
+      return Promise.resolve(ctx.pick(url.searchParams.get("id"), url.searchParams.get("lock") === "1")).catch((e) => ({ ok: false, error: e.message }))
+        .then((r) => { res.writeHead(r.ok ? 200 : 409, { "Content-Type": "application/json" }); res.end(JSON.stringify(r)); });
+    }
     if (p === "/api/away") { // DONI-424: the phone's "I'm stepping away" / "I'm back"
       if (req.method !== "POST" || !ctx.setAway) { res.writeHead(405); return res.end(); }
       res.writeHead(200, { "Content-Type": "application/json" });

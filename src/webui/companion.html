@@ -42,6 +42,11 @@
     .trade .row { margin-top: 10px; }
     .trade .btn { margin: 0; flex: 1; font-size: 18px; padding: 14px 10px; }
     .trade .btn.no { background: transparent; color: var(--fg); border: 2px solid var(--edge); }
+    .picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .picks button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border: 1px solid var(--line); background: none; color: var(--fg); font: 12px var(--mono); cursor: pointer; }
+    .picks button img { width: 48px; height: 48px; object-fit: cover; }
+    .picks button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+    #pick-lock { width: 100%; margin-top: 12px; }
     .btn.away { display: block; width: 100%; margin-top: 14px; }
     .btn.away.on { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
     .tl-count { font: 64px/1 var(--display); color: var(--accent); margin-top: 10px; letter-spacing: .02em; }
@@ -114,6 +119,7 @@
       <div class="row between"><span class="status-txt kicker">Champ select</span><span class="status-txt" id="cs-timer"></span></div>
       <p class="muted" id="cs-me"></p>
       <div id="cs-trades"></div>
+      <div id="cs-picks"></div>
     </div>
 
     <div class="panel" id="plan" hidden>

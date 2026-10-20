@@ -17,6 +17,8 @@ const METHODS = {
   set_deadlock_account: NOT_PORTED,
   respond_trade: NOT_PORTED,
   bench_advice: null,
+  pick_options: { active: false },
+  phone_pick: NOT_PORTED,
 };
 
 module.exports = { METHODS };
