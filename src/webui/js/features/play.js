@@ -169,7 +169,7 @@ function qmRowHtml(q, idx, opts) {
       `data-qid="${q.id}" style="--i:${idx}">` +
       `<span class="qm-row-content">` +
         `<span class="qm-ico">${qmGroupIcon(q.group)}</span>` +
-        `<span class="qm-name">${q.group === "tft" ? qmStripPrefix(q.name, "Teamfight Tactics") : q.name}</span>` +
+        `<span class="qm-name">${q.group === "tft" ? (playGame() === "home" ? "TFT · " : "") + qmStripPrefix(q.name, "Teamfight Tactics") : q.name}</span>` +
         pill +
       `</span>` +
     `</button>`
