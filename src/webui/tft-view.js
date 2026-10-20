@@ -23,7 +23,7 @@ window.createTftView = function (host) {
   async function refreshRank() {
     try {
       const info = (await api().get_summoner()) || {};
-      if (info.region) myRegion = ({ na: 'NA1', euw: 'EUW1', eune: 'EUN1', oce: 'OC1', oc: 'OC1', br: 'BR1', jp: 'JP1', tr: 'TR1', lan: 'LA1', las: 'LA2' })[String(info.region).toLowerCase()] || String(info.region).toUpperCase();
+      if (info.platform || info.region) myRegion = String(info.platform || ({ na: 'NA1', euw: 'EUW1', eune: 'EUN1', oce: 'OC1', oc: 'OC1', br: 'BR1', jp: 'JP1', tr: 'TR1', lan: 'LA1', las: 'LA2', sg: 'SG2', tw: 'TW2', vn: 'VN2', ph: 'PH2', th: 'TH2', me: 'ME1' })[String(info.region).toLowerCase()] || info.region).toUpperCase(); // DONI-569
       if (info.name) myRiot = `${info.name}#${info.tag || ''}`.toLowerCase();
       const r = info.connected && info.ranked && info.ranked.tft;
       rankEl.textContent = !info.connected ? 'TFT rank: client not connected'
@@ -59,7 +59,7 @@ window.createTftView = function (host) {
     document.title = 'TFT Field Guide · QueuePop';
     if (!frame) {
       frame = document.createElement('iframe');
-      frame.title = 'TFT Field Guide — guides and interactive playground';
+      frame.title = 'TFT Field Guide: guides and interactive playground';
       frame.src = source + '#' + GUIDE[p];
       frame.addEventListener('load', () => {
         // The sidebar is the navigation: hide the guide's own nav row.
@@ -119,7 +119,8 @@ window.createTftView = function (host) {
   try { const s = JSON.parse(localStorage.getItem(FKEY) || '{}'); for (const k of ['region', 'bracket', 'days']) if (typeof s[k] === 'string') filters[k] = s[k]; } catch (_) {}
   let rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
   const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
-  const detail = (id) => S.get(`/tft/comp/${enc(id)}?${qs()}`);
+  // DONI-570: units, augments and traits are whole-patch tables, so the detail never sends the window (Played stays <= 100 %).
+  const detail = (id) => S.get(`/tft/comp/${enc(id)}?patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}`);
   const known = new Map(); // comp id → its loaded unit keys (search matches unit names through these)
 
   async function loadComps() {
@@ -131,6 +132,7 @@ window.createTftView = function (host) {
     } catch (_) { offline = true; rows = []; }
   }
   // Fill unit icons for rows on screen, six requests at a time (the crawler is on the LAN).
+  let unitWatch = null;
   async function fillUnits(ids) {
     for (let i = 0; i < ids.length; i += 6) {
       await Promise.allSettled(ids.slice(i, i + 6).map(async (id) => {
@@ -147,7 +149,10 @@ window.createTftView = function (host) {
   // count (breakpoints from /tft/meta), most units first, one-unit uniques left out; the title says how often.
   function traitChips(active) {
     const best = new Map();
-    for (const t of active || []) { const [k, tier] = t.key.split(':'); if (t.frequency >= 0.5 && +tier > (best.get(k)?.tier || 0)) best.set(k, { tier: +tier, f: t.frequency }); }
+    // Review #118: frequencies are per exact tier, so add them from the top tier down ("this tier or higher") before the 50 % test.
+    const by = new Map();
+    for (const t of active || []) { const [k, tier] = t.key.split(':'); (by.get(k) || by.set(k, []).get(k)).push({ tier: +tier, f: t.frequency }); }
+    for (const [k, list] of by) { let acc = 0; for (const x of list.sort((a, b) => b.tier - a.tier)) { acc += x.f; if (acc >= 0.5) { best.set(k, { tier: x.tier, f: acc }); break; } } }
     return [...best].map(([k, b]) => ({ k, b, n: (S.info(k).breakpoints || [])[b.tier - 1] || b.tier })).filter((x) => x.n > 1).sort((x, y) => y.n - x.n).slice(0, 6)
       .map(({ k, b, n }) => `<span class="ts-chip" title="${esc(name(k))} ${n} · ${pct(b.f)} of these boards">${icon(k, 'ts-ico-trait')}${n}</span>`).join('');
   }
@@ -173,13 +178,13 @@ window.createTftView = function (host) {
 
   function filterStrip() {
     const opt = (v, l, cur) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${l}</option>`;
-    return `<div class="ts-filters"><label>Patch <select data-f="patch">${(patches || []).map((p) => opt(p, p, filters.patch)).join('') || '<option value="">None yet</option>'}</select></label>
+    return `<div class="ts-filters"><label>Patch <select data-f="patch">${(patches || []).map((p) => opt(p, p, filters.patch)).join('') || `<option value="">${offline ? 'Offline' : 'None yet'}</option>`}</select></label>
       <div class="ts-seg" role="group" aria-label="Region">${[['all', 'All regions'], ...regions.map((r) => [r, S.regionLabel(r)])].map(([v, l]) => `<button data-region="${v}" aria-pressed="${filters.region === v}">${l}</button>`).join('')}</div>
-      <label>Window <select data-f="days">${[['', 'Whole patch'], ['7', 'Last 7 days'], ['3', 'Last 3 days'], ['1', 'Today']].map(([v, l]) => opt(v, l, filters.days)).join('')}</select></label>
+      <label${LISTS[parse().p] || parse().p !== '' ? ' hidden' : ''}>Window <select data-f="days">${[['', 'Whole patch'], ['7', 'Last 7 days'], ['3', 'Last 3 days'], ['1', 'Today']].map(([v, l]) => opt(v, l, filters.days)).join('')}</select></label>
       <label>Rank <select data-f="bracket">${[['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+']].map(([v, l]) => opt(v, l, filters.bracket)).join('')}</select></label></div>`;
   }
   function stateLine() {
-    if (offline) return 'Stats offline: the queuePop crawler did not answer.';
+    if (offline) return 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
     if (!filters.patch) return 'No TFT stats yet. The crawler aggregates every hour.';
     if (!rows.length) return 'No comps for these filters yet.';
     return '';
@@ -201,7 +206,10 @@ window.createTftView = function (host) {
         <span class="ts-num">${heat(r.winRate, 0.125, 0.06, r.games, pct(r.winRate))}</span><span class="ts-num">${mag(r.pickRate, 0.05, pct(r.pickRate))}</span><span class="ts-num">${r.games.toLocaleString()}</span></button>
         ${open === r.id ? `<div class="ts-detail" data-detail="${esc(r.id)}"><p class="ts-quiet">Loading…</p></div>` : ''}</div>`).join('')
       + (vis.length > shown ? `<button class="ts-more" data-more>Show ${Math.min(30, vis.length - shown)} more of ${vis.length - shown}</button>` : '');
-    fillUnits(slice.map((r) => r.id));
+    // Q review: unit icons fill as rows come into view, not 30 comp requests per visit.
+    unitWatch?.disconnect();
+    unitWatch = new IntersectionObserver((es) => { const ids = es.filter((e) => e.isIntersecting).map((e) => { unitWatch.unobserve(e.target); return e.target.dataset.units; }); if (ids.length) fillUnits(ids); }, { root: page, rootMargin: '200px' });
+    page.querySelectorAll('[data-units]').forEach((el) => unitWatch.observe(el));
     if (open && slice.some((r) => r.id === open)) {
       const id = open;
       detail(id).then((d) => {
@@ -242,8 +250,9 @@ window.createTftView = function (host) {
     page.innerHTML = '<div class="ts-wrap"><a class="ts-back" href="#/tft">← All comps</a><p class="ts-state" role="status">Loading comp…</p></div>';
     if (!patches) await loadComps();
     let d;
-    try { [d] = await Promise.all([detail(id), S.loadFull()]); } catch (e) { // loadFull: the board needs attack ranges
-      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this comp with these filters.' : 'Stats offline: the queuePop crawler did not answer.';
+    S.loadFull().then(() => { if (parse().p === 'comp' && parse().id === id) { const b = page.querySelector('.ts-comp-board'); if (b && d) b.innerHTML = `<h3>Board</h3>${boardFor(d.units)}`; } }); // ranges for the board, later
+    try { d = await detail(id); } catch (e) {
+      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this comp with these filters.' : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
       return;
     }
     if (parse().id !== id) return;
@@ -366,7 +375,7 @@ window.createTftView = function (host) {
     page.querySelector('.ts-filter-slot').innerHTML = filterStrip() + (kind === 'units' ? `<div class="ts-seg ts-costs" role="group" aria-label="Cost">${[0, 1, 2, 3, 4, 5].map((c) => `<button data-cost="${c}" aria-pressed="${costFilter === c}">${c ? c + ' gold' : 'All costs'}</button>`).join('')}</div>` : '');
     let d;
     try { d = await S.get(`/tft/${kind}?${qsAll()}`); } catch (_) {
-      page.querySelector('.ts-state').textContent = 'Stats offline: the queuePop crawler did not answer.'; return;
+      page.querySelector('.ts-state').textContent = 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.'; return;
     }
     if (parse().p !== kind) return;
     const rows = (d[kind] || []).filter((r) => kind !== 'units' || !costFilter || costOf(r.key) === costFilter)
@@ -388,7 +397,7 @@ window.createTftView = function (host) {
     if (!patches) await loadComps();
     let d;
     try { d = await S.get(`/tft/unit/${enc(key)}?${qsAll()}`); } catch (e) {
-      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this unit with these filters.' : 'Stats offline: the queuePop crawler did not answer.'; return;
+      page.querySelector('.ts-state').textContent = e.message === '404' ? 'No games for this unit with these filters.' : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.'; return;
     }
     if (parse().id !== key) return;
     const tbl = (head, rows, f) => rows.length ? `<table class="ts-table"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(f).join('')}</tbody></table>` : '<p class="ts-quiet">None recorded.</p>';
@@ -420,11 +429,12 @@ window.createTftView = function (host) {
     let m;
     try { m = await S.get(`/tft/match/${enc(id)}`, 30000); } catch (e) {
       const code = String(e.message || e).split(' ')[0];
-      page.querySelector('.ts-state').textContent = code === '404' ? 'Riot has no match with this id.' : code === '429' ? 'The crawler allows a few fresh lookups a minute. Try again in a minute.' : 'Stats offline: the queuePop crawler did not answer.';
+      page.querySelector('.ts-state').textContent = code === '404' ? 'Riot has no match with this id.' : code === '429' ? 'The crawler allows a few fresh lookups a minute. Try again in a minute.' : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
       return;
     }
-    if (parse().p !== 'match') return;
+    if (parse().p !== 'match' || parse().id !== id) return;
     await S.loadDragon();
+    if (parse().p !== 'match' || parse().id !== id) return; // review #121: a slower older match never paints over a newer one
     const region = String(m.id).split('_')[0].toLowerCase();
     page.querySelector('.ts-list-head h1').textContent = QUEUES[m.queueId] || 'TFT';
     page.querySelector('.ts-meta').textContent = `${Math.round(m.length / 60)} min · set ${m.set} · ${new Date(m.startedAt).toLocaleString()}`;
@@ -446,7 +456,7 @@ window.createTftView = function (host) {
       <p class="ts-state" role="status">Loading the ladder…</p><div class="ts-ladder"></div></div>`;
     if (!patches) await loadComps();
     let d;
-    try { d = await S.get(`/tft/leaderboard?region=${enc(region)}&limit=200`); } catch (_) { page.querySelector('.ts-state').textContent = 'Stats offline: the queuePop crawler did not answer.'; return; }
+    try { d = await S.get(`/tft/leaderboard?region=${enc(region)}&limit=200`); } catch (_) { page.querySelector('.ts-state').textContent = 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.'; return; }
     if (parse().p !== 'leaderboard') return;
     const ps = d.players || [];
     page.querySelector('.ts-state').textContent = ps.length ? '' : 'No ladder for this region yet.';
@@ -466,7 +476,7 @@ window.createTftView = function (host) {
     try { d = await S.get(`/tft/player/${enc(riot)}?region=${enc(region)}`, 60000); } catch (e) {
       const code = String(e.message || e).split(' ')[0];
       page.querySelector('.ts-state').textContent = code === '404' ? `No Riot ID "${riot}" on ${region.toUpperCase()}.` : code === '429' ? 'The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in a minute.'
-        : code === '503' ? "The crawler's Riot key is not valid right now; replace it in Settings > Stats crawler." : 'Stats offline: the queuePop crawler did not answer.';
+        : code === '503' ? "The crawler's Riot key is not valid right now; replace it in Settings > Stats crawler." : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
       return;
     }
     if (parse().p !== 'player') return;
@@ -477,7 +487,7 @@ window.createTftView = function (host) {
       ${g.length ? `<div class="ts-form"><small>Last ${g.length} · avg ${avg.toFixed(2)} · ${g.filter((x) => x.placement <= 4).length} top 4</small><div class="ts-places">${g.map((x) => `<span class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}">${x.placement}</span>`).join('')}</div></div>` : ''}</section>
       <div class="ts-hist">${g.map((x) => `<div class="ts-game"><div class="ts-game-main ts-game-static"><a class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}" href="#/tft/match/${enc(x.id)}" title="Open the full match">${x.placement}</a>
         <span class="ts-game-meta"><strong>${esc(QUEUES[x.queueId] || 'TFT')}</strong><small>${ago(Math.round(x.startedAt / 1000))} · level ${x.level} · ${Math.round(x.length / 60)} min</small></span>
-        <span class="ts-game-traits">${[...(x.traits || [])].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t, n]) => `<span class="ts-trait">${icon(t, 'ts-ico-trait')}${n}</span>`).join('')}</span>
+        <span class="ts-game-traits">${[...(x.traits || [])].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t, n]) => `<span class="ts-trait st${Math.min(4, n)}" title="${esc(name(t))}">${icon(t, 'ts-ico-trait')}${(S.info(t).breakpoints || [])[n - 1] || n}</span>`).join('')}</span>
         <span class="ts-units">${(x.units || []).map(([u, st, items]) => `<span class="ts-unit-cell">${unitLink(u, ' · ' + '★'.repeat(st))}<i class="ts-stars s${st}">${'★'.repeat(st)}</i></span>`).join('')}</span></div></div>`).join('')}</div>`;
   }
 

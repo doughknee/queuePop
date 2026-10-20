@@ -183,3 +183,4 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-row .ts-name .ts-spark{position:absolute;right:0;top:3px;margin:0}
 .ts-band .ts-place{background:var(--bg)}
 .ts-head,.ts-main{grid-template-columns:34px minmax(200px,1.4fr) minmax(0,1.5fr) repeat(5,minmax(52px,66px))}
+.ts-mt-row>*{min-width:0;overflow:hidden}

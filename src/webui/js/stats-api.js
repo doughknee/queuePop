@@ -19,7 +19,7 @@
     return String(u || DEFAULT_CRAWLER).replace(/\/+$/, '');
   }, 60000);
   const qs = o => new URLSearchParams(Object.entries(o).filter(([, v]) => v && v !== 'all')).toString();
-  const crawler = (path, params = {}, ms) => { const q = qs(params); return once(`c${path}?${q}`, async () => json(`${await base()}${path}${q ? '?' + q : ''}`, ms)); };
+  const crawler = async (path, params = {}, ms) => { const q = qs(params), b = await base(); return once(`c${b}${path}?${q}`, () => json(`${b}${path}${q ? '?' + q : ''}`, ms)); }; // the base is in the key (review #74)
   // A crawler patch ("16.20") maps to the newest Data Dragon build of it ("16.20.1"); unknown patches use the newest build.
   const ddVersion = patch => once('ddv', () => json(`${DD}/api/versions.json`), 3600000)
     .then(v => v.find(x => patch && x.startsWith(patch + '.')) || v[0]);

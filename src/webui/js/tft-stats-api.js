@@ -51,11 +51,11 @@
     }).catch(() => loadFull()));
   }
   function loadFull() {
-    return full || (full = fetch(CDRAGON + 'cdragon/tft/en_us.json').then((r) => r.json()).then((j) => {
+    return full || (full = fetch(CDRAGON + 'cdragon/tft/en_us.json', { signal: AbortSignal.timeout(60000) }).then((r) => r.json()).then((j) => {
       const map = new Map();
       for (const s of Object.keys(j.sets || {}).sort((a, b) => a - b).map((k) => j.sets[k])) {
         for (const c of s.champions || []) map.set(c.apiName, { name: c.name, icon: png(c.tileIcon || c.squareIcon), cost: c.cost, range: c.stats && c.stats.range, traits: c.traits || [] });
-        for (const t of s.traits || []) map.set(t.apiName, { name: t.name, icon: png(t.icon) });
+        for (const t of s.traits || []) map.set(t.apiName, { name: t.name, icon: png(t.icon), breakpoints: (t.effects || []).map((e) => e.minUnits).filter(Boolean) });
       }
       for (const i of j.items || []) if (!map.has(i.apiName)) map.set(i.apiName, { name: i.name, icon: png(i.icon) });
       for (const [k, v] of names) map.set(k, { ...(map.get(k) || {}), ...v, range: (map.get(k) || {}).range }); // meta wins, CDragon adds range
