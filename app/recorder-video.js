@@ -58,6 +58,13 @@ function chooseDeletions(files, capBytes) {
   return out;
 }
 
+// The size cap only ever deletes the recorder's own videos: <matchId>.mkv / <matchId>-clipN.mp4 next to <matchId>.json.
+// The folder is yours to choose (Videos, say), so anything else in it is never touched. Pure; test-recorder-video.js.
+function ownVideos(names) {
+  const json = new Set(names.filter((n) => n.endsWith(".json")).map((n) => n.slice(0, -5)));
+  return names.filter((n) => { const m = /^((?:[A-Za-z]+\d*_)?\d+)(?:-clip\d+)?\.(?:mkv|mp4)$/i.exec(n); return m && json.has(m[1]); });
+}
+
 // --- runtime -----------------------------------------------------------------------------------------------------------
 const run = (bin, args) => new Promise((resolve) => execFile(bin, args, { windowsHide: true, timeout: 120000 }, (err, out) => resolve(err ? null : String(out))));
 let probed = null;
@@ -73,11 +80,12 @@ async function probe(force) {
 
 // ctx: { getConfig, dir: () => folder, log, push, recorder: { update } }
 function createVideo(ctx) {
-  let proc = null, startedAt = 0, file = null;
+  let proc = null, startedAt = 0, file = null, starting = false;
   async function start(rec) {
     const cfg = ctx.getConfig().recorder || {};
-    if (proc || !cfg.enabled || !cfg.video) return;
-    const p = await probe();
+    if (proc || starting || !cfg.enabled || !cfg.video) return;
+    starting = true; let p; try { p = await probe(); } finally { starting = false; }
+    if (proc) return;
     if (!p.found) { ctx.log("recorder video: ffmpeg not found on PATH"); return; }
     fs.mkdirSync(ctx.dir(), { recursive: true });
     file = path.join(ctx.dir(), `${rec.matchId.replace(/[^\w-]/g, "_")}.mkv`);
@@ -107,10 +115,10 @@ function createVideo(ctx) {
   function cleanup() {
     const capBytes = ((ctx.getConfig().recorder || {}).cap_gb || 50) * 1024 ** 3;
     let files = [];
-    try { files = fs.readdirSync(ctx.dir()).filter((f) => /\.(mkv|mp4)$/i.test(f)).map((f) => { const p = path.join(ctx.dir(), f), s = fs.statSync(p); return { path: p, size: s.size, mtime: s.mtimeMs }; }); } catch { return; }
+    try { files = ownVideos(fs.readdirSync(ctx.dir())).map((f) => { const p = path.join(ctx.dir(), f), s = fs.statSync(p); return { path: p, size: s.size, mtime: s.mtimeMs }; }); } catch { return; }
     for (const p of chooseDeletions(files, capBytes)) { try { fs.unlinkSync(p); ctx.log("recorder: removed", p, "(size cap)"); } catch {} }
   }
   return { start, stop, probe };
 }
 
-module.exports = { createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, probe, PRESETS };
+module.exports = { ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, probe, PRESETS };
