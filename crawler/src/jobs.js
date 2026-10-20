@@ -241,9 +241,23 @@ function backfillComps(db) {
       }
     });
   }
-  // rows whose raw retention already dropped: an old "trait,carry" id becomes its carry (D14)
-  const stripped = Number(db.prepare("UPDATE tft_participants SET comp = substr(comp, instr(comp, ',') + 1) WHERE comp LIKE '%,%'").run().changes);
-  return { matches, boards, stripped };
+  return { matches, boards, ...repairCarries(db) };
+}
+
+// Boards whose raw retention already dropped: the carry comes from tft_participants.board ([[unit, star, items]]: most items,
+// then star, then name; cost isn't stored there). Before this, backfill-comps took the part after the first comma of an old
+// trait-list id, which left trait names as "carries" (DONI-577 follow-up: "DA_18_Invoker,DA_18_Invoker" comps, 2026-10-20).
+function repairCarries(db) {
+  const rows = db.prepare("SELECT p.match_id, p.puuid, p.board FROM tft_participants p JOIN matches m ON m.id = p.match_id WHERE m.raw IS NULL").all();
+  const up = db.prepare("UPDATE tft_participants SET comp = ? WHERE match_id = ? AND puuid = ?");
+  let repaired = 0;
+  tx(db, () => {
+    for (const r of rows) {
+      const units = JSON.parse(r.board || "[]").map(([character_id, tier, itemNames]) => ({ character_id, tier, itemNames }));
+      repaired += Number(up.run(carryOf(units) || "none", r.match_id, r.puuid).changes);
+    }
+  });
+  return { repaired };
 }
 
 function store(ctx, game, id, m) {
@@ -371,4 +385,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { tierOrder, ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { repairCarries, tierOrder, ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
