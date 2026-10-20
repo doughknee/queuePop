@@ -451,6 +451,13 @@ window.createTftView = function (host) {
     }).join('');
   }
 
+  // DONI-571: the page row shows Tier list, Match history, Units and More; More lists the rest inline (no popup).
+  function morePage() {
+    document.title = 'More · TFT · QueuePop';
+    const P = [['#/tft/items', 'Items', 'Every item: average place, top 4, frequency and its best holders.'], ['#/tft/traits', 'Traits', 'Every trait and how each breakpoint places.'],
+      ['#/tft/leaderboard', 'Leaderboard', 'The ranked ladder per region; open anyone for their last 20 boards.'], ['#/tft/planner', 'Planner', 'The field guide: practice boards, champions and items.']];
+    page.innerHTML = `<div class="ts-wrap"><header class="ts-list-head"><h1>More</h1><span class="ts-quiet ts-meta">The rest of the TFT world</span></header><nav class="ts-more" aria-label="More TFT pages">${P.map(([h, t, d]) => `<a href="${h}"><b>${t}</b><span>${d}</span><i aria-hidden="true">↗</i></a>`).join('')}</nav></div>`;
+  }
   async function leaderboardPage(region) {
     region = region || (filters.region !== 'all' ? filters.region : 'na1');
     document.title = 'Leaderboard · TFT · QueuePop';
@@ -503,6 +510,7 @@ window.createTftView = function (host) {
       else if (cur.p === 'unit') unitPage(cur.id);
       else if (cur.p === 'leaderboard') leaderboardPage(cur.id);
       else if (cur.p === 'match') matchPage(cur.id);
+      else if (cur.p === 'more') morePage();
       else if (cur.p === 'player') playerPage(cur.id, location.hash.split('/')[4]);
       else if (LISTS[cur.p]) statsList(cur.p);
       else if (cur.p === 'history') historyPage();
