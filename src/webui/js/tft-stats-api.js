@@ -7,7 +7,7 @@
   // Tier banding. Score = average placement minus a popularity bonus of up to half a place
   // (5 x pick rate, capped at a 10% pick rate), so a popular comp that places well outranks a rare one.
   // S: score <= 3.5 · A: <= 4.0 · B: <= 4.5 (an average lobby placement) · C: everything else.
-  // Low-sample rows still get a tier; the UI greys them.
+  // Low-sample rows get no tier (DONI-505): compRows sets tier null and the UI shows a dash, greyed, below the ranked rows.
   function compTier(c) {
     const score = c.avgPlacement - 5 * Math.min(c.pickRate || 0, 0.1);
     return score <= 3.5 ? 'S' : score <= 4 ? 'A' : score <= 4.5 ? 'B' : 'C';
@@ -15,8 +15,8 @@
   // /tft/comps response → rows with a tier, best first: full-sample rows before low-sample ones, then tier, then avg placement.
   function compRows(resp) {
     const order = { S: 0, A: 1, B: 2, C: 3 };
-    return ((resp && resp.comps) || []).filter((c) => c.id !== 'none').map((c) => ({ ...c, tier: compTier(c) }))
-      .sort((a, b) => a.lowSample - b.lowSample || order[a.tier] - order[b.tier] || a.avgPlacement - b.avgPlacement);
+    return ((resp && resp.comps) || []).filter((c) => c.id !== 'none').map((c) => ({ ...c, tier: c.lowSample ? null : compTier(c) }))
+      .sort((a, b) => a.lowSample - b.lowSample || (order[a.tier] ?? 4) - (order[b.tier] ?? 4) || a.avgPlacement - b.avgPlacement);
   }
 
   let base = null;
@@ -57,5 +57,10 @@
   // Sync lookup; names fill in once loadDragon() resolves (the view re-renders then).
   const info = (key) => names.get(key) || { name: bare(key), icon: '' };
 
-  window.tftStats = { compTier, compRows, get, crawler, loadDragon, info, bare };
+  // Regions the crawler seeds for TFT (DONI-505), from /status seed keys like "tft:na1"; labels like NA, KR, EUW, OCE.
+  const regionLabel = (r) => ({ oc1: 'OCE' })[r] || r.replace(/\d+$/, '').toUpperCase();
+  const regions = () => get('/status').then((s) => (s.seed || []).filter((k) => k.startsWith('tft:')).map((k) => k.slice(4)).sort())
+    .catch(() => ['kr', 'na1']);
+
+  window.tftStats = { compTier, compRows, get, crawler, loadDragon, info, bare, regions, regionLabel };
 })();
