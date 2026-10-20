@@ -9,7 +9,9 @@ const START_MS = 90000, EARLY_MS = 600000;
 // Potions, wards, elixirs, trinkets and the like: never "early items" or build slots.
 const CONSUMABLE = new Set([2003, 2010, 2031, 2033, 2055, 2138, 2139, 2140, 2150, 2151, 2152, 3340, 3363, 3364, 3330, 3513]);
 
-function parseTimeline(tl, finalItems = {}) {
+// completed: Set of completed item ids (src/lol-items.js). A completed item counts in the build even when it left the final
+// inventory, because tier-2 boots auto-upgrade to tier 3 late (no purchase) and so were missing from every core (D14 audit).
+function parseTimeline(tl, finalItems = {}, completed = null) {
   const buys = {}, skills = {};
   for (const f of tl.info.frames) for (const e of f.events) {
     const b = (buys[e.participantId] ??= []);
@@ -26,7 +28,7 @@ function parseTimeline(tl, finalItems = {}) {
     out[p.puuid] = {
       start: b.filter((x) => x.t < START_MS).map((x) => x.id).sort((x, y) => x - y).join(","),
       early: [...first].filter(([id, t]) => t >= START_MS && t < EARLY_MS && !CONSUMABLE.has(id)).map(([id]) => id),
-      build: [...first].filter(([id, t]) => fin.has(id) && t >= START_MS && !CONSUMABLE.has(id)).map(([id, t]) => [id, Math.round(t / 1000)]),
+      build: [...first].filter(([id, t]) => (fin.has(id) || completed?.has(id)) && t >= START_MS && !CONSUMABLE.has(id)).map(([id, t]) => [id, Math.round(t / 1000)]),
       skills: skills[p.participantId] || "",
     };
   }
