@@ -14,6 +14,7 @@ QP.store = {
 
   async load() {
     this.config = (await api().get_config()) || {};
+    QP.bus.emit("config:loaded", this.config); // the shell applies games_enabled etc. (DONI-522)
     return this.config;
   },
 

@@ -27,3 +27,11 @@ assert.strictEqual(merged.deadlock_overlay_exe, "C:\ow\overlay.exe");
 assert.strictEqual(merged.python_only, 1);
 assert.strictEqual(mergeForSave({ deadlock_overlay_exe: "C:\evil.exe" }, {}).deadlock_overlay_exe, undefined);
 console.log("test-config merge ok");
+
+// DONI-522: games_enabled keeps known games in order, never empty.
+const { cleanGames, normalizeConfig } = require("./champ-config");
+assert.deepStrictEqual(cleanGames(["deadlock", "league", "x", "league"]), ["league", "deadlock"]);
+assert.deepStrictEqual(cleanGames([]), ["league", "tft", "deadlock"]);
+assert.deepStrictEqual(cleanGames(undefined), ["league", "tft", "deadlock"]);
+assert.deepStrictEqual(normalizeConfig({ games_enabled: ["tft"] }).games_enabled, ["tft"]);
+console.log("test-config games ok");

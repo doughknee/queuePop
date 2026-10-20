@@ -135,7 +135,19 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
   };
 }
 
+// Memo for the heavier read-time rollups, keyed by path + query, dropped whenever an aggregation pass lands.
+function memoizer(db) {
+  let at = null, cache = new Map();
+  return (key, fn) => {
+    const now = getMeta(db, "aggregatedAt");
+    if (now !== at) { at = now; cache = new Map(); }
+    if (!cache.has(key)) cache.set(key, fn());
+    return cache.get(key);
+  };
+}
+
 function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays }) {
+  const memo = memoizer(db);
   return http.createServer((req, res) => {
     const send = (code, body) => {
       res.writeHead(code, { "content-type": "application/json", "access-control-allow-origin": "*", "access-control-allow-headers": "*" });
@@ -169,9 +181,15 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateEveryMin, retentionDays }));
       if (p === "/patches") return send(200, patches(db));
       if (p === "/lol/tiers") return send(200, require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q));
+      if ((m = /^\/lol\/(items|runes|spells)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-rollups").lolRollup(db, head, where, m[1], q)));
       if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, require("./agg-players").championPlayers(db, head, where, Number(m[1]), q));
       if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));
       if (p === "/tft/comps") return send(200, tftComps(db, q));
+      if ((m = /^\/tft\/(units|items|augments|traits)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-tft")[m[1]](db, head, where, q)));
+      if ((m = /^\/tft\/unit\/([^/]+)$/.exec(p))) {
+        const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, decodeURIComponent(m[1]), q));
+        return r ? send(200, r) : send(404, { error: "no such unit on this patch/filter" });
+      }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
         const c = tftComp(db, decodeURIComponent(m[1]), q);

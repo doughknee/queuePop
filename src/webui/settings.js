@@ -3,7 +3,7 @@
    Settings/Alerts pages used. The stats crawler card talks to the crawler straight from the renderer. */
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
-  const SECTIONS = [['account', 'Account'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'Display'], ['about', 'Updates & about']];
+  const SECTIONS = [['account', 'Account'], ['games', 'Games'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'Display'], ['about', 'Updates & about']];
   const EVENTS = [['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -21,6 +21,9 @@
         <div class="st-row"><span class="st-lbl">League summoner<small>Read from the League client; sign in there to change it.</small></span><span id="st-summoner" class="st-val">Offline</span></div>
         <label class="st-row"><span class="st-lbl">Deadlock account ID<small>Your Steam friend ID (numbers). Powers the Deadlock player card.</small></span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="e.g. 123456789"></label>
         <label class="st-row"><span class="st-lbl">Stats crawler URL<small>Where League and TFT stats come from.</small></span><input class="st-in st-wide" data-k="crawler_url" data-url placeholder="${DEFAULT_CRAWLER}"></label>`) +
+      card('games', 'Games', `
+        <p class="st-hint">Games you switch off leave the sidebar, home and search. Their pages and settings stay as they are.</p>
+        ${[['league', 'League of Legends'], ['tft', 'Teamfight Tactics'], ['deadlock', 'Deadlock']].map(([g, l]) => sw('games_enabled.' + g, l, '')).join('')}`) +
       card('league', 'League', `
         ${num('accept_delay_seconds', 'Accept delay', 'Seconds to wait before accepting a ready check. 0 accepts instantly.', 0, 10)}
         <div class="st-row"><span class="st-lbl">Queues to auto-accept<small>Pick which queues on the Play page.</small></span><span id="st-queues" class="st-val"></span></div>
@@ -43,7 +46,7 @@
         <div class="st-row"><span class="st-lbl">Test the webhook</span><span class="st-act"><button class="st-btn" data-do="test-discord">Send test</button><span class="st-msg" data-msg="test-discord"></span></span></div>
         <div class="st-row"><span class="st-lbl">Alarm sound<small>Used by the phone alarm.</small></span><span class="st-act">
           <select class="st-in" data-k="companion.sound"><option value="chime">Chime</option><option value="ping">Ping</option><option value="arcade">Arcade</option><option value="siren">Siren (loud)</option><option value="custom">Custom file</option></select>
-          <button class="st-btn" data-do="preview-sound">Preview</button><button class="st-btn" data-do="pick-sound">Choose file…</button><span class="st-msg" id="st-sound-file"></span></span></div>`) +
+          <button class="st-btn" data-do="preview-sound">Preview</button><button class="st-btn" data-do="pick-sound">Choose file…</button><span class="st-msg" id="st-sound-file"></span><span class="st-msg" data-msg="pick-sound" data-msg-alias="preview-sound"></span></span></div>`) +
       card('companion', 'Phone companion', `
         ${sw('companion.enabled', 'Alarm my phone when the queue pops', 'A page on your home Wi-Fi, no app or account. Restart queuePop after changing the port.')}
         ${num('companion.port', 'Port', '', 1024, 65535)}
@@ -51,7 +54,7 @@
           <div><p id="st-comp-note" class="st-val"></p><p class="st-hint">Scan with your phone camera, tap Enable Alerts and keep the tab open. Same Wi-Fi only.</p>
           <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`) +
       card('crawler', 'Stats crawler', `
-        <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button></span></div>
+        <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
         <div id="st-cr-grid" class="st-grid"></div>
         <div class="st-sub">Replace the Riot key</div>
         <label class="st-row"><span class="st-lbl">New key<small>Starts with RGAPI-</small></span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
@@ -60,8 +63,8 @@
       card('display', 'Display', `
         <label class="st-row"><span class="st-lbl">Text size<small>Scales the whole app. Ctrl + and Ctrl − step through these; Ctrl 0 goes back to 110%.</small></span><select class="st-in" data-k="ui_scale" data-scale>${UI_SCALES.map(v => `<option value="${v}">${Math.round(v * 100)}%</option>`).join('')}</select></label>`) +
       card('about', 'Updates &amp; about', `
-        <div class="st-row"><span class="st-lbl">Version<small id="st-upd-msg"></small></span><span class="st-act"><span id="st-ver" class="st-val"></span><button class="st-btn" data-do="check-update">Check for updates</button></span></div>
-        <div class="st-row"><span class="st-lbl">Icon packs<small id="st-assets-msg"></small></span><span class="st-act"><button class="st-btn" data-do="refresh-assets">Refresh assets</button></span></div>
+        <div class="st-row"><span class="st-lbl">Version<small id="st-upd-msg"></small></span><span class="st-act"><span id="st-ver" class="st-val"></span><button class="st-btn" data-do="check-update">Check for updates</button><span class="st-msg" data-msg="check-update"></span></span></div>
+        <div class="st-row"><span class="st-lbl">Icon packs<small id="st-assets-msg"></small></span><span class="st-act"><button class="st-btn" data-do="refresh-assets">Refresh assets</button><span class="st-msg" data-msg="refresh-assets"></span></span></div>
         <div class="st-row"><span class="st-lbl">Config folder<small>config.json and your stats live here.</small></span><span class="st-act"><button class="st-btn" data-do="open-config">Open folder</button><span class="st-msg" data-msg="open-config"></span></span></div>
         <div class="st-sub">Release notes</div><div id="st-notes" class="st-notes">Loading…</div>`) + `</div>`;
     root.addEventListener('input', onInput);
@@ -78,6 +81,7 @@
       if (el.dataset.k === 'champ_select.instant_lock') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
+      if (el.dataset.k.startsWith('games_enabled.')) { const on = window.qpGames ? qpGames() : []; v = on.includes(el.dataset.k.slice(14)); el.disabled = v && on.length === 1; el.closest('.st-row').title = el.disabled ? 'Keep at least one game on' : ''; }
       if (el.type === 'checkbox') el.checked = !!v; else if (document.activeElement !== el) el.value = v ?? '';
     });
     const ids = c.allowed_queue_ids || [];
@@ -94,6 +98,12 @@
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.dataset.num !== undefined) { if (v === '') return; v = Math.min(+el.max, Math.max(+el.min, Math.round(+v) || 0)); }
     if (el.dataset.scale !== undefined) return setScale(Number(v));
+    if (k.startsWith('games_enabled.')) { // DONI-522: one switch per world, stored as the list of worlds that are on
+      const g = k.slice(14), on = new Set(window.qpGames ? qpGames() : []);
+      v ? on.add(g) : on.delete(g);
+      if (on.size) QP.store.set('games_enabled', ['league', 'tft', 'deadlock'].filter(x => on.has(x)));
+      return hydrate();
+    }
     if (el.dataset.digits !== undefined) v = String(v).replace(/\D/g, '');
     if (el.dataset.url !== undefined) { v = String(v).trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) v = 'http://' + v; }
     // Typed fields commit on blur/Enter ('change'), never per keystroke: a half-typed URL must not be saved or fetched.
@@ -114,27 +124,31 @@
     const i = UI_SCALES.indexOf(Number(QP.store.get('ui_scale'))), at = i < 0 ? UI_SCALES.indexOf(UI_DEFAULT) : i;
     setScale(dir ? UI_SCALES[Math.min(UI_SCALES.length - 1, Math.max(0, at + dir))] : UI_DEFAULT);
   };
-  const say = (name, text, ok) => { const s = root.querySelector(`[data-msg="${name}"]`); if (!s) return; s.textContent = text; s.className = 'st-msg ' + (ok ? 'ok' : 'bad'); clearTimeout(s._t); s._t = setTimeout(() => (s.textContent = ''), 5000); };
+  // A button's message goes to its own [data-msg] (or one that lists it in data-msg-alias); none is ever dropped silently.
+  const say = (name, text, ok) => { const s = root.querySelector(`[data-msg="${name}"], [data-msg-alias~="${name}"]`); if (!s) { if (text) console.warn('settings:', name, text); return; } s.textContent = text; s.className = 'st-msg ' + (ok ? 'ok' : 'bad'); clearTimeout(s._t); s._t = setTimeout(() => (s.textContent = ''), 5000); };
   const base = () => (QP.store.get('crawler_url') || DEFAULT_CRAWLER).replace(/\/+$/, '');
   let compUrl = '';
 
   async function onClick(e) {
     const b = e.target.closest('[data-do]'); if (!b) return;
     const a = bridge(), d = b.dataset.do;
+    if (b.disabled) return;
+    b.disabled = true; // one run at a time; a slow check can't be stacked by repeat clicks
     try {
       if (d === 'test-desktop') { const r = await a.test_desktop(); say(d, r && r.ok ? 'Sent' : (r && r.error) || 'Failed', r && r.ok); }
       else if (d === 'test-discord') { say(d, 'Sending…', true); const r = await a.test_discord(QP.store.get('webhook_url') || '', QP.store.get('user_id') || ''); say(d, r && r.ok ? 'Sent, check Discord' : (r && r.error) || 'Failed', r && r.ok); }
-      else if (d === 'preview-sound') { const s = QP.store.get('companion.sound'); if (s === 'custom') return say('test-companion', 'Use Test phone alert to hear a custom file', false); const AC = window.AudioContext || window.webkitAudioContext; if (AC && window.QueuePopAlarm) { window.__stCtx ||= new AC(); window.__stCtx.resume?.(); QueuePopAlarm.play(window.__stCtx, s); } }
-      else if (d === 'pick-sound') { const r = await a.pick_sound_file(); if (r && r.ok) { customSound = r.path; QP.store.set('companion.sound_file', r.path); QP.store.set('companion.sound', 'custom'); hydrate(); } }
+      else if (d === 'preview-sound') { const s = QP.store.get('companion.sound'); if (s === 'custom') return say('test-companion', 'Use Test phone alert to hear a custom file', false); const AC = window.AudioContext || window.webkitAudioContext; if (!AC || !window.QueuePopAlarm) say(d, 'Can’t play sounds here', false); else { window.__stCtx ||= new AC(); window.__stCtx.resume?.(); QueuePopAlarm.play(window.__stCtx, s); } }
+      else if (d === 'pick-sound') { const r = await a.pick_sound_file(); if (r && r.error) say(d, r.error, false); if (r && r.ok) { customSound = r.path; QP.store.set('companion.sound_file', r.path); QP.store.set('companion.sound', 'custom'); hydrate(); } }
       else if (d === 'copy-link') { const ok = compUrl && await copyText(compUrl); say('test-companion', ok ? 'Link copied' : 'No link yet', !!ok); }
       else if (d === 'test-companion') { const r = await a.test_companion(); say(d, r && r.running ? 'Sent, your phone should alarm' : 'Server is not running, enable it and restart queuePop', r && r.running); }
-      else if (d === 'crawler-refresh') loadCrawler();
-      else if (d === 'crawler-open') a.open_external(base() + '/');
+      else if (d === 'crawler-open') { const ok = await a.open_external(base() + '/'); if (ok === false) say(d, 'That address can’t be opened', false); }
       else if (d === 'crawler-key') await postKey();
-      else if (d === 'check-update') { const s = await a.check_for_update(); renderUpdate(s); }
-      else if (d === 'refresh-assets') { loadAssets(); a.refresh_assets().then(loadAssets); setTimeout(loadAssets, 1500); }
+      else if (d === 'check-update') { say(d, 'Checking…', true); const s = await a.check_for_update(); renderUpdate(s); say(d, s && s.error ? 'Couldn’t reach the update server' : s && s.available ? 'Update available' : 'Up to date', !(s && s.error)); }
+      else if (d === 'refresh-assets') { say(d, 'Refreshing…', true); const p = a.refresh_assets(); loadAssets(); const r = await p; loadAssets(); say(d, r && r.ok === false ? r.error || 'Failed' : 'Done', !(r && r.ok === false)); }
+      else if (d === 'crawler-refresh') { await loadCrawler(); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }
     } catch (err) { say(d, String(err.message || err), false); }
+    finally { b.disabled = false; }
   }
 
   // --- live bits -------------------------------------------------------------
@@ -144,7 +158,7 @@
     el.textContent = i.connected && i.name ? (i.tag ? `${i.name} #${i.tag}` : i.name) : 'Offline (open the League client)';
   }
   async function loadCompanion() {
-    let i = {}; try { i = (await bridge().get_companion_info()) || {}; } catch {}
+    let i = {}; try { i = (await bridge().get_companion_info()) || {}; } catch (err) { root.querySelector('#st-comp-note').textContent = 'Couldn’t read the companion: ' + (err.message || err); return; }
     compUrl = i.url || '';
     const qr = root.querySelector('#st-qr'); qr.hidden = !i.qr; if (i.qr) qr.src = i.qr;
     root.querySelector('#st-comp-note').textContent = !i.enabled ? 'Off. Turn it on above, then restart queuePop.' : i.running ? `Running at ${i.url}` : 'Enabled, but the server is not running yet. Restart queuePop.';
@@ -188,17 +202,19 @@
     root.querySelector('#st-ver').textContent = s.current ? 'v' + s.current : '';
     root.querySelector('#st-upd-msg').textContent = s.available && s.latest ? `Version v${s.latest} is available.` : s.error ? "Couldn't reach the update server." : s.checked ? "You're up to date." : 'Not checked yet.';
   }
+  let assetsTimer = null;
   async function loadAssets() {
     const el = root.querySelector('#st-assets-msg'); if (!el) return;
+    clearTimeout(assetsTimer);
     try {
       const s = await bridge().get_asset_status(), n = (k) => `${s[k].have}/${s[k].want}`;
       el.textContent = (s.busy ? 'Downloading: ' : '') + `champions ${n('champions')}, spells ${n('spells')}, positions ${n('positions')}` + (s.lastError ? `. Last error: ${s.lastError}` : '');
-      if (s.busy) setTimeout(loadAssets, 1500);
+      if (s.busy && !root.hidden) assetsTimer = setTimeout(loadAssets, 1500); // one poll chain, and only while Settings shows
     } catch (err) { el.textContent = 'Could not read the icon packs: ' + (err.message || err); }
   }
   async function loadAbout() {
     loadAssets();
-    try { renderUpdate(await bridge().get_update_status()); } catch {}
+    try { renderUpdate(await bridge().get_update_status()); } catch (err) { renderUpdate({ error: String(err.message || err) }); }
     const box = root.querySelector('#st-notes');
     try {
       const rel = ((await bridge().get_release_notes()) || {}).releases || [];
@@ -217,7 +233,7 @@
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
     if (bridge()) { loadAccount(); loadCompanion(); loadCrawler(); loadAbout(); }
-    clearInterval(timer); timer = setInterval(() => { if (!root.hidden) loadCrawler(); }, 15000);
+    clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 15000); // stops once you leave Settings
     if (section) requestAnimationFrame(() => document.getElementById('st-' + section)?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);
   }

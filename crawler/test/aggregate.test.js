@@ -30,7 +30,7 @@ function build() {
   ban.run("A", 100, 157); ban.run("A", 200, 157); ban.run("A", 100, 517); ban.run("B", 200, 157);
 
   match.run("T", "tft", "na1", "DIAMOND");
-  const tft = db.prepare("INSERT INTO tft_participants VALUES ('T', ?, ?, NULL, ?, '[]', ?, '[]')");
+  const tft = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, tier, comp, traits, units, augments) VALUES ('T', ?, ?, NULL, ?, '[]', ?, '[]')");
   for (const [placement, comp] of [[1, "A,B"], [3, "A,B"], [6, "A,B"], [2, "none"], [8, "none"], [4, "C"], [5, "C"], [7, "C"]]) {
     tft.run("p" + placement, placement, comp, JSON.stringify(comp === "A,B" ? ["X", "Y"] : ["Z"]));
   }
