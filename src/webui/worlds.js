@@ -81,7 +81,7 @@ async function loadLeagueLive(){
   }
   const g=(history||[])[0],gc=g&&byId.get(Number(g.championId)),ago=g&&fmtAgoShort(g.ts);
   leagueLive.match=g?{result:g.win?'Victory':'Defeat',title:`${gc?gc.name:'Your champion'} · ${g.kills}/${g.deaths}/${g.assists}`,line:`${queueMap[g.queueId]||'Queue '+g.queueId}, ${ago==='now'?'just now':ago+' ago'}.`}:null;
-  if(['home','league'].includes(currentGame)&&$q('#host-pages').hidden)rerenderKeepingFocus();
+  if(currentGame==='league'&&$q('#host-pages').hidden)rerenderKeepingFocus();else if(currentGame==='home')homeTicker.load(); // home: refresh the bar's numbers, don't rebuild the page (DONI-535)
 }
 // The champ select plan (config) feeds the overview gateway and the home shortcut.
 function readPlan(c){const cs=(c&&c.champ_select)||{},picks=[...new Set(Object.values(cs.roles||{}).flatMap(r=>r.picks||[]))];leagueLive.planIcons=picks.map(n=>champIcon(n)).filter(Boolean).slice(0,3);leagueLive.planTitle=picks.length?`${picks.slice(0,2).join(' and ')}${picks.length>2?` + ${picks.length-2} more`:''}`:'Set up your picks and bans';leagueLive.planLine=cs.enabled?'Auto pick and ban is on. Loadouts apply as you lock in.':'Auto pick and ban is off. Turn it on in champ select.';}

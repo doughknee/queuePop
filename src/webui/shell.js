@@ -38,7 +38,9 @@
 
   // '#/', '#/deadlock/' and '' all normalise to their unslashed form; the longest matching link is the page.
   const norm = h => h.replace(/\/+$/, '') || '#';
+  let synced = null;
   window.syncSidebar = function () {
+    synced = location.hash;
     const hash = norm(location.hash), game = hash.replace(/^#\/?/, '').split(/[\/#]/)[0] || 'home';
     let best = null;
     for (const a of bar.querySelectorAll('.sb-pages a')) {
@@ -64,7 +66,8 @@
   };
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
-  addEventListener('click', () => setTimeout(window.syncSidebar));
+  // Clicks only matter when they moved the address (Deadlock/TFT pushState); everything else would redo the same work (DONI-535).
+  addEventListener('click', () => setTimeout(() => { if (location.hash !== synced) window.syncSidebar(); }));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
   for (const src of ['palette.js', 'keys.js', 'statusline.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
   // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
