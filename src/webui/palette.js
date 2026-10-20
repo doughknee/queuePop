@@ -25,13 +25,20 @@
       .filter(x => x.s >= 0).sort((a, b) => b.s - a.s || a.i - b.i).slice(0, n).map(x => x.it);
   }
   window.qpFuzzy = qpFuzzy; window.qpRank = qpRank;
+  // Q queue 5: TFT units from the crawler's /tft/meta (any set's key: TFT16_…, DA_18_…), each opening its unit page; the
+  // board-only ones (no traits: golems, dummies, minions) are left out. Recordings: one row each, by recFacts' title.
+  window.qpUnitItems = m => { const seen = new Set(), out = [];
+    for (const [key, u] of Object.entries((m && m.units) || {})) if (u.cost >= 1 && u.cost <= 5 && (u.traits || []).length && !seen.has(u.name)) { seen.add(u.name); out.push({ kind: 'unit', label: u.name, sub: `${u.cost} cost · ${u.traits.join(', ')}`, href: '#/tft/unit/' + encodeURIComponent(key), icon: u.icon }); }
+    return out.sort((a, b) => a.label.localeCompare(b.label)); };
+  window.qpRecordingItems = (list, facts, when) => (list || []).map(r => { const f = facts(r);
+    return { kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: '#/recordings' }; });
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return; // app/test-palette.js
 
   const KEY = 'queuepop-palette-recent-v1';
   const E = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
-  const KIND = { page: 'Page', setting: 'Setting', action: 'Command', champion: 'League champion', comp: 'TFT comp', trait: 'TFT trait', unit: 'TFT unit', hero: 'Deadlock hero' };
+  const KIND = { page: 'Page', setting: 'Setting', action: 'Command', champion: 'League champion', comp: 'TFT comp', trait: 'TFT trait', unit: 'TFT unit', hero: 'Deadlock hero', recording: 'Recording' };
   let recent = []; try { recent = JSON.parse(localStorage.getItem(KEY) || '[]').filter(r => r && r.label && (r.href || r.act)); } catch {}
-  const live = { champion: [], comp: [], trait: [], carry: [], unit: [], hero: [] }, loading = new Set();
+  const live = { champion: [], comp: [], trait: [], carry: [], unit: [], hero: [], recording: [] }, loading = new Set();
 
   const sheet = document.createElement('div');
   sheet.id = 'qp-search'; sheet.className = 'qp-search'; sheet.hidden = true;
@@ -51,6 +58,7 @@
     }
     for (const [id, l] of (window.settingsView?.sections || [])) out.push({ kind: 'page', label: l, sub: 'Settings', href: '#/settings#' + id });
     for (const s of (window.settingsView?.index?.() || [])) out.push({ kind: 'setting', label: s.label, sub: s.section + (s.hint ? ' · ' + s.hint : ''), href: '#/settings#' + s.id, focus: s.key });
+    out.push({ kind: 'page', label: 'Recordings', sub: 'Recorder (beta)', href: '#/recordings' });
     out.push({ kind: 'action', label: 'Collapse or expand the sidebar', sub: 'Ctrl+B', act: 'sidebar' },
       { kind: 'action', label: 'Bigger text', sub: 'Ctrl +', act: 'bigger' }, { kind: 'action', label: 'Smaller text', sub: 'Ctrl −', act: 'smaller' },
       { kind: 'action', label: 'Reset text size', sub: 'Ctrl 0', act: 'reset' });
@@ -58,13 +66,11 @@
   }
   // Each source loads once, on the first open, and the open list refreshes as it lands. A failed source retries next open.
   const SOURCES = {
-    // TFT unit names live in Community Dragon's 24 MB file, so they load only when you search from the TFT world (which loads it anyway).
-    unit: async () => {
-      if (!location.hash.startsWith('#/tft')) return [];
-      const map = await window.tftStats.loadDragon(), seen = new Set(), out = [];
-      for (const [key, v] of map) if (v.cost >= 1 && v.cost <= 5 && /^TFT\d+_/.test(key) && !seen.has(v.name)) { seen.add(v.name); out.push({ kind: 'unit', label: v.name, sub: `${v.cost} cost · filter the comps list`, href: '#/tft', tft: v.name, icon: v.icon }); }
-      return out.sort((a, b) => a.label.localeCompare(b.label));
-    },
+    // The crawler's /tft/meta is ~250 KB (DONI-550), so units load from every world now.
+    unit: async () => qpUnitItems(await window.tftStats.get('/tft/meta', 10000)),
+    // Recordings change during a session, so open() clears this list and it reloads each time.
+    recording: async () => { const a = window.pywebview && window.pywebview.api; if (!a || !a.list_recordings || !window.recFacts) return [];
+      return qpRecordingItems(await a.list_recordings(), recFacts, ms => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })); },
     champion: async () => {
       const { v, d } = await window.statsApi.ddChampions();
       return Object.values(d.data || {}).sort((a, b) => a.name.localeCompare(b.name)).map(c => ({ kind: 'champion', label: c.name, sub: c.title, href: '#/league/champion/' + c.key, icon: `${window.statsApi.DD}/cdn/${v}/img/champion/${c.id}.png` }));
@@ -95,9 +101,9 @@
 
   // --- the sheet ---------------------------------------------------------------
   const GAME = { champion: 'league', comp: 'tft', trait: 'tft', unit: 'tft', hero: 'deadlock' };
-  function all() { const on = window.qpGames ? qpGames() : Object.values(GAME); return [...statics(), ...live.champion, ...live.comp, ...live.trait, ...(live.unit.length ? live.unit : live.carry), ...live.hero].filter(it => !GAME[it.kind] || on.includes(GAME[it.kind])); }
+  function all() { const on = window.qpGames ? qpGames() : Object.values(GAME); return [...statics(), ...live.champion, ...live.comp, ...live.trait, ...(live.unit.length ? live.unit : live.carry), ...live.hero, ...live.recording].filter(it => !GAME[it.kind] || on.includes(GAME[it.kind])); }
   function row(it, i) {
-    const ico = it.icon ? `<img src="${E(it.icon)}" alt="" loading="lazy">` : `<span class="qs-glyph" aria-hidden="true">${{ page: '→', setting: '⚙', action: '›', comp: '◆', trait: '◇', unit: '●' }[it.kind] || '·'}</span>`;
+    const ico = it.icon ? `<img src="${E(it.icon)}" alt="" loading="lazy">` : `<span class="qs-glyph" aria-hidden="true">${{ page: '→', setting: '⚙', action: '›', recording: '◉', comp: '◆', trait: '◇', unit: '●' }[it.kind] || '·'}</span>`;
     return `<div class="qs-row" role="option" id="qs-o${i}" data-i="${i}" aria-selected="${i === cur}">${ico}<span class="qs-txt"><b>${E(it.label)}</b>${it.sub ? `<small>${E(it.sub)}</small>` : ''}</span><em>${KIND[it.kind]}</em></div>`;
   }
   function draw() {
@@ -107,7 +113,7 @@
     const head = q.trim() ? '' : shown.length ? '<p class="qs-head">Recent</p>' : '<p class="qs-empty">Type a champion, comp, hero, page or setting.</p>';
     list.innerHTML = head + (shown.length ? shown.map(row).join('') : q.trim() ? `<p class="qs-empty">Nothing matches “${E(q.trim())}”.</p>` : '');
     input.setAttribute('aria-activedescendant', shown.length ? 'qs-o' + cur : '');
-    state.textContent = loading.size ? 'Loading ' + [...loading].map(k => ({ champion: 'champions', comp: 'TFT comps', hero: 'heroes', unit: 'TFT units' })[k]).join(', ') + '…' : '';
+    state.textContent = loading.size ? 'Loading ' + [...loading].map(k => ({ champion: 'champions', comp: 'TFT comps', hero: 'heroes', unit: 'TFT units', recording: 'recordings' })[k]).join(', ') + '…' : '';
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   }
   function place() {
@@ -122,7 +128,7 @@
   }
   function open(q = '') {
     if (sheet.hidden) back = document.activeElement;
-    sheet.hidden = false; place(); input.value = q; cur = 0; draw(); input.focus(); input.select(); loadSources();
+    sheet.hidden = false; place(); input.value = q; cur = 0; live.recording = []; draw(); input.focus(); input.select(); loadSources();
   }
   function close(restore = true) {
     if (sheet.hidden) return;
