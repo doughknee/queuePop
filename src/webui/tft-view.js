@@ -442,7 +442,10 @@ window.createTftView = function (host) {
     page.querySelector('.ts-list-head h1').textContent = QUEUES[m.queueId] || 'TFT';
     page.querySelector('.ts-meta').textContent = `${Math.round(m.length / 60)} min · set ${m.set} · ${new Date(m.startedAt).toLocaleString()}`;
     page.querySelector('.ts-state').textContent = m.source === 'rows' ? "The full boards of this match are past the crawler's 7-day window." : '';
-    page.querySelector('.ts-match').innerHTML = (m.participants || []).map((p) => {
+    const getRec = (x) => Promise.resolve(api()?.get_recording?.(x)).catch(() => null); // Q22: your recorded moments (keyed by bare game id)
+    const rec = (await getRec(m.id)) || (await getRec(String(m.id).split('_').pop()));
+    if (parse().p !== 'match' || parse().id !== id) return;
+    page.querySelector('.ts-match').innerHTML = (rec && window.recStrip ? `<section class="ts-mt-rec"><h3>Your moments</h3>${recStrip(rec)}</section>` : '') + (m.participants || []).map((p) => {
       const traits = [...(p.traits || [])].filter(([, tier]) => tier > 0).sort((a, b) => b[1] - a[1] || (b[2] || 0) - (a[2] || 0));
       return `<div class="ts-mt-row ${myRiot && (p.riotId || '').toLowerCase() === myRiot ? 'ts-mt-me' : ''}"><span class="ts-place p${p.placement <= 1 ? 1 : p.placement <= 4 ? 4 : 8}">${p.placement}</span>
         <span class="ts-game-meta">${p.riotId ? `<a href="#/tft/player/${slugOf(p.riotId)}/${region}"><strong>${esc(p.riotId.split('#')[0])}</strong></a>` : '<strong>Unknown</strong>'}<small>level ${p.level ?? '–'} · round ${p.lastRound ?? '–'}${p.goldLeft != null ? ' · ' + p.goldLeft + ' gold left' : ''}</small></span>
