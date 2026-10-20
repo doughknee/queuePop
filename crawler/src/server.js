@@ -18,9 +18,17 @@ const r4 = (x) => Math.round(x * 10000) / 10000;
 const byVersion = (a, b) => { const [x, y] = [a, b].map((v) => v.split(".").map(Number)); return y[0] - x[0] || y[1] - x[1]; };
 const bad = (msg) => Object.assign(new Error(msg), { status: 400 });
 
+// Patch rollover (D11): a request without ?patch gets the newest patch with at least MIN_MATCHES matches (League ~2 h of crawl
+// at ~1,000 matches/h; TFT matches = boards / 8), else the patch with the most matches, so a new patch doesn't take over the app
+// with a handful of games. /patches lists every patch newest first plus counts, minMatches and that default.
+const MIN_MATCHES = { lol: 2000, tft: 1000 };
+const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATCHES[game]) || [...list].sort((x, y) => counts[y] - counts[x])[0] || null;
 function patches(db) {
-  const list = (t) => db.prepare(`SELECT DISTINCT patch FROM ${t}`).all().map((r) => r.patch).filter((p) => p !== "?").sort(byVersion);
-  return { lol: list("stats_lol_matches"), tft: list("stats_tft_boards") };
+  const counts = (t, col, per) => Object.fromEntries(db.prepare(`SELECT patch, sum(${col}) n FROM ${t} GROUP BY patch`).all()
+    .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
+  const c = { lol: counts("stats_lol_matches", "matches", 1), tft: counts("stats_tft_boards", "boards", 8) };
+  const lol = Object.keys(c.lol).sort(byVersion), tft = Object.keys(c.tft).sort(byVersion);
+  return { lol, tft, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lol, c.lol), tft: pickPatch("tft", tft, c.tft) } };
 }
 
 // WHERE clause for ?patch&region&bracket. bracket = minimum tier ("emerald" = Emerald and above).
@@ -41,7 +49,8 @@ function where(q, patch) {
 // (ponytail: stats_* aren't keyed by set; a patch spanning two sets is rare, add a column if it ever matters).
 function head(db, q, game) {
   const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
-  const patch = q.patch || patches(db)[game].find((p) => !bySet || bySet.has(p)) || null;
+  const ps = patches(db);
+  const patch = q.patch || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
   const days = win.days(q);
@@ -165,7 +174,7 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
 // newest ladder read; /tft/meta its Community Dragon fetch; lookups are live.
 function endpoints(db) {
   const ps = patches(db), agg = getMeta(db, "aggregates")?.patches || {};
-  const stat = (game, paths) => paths.map((path) => ({ path, game, patch: ps[game][0] || null, updatedAt: agg[ps[game][0]]?.at ?? getMeta(db, "aggregatedAt") }));
+  const stat = (game, paths) => paths.map((path) => ({ path, game, patch: ps.default[game], updatedAt: agg[ps.default[game]]?.at ?? getMeta(db, "aggregatedAt") }));
   const ladder = (game) => db.prepare("SELECT max(seeded_at) t FROM players WHERE game = ?").get(game).t;
   return [
     ...stat("lol", ["/lol/tiers", "/lol/champion/{id}", "/lol/champion/{id}/players", "/lol/items", "/lol/runes", "/lol/spells"]),

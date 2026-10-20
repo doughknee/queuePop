@@ -73,7 +73,11 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `meta.keyBad = { hash, reason, since }`, logs once, and every loop idles (one check per 10 s, no Riot calls) while the
   current key still has that hash. `/status` `key.valid` is false with `reason` ("403 Forbidden") and `since`; the status
   page shows it in red. Posting a new key changes the hash, so the crawl resumes by itself on the next loop.
-- `GET /patches` → `{ lol: ["16.20", ...], tft: [...] }` newest first
+- `GET /patches` → `{ lol: ["16.21", "16.20", ...], tft: [...], counts: { lol: { patch: matches }, tft: { patch: matches } }, minMatches: { lol: 2000, tft: 1000 },
+  default: { lol, tft } }`, newest first. `default` is what every endpoint uses without `?patch` (D11): the newest patch with at least
+  `minMatches` matches (TFT matches = boards / 8), else the patch with the most. So on patch day the app stays on the old patch until
+  the new one has ~2 h of League crawl (~1,000 matches/h) and then switches by itself; an explicit `?patch` always wins. A new patch
+  always starts fresh rows in every stats table (stats are keyed by patch; `test/rollover.test.js`).
 - `GET /lol/tiers?patch&region&bracket&role` (role `top|jungle|middle|bottom|utility`) →
   `{ patch, region, bracket, minGames, role, matches, avgWinRate, regions: ["euw1", ...], champions: [{ champion, role, games, wins, winRate,
   pickRate, banRate, lowSample, laneShare, delta, pbi, best: { players, games, winRate, delta, avgTier } | null }] }`

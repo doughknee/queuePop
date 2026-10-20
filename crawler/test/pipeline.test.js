@@ -59,7 +59,8 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     assert.strictEqual(bySet.patch, "16.20");
     assert.strictEqual(bySet.set, 16);
     assert.strictEqual((await get("/tft/comps?set=99"))[1].patch, null, "no patch has that set");
-    assert.deepStrictEqual((await get("/patches"))[1], { lol: ["16.20"], tft: ["16.20"] });
+    const pt = (await get("/patches"))[1];
+    assert.deepStrictEqual([pt.lol, pt.tft, pt.default], [["16.20"], ["16.20"], { lol: "16.20", tft: "16.20" }]);
     const [, status] = await get("/status");
     assert.strictEqual(status.matches.lol.done, 3);
     assert.ok(status.rateLimits.na1 && status.rateLimits.americas);
