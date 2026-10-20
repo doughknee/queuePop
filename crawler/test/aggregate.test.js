@@ -30,9 +30,10 @@ function build() {
   ban.run("A", 100, 157); ban.run("A", 200, 157); ban.run("A", 100, 517); ban.run("B", 200, 157);
 
   match.run("T", "tft", "na1", "DIAMOND");
-  const tft = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, tier, comp, traits, units, augments) VALUES ('T', ?, ?, NULL, ?, '[]', ?, '[]')");
-  for (const [placement, comp] of [[1, "A,B"], [3, "A,B"], [6, "A,B"], [2, "none"], [8, "none"], [4, "C"], [5, "C"], [7, "C"]]) {
-    tft.run("p" + placement, placement, comp, JSON.stringify(comp === "A,B" ? ["X", "Y"] : ["Z"]));
+  // comp column = the carry (D14); labels: carry B's boards run trait A, carry C's run C, carry N's run nothing
+  const tft = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, tier, comp, traits, units, augments) VALUES ('T', ?, ?, NULL, ?, ?, ?, '[]')");
+  for (const [placement, carry] of [[1, "B"], [3, "B"], [6, "B"], [2, "N"], [8, "N"], [4, "C"], [5, "C"], [7, "C"]]) {
+    tft.run("p" + placement, placement, carry, JSON.stringify(carry === "B" ? [["A", 2]] : carry === "C" ? [["C", 1]] : []), JSON.stringify(carry === "B" ? ["X", "Y"] : ["Z"]));
   }
   aggregate(db);
   return db;
@@ -93,8 +94,8 @@ test("TFT comps: avg placement, top-4, pick rate", () => {
   assert.strictEqual(t.boards, 8);
   const ab = t.comps.find((c) => c.id === "A,B");
   assert.deepStrictEqual(ab, { id: "A,B", traits: ["A"], carry: "B", games: 3, avgPlacement: 3.3333, top4Rate: 0.6667, winRate: 0.3333, pickRate: 0.375, lowSample: true });
-  assert.strictEqual(t.comps.find((c) => c.id === "C").avgPlacement, 5.3333);
-  assert.deepStrictEqual(t.comps.find((c) => c.id === "none").traits, []);
+  assert.strictEqual(t.comps.find((c) => c.id === "C,C").avgPlacement, 5.3333);
+  assert.deepStrictEqual(t.comps.find((c) => c.id === "none,N").traits, []);
   const d = tftComp(db, "A,B");
   assert.deepStrictEqual(d.units.find((u) => u.key === "X"), { key: "X", games: 3, frequency: 1, avgPlacement: 3.3333, top4Rate: 0.6667, lowSample: true });
   assert.strictEqual(tftComps(db, { min_games: 3 }).comps.find((x) => x.id === "A,B").lowSample, false);

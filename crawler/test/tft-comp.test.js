@@ -3,20 +3,30 @@ const test = require("node:test");
 const assert = require("node:assert");
 const zlib = require("zlib");
 const { open } = require("../src/db");
-const { compOf, backfillComps } = require("../src/jobs");
+const { compOf, backfillComps, aggregate } = require("../src/jobs");
+const { tftComps } = require("../src/server");
 const { build, tftMeta } = require("../src/tft-meta");
 const cd = require("../fixtures/cdragon-tft.json");
 
 const T = (name, num_units, tier_current, tier_total = 4) => ({ name, num_units, tier_current, tier_total });
 const U = (character_id, tier, rarity, items = 0) => ({ character_id, tier, rarity, itemNames: Array(items).fill("I") });
 
-test("comp = top non-unique trait | carry unit", () => {
-  const p = { traits: [T("Lunar", 3, 2), T("Invoker", 4, 2), T("Unique", 1, 1, 1), T("Off", 1, 0)], units: [U("Varus", 2, 0), U("Ahri", 2, 4, 3), U("Amumu", 3, 3, 3)] };
-  assert.strictEqual(compOf(p), "Invoker,Amumu"); // tie on tier -> more units; tie on items -> higher star
-  assert.strictEqual(compOf({ traits: [T("Inferno", 2, 1), T("Adaptor", 2, 1)], units: [U("A", 2, 1, 1), U("B", 2, 2, 1)] }), "Adaptor,B"); // tier 1 counts; name breaks ties
-  assert.strictEqual(compOf({ traits: [T("Unique", 1, 1, 1)], units: [] }), "none,");
-  const again = { ...p, units: [...p.units].reverse(), traits: [...p.traits].reverse() };
-  assert.strictEqual(compOf(again), compOf(p), "order of the input does not matter");
+test("board -> carry: most items, then star, then cost, then name; order-independent", () => {
+  const p = { traits: [T("Lunar", 3, 2)], units: [U("Varus", 2, 0), U("Ahri", 2, 4, 3), U("Amumu", 3, 3, 3)] };
+  assert.strictEqual(compOf(p), "Amumu"); // tie on items -> higher star
+  assert.strictEqual(compOf({ units: [U("A", 2, 1, 1), U("B", 2, 2, 1)] }), "B"); // tie on star -> higher cost
+  assert.strictEqual(compOf({ units: [] }), "none");
+  assert.strictEqual(compOf({ ...p, units: [...p.units].reverse() }), compOf(p));
+});
+
+test("comp = carry labelled with the trait most of its boards run (unique traits never label), per patch", () => {
+  const db = open(":memory:");
+  db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, fetched_at) VALUES ('M', 'tft', 'na1', 'DIAMOND', 'done', '16.20', 1)").run();
+  const ins = db.prepare("INSERT INTO tft_participants (match_id, puuid, placement, comp, traits, units, augments) VALUES ('M', ?, ?, 'Azir', ?, '[]', '[]')");
+  // Azir boards: Executioner on the 2 that went far, Flora Fatalis on all 3, a unique trait on all 3 -> one comp, labelled Flora
+  ins.run("a", 1, '[["Exec",2],["Flora",1],["AzirUniqueTrait",1]]'); ins.run("b", 2, '[["Exec",1],["Flora",1],["AzirUniqueTrait",1]]'); ins.run("c", 7, '[["Flora",2],["AzirUniqueTrait",1]]');
+  aggregate(db);
+  assert.deepStrictEqual(tftComps(db).comps.map((c) => [c.id, c.games, c.avgPlacement]), [["Flora,Azir", 3, 3.3333]]);
 });
 
 test("backfill-comps re-keys boards from raw; rows without raw keep their key", () => {
@@ -24,8 +34,9 @@ test("backfill-comps re-keys boards from raw; rows without raw keep their key", 
   const raw = { info: { participants: [{ puuid: "a", traits: [T("Invoker", 4, 2)], units: [U("Ahri", 2, 4, 3)] }] } };
   db.prepare("INSERT INTO matches (id, game, region, status, raw) VALUES ('M', 'tft', 'na1', 'done', ?), ('N', 'tft', 'na1', 'done', NULL)").run(zlib.gzipSync(JSON.stringify(raw)));
   db.prepare("INSERT INTO tft_participants (match_id, puuid, comp) VALUES ('M', 'a', 'Invoker'), ('N', 'b', 'old')").run();
-  assert.deepStrictEqual(backfillComps(db), { matches: 1, boards: 1 });
-  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id").all().map((r) => r.comp), ["Invoker,Ahri", "old"]);
+  db.prepare("INSERT INTO tft_participants (match_id, puuid, comp) VALUES ('N', 'c', 'Exec,Azir')").run();
+  assert.deepStrictEqual(backfillComps(db), { matches: 1, boards: 1, stripped: 1 });
+  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id, puuid").all().map((r) => r.comp), ["Ahri", "old", "Azir"]);
 });
 
 test("/tft/meta: ranked set data, icon URLs, cached a day, stale copy on a CDragon failure", async () => {
