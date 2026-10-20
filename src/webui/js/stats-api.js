@@ -20,7 +20,7 @@
     return p;
   }
   // D15: errors keep the HTTP status and Retry-After (seconds) so pages can say what happened.
-  const json = (url, ms = 6000) => fetch(url, { signal: AbortSignal.timeout(ms) }).then(r => { if (!r.ok) { const e = new Error(`${r.status} ${url}`); e.status = r.status; e.retry = Number(r.headers.get('Retry-After')) || 0; throw e; } return r.json(); });
+  const json = (url, ms = 6000) => fetch(url, { signal: AbortSignal.timeout(ms) }).then(r => { if (!r.ok) { const e = new Error(`${r.status} ${url}`); e.status = r.status; e.retry = Number(r.headers.get('Retry-After')) || 0; throw e; } return r.json(); }).catch(e => { e.fetch = true; throw e; }); // fetch: a network/HTTP failure, as opposed to a page bug (see lgFail)
   // DONI-515: before the bridge is ready, use the default without memoising it, so a configured crawler_url wins on the next call.
   const base = () => !window.pywebview?.api ? Promise.resolve(DEFAULT_CRAWLER) : once('base', async () => {
     let u = '';

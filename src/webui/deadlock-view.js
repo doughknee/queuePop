@@ -37,7 +37,9 @@ window.createDeadlockView = function(host) {
 // Live public data from deadlock-api (DONI-446). The ledger is the overlay app's API path, ported: same queries,
 // same conditioning on enemies and owned items. No Overwolf, no game hooks; the overlay app owns those.
 const API = 'https://api.deadlock-api.com/v1';
-const get = async (p, q = {}) => { const u = new URL(API + p); for(const [k,v] of Object.entries(q)) if(v != null && v !== '') u.searchParams.set(k,v); const r = await fetch(u); if(!r.ok) throw new Error(r.status + ' ' + p); return r.json(); };
+const get = async (p, q = {}) => { const u = new URL(API + p); for(const [k,v] of Object.entries(q)) if(v != null && v !== '') u.searchParams.set(k,v); try { const r = await fetch(u); if(!r.ok) throw new Error(r.status + ' ' + p); return await r.json(); } catch(e) { e.fetch = true; throw e; } };
+// A failed request names deadlock-api; anything else is a bug on this page: say so and log the stack.
+const dlErr = e => e?.fetch ? 'deadlock-api error: ' + e.message : (console.error('deadlock page', e), 'Something broke on this page. deadlock-api answered; reload with Ctrl+R.');
 const fmt = s => `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 // API copy lands in markup the curated dossiers wrote by hand; drop markup characters rather than escape twice.
@@ -119,7 +121,7 @@ async function loadLedger() {
     if(!L.rows.length) msg.textContent = 'Not enough games in this window. Widen it or lower the minimum.';
     document.querySelector('#ledger-table').hidden = !L.rows.length;
     renderLedgerRows();
-  } catch(e) { if(my === L.seq && msg.isConnected) msg.textContent = 'deadlock-api error: ' + e.message; }
+  } catch(e) { if(my === L.seq && msg.isConnected) msg.textContent = dlErr(e); }
 }
 
 function renderLedgerRows() {
@@ -290,7 +292,7 @@ async function loadTiers() {
     msg.textContent = T.rows.length ? `${Math.round(stats.reduce((n,h) => n + h.matches, 0)/12).toLocaleString()} matches · click a hero for builds and matchups` : 'Not enough games for these filters. Widen the window or rank.';
     document.querySelector('#tier-table').hidden = !T.rows.length;
     renderTierRows();
-  } catch(e) { if(my === T.seq && msg.isConnected) msg.textContent = 'deadlock-api error: ' + e.message; }
+  } catch(e) { if(my === T.seq && msg.isConnected) msg.textContent = dlErr(e); }
 }
 
 function renderTierRows() {
@@ -314,7 +316,7 @@ async function loadTierDetail(hid) {
     cell.innerHTML = `<div class="tier-expand"><div><span class="ledger-label">Top items · win %</span><div class="tier-items">${best.map(r => { const it = items[r.item_id]; return `<span class="ledger-item ${it.item_slot_type}"><img src="${it.shop_image_webp || it.shop_image || it.image_webp}" alt="" width="34" height="34" loading="lazy"><span>${esc(it.name)}<small class="tier-num">${pct(r.wr)}% · ${fmt(r.avg_buy_time_s)}</small></span></span>`; }).join('') || '<small>Too few games.</small>'}</div></div>
       <div><span class="ledger-label">Worst matchups · ${esc(hero ? hero.name : '')} win %</span><div class="tier-items">${worst.map(r => { const e = heroById(r.enemy_hero_id); return `<span class="ledger-item"><img src="${e.icon || heroImg(e)}" alt="" width="34" height="34"><span>${esc(e.name)}<small class="tier-num">${pct(r.wr)}% over ${r.matches_played.toLocaleString()}</small></span></span>`; }).join('') || '<small>Too few games.</small>'}</div></div>
       <div class="tier-more">${base ? `Base ${pct(base.wr)}% · ` : ''}${hero ? `<button class="back-link" data-hero-build="${hero.id}">Full build ledger ↗</button> <button class="back-link" data-goto-hero="${hero.id}">Dossier ↗</button>` : ''}</div></div>`;
-  } catch(e) { const cell = document.querySelector('#tier-detail'); if(cell) cell.textContent = 'deadlock-api error: ' + e.message; }
+  } catch(e) { const cell = document.querySelector('#tier-detail'); if(cell) cell.textContent = dlErr(e); }
 }
 
 // ---- Search in the nav row: heroes and items match locally; numbers are account ids, words go to Steam search ----
@@ -437,7 +439,7 @@ async function loadHeroNumbers(hero) {
     const cell = (k, v, sub) => `<div><dt>${k}</dt><dd>${v}</dd>${sub ? `<dd class="hn-sub">${sub}</dd>` : ''}</div>`;
     el().innerHTML = `<dl class="hn-strip">${cell('Tier', `<span class="tier-badge tier-${r.tier}">${r.tier}</span>`, `#${rows.indexOf(r) + 1}&nbsp;of&nbsp;${rows.length}`)}${cell('Win', `<span class="${r.wr >= .5 ? 'up' : 'down'}">${pct(r.wr)}%</span>`)}${cell('Pick', `${pct(r.pick)}%`)}${cell('KDA', r.kda.toFixed(2))}${cell('Souls', `${(r.souls / 1000).toFixed(1)}k`)}${cell('Matches', r.matches.toLocaleString())}</dl>`
       + ((k => k ? `<p class="hn-read">Best into ${link(vs.slice(0, k))}. Struggles into ${link(vs.slice(-k).reverse())}.</p>` : '')(Math.min(3, vs.length >> 1))); // review #119: never the same hero twice
-  } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">deadlock-api error: ${esc(e.message)}</p>`; }
+  } catch(e) { if(el()) el().innerHTML = `<p class="ledger-msg">${esc(dlErr(e))}</p>`; }
 }
 function inspectHero(id, step) {
   if(!heroes.some(hero => hero.id === id)) return;

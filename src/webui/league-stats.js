@@ -36,6 +36,9 @@ async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
 const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, ...(lg.queue ? { queue: '450', role: '' } : { role }) });
+// A failed fetch says the crawler is offline; anything else is a bug on the page and says so (and logs the stack).
+const lgBroke = (where, e) => { console.error(where, e); return '<p class="lg-offline">Something broke on this page. The stats crawler answered; reload with Ctrl+R, and if it stays, the log has the details.</p>'; };
+const lgFail = (where, e, what = 'the stats crawler did not answer.') => e?.fetch ? lgOffline(what) : lgBroke(where, e);
 const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} Check its address in <a href="#/settings#crawler">Settings ↗</a>. The rest of the League world still works.</p>`;
 
 // --- Search: champions jump to their page, a Riot ID opens your account page or anyone's summoner page (league-players.js) ---
