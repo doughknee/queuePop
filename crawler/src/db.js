@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS matches (
   id TEXT PRIMARY KEY, game TEXT, region TEXT, bracket TEXT, status TEXT DEFAULT 'new',
   queue INT, patch TEXT, started_at INT, fetched_at INT, raw BLOB);
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
+-- /status lastFetch and the aggregation dirty check (max / > fetched_at), leaderboard freshness (max seeded_at)
+CREATE INDEX IF NOT EXISTS matches_fetched ON matches (fetched_at);
+CREATE INDEX IF NOT EXISTS players_seeded ON players (game, seeded_at);
+-- leaderboards: ladder order per game and per game+region (division sorts as text: I < II < III < IV)
+CREATE INDEX IF NOT EXISTS players_ladder ON players (game, tier_n DESC, division, lp DESC);
+CREATE INDEX IF NOT EXISTS players_ladder_region ON players (game, region, tier_n DESC, division, lp DESC);
 CREATE TABLE IF NOT EXISTS lol_participants (
   match_id TEXT, puuid TEXT, team INT, champion INT, role TEXT, win INT, tier TEXT,
   items TEXT, keystone INT, runes TEXT, spells TEXT, skills TEXT);
@@ -23,6 +29,7 @@ CREATE TABLE IF NOT EXISTS lol_bans (match_id TEXT, team INT, champion INT);
 CREATE TABLE IF NOT EXISTS tft_participants (
   match_id TEXT, puuid TEXT, placement INT, tier TEXT, comp TEXT, traits TEXT, units TEXT, augments TEXT);
 CREATE INDEX IF NOT EXISTS tft_participants_match ON tft_participants (match_id);
+CREATE INDEX IF NOT EXISTS tft_participants_puuid ON tft_participants (puuid); -- /tft/leaderboard crawled stats
 
 CREATE TABLE IF NOT EXISTS stats_lol_matches (patch TEXT, region TEXT, bracket TEXT, matches INT);
 CREATE TABLE IF NOT EXISTS stats_lol_champ (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, games INT, wins INT);

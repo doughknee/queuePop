@@ -9,6 +9,7 @@ const { createUpdater } = require("./updater");
 const { createAccount, QUEUE_ID_MAP } = require("./account");
 const { createTray } = require("./tray");
 const { attachTimeline } = require("./timeline");
+const { createAway } = require("./stepping-away");
 const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
@@ -21,7 +22,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -39,12 +40,25 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   };
   if (app.getLoginItemSettings().openAtLogin !== !!loadConfig().launch_at_login) loginItem(loadConfig().launch_at_login);
 
-  const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification });
+  const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification,
+    onClick: () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
+  const away = createAway(state, push); // DONI-424
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused, timeline: timeline.status(),
+    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, timeline: timeline.status(), away: away.status().on,
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
+    setAway: (on) => away.set(on),
+    // DONI-337: champ select on the phone: who you are, the timer, trades waiting for your answer.
+    champ: async () => {
+      if (state.phase !== "ChampSelect" || !impl.get_champ_select) return { active: false };
+      const s = await impl.get_champ_select().catch(() => null);
+      if (!s || !s.active) return { active: false };
+      const me = (s.myTeam || []).find((p) => p.cellId === s.localCellId) || {};
+      return { active: true, phase: s.phase, timer_left: s.timer_left, champion: me.championName || me.name || "",
+        trades: (s.trades || []).filter((t) => t.state === "RECEIVED").map((t) => ({ id: t.id, name: t.name || "a teammate's champion" })) };
+    },
+    trade: (id, action) => impl.respond_trade(id, action),
     // DONI-337: Decline from the phone (penalty-free; the escape hatch when real life interrupts). Token-gated like all /api/*.
     decline: async () => {
       if (!lcu.connected) return { ok: false, error: "The League client isn't running" };
@@ -67,7 +81,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     } catch (e) { log("could not save", key, e.message); }
   };
   const account = createAccount({ lcu, getConfig: loadConfig, setConfigKey, push });
-  const tray = createTray({ win, icon: ICON, state, push, quit, lcu, getConfig: loadConfig, startQueue: account.startQueue, names: QUEUE_ID_MAP });
+  const tray = createTray({ win, icon: ICON, state, push, quit, lcu, getConfig: loadConfig, startQueue: account.startQueue, names: QUEUE_ID_MAP, setAway: (on) => away.set(on) });
 
   // --- alerts, driven by LCU events (a mock run emits these on `lcu` directly) ---
   let queueName = null;
@@ -106,7 +120,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         webhook_configured: !!cfg.webhook_url, user_id: cfg.user_id || "", desktop_notifications: !!cfg.desktop_notifications,
         champ_select_enabled: !!(cfg.champ_select || {}).enabled, allowed_queue_count: (cfg.allowed_queue_ids || []).length,
         champions_loaded: 0, companion_enabled: !!cfgComp().enabled, companion_running: companion.isRunning(),
-        companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version,
+        companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version, stepping_away: away.status(),
       };
     },
     get_stats: () => {
@@ -127,6 +141,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     },
     test_companion: () => { push("Test phone alert", "danger", "queue_pop"); return { ok: true, running: companion.isRunning() }; },
     new_companion_link: () => ({ ok: newToken() }),
+    set_stepping_away: (on) => away.set(on),
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];

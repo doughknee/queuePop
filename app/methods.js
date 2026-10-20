@@ -15,6 +15,7 @@ const METHODS = {
   launch_deadlock: NOT_PORTED,
   get_deadlock_account: "",
   set_deadlock_account: NOT_PORTED,
+  respond_trade: NOT_PORTED,
 };
 
 module.exports = { METHODS };

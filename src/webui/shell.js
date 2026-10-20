@@ -129,9 +129,8 @@ window.homeSetupItems = function ({ games, dlId, crawler, dismissed = [] }) {
 window.homeSetup = (() => {
   const KEY = 'queuepop-setup-dismissed-v1';
   let dismissed = []; try { dismissed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
-  let crawler, checkedAt = 0;
   const E = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
-  const facts = () => { const c = (window.QP && QP.store && QP.store.config) || null; return { games: qpGames(), dlId: c ? String(c.deadlock_account_id || '') : undefined, crawler, dismissed }; };
+  const facts = () => { const c = (window.QP && QP.store && QP.store.config) || null; return { games: qpGames(), dlId: c ? String(c.deadlock_account_id || '') : undefined, dismissed }; };
   function html() {
     const items = dismissed.includes('all') ? [] : homeSetupItems(facts());
     if (!items.length) return '<div id="home-setup" hidden></div>';
@@ -140,20 +139,13 @@ window.homeSetup = (() => {
       <button type="button" class="su-hide" data-setup-dismiss="all">Hide set-up</button></div>`;
   }
   function refresh() { const el = document.getElementById('home-setup'); if (el) el.outerHTML = html(); }
-  async function check() {
-    if (Date.now() - checkedAt < 60000) return; checkedAt = Date.now();
-    const c = (window.QP && QP.store && QP.store.config) || {};
-    const base = String(c.crawler_url || 'http://10.205.0.81:47900').replace(/\/+$/, '');
-    crawler = await fetch(base + '/status', { signal: AbortSignal.timeout(5000), cache: 'no-store' }).then(r => r.ok ? 'ok' : 'down', () => 'down');
-    refresh();
-  }
   document.addEventListener('click', e => {
     const d = e.target.closest && e.target.closest('[data-setup-dismiss]');
     if (d) { dismissed = [...new Set([...dismissed, d.dataset.setupDismiss])]; try { localStorage.setItem(KEY, JSON.stringify(dismissed)); } catch {} refresh(); return; }
     const a = e.target.closest && e.target.closest('[data-setup-focus]');
     if (a && a.dataset.setupFocus) setTimeout(() => window.qpSearch && qpSearch.focusSetting(a.dataset.setupFocus), 120);
   });
-  return { html: () => { check(); return html(); }, refresh, recheck: () => { checkedAt = 0; check(); }, reset: () => { dismissed = []; try { localStorage.removeItem(KEY); } catch {} refresh(); } };
+  return { html, refresh, reset: () => { dismissed = []; try { localStorage.removeItem(KEY); } catch {} refresh(); } };
 })();
 
 // Home's "Pick up where you left off" (Q7): one tile per world you've been in, most recent first, opening the exact page you
@@ -211,15 +203,17 @@ const DASH = '—';
 // undefined data has not loaded yet and reads as a dash; loaded but empty says so.
 window.homePages = function (d) {
   const rk = d.info ? d.info.ranked || {} : undefined;
-  const rank = r => rk === undefined ? {} : r && r.tier ? { value: rankLabel(r, false), sub: r.lp + ' LP' } : { value: 'Unranked' };
+  const rank = r => d.offline ? { value: DASH, sub: 'client closed' } : rk === undefined ? {} : r && r.tier ? { value: rankLabel(r, false), sub: r.lp + ' LP' } : { value: 'Unranked' };
+  // Client closed and nothing remembered: say how to fill the page instead of a row of dashes.
+  const closed = list => d.offline && !(list && list.length) ? [{ note: 'Open the League client to see your ranks and games' }] : null;
   const last10 = (list, f) => list && list.slice(0, 10).map(f);
   const rate = (list, won) => { if (!list || !list.length) return {}; const w = list.filter(won).length; return { value: Math.round(100 * w / list.length) + '%', sub: `${w}W ${list.length - w}L` }; };
   const lol = d.lol && d.lol.slice(0, 10), tft = d.tft && d.tft.slice(0, 10), dlWon = m => m.match_result === m.player_team;
   return [
-    { game: 'league', name: 'League', logo: 'assets/logos/league.svg', href: '#/league', cols: [
+    { game: 'league', name: 'League', logo: 'assets/logos/league.svg', href: '#/league', cols: closed(lol) || [
       { label: 'Solo', ...rank(rk && rk.solo) }, { label: 'Flex', ...rank(rk && rk.flex) },
       { label: 'Last 10', strip: last10(lol, g => g.win ? 'W' : 'L') }, { label: 'Win rate', ...rate(lol, g => g.win) }] },
-    { game: 'tft', name: 'TFT', logo: 'assets/logos/tft.png', href: '#/tft', cols: [
+    { game: 'tft', name: 'TFT', logo: 'assets/logos/tft.png', href: '#/tft', cols: closed(tft) || [
       { label: 'Rank', ...rank(rk && rk.tft) }, { label: 'Last 10', strip: last10(tft, g => String(g.placement)) },
       { label: 'Avg place', value: tft && tft.length ? (tft.reduce((n, g) => n + g.placement, 0) / tft.length).toFixed(1) : undefined }] },
     d.dlId === '' ? { game: 'deadlock', name: 'Deadlock', logo: 'assets/logos/deadlock.png', href: '#/settings#account', cols: [{ note: 'Set your Deadlock account in Settings' }] }
@@ -260,7 +254,10 @@ window.homeTicker = (() => {
       const a = window.pywebview && window.pywebview.api; if (!a || Date.now() - at < 60000) return; at = Date.now();
       const [info, lol, tft, id] = await Promise.all([a.get_summoner().catch(() => null), a.get_match_history(10).catch(() => null), a.get_tft_match_history(10).catch(() => null), Promise.resolve(a.get_deadlock_account && a.get_deadlock_account()).catch(() => '')]);
       let dlId = id || ''; if (!dlId) try { dlId = localStorage.getItem('queuepop-deadlock-acct') || ''; } catch {}
-      if (info && info.connected) Object.assign(data, { info, lol: lol || undefined, tft: tft || undefined }); else at = 0; // offline: dashes, retry next visit
+      // Offline (DONI-548): ranks need the client, but games the host remembers still show; retry next visit.
+      data.offline = !(info && info.connected);
+      if (!data.offline) Object.assign(data, { info, lol: lol || undefined, tft: tft || undefined });
+      else { at = 0; if (Array.isArray(lol) && lol.length) data.lol = lol; if (Array.isArray(tft) && tft.length) data.tft = tft; }
       data.dlId = dlId; refresh();
       if (dlId) { data.dl = await fetch(`https://api.deadlock-api.com/v1/players/${dlId}/match-history`, { signal: AbortSignal.timeout(10000) }).then(r => r.ok ? r.json() : undefined).then(j => Array.isArray(j) ? j : undefined).catch(() => undefined); refresh(); }
     },

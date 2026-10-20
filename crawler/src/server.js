@@ -129,15 +129,23 @@ function tftComp(db, id, q = {}) {
   return { ...h, ...comp(r, boards, h.minGames), units: parts.unit, augments: parts.augment, activeTraits: parts.trait };
 }
 
+// count(*) over ~1M players takes ~0.5 s; /status is polled, so the counts are kept a minute.
+let playersCache = { at: 0, v: null };
+function playerCounts(db) {
+  if (Date.now() - playersCache.at > 60000) playersCache = { at: Date.now(), v: Object.fromEntries(db.prepare("SELECT game, count(*) n FROM players GROUP BY game").all().map((r) => [r.game, r.n])) };
+  return playersCache.v;
+}
+
 function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
   const k = riotKey(db, envKey);
   const size = (f) => { try { return dbPath && dbPath !== ":memory:" ? fs.statSync(f).size : null; } catch { return null; } };
-  const raw = db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get();
+  // rawStats is measured by the aggregation worker (agg-worker.js); null until its first pass.
+  const raw = getMeta(db, "rawStats") || { bytes: null, n: null };
   const matches = {};
   for (const r of db.prepare("SELECT game, status, count(*) n FROM matches GROUP BY 1, 2").all()) (matches[r.game] ??= {})[r.status] = r.n;
   return {
     matches,
-    players: Object.fromEntries(db.prepare("SELECT game, count(*) n FROM players GROUP BY game").all().map((r) => [r.game, r.n])),
+    players: playerCounts(db),
     lastFetch: db.prepare("SELECT max(fetched_at) t FROM matches").get().t,
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
@@ -169,7 +177,7 @@ function endpoints(db) {
   ];
 }
 
-// Memo for the heavier read-time rollups, keyed by path + query, dropped whenever an aggregation pass lands.
+// Memo for every stats route, keyed by path + query (a cold champion page is ~2 s of SQL on the API thread), dropped whenever an aggregation pass lands.
 function memoizer(db) {
   let at = null, cache = new Map();
   return (key, fn) => {
@@ -215,18 +223,18 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if (p === "/health") return send(200, { ok: true, version });
       if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateEveryMin, retentionDays }));
       if (p === "/patches") return send(200, patches(db));
-      if (p === "/lol/tiers") return send(200, require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q));
+      if (p === "/lol/tiers") return send(200, memo(req.url, () => require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q)));
       if ((m = /^\/lol\/(items|runes|spells)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-rollups").lolRollup(db, head, where, m[1], q)));
-      if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, require("./agg-players").championPlayers(db, head, where, Number(m[1]), q));
-      if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, lolChampion(db, Number(m[1]), q));
-      if (p === "/tft/comps") return send(200, tftComps(db, q));
+      if ((m = /^\/lol\/champion\/(\d+)\/players$/.exec(p))) return send(200, memo(req.url, () => require("./agg-players").championPlayers(db, head, where, Number(m[1]), q)));
+      if ((m = /^\/lol\/champion\/(\d+)$/.exec(p))) return send(200, memo(req.url, () => lolChampion(db, Number(m[1]), q)));
+      if (p === "/tft/comps") return send(200, memo(req.url, () => tftComps(db, q)));
       if ((m = /^\/tft\/(units|items|augments|traits)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-tft")[m[1]](db, head, where, q)));
       if ((m = /^\/tft\/unit\/([^/]+)$/.exec(p))) {
         const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, decodeURIComponent(m[1]), q));
         return r ? send(200, r) : send(404, { error: "no such unit on this patch/filter" });
       }
       if ((m = /^\/(lol|tft)\/leaderboard$/.exec(p))) {
-        if (m[1] === "lol" && q.champion) return send(200, require("./agg-players").championPlayers(db, head, where, Number(q.champion), q));
+        if (m[1] === "lol" && q.champion) return send(200, memo(req.url, () => require("./agg-players").championPlayers(db, head, where, Number(q.champion), q)));
         return send(200, memo(req.url, () => require("./lookup").leaderboard(db, m[1], q)));
       }
       if ((m = /^\/(?:lol\/summoner|tft\/player)\/([^/]+)$/.exec(p))) {
@@ -238,7 +246,7 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
-        const c = tftComp(db, decodeURIComponent(m[1]), q);
+        const c = memo(req.url, () => tftComp(db, decodeURIComponent(m[1]), q));
         return c ? send(200, c) : send(404, { error: "no such comp on this patch/filter" });
       }
       send(404, { error: "not found" });

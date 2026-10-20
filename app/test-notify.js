@@ -17,6 +17,7 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
 (async () => {
   const events = [{ id: 1, level: "info", message: "old", kind: null, ts: 0 }];
   const comp = createCompanion({ webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: () => ({ companion: { token: TOKEN } }), push: () => {}, decline: async () => ({ ok: true }),
+    champ: async () => ({ active: true, trades: [{ id: 7, name: "Ahri" }] }), trade: async (id, action) => ({ ok: id === "7" && action === "accept" }),
     status: () => ({ connected: false, paused: false }) });
   assert.ok(await comp.start(0));
   const port = comp.boundPort();
@@ -39,6 +40,12 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
   assert.strictEqual((await post("/api/decline"))[0], 403);
   assert.deepStrictEqual(await post("/api/decline?t=" + TOKEN), [200, '{"ok":true}']);
   assert.strictEqual((await get("/api/decline?t=" + TOKEN)).statusCode, 405);
+  // DONI-337: champ select and trades from the phone, token-gated.
+  const read = (p) => new Promise((r) => http.get({ port, path: p }, (res) => { let t = ""; res.on("data", (c) => (t += c)); res.on("end", () => r([res.statusCode, t])); }));
+  assert.strictEqual((await read("/api/champ"))[0], 403);
+  assert.deepStrictEqual(JSON.parse((await read("/api/champ?t=" + TOKEN))[1]).trades, [{ id: 7, name: "Ahri" }]);
+  assert.strictEqual((await post("/api/trade?id=7&action=accept&t=" + TOKEN))[0], 200);
+  assert.strictEqual((await post("/api/trade?id=8&action=accept&t=" + TOKEN))[0], 409);
 
   // Simulated queue pop after the phone connected: must arrive after the 'synced' marker.
   const body = await new Promise((resolve) => {

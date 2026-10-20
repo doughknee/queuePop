@@ -76,7 +76,9 @@ function createNotifier(ctx) {
   function desktop(title, message, what = "alert") {
     try {
       if (!ctx.Notification.isSupported()) throw new Error("notifications unsupported");
-      new ctx.Notification({ title, body: message, icon: ctx.icon, timeoutType: "default" }).show();
+      const n = new ctx.Notification({ title, body: message, icon: ctx.icon, timeoutType: "default" });
+      if (ctx.onClick) n.on("click", ctx.onClick); // clicking a toast opens queuePop
+      n.show();
       mark("desktop", what);
       return true;
     } catch (e) { fail("desktop", what, e); return false; }

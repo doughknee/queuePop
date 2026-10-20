@@ -206,6 +206,10 @@
   `POST /api/decline` declines the ready check; `app/timeline.js` pushes at most three lines per queue (ETA in queue, "game starts
   in about M min" = champ select left + `timeline_load_seconds`, "90 seconds: come back") to the feed and `notifier.alert("timeline")`
   (alert event `timeline`, off by default for Windows/Discord), and `/api/status.timeline` drives the phone's countdown.
+- Stepping away (DONI-424): `app/stepping-away.js`. While on (`state.away`, memory only), champ select reads its settings through
+  `applyAway` (auto pick/ban on, lock in with 3 s left) via `ChampSelect.overlay`, and auto-accept is unpaused; config.json is never
+  written, so "I'm back" restores exactly. Switches: phone (`POST /api/away?on=1|0`), tray checkbox, status line "I'm back", bridge
+  `set_stepping_away`. Not done: auto-disarm when you pick by hand.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
