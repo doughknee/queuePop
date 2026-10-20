@@ -45,7 +45,8 @@ window.stTabOf = (section, current) => {
 
   const sw = (key, label, hint) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st-sw"><input type="checkbox" role="switch" data-k="${key}"><i aria-hidden="true"></i></span></label>`;
   const num = (key, label, hint, min, max) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><input class="st-in st-num" type="number" data-k="${key}" data-num min="${min}" max="${max}"></label>`;
-  const forLine = id => !ST_FOR[id] || ST_FOR[id].length < 2 ? '' : // chips only where a card is shared `<p class="st-for">${ST_FOR[id].map(g => `<span class="st-g" data-g="${g}">${GN[g]}</span>`).join('')}</p>`;
+  const forLine = id => !ST_FOR[id] || ST_FOR[id].length < 2 ? '' : `<p class="st-for">${ST_FOR[id].map(g => `<span class="st-g" data-g="${g}">${GN[g]}</span>`).join('')}</p>`;
+  // Game chips show only on cards more than one game shares.
   const card = (id, title, body) => `<section class="st-card" id="st-${id}"><h2>${title}</h2>${forLine(id)}<div class="st-body">${body}</div></section>`;
   const chips = list => `<div class="st-events">${list.map(([k, l]) => `<label class="st-chip"><input type="checkbox" data-k="alert_events.${k}"><span>${l}</span></label>`).join('')}</div>`;
 
