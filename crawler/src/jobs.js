@@ -5,6 +5,7 @@ const { tx, getMeta, setMeta } = require("./db");
 const { ROUTING } = require("./riot");
 const champ = require("./agg-champion");
 const tftAgg = require("./agg-tft");
+const win = require("./agg-window");
 
 const TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"];
 const DAY = 86400000;
@@ -162,6 +163,14 @@ function compOf(p) {
   return `${top ? top.name : "none"},${carryOf(p.units)}`;
 }
 
+// Game length from stored raw JSON for matches stored before matches.duration existed (D6). Run `aggregate` after it.
+function backfillDuration(db) {
+  const rows = db.prepare("SELECT id, raw FROM matches WHERE status = 'done' AND duration IS NULL AND raw IS NOT NULL").all();
+  const up = db.prepare("UPDATE matches SET duration = ? WHERE id = ?");
+  tx(db, () => { for (const r of rows) up.run(win.durationOf(JSON.parse(zlib.gunzipSync(r.raw)).info), r.id); });
+  return { matches: rows.length };
+}
+
 // Re-derives tft_participants.comp (current rule) and board from stored raw JSON. Rows whose raw was already dropped by
 // retention keep what they had. Run `aggregate` after it.
 function backfillComps(db) {
@@ -189,9 +198,9 @@ function store(ctx, game, id, m) {
   // Remakes (< 5 min) and unconfigured queues are kept as ids only.
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
-    db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ? WHERE id = ?`).run(
+    db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ?, duration = ? WHERE id = ?`).run(
       ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info), game === "lol" ? null : setOf(info),
-      game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, id);
+      game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, win.durationOf(info), id);
     if (!ok) return;
     if (game === "lol") {
       const ins = db.prepare("INSERT INTO lol_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)");
@@ -233,7 +242,7 @@ function backfillPatch(db) {
       up.run(patch, r.game === "tft" ? setOf(info) : null, r.id);
       fixed++;
     }
-    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
+    for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.exec(`DELETE FROM stats_${t} WHERE patch = '?'`);
   });
   return { scanned: rows.length, fixed, unparsed, sample };
 }
@@ -265,15 +274,22 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
     ...champ.inserts(M, K),
     ...tftAgg.inserts(M, K),
+    ...win.inserts(M, K),
   ].map((q) => db.prepare(q));
   champ.ingestRaw(db);
+  // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
+  const log = getMeta(db, "aggregates") || { patches: {} };
+  const t0 = Date.now();
   tx(db, () => {
     for (const patch of dirty) {
-      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+      const t1 = Date.now();
+      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
+      log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
     setMeta(db, "aggregatedAt", now());
+    setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   });
   return dirty.length;
 }
@@ -292,4 +308,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

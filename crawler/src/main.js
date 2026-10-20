@@ -2,6 +2,7 @@
 //   node src/main.js             crawl + serve
 //   node src/main.js aggregate   rebuild all stats_* now and exit
 //   node src/main.js backfill-patch  re-parse patch/set from stored raw for '?' rows, drop stale '?' stats, exit
+//   node src/main.js backfill-length  matches.duration from stored raw (D6 length buckets), exit
 //   node src/main.js backfill-comps  re-key TFT boards with the current comp rule from stored raw (DONI-502), exit
 //   node src/main.js backfill-players  Riot ids from stored raw into lol_names (DONI-506), exit
 //   node src/main.js vacuum      one-time VACUUM that enables auto_vacuum on an old DB, then exit
@@ -40,6 +41,10 @@ if (process.argv[2] === "aggregate") {
 }
 if (process.argv[2] === "backfill-patch") {
   log("backfill-patch", JSON.stringify(jobs.backfillPatch(db)), "- now run: npm run aggregate");
+  process.exit(0);
+}
+if (process.argv[2] === "backfill-length") {
+  log("backfill-length", JSON.stringify(jobs.backfillDuration(db)), "- now run: npm run aggregate");
   process.exit(0);
 }
 if (process.argv[2] === "backfill-comps") {

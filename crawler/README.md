@@ -56,7 +56,9 @@ low-sample rows are kept and flagged so the UI greys them, never dropped. Respon
 Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
 
 - `GET /health` → `{ ok, version }`
-- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits }`
+- `GET /status` → `{ matches: {lol: {done, new, skip, missing}, tft}, players: {lol, tft}, lastFetch, aggregatedAt, nextAggregation, aggregateEveryMin, retentionDays, disk: { dbBytes, walBytes, rawBytes, rawMatches }, key, seed, rateLimits,
+  aggregates: { at, ms, dirty: [patch], patches: { patch: { at, ms } } }, endpoints: [{ path, game, patch, updatedAt, live? }] }` (`endpoints`: what each
+  route serves and when that data was last rebuilt; the status page lists it)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
 - `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
@@ -102,6 +104,15 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- Windows and trends (DONI-513 data side): `?days=N` (1..90, or `patch` = the default whole patch) on `/lol/tiers`,
+  `/lol/champion/{id}` (strip and roles only; builds, matchups and depth blocks stay per patch), `/tft/comps` and `/tft/comp/{id}`
+  (the comp row; units/augments/traits stay per patch) reads the last N UTC days of the patch (today counts as one) from
+  `stats_{lol_matches,lol_champ,lol_bans,tft_boards,tft_comp}_daily`; the response echoes `days` and `since` (YYYY-MM-DD).
+  `?trend=1` adds `daily: [{ day, games, winRate }]` to tier rows and `daily: [{ day, games, avgPlacement }]` to comp rows.
+- Game length and depth (D6): `/lol/champion/{id}` adds `length: [{ bucket, from, to, games, winRate, share }]` (5-minute buckets of
+  `matches.duration`, `to: null` = 45 min and longer) and `depth: { players, gamesPerPlayer }`; `/lol/tiers` rows add `players` and
+  `gamesPerPlayer` (distinct puuids per champion+role; with bracket=all a player seen in two brackets counts twice). Matches stored
+  before the column existed get `duration` from `npm run -s backfill-length` (raw retention window only), then `aggregate`.
 - `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
   items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
   by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −
@@ -212,13 +223,28 @@ npm run aggregate        # rebuild all stats now (every patch) (in Docker: docke
 
 ## Deploy to Unraid
 
+First install:
+
 ```bash
 scp -r crawler root@unraid:/mnt/user/appdata/queuepop-crawler
 cd /mnt/user/appdata/queuepop-crawler && cp .env.example .env   # paste RIOT_API_KEY, set TZ
+mkdir -p data && chown -R 1000:1000 data   # the image runs as "node" (uid 1000); a root-owned ./data crash-loops with
+                                           # "unable to open database file" (DONI-494)
 docker compose up -d --build
 curl http://127.0.0.1:47900/status
 docker compose logs -f
 ```
+
+Updates (from the repo root on the dev PC; never copies `.env` or `data/`):
+
+```bash
+scp -q -r crawler/Dockerfile crawler/docker-compose.yml crawler/package.json crawler/README.md crawler/src crawler/fixtures crawler/test unraid:/mnt/user/appdata/queuepop-crawler/
+ssh unraid 'cd /mnt/user/appdata/queuepop-crawler && docker compose up -d --build'
+```
+
+A script that writes the DB (`backfill-*`, `aggregate`) runs with the service stopped, so the two never hold write locks at once:
+`docker compose build && docker compose stop && docker compose run --rm --no-deps crawler npm run -s <script> && docker compose up -d`.
+A forced `aggregate` over one full patch took ~6 min on 2026-10-20 (45k League + 39k TFT matches).
 
 ## Production key later
 
