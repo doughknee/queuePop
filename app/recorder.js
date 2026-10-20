@@ -114,7 +114,10 @@ function attachRecorder(ctx) {
   });
   ctx.lcu.on("disconnect", () => stop());
 
-  const read = (id) => { try { return JSON.parse(fs.readFileSync(file(id), "utf8")); } catch { return null; } };
+  const readOne = (id) => { try { return JSON.parse(fs.readFileSync(file(id), "utf8")); } catch { return null; } };
+  // "NA1_123" and "123" name the same game: a recording made while the platform was unknown is stored under the bare id.
+  const read = (id) => { id = String(id); const bare = id.replace(/^[A-Za-z]+\d*_/, ""); return readOne(id) || (bare !== id ? readOne(bare) : null)
+    || (() => { try { const f = fs.readdirSync(ctx.dir).find((n) => n.endsWith(`_${bare}.json`)); return f ? readOne(f.slice(0, -5)) : null; } catch { return null; } })(); };
   function list() {
     let names = [];
     try { names = fs.readdirSync(ctx.dir).filter((f) => f.endsWith(".json")); } catch { return []; }
@@ -125,7 +128,7 @@ function attachRecorder(ctx) {
   }
   return {
     list, get: read, live: () => rec,
-    remove(id) { const r = read(id); try { fs.unlinkSync(file(id)); } catch { return { ok: false }; } return { ok: true, video: r && r.video }; },
+    remove(id) { const r = read(id); try { fs.unlinkSync(file(r ? r.matchId : id)); } catch { return { ok: false }; } return { ok: true, video: r && r.video }; },
     update(id, patch) { const r = read(id); if (!r) return null; Object.assign(r, patch); fs.writeFileSync(file(id), JSON.stringify(r)); return r; },
   };
 }
