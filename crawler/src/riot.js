@@ -15,10 +15,10 @@ function createClient({ key, base, limiter, log = () => {}, onAuthFail = () => {
   async function get(host, path, method) {
     for (let attempt = 0; ; attempt++) {
       await limiter.take(host, method);
-      let res;
+      let res, used;
       try {
         res = await fetch((base || `https://${host}.api.riotgames.com`) + path, {
-          headers: { "X-Riot-Token": typeof key === "function" ? key() : key }, signal: AbortSignal.timeout(30000),
+          headers: { "X-Riot-Token": (used = typeof key === "function" ? key() : key) }, signal: AbortSignal.timeout(30000),
         });
       } catch (e) {
         if (attempt >= 3) throw e;
@@ -31,7 +31,7 @@ function createClient({ key, base, limiter, log = () => {}, onAuthFail = () => {
       if (res.status === 404) return null;
       if (res.status === 401 || res.status === 403) {
         const msg = (await res.json().catch(() => null))?.status?.message || res.statusText;
-        onAuthFail(res.status, msg);
+        onAuthFail(res.status, msg, used);
         throw Object.assign(new Error(`${res.status} ${msg} ${host}${path}`), { auth: true });
       }
       if (!res.ok) throw new Error(`${res.status} ${host}${path}`);

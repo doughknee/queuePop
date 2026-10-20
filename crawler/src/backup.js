@@ -12,9 +12,12 @@ function backup(db, dir, keep = 3, now = new Date()) {
   const stamp = now.toISOString().replace(/[-:]/g, "").replace("T", "-").slice(0, 13); // 20261020-0300
   const file = path.join(dir, `crawler-${stamp}.db`);
   const t = Date.now();
-  if (fs.existsSync(file)) fs.unlinkSync(file); // same minute re-run: VACUUM INTO refuses an existing file
-  db.prepare("VACUUM INTO ?").run(file);
-  const removed = fs.readdirSync(dir).filter((f) => NAME.test(f)).sort().reverse().slice(keep);
+  // VACUUM INTO a .tmp and rename on success, so a failed run (disk full) never leaves a partial file that counts as kept (DONI-568)
+  const tmp = file + ".tmp";
+  for (const f of [tmp, file]) if (fs.existsSync(f)) fs.unlinkSync(f);
+  try { db.prepare("VACUUM INTO ?").run(tmp); } catch (e) { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); throw e; }
+  fs.renameSync(tmp, file);
+  const removed = fs.readdirSync(dir).filter((f) => NAME.test(f)).sort().reverse().slice(Math.max(1, keep || 0));
   for (const f of removed) fs.unlinkSync(path.join(dir, f));
   const out = { at: now.getTime(), file: path.basename(file), bytes: fs.statSync(file).size, ms: Date.now() - t, removed };
   setMeta(db, "backup", out);

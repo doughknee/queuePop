@@ -10,14 +10,16 @@ const { TIERS } = require("./jobs");
 const r4 = (x) => Math.round(x * 10000) / 10000;
 const err = (status, msg, extra) => Object.assign(new Error(msg), { status, ...extra });
 
-// Ladder: highest tier, division, LP first. TFT rows also carry what we crawled for that player (all stored boards).
+// Ladder: highest tier, division, LP first. Rows the ladder no longer confirms are left out (DONI-568): Master+ rows older than an
+// hour (the apex ladders are re-read every 30 min, so a demoted or banned player drops off), other tiers older than two days. TFT rows also carry what we crawled for that player (all stored boards).
 function leaderboard(db, game, q = {}) {
   const limit = Math.min(500, Math.max(1, Number(q.limit) || 100));
   const region = q.region && q.region !== "all" ? q.region : null;
   // Top N straight off the players_ladder(_region) index, names joined after the LIMIT (joining first sorted ~1M rows: 33 s).
   const rows = db.prepare(`SELECT p.*, n.riot_id riotId FROM (SELECT puuid, region, tier, tier_n, division, lp, wins, losses, seeded_at FROM players
-    WHERE game = ?${region ? " AND region = ?" : ""} ORDER BY tier_n DESC, division, lp DESC LIMIT ${limit}) p LEFT JOIN lol_names n ON n.puuid = p.puuid
-    ORDER BY p.tier_n DESC, p.division, p.lp DESC`).all(game, ...(region ? [region] : []));
+    WHERE game = ?${region ? " AND region = ?" : ""} AND seeded_at > CASE WHEN tier_n >= 7 THEN ? ELSE ? END
+    ORDER BY tier_n DESC, division, lp DESC LIMIT ${limit}) p LEFT JOIN lol_names n ON n.puuid = p.puuid
+    ORDER BY p.tier_n DESC, p.division, p.lp DESC`).all(game, ...(region ? [region] : []), Date.now() - 3600000, Date.now() - 2 * 86400000);
   let crawled = new Map();
   if (game === "tft" && rows.length) {
     crawled = new Map(db.prepare(`SELECT puuid, count(*) games, sum(placement) ps, sum(placement <= 4) top4 FROM tft_participants

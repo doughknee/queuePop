@@ -35,6 +35,8 @@ test("days window and trend series", () => {
   const c = tftComps(db, { days: "1", trend: "1" }).comps[0];
   assert.deepStrictEqual([c.games, c.avgPlacement, c.daily.length], [1, 7, 1]);
   assert.strictEqual(lolChampion(db, 7, { days: "3" }).strip.games, 1);
+  const w3 = lolChampion(db, 7, { days: "3" });
+  assert.ok(w3.builds.item.every((b) => b.pickRate <= 1) && w3.depth.gamesPerPlayer === 1.5, "builds/depth stay per patch: rates out of the patch's 3 games");
 });
 
 test("length buckets and depth on the champion page; backfill-length fills duration from raw", () => {

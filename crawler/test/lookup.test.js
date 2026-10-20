@@ -30,7 +30,7 @@ test("riot id parsing", () => {
 test("leaderboards: ladder order with wins/losses, TFT rows carry crawled boards, apex refresh between daily walks", async () => {
   const t = await setup();
   try {
-    let clock = 1e12;
+    let clock = Date.now();
     const ctx = { db: t.db, riot: t.riot, minTier: "DIAMOND", queues: [420, 1100], now: () => clock };
     for (const g of ["lol", "tft"]) await seed(ctx, g, "na1");
     const [, lol] = await t.get("/lol/leaderboard?region=na1&limit=5");
@@ -39,6 +39,9 @@ test("leaderboards: ladder order with wins/losses, TFT rows carry crawled boards
     assert.strictEqual(lol.players[0].division, null);
     assert.ok(lol.players[0].wins > 0 && lol.players[0].winRate > 0);
     for (let i = 1; i < 5; i++) assert.ok(lol.players[i - 1].lp >= lol.players[i].lp || lol.players[i - 1].tier !== lol.players[i].tier);
+    // a Challenger the apex refresh hasn't seen for over an hour (demoted / banned) is gone
+    t.db.prepare("UPDATE players SET seeded_at = ? WHERE game = 'lol' AND tier = 'CHALLENGER'").run(Date.now() - 2 * 3600000);
+    assert.ok(!(await t.get("/lol/leaderboard?region=na1&limit=5"))[1].players.some((p) => p.tier === "CHALLENGER"));
     const [, tft] = await t.get("/tft/leaderboard");
     assert.ok(tft.players.length > 0 && "crawled" in tft.players[0]);
     // between daily walks only the three apex ladders are re-read, every 30 min

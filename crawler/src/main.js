@@ -38,6 +38,8 @@ if (!jobs.TIERS.includes(cfg.minTier)) throw new Error(`MIN_TIER must be one of 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let aggregating = false; // true while the aggregation worker runs (see periodic below)
+let inflight = 0, backingUp = false; // crawl steps in progress; a backup worker running (DONI-568)
+process.on("uncaughtException", (e) => { log(`uncaught: ${e.stack || e.message}`); process.exit(1); }); // logged, then Docker restarts us
 const db = db_.open(cfg.dbPath);
 
 if (process.argv[2] === "aggregate") {
@@ -73,7 +75,10 @@ if (process.argv[2] === "vacuum") {
 }
 
 const limiter = new Limiter();
-const onAuthFail = (status, msg) => { if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`); db_.markKeyBad(db, cfg.key, `${status} ${msg}`); };
+const onAuthFail = (status, msg, used) => {
+  if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`);
+  try { db_.markKeyBad(db, cfg.key, `${status} ${msg}`, Date.now(), used); } catch (e) { log(`key health: ${e.message}`); }
+};
 const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, aramShare: cfg.aramShare, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
@@ -88,7 +93,10 @@ async function forever(name, step, idle) {
       if (!db_.keyHealth(db, cfg.key).valid) { await sleep(10000); continue; }
       // The aggregation worker holds the write lock for minutes; wait instead of failing on "database is locked".
       if (aggregating) { await sleep(5000); continue; }
-      if (!(await step())) await sleep(idle);
+      inflight++;
+      let did;
+      try { did = await step(); } finally { inflight--; }
+      if (!did) await sleep(idle);
     } catch (e) { if (!e.auth) log(`${name}: ${e.message}`); await sleep(10000); }
   }
 }
@@ -114,9 +122,11 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
 // with its own connection, so the API keeps answering (WAL readers see the previous stats until it commits) while the crawl
 // loops pause. ponytail: an in-memory DB (tests) can't be shared with a worker; tests call jobs.aggregate directly.
 (function periodic(minDelay = 0) {
-  setTimeout(() => {
+  setTimeout(async () => {
     let failed = false;
     aggregating = true;
+    // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
+    for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
     const t = Date.now();
     new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath } })
       .once("message", (n) => log(`aggregated ${n} patches in ${Date.now() - t} ms`))
@@ -149,9 +159,10 @@ function nextBackup(from = Date.now()) {
 }
 function runBackup() {
   if (aggregating) return setTimeout(runBackup, 600000).unref();
+  backingUp = true;
   new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "backup", dir: cfg.backupDir, keep: cfg.backupKeep } })
     .once("message", (b) => log(`backup: ${b.file} ${(b.bytes / 1048576).toFixed(0)} MB in ${(b.ms / 1000).toFixed(0)} s${b.removed.length ? ", removed " + b.removed.join(", ") : ""}`))
     .once("error", (e) => log(`backup: ${e.message}`))
-    .once("exit", () => setTimeout(runBackup, nextBackup()).unref());
+    .once("exit", () => { backingUp = false; setTimeout(runBackup, nextBackup()).unref(); });
 }
 if (cfg.backupDir && cfg.dbPath !== ":memory:") setTimeout(runBackup, nextBackup()).unref();

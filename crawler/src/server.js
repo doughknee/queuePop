@@ -94,6 +94,9 @@ function lolChampion(db, champion, q = {}) {
   const role = q.role ? q.role.toUpperCase() : roles[0]?.role;
   const s = roles.find((r) => r.role === role) || { games: 0, wins: 0 };
   const bans = db.prepare(`SELECT sum(bans) n FROM ${B.t} WHERE ${w}${B.d} AND champion = ?`).get(...a, ...B.da, champion).n || 0;
+  // Builds, matchups and depth are per patch even with ?days (DONI-568): their rates divide by the patch's games, not the window's.
+  const sp = C.d ? db.prepare(`SELECT sum(games) games, sum(wins) wins FROM stats_lol_champ WHERE ${w} AND champion = ? AND role = ?`).get(...a, champion, role ?? "") : s;
+  const sPatch = { games: sp.games || 0, wins: sp.wins || 0 };
   const builds = { item: [], keystone: [], rune: [], spells: [], skills: [] };
   const rows = db.prepare(`SELECT kind, key, sum(games) games, sum(wins) wins FROM stats_lol_build WHERE ${w} AND champion = ? AND role = ?
     GROUP BY kind, key ORDER BY games DESC`).all(...a, champion, role ?? "");
@@ -101,13 +104,13 @@ function lolChampion(db, champion, q = {}) {
   const skillGames = rows.filter((b) => b.kind === "skills").reduce((n, b) => n + b.games, 0);
   for (const b of rows) {
     if (builds[b.kind].length < 30) builds[b.kind].push({ key: b.key, games: b.games, winRate: r4(b.wins / b.games),
-      pickRate: r4(b.games / (b.kind === "skills" ? skillGames : s.games)), lowSample: b.games < h.minGames });
+      pickRate: r4(b.games / (b.kind === "skills" ? skillGames : sPatch.games)), lowSample: b.games < h.minGames });
   }
   const matchups = db.prepare(`SELECT opponent, sum(games) games, sum(wins) wins FROM stats_lol_matchup WHERE ${w} AND champion = ? AND role = ?
     GROUP BY opponent ORDER BY games DESC LIMIT 40`).all(...a, champion, role ?? "").map((r) => ({ opponent: r.opponent, games: r.games, winRate: r4(r.wins / r.games), lowSample: r.games < h.minGames }));
   return { ...h, champion, role: role ?? null, roles: roles.map((r) => ({ role: r.role, games: r.games })),
     strip: { games: s.games, wins: s.wins, winRate: s.games ? r4(s.wins / s.games) : 0, pickRate: matches ? r4(s.games / matches) : 0, banRate: matches ? r4(bans / matches) : 0, matches, lowSample: s.games < h.minGames },
-    builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s, minGames: h.minGames, matchups }), ...win.champion(db, w, a, champion, role ?? "") };
+    builds, matchups, ...champ.depth(db, w, a, { champion, role: role ?? "", s: sPatch, minGames: h.minGames, matchups }), ...win.champion(db, w, a, champion, role ?? "") };
 }
 
 // id "<trait>,<carry>" (DONI-502). ponytail: an id left from the old rule (boards whose raw was gone at backfill-comps) reads as
@@ -256,7 +259,11 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
         try { key = JSON.parse(body).key; } catch {}
         if (typeof key !== "string" || !KEY_RE.test(key)) return send(400, { error: "key must look like RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" });
         const set_at = Date.now();
-        setMeta(db, "riotKey", { key, set_at });
+        // DONI-568: while the aggregation worker holds the write lock this waits busy_timeout and throws; answer 503, never crash.
+        try {
+          setMeta(db, "riotKey", { key, set_at });
+          db.prepare("DELETE FROM meta WHERE k = 'keyBad'").run(); // a posted key is trusted until Riot rejects it again
+        } catch (e) { return send(503, { error: `database busy (${e.message}); try again in a minute` }); }
         send(200, { ok: true, source: "meta", set_at });
       });
     }
@@ -285,7 +292,7 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       }
       if ((m = /^\/(lol|tft)\/leaderboard$/.exec(p))) {
         if (m[1] === "lol" && q.champion) return send(200, memo(req.url, () => require("./agg-players").championPlayers(db, head, where, Number(q.champion), q)));
-        return send(200, memo(req.url, () => require("./lookup").leaderboard(db, m[1], q)));
+        return send(200, require("./lookup").leaderboard(db, m[1], q));
       }
       if ((m = /^\/(?:lol\/summoner|tft\/player)\/([^/]+)$/.exec(p))) {
         if (!lookup) return send(503, { error: "lookups are not enabled" });
