@@ -224,6 +224,11 @@
 - Draft recap (DONI-349): `app/recap.js` notes /lol/draft's top pick for your role when you lock and pairs it at EndOfGame with
   `/lol-end-of-game/v1/eog-stats-block`; rows (newest 200) in userData `draft-recaps.json`; feed "Recap: …"; bridge
   `get_draft_recaps` → `{rows (last 20, newest first, with gameId), record: {followed, ignored}}`; phone "Following the suggestions".
+- Words (DONI-566, 2026-10-20; use these everywhere the user reads): **stats crawler** (not "stats server", "queuePop crawler", "API");
+  **League client** (not LCU, "the client" alone is fine after the first mention); **queue pop** / "the queue pops" (not "ready check"
+  in user copy); **accept** / **auto-accept**; **lock in** (verb) and **lock-in** (noun); **pick** / **ban**; **champ select**;
+  **phone companion** (the page) and **your phone**; **Windows notification** (not desktop notification / toast); **Discord alert**;
+  **ntfy push**; **queue names** (Ranked Solo/Duo), never queue ids; **Settings > Card > Row** for places; no em dashes.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

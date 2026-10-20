@@ -190,7 +190,7 @@ const TRADE_WORDS = {
   SENT: "requesting…",
   RECEIVED: "incoming offer",
   ACCEPTED: "accepted",
-  DECLINED: "declined — cooldown",
+  DECLINED: "declined, wait a moment",
   CANCELLED: "cancelled",
 };
 

@@ -78,7 +78,7 @@ function createUpdater({ version, push }) {
     let lastErr = null;
     const tick = async () => {
       const s = await doCheck();
-      if (s.error && s.error !== lastErr) push(`Update check failed: ${s.error}`, "warning", "update");
+      if (s.error && s.error !== lastErr) push(`Couldn't check for updates (${s.error})`, "warning", "update");
       lastErr = s.error;
     };
     setTimeout(tick, 4000).unref();
