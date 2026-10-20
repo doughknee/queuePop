@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS matches (
 CREATE INDEX IF NOT EXISTS matches_todo ON matches (status, game, region);
 -- /status lastFetch and the aggregation dirty check (max / > fetched_at), leaderboard freshness (max seeded_at)
 CREATE INDEX IF NOT EXISTS matches_fetched ON matches (fetched_at);
+-- aggregation: every per-patch INSERT joins matches on patch; without this each one scanned all of matches (~150 s fixed cost per
+-- patch, DONI-596 found it when the mode patches made five of them an hour)
+CREATE INDEX IF NOT EXISTS matches_patch ON matches (patch);
 CREATE INDEX IF NOT EXISTS players_seeded ON players (game, seeded_at);
 -- leaderboards: ladder order per game and per game+region (division sorts as text: I < II < III < IV)
 CREATE INDEX IF NOT EXISTS players_ladder ON players (game, tier_n DESC, division, lp DESC);
