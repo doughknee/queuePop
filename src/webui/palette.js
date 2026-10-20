@@ -45,7 +45,7 @@
   // --- what can be found -----------------------------------------------------
   function statics() {
     const out = [{ kind: 'page', label: 'Home', sub: 'Your games', href: '#/' }];
-    for (const g of document.querySelectorAll('#qp-sidebar .sb-group[data-game]')) {
+    for (const g of document.querySelectorAll('#qp-sidebar .sb-group[data-game]:not([hidden])')) {
       const game = g.querySelector('.sb-item')?.title || '';
       for (const a of g.querySelectorAll('.sb-pages a')) out.push({ kind: 'page', label: a.textContent.trim(), sub: game, href: a.getAttribute('href') });
     }
@@ -92,7 +92,8 @@
   }
 
   // --- the sheet ---------------------------------------------------------------
-  function all() { return [...statics(), ...live.champion, ...live.comp, ...live.trait, ...live.unit, ...live.hero]; }
+  const GAME = { champion: 'league', comp: 'tft', trait: 'tft', unit: 'tft', hero: 'deadlock' };
+  function all() { const on = window.qpGames ? qpGames() : Object.values(GAME); return [...statics(), ...live.champion, ...live.comp, ...live.trait, ...live.unit, ...live.hero].filter(it => !GAME[it.kind] || on.includes(GAME[it.kind])); }
   function row(it, i) {
     const ico = it.icon ? `<img src="${E(it.icon)}" alt="" loading="lazy">` : `<span class="qs-glyph" aria-hidden="true">${{ page: '→', setting: '⚙', action: '›', comp: '◆', trait: '◇', unit: '●' }[it.kind] || '·'}</span>`;
     return `<div class="qs-row" role="option" id="qs-o${i}" data-i="${i}" aria-selected="${i === cur}">${ico}<span class="qs-txt"><b>${E(it.label)}</b>${it.sub ? `<small>${E(it.sub)}</small>` : ''}</span><em>${KIND[it.kind]}</em></div>`;
@@ -126,6 +127,13 @@
     sheet.hidden = true;
     if (restore && back && back.isConnected) back.focus({ preventScroll: true });
   }
+  // Scroll a Settings control into view, focus it and flash its row (also used by home's set-up strip).
+  function focusSetting(key) {
+    const el = document.querySelector(`#settings-view [data-k="${CSS.escape(key)}"]`), rowEl = el?.closest('.st-row, .st-chip') || el;
+    if (!el) return;
+    rowEl.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true });
+    rowEl.classList.remove('qs-flash'); void rowEl.offsetWidth; rowEl.classList.add('qs-flash');
+  }
   function go(it) {
     if (!it) return;
     recent = [it, ...recent.filter(r => !(r.label === it.label && r.href === it.href && r.act === it.act))].slice(0, 8);
@@ -137,12 +145,7 @@
       return;
     }
     if (location.hash !== it.href) location.hash = it.href.replace(/^#/, ''); else window.dispatchEvent(new HashChangeEvent('hashchange'));
-    if (it.focus) setTimeout(() => {
-      const el = document.querySelector(`#settings-view [data-k="${CSS.escape(it.focus)}"]`), rowEl = el?.closest('.st-row') || el;
-      if (!el) return;
-      rowEl.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true });
-      rowEl.classList.remove('qs-flash'); void rowEl.offsetWidth; rowEl.classList.add('qs-flash');
-    }, 80);
+    if (it.focus) setTimeout(() => focusSetting(it.focus), 80);
     if (it.tft) setTimeout(() => {
       const box = document.querySelector('#tft-view .ts-search input');
       if (box) { box.value = it.tft; box.dispatchEvent(new Event('input', { bubbles: true })); box.focus(); }
@@ -175,5 +178,5 @@
   btn.innerHTML = '<svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span>Search</span><kbd>Ctrl K</kbd>';
   btn.addEventListener('click', () => sheet.hidden ? open() : close());
   document.querySelector('#qp-sidebar .sb-scroll').prepend(btn);
-  window.qpSearch = { open, close };
+  window.qpSearch = { open, close, focusSetting };
 })();
