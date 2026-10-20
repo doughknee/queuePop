@@ -63,7 +63,25 @@
     if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
     const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
     remember();
+    setTimeout(rowEdges);
   };
+  // Page rows scroll sideways at big Text sizes (DONI-516); a fade at the right edge says there's more, and the wheel
+  // scrolls them while the pointer is on the row (W's report, 2026-10-20).
+  const wired = new WeakSet();
+  function rowEdges() {
+    const city = document.querySelector('#deadlock-view')?.shadowRoot?.querySelector('.city-nav');
+    for (const r of [nav, city]) {
+      if (!r) continue;
+      if (!wired.has(r)) {
+        wired.add(r);
+        r.addEventListener('scroll', () => rowEdge(r), { passive: true });
+        r.addEventListener('wheel', e => { if (r.scrollWidth > r.clientWidth + 2 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { r.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+      }
+      rowEdge(r);
+    }
+  }
+  const rowEdge = r => r.classList.toggle('more-right', r.scrollLeft + r.clientWidth < r.scrollWidth - 2);
+  addEventListener('resize', rowEdges);
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
   // Clicks only matter when they moved the address (Deadlock/TFT pushState); everything else would redo the same work (DONI-535).
