@@ -77,3 +77,22 @@
 .page-heading .archive-count small{font-family:var(--mono);text-transform:none}
 .casework-layout>*,.ledger-scroll{min-width:0}
 .file-register b{font-family:var(--display);font-weight:400}
+/* DONI-551: stats first on the city page (the headline and the setup card are compact so the tier list starts above the
+   fold at a 1280 window), and the last street-poster props (tape strip, torn lime edge) are gone. */
+.archive-page:has(.city-tiers) .page-heading h1{font-size:44px!important;max-width:none!important;line-height:1!important}
+.archive-page:has(.city-tiers) .page-heading{padding-bottom:8px!important}
+.city-card{padding:12px 18px;margin:0 0 16px}
+.city-card h3{font-size:22px!important;margin:0 0 4px!important}
+.city-card p{margin:0 0 8px;line-height:1.5}
+.portrait-evidence:before,.page-paper:before{display:none}
+/* DONI-551: the surface's own palette names, pinned to the tokens (the mapper had read cream "bone" as the lime accent):
+   text is --fg, paper is --bg, brass is --muted. */
+.deadlock-surface.deadlock-surface{--bone:var(--fg);--paper:var(--bg);--brass:var(--muted);--archive-ink:var(--fg);--archive-paper:var(--bg)}
+.card-compact{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.card-compact h3{margin:0!important}
+.card-compact details{flex-basis:100%;font-size:12px;color:var(--muted)}
+.card-compact summary{cursor:pointer}
+.tier-table td{padding-top:1px;padding-bottom:1px}
+.tier-row{padding:0;font-size:13px}
+.tier-row img{width:26px;height:26px}
+.archive-page:has(.city-tiers) .page-heading{padding-top:8px!important;min-height:0!important;padding-bottom:12px!important}
