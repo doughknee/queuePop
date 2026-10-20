@@ -93,7 +93,7 @@ test("TFT comps: avg placement, top-4, pick rate", () => {
   const t = tftComps(db);
   assert.strictEqual(t.boards, 8);
   const ab = t.comps.find((c) => c.id === "A,B");
-  assert.deepStrictEqual(ab, { id: "A,B", traits: ["A"], carry: "B", games: 3, avgPlacement: 3.3333, top4Rate: 0.6667, winRate: 0.3333, pickRate: 0.375, lowSample: true });
+  assert.deepStrictEqual(ab, { id: "A,B", traits: ["A"], carry: "B", units: ["X", "Y"], games: 3, avgPlacement: 3.3333, top4Rate: 0.6667, winRate: 0.3333, pickRate: 0.375, lowSample: true });
   assert.strictEqual(t.comps.find((c) => c.id === "C,C").avgPlacement, 5.3333);
   assert.deepStrictEqual(t.comps.find((c) => c.id === "none,N").traits, []);
   const d = tftComp(db, "A,B");
