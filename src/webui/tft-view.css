@@ -191,3 +191,4 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-more b{font:400 24px/1 var(--display);text-transform:uppercase}
 .ts-more span{grid-column:1;color:var(--muted);font-size:12px;line-height:1.5}
 .ts-more i{grid-row:1;grid-column:2;font-style:normal;color:var(--accent)}
+.ts-mt-rec{margin:0 0 12px}

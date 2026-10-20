@@ -44,5 +44,9 @@ async function lgFillMatch(token, id) {
           <td class="lg-mt-build">${(p.spells || []).map(k => lgImg(L.spellBy[k] ? lgDD(`spell/${L.spellBy[k].image.full}`) : `assets/spells/${k}.png`, L.spellBy[k]?.name || k)).join('')}${ks ? lgImg(`${statsApi.DD}/cdn/img/${ks.r.icon}`, ks.r.name) : ''}<span class="lg-mt-items">${(p.items || []).filter(Boolean).map(i => L.itemImg(i)).join('')}</span></td></tr>`; }).join('')}
       </tbody></table></section>`;
   };
-  box().innerHTML = (slim ? '<p class="lg-wait">The full details of this match are past the crawler\'s 7-day window; only the outline is left.</p>' : '') + team(100) + team(200);
+  // Q22: your recorded moments (Settings > Recorder) as a strip above the teams; nothing when the game wasn't recorded.
+  const getRec = id => Promise.resolve(window.pywebview?.api?.get_recording?.(id)).catch(() => null); // the recorder keys by the bare game id
+  const rec = (await getRec(m.id)) || (await getRec(String(m.id).split('_').pop()));
+  if (!box()) return;
+  box().innerHTML = (rec && window.recStrip ? `<section class="lg-mt-rec"><span class="lg-kicker">Your moments</span>${recStrip(rec)}</section>` : '') + (slim ? '<p class="lg-wait">The full details of this match are past the crawler\'s 7-day window; only the outline is left.</p>' : '') + team(100) + team(200);
 }
