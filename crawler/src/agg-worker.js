@@ -5,15 +5,15 @@ const { workerData, parentPort } = require("worker_threads");
 const { open, setMeta } = require("./db");
 const db = open(workerData.dbPath);
 if (workerData.task === "retire") {
-  // batches of 2,000 with a 50 ms gap, so the crawl's and the aggregation's writes get the lock in between
+  // batches of 500 with a 250 ms gap: each holds the write lock ~0.3 s, and a main-thread write waiting on it blocks the API
   const jobs = require("./jobs"), nap = new Int32Array(new SharedArrayBuffer(4));
   let n = 0;
   for (;;) {
     let m = 1;
-    try { m = jobs.retireBatch(db, workerData.game, 2000); } catch (e) { if (!/locked|busy/.test(e.message)) throw e; } // busy: retry
+    try { m = jobs.retireBatch(db, workerData.game, 500); } catch (e) { if (!/locked|busy/.test(e.message)) throw e; } // busy: retry
     if (!m) break;
     n += m === true ? 0 : m;
-    Atomics.wait(nap, 0, 0, 50);
+    Atomics.wait(nap, 0, 0, 250);
   }
   parentPort.postMessage(n);
 } else if (workerData.task === "retain") {
