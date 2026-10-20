@@ -170,7 +170,7 @@ async function lgFillChampion(token, id) {
     const want = lgHashRole();
     const d = await statsApi.champion(id, lgParams(LG_ROLES.includes(want) ? want : ''));
     const [list, items, runes, spells] = await Promise.all([
-      statsApi.tiers({ ...lgParams(lgRoleOf(d.role)), min_games: String(lgt.minGames) }).catch(() => null), // D15: same low-sample line as the list statsApi.items(d.patch).catch(() => null),
+      statsApi.tiers({ ...lgParams(lgRoleOf(d.role)), min_games: String(lgt.minGames) }).catch(() => null), /* D15: same low-sample line as the list */ statsApi.items(d.patch).catch(() => null),
       statsApi.runes(d.patch).catch(() => null), statsApi.spells(d.patch).catch(() => null), lgNames(d.patch)]);
     if (!box()) return;
     lgChampData = d;
@@ -204,7 +204,8 @@ async function lgFillChampion(token, id) {
       <div class="lg-duo">${lgMatchups(d)}${lgSynergies(d)}</div>
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
     lgFillPlayers(token, id);
-  } catch {
+  } catch (e) {
+    console.error('champion page', e); // a render error must not read as "crawler offline" again
     if (box()) box().innerHTML = lgOffline('the stats crawler did not answer.');
   }
 }
