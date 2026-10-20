@@ -30,7 +30,7 @@
   const api = () => window.pywebview && window.pywebview.api;
   const when = ms => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
   async function render(host) {
-    const on = !!(QP.store.config && QP.store.config.recorder && QP.store.config.recorder.enabled);
+    const on = !!(QP.store.config && ((QP.store.config.recorder || {}).enabled || (QP.store.config.tft || {}).record));
     let list = [];
     const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
@@ -55,7 +55,7 @@
     if (del && !del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Delete for good?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Delete'; } }, 4000); return; }
     if (del) { del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main')); }
     const on = e.target.closest && e.target.closest('[data-rec-on]');
-    if (on) { QP.store.set('recorder.enabled', true); render(document.getElementById('main')); }
+    if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); render(document.getElementById('main')); }
     const s = e.target.closest && e.target.closest('[data-rec-settings]');
     if (s) setTimeout(() => window.qpSearch && qpSearch.focusSetting('recorder.enabled'), 120);
   });
@@ -69,7 +69,7 @@
     gear.before(a);
   }
   // The sidebar icon wears a small lime dot while the recorder is on.
-  const mark = () => { const on = !!(QP.store.config && QP.store.config.recorder && QP.store.config.recorder.enabled), a = document.querySelector('#qp-sidebar .sb-rec');
+  const mark = () => { const on = !!(QP.store.config && ((QP.store.config.recorder || {}).enabled || (QP.store.config.tft || {}).record)), a = document.querySelector('#qp-sidebar .sb-rec');
     if (a) { a.classList.toggle('on', on); a.title = on ? 'Recordings (recorder on)' : 'Recordings'; } };
   if (window.QP && QP.bus) { QP.bus.on('config:loaded', mark); QP.bus.on('config:changed', ({ path }) => { if (String(path).startsWith('recorder')) mark(); }); }
   mark();

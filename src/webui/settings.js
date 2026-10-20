@@ -10,128 +10,134 @@ window.stBusyBuckets = rl => {
 };
 // Settings > Recorder (beta) > ffmpeg: what was found, and why Record video is greyed out (said in the line, not only a hover title).
 window.stFfmpegLine = (f, events) => !f ? 'Couldn’t check.' : !f.found ? 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.'
-  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.${events ? '' : ' Turn on Record game events to record video.'}`;
-// DONI-590: which games each Settings card is for (cards not listed are app-wide). TFT queues through the League
-// client, so the queue, alerts and phone features serve both; champ select is League's alone. Pure; test-settings.js checks it.
-window.ST_FOR = { queue: ['league', 'tft'], champselect: ['league'], deadlock: ['deadlock'], alerts: ['league', 'tft'], companion: ['league', 'tft'], recorder: ['league', 'tft'], crawler: ['league', 'tft'] };
-window.stCovers = g => Object.keys(window.ST_FOR).filter(id => window.ST_FOR[id].includes(g));
-// DONI-591: Settings opens one tab at a time (a game, or App). A link to a card lands on the tab that shows it:
-// the current tab when it has the card, else the card's first game. Old ids (account, games) keep working.
-window.ST_TABS = ['league', 'tft', 'deadlock', 'app'];
-window.stTabCards = tab => tab === 'app' ? ['display', 'about'] : window.stCovers(tab);
-window.stTabOf = (section, current) => {
-  if (window.ST_TABS.includes(section)) return section;
-  if (section === 'account') return 'deadlock';
-  if (section === 'display' || section === 'about') return 'app';
-  const gs = window.ST_FOR[section];
-  return gs ? (gs.includes(current) ? current : gs[0]) : null;
-};
+  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.${events ? '' : ' Turn on recording in a game’s tab to record video.'}`;
+// DONI-594: Settings has an App tab (where alerts go, the phone, recording storage, stats, display) and one tab per
+// game (that game's queue, alerts, champ select, recording). Every card lives on exactly one tab. Pure; test-settings.js checks it.
+window.ST_TABS = ['app', 'league', 'tft', 'deadlock'];
+window.ST_CARD_TAB = { notify: 'app', companion: 'app', recorder: 'app', crawler: 'app', display: 'app', about: 'app',
+  'league-queue': 'league', 'league-alerts': 'league', champselect: 'league', 'league-record': 'league',
+  'tft-queue': 'tft', 'tft-alerts': 'tft', 'tft-record': 'tft', 'deadlock-account': 'deadlock' };
+window.ST_ALIAS = { alerts: 'league-alerts', queue: 'league-queue', account: 'deadlock-account', games: 'app' }; // older links
+window.stCard = section => window.ST_ALIAS[section] || section;
+window.stTabOf = section => { const c = window.stCard(section); return window.ST_TABS.includes(c) ? c : window.ST_CARD_TAB[c] || null; };
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
-  const SECTIONS = [['league', 'League'], ['tft', 'TFT'], ['deadlock', 'Deadlock'], ['app', 'App']];
-  const TITLE = { queue: 'Queue', champselect: 'Champ select', deadlock: 'Deadlock', alerts: 'Alerts', companion: 'Phone companion', recorder: 'Recorder (beta)', crawler: 'Stats crawler' };
+  const SECTIONS = [['app', 'App'], ['league', 'League'], ['tft', 'TFT'], ['deadlock', 'Deadlock']];
   const GAMES = [['league', 'League of Legends', 'League', 'assets/logos/league.svg'], ['tft', 'Teamfight Tactics', 'TFT', 'assets/logos/tft.png'], ['deadlock', 'Deadlock', 'Deadlock', 'assets/logos/deadlock.png']];
   const GN = Object.fromEntries(GAMES.map(g => [g[0], g[2]]));
-  // Why a game's tab leaves a card out, listed at the foot of that tab.
-  const STEAM = 'Deadlock queues in Steam, where queuePop can’t see it.';
-  const WHY = { queue: { deadlock: STEAM }, champselect: { tft: 'TFT has no champ select.', deadlock: 'Deadlock picks heroes in game, where queuePop can’t reach.' }, alerts: { deadlock: STEAM }, companion: { deadlock: STEAM }, recorder: { deadlock: 'Deadlock isn’t recorded yet.' }, crawler: { deadlock: 'Deadlock stats come from their own source; nothing to set.' } };
-  const EVENTS = [['queue_pop', 'Queue pops'], ['timeline', 'Queue timeline (ETA, game start, come back)'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
-  const LEAGUE_EVENTS = [['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_plan', 'Game plan at lock-in']];
+  // What a game's tab leaves out, and why, at the foot of that tab.
+  const NOT_FOR = { tft: [['Champ select', 'TFT has no champ select.']], deadlock: [['Queue, alerts and recording', 'Deadlock queues in Steam, where queuePop can’t see it.']] };
+  const LEAGUE_EVENTS = [['queue_pop', 'Queue pops'], ['timeline', 'Queue timeline'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_plan', 'Game plan at lock-in'], ['game_start', 'Game starts']];
+  const TFT_EVENTS = [['queue_pop', 'Queue pops'], ['timeline', 'Queue timeline'], ['game_start', 'Game starts']];
   const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const bridge = () => window.pywebview && window.pywebview.api;
   const root = document.getElementById('settings-view');
   let built = false, timer = null, customSound = '';
 
-  const sw = (key, label, hint) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st-sw"><input type="checkbox" role="switch" data-k="${key}"><i aria-hidden="true"></i></span></label>`;
-  const num = (key, label, hint, min, max) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><input class="st-in st-num" type="number" data-k="${key}" data-num min="${min}" max="${max}"></label>`;
-  const forLine = id => !ST_FOR[id] || ST_FOR[id].length < 2 ? '' : `<p class="st-for">${ST_FOR[id].map(g => `<span class="st-g" data-g="${g}">${GN[g]}</span>`).join('')}</p>`;
-  // Game chips show only on cards more than one game shares.
-  const card = (id, title, body) => `<section class="st-card" id="st-${id}"><h2>${title}</h2>${forLine(id)}<div class="st-body">${body}</div></section>`;
-  const chips = list => `<div class="st-events">${list.map(([k, l]) => `<label class="st-chip"><input type="checkbox" data-k="alert_events.${k}"><span>${l}</span></label>`).join('')}</div>`;
+  // DONI-594: the explanation sits behind an (i) that shows on hover or focus, so the page reads as a list of labels.
+  const tip = t => t ? `<span class="st-tip" tabindex="0" role="note" aria-label="${E(t)}" data-tip="${E(t)}">i</span>` : '';
+  const when = k => k ? ` data-when="${k}"` : ''; // shown only while that switch is on
+  const sw = (key, label, hint, w) => `<label class="st-row"${when(w)}><span class="st-lbl">${label}${tip(hint)}</span><span class="st-sw"><input type="checkbox" role="switch" data-k="${key}"><i aria-hidden="true"></i></span></label>`;
+  const num = (key, label, hint, min, max, w) => `<label class="st-row"${when(w)}><span class="st-lbl">${label}${tip(hint)}</span><input class="st-in st-num" type="number" data-k="${key}" data-num min="${min}" max="${max}"></label>`;
+  const text = (key, label, hint, attrs, w) => `<label class="st-row"${when(w)}><span class="st-lbl">${label}${tip(hint)}</span><input class="st-in st-wide" data-k="${key}" ${attrs}></label>`;
+  const act = (label, hint, inner, w) => `<div class="st-row"${when(w)}><span class="st-lbl">${label}${tip(hint)}</span><span class="st-act">${inner}</span></div>`;
+  const btn = (d, l, gold) => `<button class="st-btn${gold ? ' st-gold' : ''}" data-do="${d}">${l}</button><span class="st-msg" data-msg="${d}"></span>`;
+  const card = (id, title, body, lead) => `<section class="st-card" id="st-${id}" data-tab="${ST_CARD_TAB[id]}"><h2>${title}</h2>${lead ? `<p class="st-desc">${lead}</p>` : ''}<div class="st-body">${body}</div></section>`;
+  const chips = (list, prefix) => `<div class="st-events">${list.map(([k, l]) => `<label class="st-chip"><input type="checkbox" data-k="${prefix}${k}"><span>${l}</span></label>`).join('')}</div>`;
+  const queues = act('Queues to auto-accept', 'Pick them on the Play page. Leave it at Any queue to accept every pop.', '<span class="st-val" data-queues></span><a class="st-btn" href="#/league/play">Play page</a>');
 
   function build() {
-    root.innerHTML = `<div class="st-wrap"><header class="st-head"><h1>Settings</h1><p>Everything queuePop can be told, in one place. Changes apply as you make them.</p>
+    root.innerHTML = `<div class="st-wrap"><header class="st-head"><h1>Settings</h1><p>Changes apply as you make them.</p>
         <label class="st-find"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg><input type="search" id="st-find" placeholder="Find a setting" aria-label="Find a setting" autocomplete="off" spellcheck="false"></label>
-        <p class="st-none" id="st-none" role="status" hidden></p></header>` +
-      `<div class="st-games" role="tablist" aria-label="Settings for">${[...GAMES, ['app', 'App', 'App', '']].map(([g, l, , logo]) => `<div class="st-game" data-tab="${g}" role="tab" tabindex="0" aria-selected="false">
+        <p class="st-none" id="st-none" role="status" hidden></p></header>
+      <div class="st-games" role="tablist" aria-label="Settings for">${[['app', 'App', 'App', ''], ...GAMES].map(([g, l, , logo]) => `<div class="st-game" data-tab="${g}" role="tab" tabindex="0" aria-selected="false">
           ${logo ? `<img src="${logo}" alt="">` : '<svg class="st-gear" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>'}<b class="st-gname">${l}</b>
           ${g === 'app' ? '' : `<label class="st-sw" title="Show or hide ${l} across queuePop"><input type="checkbox" role="switch" data-k="games_enabled.${g}" aria-label="Show ${l} in queuePop"><i aria-hidden="true"></i></label>`}
-          <p class="st-who" id="st-who-${g}">${g === 'app' ? 'Display, startup and updates' : ''}</p></div>`).join('')}</div>
-        <p class="st-hint st-tabhint">Pick a game to see its settings. Its switch shows or hides it across queuePop; what you set here is kept either way.</p>
-        <p class="st-offnote" id="st-offnote" role="status" hidden></p>` +
-      card('queue', 'Queue', `
-        ${sw('auto_accept', 'Auto-accept queue pops', 'Accepts League and TFT matches for you. Stays as you set it after a restart; the tray’s Pause is for right now only.')}
-        ${num('accept_delay_seconds', 'Accept delay', 'Seconds to wait before accepting a queue pop. 0 accepts at once.', 0, 10)}
-        <div class="st-row"><span class="st-lbl">Queues to auto-accept<small>Choose them on the Play page.</small></span><span class="st-act"><span id="st-queues" class="st-val"></span><a class="st-btn" href="#/league/play">Play page</a></span></div>`) +
-      card('champselect', 'Champ select', `
-        ${sw('champ_select.enabled', 'Auto pick and ban', 'Hovers, bans, picks and locks in from your champ select plan.')}
-        ${sw('champ_select.instant_lock', 'Lock in at once', 'When off, it locks in near the end of the timer instead.')}
-        ${num('champ_select.lock_in_at_seconds', 'Lock in with', 'Seconds left on the timer when it locks in.', 0, 30)}
-        ${sw('champ_select.trades.enabled', 'Champion trades', 'Asks teammates to swap when they have a champion you ranked higher.')}
-        ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
-        ${num('champ_select.aram.bench_delay', 'Bench grab delay', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3)}
-        ${sw('champ_select.smart_pick', 'Smart pick from my list', 'Auto pick still picks only from your list for the role, but tries first the one that scores best against this draft (from the stats crawler). Off picks in the order you wrote.')}
-        ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer. Drag it anywhere; it remembers.')}
-        ${sw('champ_select.auto_runes', 'Auto runes', 'Applies the recommended rune page when you lock in.')}`) +
-      card('deadlock', 'Deadlock', `
-        <label class="st-row"><span class="st-lbl">Deadlock account ID<small>Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.</small></span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="e.g. 123456789"></label>
-        <div class="st-row"><span class="st-lbl">In-game overlay<small id="st-dl-ov">Checking…</small></span><span class="st-act"><a class="st-btn" href="#/deadlock">Deadlock page</a></span></div>`) +
-      card('alerts', 'Alerts', `
-        <div class="st-row"><span class="st-lbl">Test a queue pop<small>Sends exactly what a real queue pop sends, through every channel that is on. Nothing is accepted.</small></span><span class="st-act"><button class="st-btn st-gold" data-do="test-alert">Test a queue pop</button><span class="st-msg" data-msg="test-alert"></span></span></div>
-        <div class="st-sub">Tell me when</div>
-        ${chips(EVENTS)}
-        <div data-only="league"><div class="st-sub st-sub2">League only</div>${chips(LEAGUE_EVENTS)}</div>
-        ${num('timeline_load_seconds', 'Loading screen allowance', 'Seconds the timeline adds for the loading screen when it says when your game starts.', 0, 300)}
-        ${sw('desktop_notifications', 'Windows notifications', 'A Windows notification for the events ticked above.')}
-        <div class="st-row"><span class="st-lbl">Test a notification</span><span class="st-act"><button class="st-btn" data-do="test-desktop">Send a test notification</button><span class="st-msg" data-msg="test-desktop"></span></span></div>
-        ${sw('discord_enabled', 'Discord', 'Posts to a Discord webhook, so Discord pushes it to your phone.')}
-        <label class="st-row"><span class="st-lbl">Webhook URL<small>Discord: channel settings › Integrations › Webhooks › Copy URL.</small></span><input class="st-in st-wide" data-k="webhook_url" placeholder="https://discord.com/api/webhooks/…"></label>
-        <label class="st-row"><span class="st-lbl">Discord user ID<small>Optional. Adds an @mention so the push is louder.</small></span><input class="st-in" data-k="user_id" placeholder="123456789012345678"></label>
-        <div class="st-row"><span class="st-lbl">Test Discord</span><span class="st-act"><button class="st-btn" data-do="test-discord">Send a test to Discord</button><span class="st-msg" data-msg="test-discord"></span></span></div>
+          <p class="st-who" id="st-who-${g}">${g === 'app' ? 'Alerts, phone, recording, display' : ''}</p></div>`).join('')}</div>
+      <p class="st-offnote" id="st-offnote" role="status" hidden></p>` +
+      // ---- App ----
+      card('notify', 'Notifications', `
+        ${sw('desktop_notifications', 'Windows notifications', 'A Windows notification for the moments you tick in each game’s Alerts.')}
+        ${sw('discord_enabled', 'Discord', 'Posts to a Discord channel, so Discord pushes it to your phone.')}
+        ${text('webhook_url', 'Webhook URL', 'In Discord: channel settings › Integrations › Webhooks › Copy URL.', 'placeholder="https://discord.com/api/webhooks/…"', 'discord_enabled')}
+        ${text('user_id', 'Your Discord user ID', 'Optional. Adds an @mention so the push is louder.', 'placeholder="123456789012345678"', 'discord_enabled')}
         ${sw('ntfy.enabled', 'Push with ntfy', 'The free ntfy app buzzes your phone even with the screen off. No Discord, no account.')}
-        <label class="st-row"><span class="st-lbl">ntfy topic<small>Subscribe to this topic in the ntfy app. Anyone who knows it can read your alerts, so keep it random.</small></span><span class="st-act"><input class="st-in" data-k="ntfy.topic" id="st-ntfy-topic" placeholder="queuepop-…"><button class="st-btn" data-do="ntfy-new">New topic</button></span></label>
-        <label class="st-row"><span class="st-lbl">ntfy server<small>Leave as ntfy.sh, or your own server.</small></span><input class="st-in st-wide" data-k="ntfy.server" data-url placeholder="https://ntfy.sh"></label>
-        <label class="st-row"><span class="st-lbl">ntfy access token<small>Only for a protected server.</small></span><input class="st-in st-wide" data-k="ntfy.token" type="password" autocomplete="off"></label>
-        <div class="st-row"><span class="st-lbl">Test ntfy</span><span class="st-act"><button class="st-btn" data-do="test-ntfy">Send a test push</button><span class="st-msg" data-msg="test-ntfy"></span></span></div>`) +
+        ${act('ntfy topic', 'Subscribe to this topic in the ntfy app. Anyone who knows it can read your alerts, so keep it random.', '<input class="st-in" data-k="ntfy.topic" id="st-ntfy-topic" placeholder="queuepop-…"><button class="st-btn" data-do="ntfy-new">New topic</button>', 'ntfy.enabled')}
+        ${text('ntfy.server', 'ntfy server', 'Leave as ntfy.sh, or your own server.', 'data-url placeholder="https://ntfy.sh"', 'ntfy.enabled')}
+        ${text('ntfy.token', 'ntfy access token', 'Only for a protected server.', 'type="password" autocomplete="off"', 'ntfy.enabled')}
+        ${sw('alert_events.disconnect', 'Tell me when the League client disconnects', 'For League and TFT: both run in the League client.')}
+        ${num('timeline_load_seconds', 'Loading screen allowance (s)', 'Seconds the queue timeline adds for the loading screen when it says when your game starts.', 0, 300)}
+        ${act('Try it', 'Test a queue pop sends exactly what a real one sends, through every channel that is on. Nothing is accepted.', btn('test-alert', 'Test a queue pop', true) + '<button class="st-btn" data-do="test-desktop">Windows</button><button class="st-btn" data-do="test-discord">Discord</button><button class="st-btn" data-do="test-ntfy">ntfy</button><span class="st-msg" data-msg="test-desktop" data-msg-alias="test-discord test-ntfy"></span>')}`,
+        'Where alerts go. Each game picks its moments under its own Alerts.') +
       card('companion', 'Phone companion', `
         ${sw('companion.enabled', 'Alarm my phone when the queue pops', 'A page on your home Wi-Fi. No app, no account.')}
-        ${num('companion.port', 'Port', 'Change it only if another program already uses 8420.', 1024, 65535)}
-        <div class="st-row"><span class="st-lbl">Alarm sound<small>What your phone plays when the queue pops.</small></span><span class="st-act">
-          <select class="st-in" data-k="companion.sound"><option value="chime">Chime</option><option value="ping">Ping</option><option value="arcade">Arcade</option><option value="siren">Siren (loud)</option><option value="custom">Custom file</option></select>
-          <button class="st-btn" data-do="preview-sound">Preview</button><button class="st-btn" data-do="pick-sound">Choose file…</button><span class="st-msg" id="st-sound-file"></span><span class="st-msg" data-msg="pick-sound" data-msg-alias="preview-sound"></span></span></div>
-        <div class="st-comp"><img id="st-qr" alt="Scan to open on your phone" hidden>
+        ${num('companion.port', 'Port', 'Change it only if another program already uses 8420.', 1024, 65535, 'companion.enabled')}
+        ${act('Alarm sound', 'What your phone plays when the queue pops.', `<select class="st-in" data-k="companion.sound"><option value="chime">Chime</option><option value="ping">Ping</option><option value="arcade">Arcade</option><option value="siren">Siren (loud)</option><option value="custom">Custom file</option></select>
+          <button class="st-btn" data-do="preview-sound">Preview</button><button class="st-btn" data-do="pick-sound">Choose file…</button><span class="st-msg" id="st-sound-file"></span><span class="st-msg" data-msg="pick-sound" data-msg-alias="preview-sound"></span>`, 'companion.enabled')}
+        <div class="st-comp" data-when="companion.enabled"><img id="st-qr" alt="Scan to open on your phone" hidden>
           <div><p id="st-comp-note" class="st-val"></p><p class="st-hint">Scan with your phone camera, tap Enable Alerts and keep the tab open. Same Wi-Fi only.</p>
-          <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`) +
-      card('recorder', 'Recorder (beta)', `
-        ${sw('recorder.enabled', 'Record game events', 'Keeps a timeline of each League and TFT game: your kills, deaths, assists, multikills, objectives and the result. See them under Recordings.')}
-        ${sw('recorder.video', 'Record video', 'Records your main screen while a game is in progress and cuts a clip around each moment. Needs ffmpeg; uses your graphics card when it can.')}
+          <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`,
+        'Your phone rings for League and TFT queue pops.') +
+      card('recorder', 'Recording (beta)', `
+        ${act('Recording', 'Turn it on per game, in that game’s tab.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/recordings">Open Recordings</a>')}
+        ${sw('recorder.video', 'Record video', 'Records your main screen during a recorded game and cuts a clip around each moment. Uses your graphics card when it can.')}
         <div class="st-row"><span class="st-lbl">ffmpeg<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
-        <label class="st-row"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.preset"><option value="720p30">720p, 30 fps</option><option value="1080p30">1080p, 30 fps</option><option value="1080p60">1080p, 60 fps</option></select></label>
-        <label class="st-row"><span class="st-lbl">Folder<small>Leave empty for queuePop's own folder.</small></span><input class="st-in st-wide" data-k="recorder.folder" placeholder="queuePop's recordings folder"></label>
+        <label class="st-row" data-when="recorder.video"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.preset"><option value="720p30">720p, 30 fps</option><option value="1080p30">1080p, 30 fps</option><option value="1080p60">1080p, 60 fps</option></select></label>
+        ${text('recorder.folder', 'Folder', 'Leave empty for queuePop’s own folder.', 'placeholder="queuePop’s recordings folder"')}
         ${num('recorder.cap_gb', 'Size limit (GB)', 'When videos pass this, the oldest are deleted first.', 1, 2000)}
-        <div class="st-row"><span class="st-lbl">Recordings</span><span class="st-act"><a class="st-btn" href="#/recordings">Open Recordings</a><button class="st-btn" data-do="rec-folder">Open folder</button><span class="st-msg" data-msg="rec-folder"></span></span></div>`) +
+        ${act('Files', '', btn('rec-folder', 'Open folder'))}`) +
       card('crawler', 'Stats crawler', `
-        <label class="st-row"><span class="st-lbl">Address<small>Where League and TFT stats come from. Leave empty for the default.</small></span><input class="st-in st-wide" data-k="crawler_url" data-url placeholder="${DEFAULT_CRAWLER}"></label>
+        ${text('crawler_url', 'Address', 'Where League and TFT stats come from. Leave empty for the default.', `data-url placeholder="${DEFAULT_CRAWLER}"`)}
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
         <div id="st-cr-grid" class="st-grid"></div>
         <details class="st-more" id="st-cr-keybox"><summary>Replace the Riot key</summary>
-        <div class="st-row"><span class="st-lbl">Get a new key<small>Riot’s developer portal: log in, then Regenerate API Key. A development key lasts 24 hours.</small></span><span class="st-act"><button class="st-btn" data-do="riot-dev">Open developer.riotgames.com</button></span></div>
-        <label class="st-row"><span class="st-lbl">New key<small>Starts with RGAPI-</small></span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
-        <label class="st-row"><span class="st-lbl">Admin token<small>The crawler's ADMIN_TOKEN. Used once, never stored.</small></span><input class="st-in st-wide" id="st-cr-token" type="password" autocomplete="off"></label>
-        <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div></details>`) +
-      card('display', 'App &amp; display', `
-        <label class="st-row"><span class="st-lbl">Text size<small>Scales the whole app. Ctrl + and Ctrl − step through these; Ctrl 0 goes back to 110%.</small></span><select class="st-in" data-k="ui_scale" data-scale>${UI_SCALES.map(v => `<option value="${v}">${Math.round(v * 100)}%</option>`).join('')}</select></label>
+        ${act('Get a new key', 'Riot’s developer portal: log in, then Regenerate API Key. A development key lasts 24 hours.', '<button class="st-btn" data-do="riot-dev">Open developer.riotgames.com</button>')}
+        <label class="st-row"><span class="st-lbl">New key${tip('Starts with RGAPI-')}</span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
+        <label class="st-row"><span class="st-lbl">Admin token${tip('The crawler’s ADMIN_TOKEN. Used once, never stored.')}</span><input class="st-in st-wide" id="st-cr-token" type="password" autocomplete="off"></label>
+        <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div></details>`,
+        'League and TFT tier lists, builds and matchups come from here.') +
+      card('display', 'Display and startup', `
+        <label class="st-row"><span class="st-lbl">Text size${tip('Scales the whole app. Ctrl + and Ctrl − step through these; Ctrl 0 goes back to 110%.')}</span><select class="st-in" data-k="ui_scale" data-scale>${UI_SCALES.map(v => `<option value="${v}">${Math.round(v * 100)}%</option>`).join('')}</select></label>
         ${sw('launch_at_login', 'Launch at login', 'Starts queuePop when you sign in to Windows.')}
         ${sw('start_minimized', 'Start in the tray', 'Opens to the tray icon instead of the window.')}
         ${sw('close_to_tray', 'Close to the tray', 'The window’s ✕ keeps queuePop running in the tray. When off, ✕ quits.')}
-        <div class="st-row"><span class="st-lbl">Keyboard shortcuts<small>Press ? anywhere to see them all.</small></span><span class="st-act"><button class="st-btn" data-do="show-keys">Show shortcuts</button></span></div>
-        <div class="st-row"><span class="st-lbl">Set-up tips on home<small>Bring back the set-up strip you hid.</small></span><span class="st-act"><button class="st-btn" data-do="reset-setup">Show them again</button><span class="st-msg" data-msg="reset-setup"></span></span></div>`) +
-      card('about', 'Updates &amp; about', `
+        ${act('Keyboard shortcuts', 'Press ? anywhere to see them all.', '<button class="st-btn" data-do="show-keys">Show shortcuts</button>')}
+        ${act('Set-up tips on home', 'Bring back the set-up strip you hid.', btn('reset-setup', 'Show them again'))}`) +
+      card('about', 'Updates and about', `
         <div class="st-row"><span class="st-lbl">Version<small id="st-upd-msg"></small></span><span class="st-act"><span id="st-ver" class="st-val"></span><button class="st-btn" data-do="check-update">Check for updates</button><span class="st-msg" data-msg="check-update"></span></span></div>
         <div class="st-row"><span class="st-lbl">Icon packs<small id="st-assets-msg"></small></span><span class="st-act"><button class="st-btn" data-do="refresh-assets">Download again</button><span class="st-msg" data-msg="refresh-assets"></span></span></div>
-        <div class="st-row"><span class="st-lbl">Config folder<small>config.json and your stats live here.</small></span><span class="st-act"><button class="st-btn" data-do="open-config">Open folder</button><span class="st-msg" data-msg="open-config"></span></span></div>
-        <div class="st-sub">Release notes</div><div id="st-notes" class="st-notes">Loading…</div>`) + `<div class="st-notfor" id="st-notfor"></div></div>`;
+        ${act('Config folder', 'config.json and your stats live here.', btn('open-config', 'Open folder'))}
+        <div class="st-sub">Release notes</div><div id="st-notes" class="st-notes">Loading…</div>`) +
+      // ---- League ----
+      card('league-queue', 'Queue', `
+        ${sw('auto_accept', 'Auto-accept queue pops', 'Accepts League matches for you. Stays as you set it after a restart; the tray’s Pause is for right now only.')}
+        ${num('accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'auto_accept')}
+        ${queues}`) +
+      card('league-alerts', 'Alerts', chips(LEAGUE_EVENTS, 'alert_events.'), 'Tell me when… <a href="#/settings#notify">Where alerts go</a>') +
+      card('champselect', 'Champ select', `
+        ${sw('champ_select.enabled', 'Auto pick and ban', 'Hovers, bans, picks and locks in from your champ select plan.')}
+        ${sw('champ_select.instant_lock', 'Lock in at once', 'When off, it locks in near the end of the timer instead.', 'champ_select.enabled')}
+        ${num('champ_select.lock_in_at_seconds', 'Lock in with (s left)', 'Seconds left on the timer when it locks in.', 0, 30)}
+        ${sw('champ_select.smart_pick', 'Smart pick from my list', 'Still picks only from your list for the role, but tries first the one that scores best against this draft.', 'champ_select.enabled')}
+        ${sw('champ_select.auto_runes', 'Auto runes', 'Applies the recommended rune page when you lock in.')}
+        ${sw('champ_select.trades.enabled', 'Champion trades', 'Asks teammates to swap when they have a champion you ranked higher.')}
+        ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
+        ${num('champ_select.aram.bench_delay', 'Bench grab delay (s)', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3, 'champ_select.aram.enabled')}
+        ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer.')}`) +
+      card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them under Recordings. Video and storage are in App › Recording.')) +
+      // ---- TFT ----
+      card('tft-queue', 'Queue', `
+        ${sw('tft.auto_accept', 'Auto-accept queue pops', 'Accepts TFT matches for you, separately from League.')}
+        ${num('tft.accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'tft.auto_accept')}
+        ${queues}`) +
+      card('tft-alerts', 'Alerts', chips(TFT_EVENTS, 'tft.alert_events.'), 'Tell me when… <a href="#/settings#notify">Where alerts go</a>') +
+      card('tft-record', 'Recording', sw('tft.record', 'Record TFT games', 'Keeps a timeline of each game and your placement. See them under Recordings. Video and storage are in App › Recording.')) +
+      // ---- Deadlock ----
+      card('deadlock-account', 'Account and overlay', `
+        <label class="st-row"><span class="st-lbl">Deadlock account ID${tip('Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.')}</span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="123456789"></label>
+        <div class="st-row"><span class="st-lbl">In-game overlay<small id="st-dl-ov">Checking…</small></span><span class="st-act"><a class="st-btn" href="#/deadlock">Deadlock page</a></span></div>`) +
+      `<div class="st-notfor" id="st-notfor"></div></div>`;
     root.querySelector('#st-find').addEventListener('input', e => find(e.target.value));
     // Ctrl+F on Settings goes to the find box.
     document.addEventListener('keydown', e => { if (!root.hidden && e.ctrlKey && !e.altKey && e.key.toLowerCase() === 'f') { e.preventDefault(); const f = root.querySelector('#st-find'); f.focus(); f.select(); } });
@@ -139,6 +145,7 @@ window.stTabOf = (section, current) => {
     root.addEventListener('input', onInput);
     root.addEventListener('change', onInput);
     root.addEventListener('click', onClick);
+    root.addEventListener('click', e => { if (e.target.closest('.st-tip')) e.preventDefault(); }, true); // an (i) inside a row's label never flips its switch
     // A tile is a tab; its switch is a separate control and doesn't change the tab.
     root.addEventListener('click', e => { const t = e.target.closest('.st-game'); if (t && !e.target.closest('.st-sw')) setTab(t.dataset.tab); });
     root.addEventListener('keydown', e => {
@@ -155,9 +162,9 @@ window.stTabOf = (section, current) => {
     let shown = 0;
     root.classList.toggle('st-searching', words.length > 0); // search looks across every tab
     root.querySelectorAll('.st-card').forEach(card => {
-      const whole = !words.length || has(card.querySelector('h2').textContent + ' ' + [...card.querySelectorAll('.st-g')].map(g => g.textContent).join(' ')); // "tft" finds every TFT card
+      const whole = !words.length || has(card.querySelector('h2').textContent + ' ' + (GN[card.dataset.tab] || card.dataset.tab)); // "tft" finds every TFT card
       let any = whole;
-      card.querySelectorAll('.st-row, .st-chip').forEach(r => { const hit = whole || has(r.textContent); r.classList.toggle('st-off', !hit); any ||= hit; });
+      card.querySelectorAll('.st-row, .st-chip').forEach(r => { const hit = whole || has(r.textContent + ' ' + [...r.querySelectorAll('.st-tip')].map(t => t.dataset.tip).join(' ')); r.classList.toggle('st-off', !hit); any ||= hit; });
       // Blocks that aren't settings (hints, the QR, the status grid, release notes) only show with their whole card.
       card.querySelectorAll('.st-hint, .st-comp, .st-grid, .st-sub, .st-notes').forEach(el => el.classList.toggle('st-off', !whole));
       card.querySelectorAll('details').forEach(d => { const hit = !!d.querySelector('.st-row:not(.st-off)'); if (!whole && hit) d.open = true; d.classList.toggle('st-off', !whole && !hit); });
@@ -173,7 +180,7 @@ window.stTabOf = (section, current) => {
     const c = QP.store.config || {};
     root.querySelectorAll('[data-k]').forEach(el => {
       let v = QP.store.get(el.dataset.k);
-      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray' || el.dataset.k === 'float_window' || el.dataset.k === 'auto_accept') v = v ?? true;
+      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray' || el.dataset.k === 'float_window' || el.dataset.k === 'auto_accept' || el.dataset.k === 'tft.auto_accept') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'companion.sound') v = v || 'chime';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
@@ -181,16 +188,20 @@ window.stTabOf = (section, current) => {
       if (el.type === 'checkbox') el.checked = !!v; else if (document.activeElement !== el) el.value = v ?? '';
     });
     const ids = c.allowed_queue_ids || [];
-    root.querySelector('#st-queues').textContent = ids.length ? `${ids.length} chosen queue${ids.length > 1 ? 's' : ''}` : 'Any queue';
+    root.querySelectorAll('[data-queues]').forEach(el => { el.textContent = ids.length ? `${ids.length} chosen queue${ids.length > 1 ? 's' : ''}` : 'Any queue'; });
+    // Rows that only matter while a switch is on stay out of the way until it is.
+    root.querySelectorAll('[data-when]').forEach(r => { r.hidden = !QP.store.get(r.dataset.when); });
     const inst = QP.store.get('champ_select.instant_lock') ?? true;
-    root.querySelector('[data-k="champ_select.lock_in_at_seconds"]').closest('.st-row').hidden = inst;
+    root.querySelector('[data-k="champ_select.lock_in_at_seconds"]').closest('.st-row').hidden = inst || !QP.store.get('champ_select.enabled');
+    const rec = [QP.store.get('recorder.enabled') && 'League', QP.store.get('tft.record') && 'TFT'].filter(Boolean);
+    root.querySelector('#st-rec-who').textContent = rec.length ? 'On for ' + rec.join(' and ') : 'Off for every game';
     const file = (c.companion || {}).sound_file || customSound;
     root.querySelector('#st-sound-file').textContent = (c.companion || {}).sound === 'custom' ? (file ? file.split(/[\\/]/).pop() : 'No file chosen') : '';
     applyTab();
   }
 
-  // DONI-591: one tab at a time. Cards the tab doesn't use are hidden (search still finds them); a game that's
-  // switched off keeps its tab and values, with one line saying so. Switching another game never moves this page.
+  // DONI-591/594: one tab at a time; search looks across all of them. A game that's switched off keeps its tab and
+  // values, with one line saying so. Switching another game never moves this page.
   let tab = null;
   const savedTab = () => { try { return localStorage.getItem('qp.settings.tab'); } catch { return null; } };
   function setTab(t) {
@@ -202,7 +213,7 @@ window.stTabOf = (section, current) => {
     applyTab();
   }
   function applyTab() {
-    const on = window.qpGames ? qpGames() : GAMES.map(g => g[0]), searching = root.classList.contains('st-searching');
+    const on = window.qpGames ? qpGames() : GAMES.map(g => g[0]);
     root.dataset.tab = tab;
     document.querySelectorAll('#world-nav a[href^="#/settings#"]').forEach(a => a.getAttribute('href') === '#/settings#' + tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
     root.querySelectorAll('.st-game').forEach(t => {
@@ -210,16 +221,12 @@ window.stTabOf = (section, current) => {
       t.classList.toggle('is-sel', sel); t.setAttribute('aria-selected', String(sel)); t.tabIndex = sel ? 0 : -1;
       t.classList.toggle('is-off', t.dataset.tab !== 'app' && !on.includes(t.dataset.tab));
     });
-    const cards = stTabCards(tab);
-    root.querySelectorAll('.st-card').forEach(c => c.classList.toggle('st-other', !cards.includes(c.id.slice(3))));
-    root.querySelectorAll('[data-only]').forEach(el => { el.hidden = !searching && tab !== el.dataset.only; });
+    root.querySelectorAll('.st-card').forEach(c => c.classList.toggle('st-other', c.dataset.tab !== tab));
     const off = tab !== 'app' && !on.includes(tab), note = root.querySelector('#st-offnote');
     note.hidden = !off;
     if (off) note.textContent = `${GN[tab]} is switched off, so these do nothing right now. They’re kept for when you switch it back on.`;
-    // What this game's tab leaves out, and why, grouped by reason.
-    const why = new Map();
-    for (const id of Object.keys(WHY)) { const r = WHY[id][tab]; if (r) why.set(r, [...(why.get(r) || []), TITLE[id]]); }
-    root.querySelector('#st-notfor').innerHTML = why.size ? `<b>Not for ${GN[tab]}</b>` + [...why].map(([r, ts]) => `<p><span>${ts.join(', ')}</span>${r}</p>`).join('') : '';
+    const miss = NOT_FOR[tab] || [];
+    root.querySelector('#st-notfor').innerHTML = miss.length ? `<b>Not for ${GN[tab]}</b>` + miss.map(([what, why]) => `<p><span>${what}</span>${why}</p>`).join('') : '';
     const dl = QP.store.get('deadlock_account_id');
     root.querySelector('#st-who-deadlock').textContent = dl ? 'Account ' + dl : 'No account set yet';
   }
@@ -242,7 +249,7 @@ window.stTabOf = (section, current) => {
     if (e.type === 'input' && el.tagName === 'INPUT' && el.type !== 'checkbox') return;
     QP.store.set(k, typeof v === 'string' && !el.dataset.url && el.tagName === 'INPUT' ? v.trim() : v);
     if (k === 'crawler_url') loadCrawler();
-    if (k === 'recorder.enabled') { if (!v) QP.store.set('recorder.video', false); loadRecorder(); } // video rides on event recording
+    if (k === 'recorder.enabled' || k === 'tft.record') { if (!QP.store.get('recorder.enabled') && !QP.store.get('tft.record')) QP.store.set('recorder.video', false); loadRecorder(); } // video rides on a recorded game
     if (k === 'ntfy.enabled' && v && !QP.store.get('ntfy.topic')) root.querySelector('[data-do="ntfy-new"]').click(); // DONI-425
     if (k === 'webhook_url') say('test-discord', v && !/^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+\/?$/.test(String(v).trim()) ? 'That isn’t a Discord webhook address' : '', false);
     if (k === 'companion.enabled' || k === 'companion.port') setTimeout(loadCompanion, 900); // the host restarts it on save
@@ -374,9 +381,9 @@ window.stTabOf = (section, current) => {
     const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
     let s = null; try { s = await bridge().recorder_status(); } catch {}
     const f = s && s.ffmpeg;
-    const events = !!QP.store.get('recorder.enabled');
+    const events = !!(QP.store.get('recorder.enabled') || QP.store.get('tft.record'));
     el.textContent = stFfmpegLine(f, events);
-    sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on Record game events first' : '';
+    sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : '';
   }
   async function loadAbout() {
     loadAssets();
@@ -391,18 +398,18 @@ window.stTabOf = (section, current) => {
   // --- route entry -----------------------------------------------------------
   async function show(section) {
     if (!built) build();
-    tab = stTabOf(section, tab) || tab || (ST_TABS.includes(savedTab()) ? savedTab() : (window.qpGames ? qpGames()[0] : 'league'));
+    tab = stTabOf(section) || tab || (ST_TABS.includes(savedTab()) ? savedTab() : 'app');
     if (!QP.store.config) { try { await QP.store.load(); } catch (err) { console.error('settings: config load', err); } }
     // Without a config every edit would be dropped, so say so instead of looking editable.
     const lead = root.querySelector('.st-head p');
-    lead.textContent = QP.store.config ? 'Everything queuePop can be told, in one place. Changes apply as you make them.' : 'Couldn’t read your settings, so changes won’t save right now. Reopen Settings to try again.';
+    lead.textContent = QP.store.config ? 'Changes apply as you make them.' : 'Couldn’t read your settings, so changes won’t save right now. Reopen Settings to try again.';
     lead.classList.toggle('bad', !QP.store.config);
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
     if (!section || ST_TABS.includes(section)) setTab(tab); // the address and the page row name the tab
     if (bridge()) { loadAccount(); loadOverlay(); loadCompanion(); loadCrawler(); loadAbout(); loadRecorder(); }
     clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 60000); // /status is the crawler's slow admin view: once a minute while Settings shows // stops once you leave Settings
-    if (section && !ST_TABS.includes(section)) requestAnimationFrame(() => document.getElementById('st-' + section)?.scrollIntoView({ block: 'start' }));
+    if (section && !ST_TABS.includes(section)) requestAnimationFrame(() => document.getElementById('st-' + stCard(section))?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);
   }
   // Every control as {label, hint, id, section, key} for the global search (palette.js); builds the page if it isn't yet.
@@ -411,7 +418,7 @@ window.stTabOf = (section, current) => {
     return [...root.querySelectorAll('.st-row, .st-chip')].map(r => {
       const lbl = r.querySelector('.st-lbl'), ctl = r.querySelector('[data-k], [data-do], input, select'), card = r.closest('.st-card');
       const label = lbl ? (lbl.firstChild?.textContent || '').trim() : r.textContent.trim();
-      return { label, hint: lbl?.querySelector('small')?.textContent.trim() || '', id: card.id.slice(3), section: card.querySelector('h2').textContent, key: ctl?.dataset.k || '' };
+      return { label, hint: lbl?.querySelector('.st-tip')?.dataset.tip || lbl?.querySelector('small')?.textContent.trim() || '', id: card.id.slice(3), section: `${SECTIONS.find(x => x[0] === card.dataset.tab)?.[1] || ''} › ${card.querySelector('h2').textContent}`, key: ctl?.dataset.k || '' };
     }).filter(x => x.label && x.key);
   }
   window.settingsView = { show, index, sections: SECTIONS, row: () => SECTIONS.map(([id, l]) => `<a href="#/settings#${id}">${l}</a>`).join('') };

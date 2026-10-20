@@ -4,6 +4,7 @@
 // crash). At game end it cuts a clip around each marked event with stream copy (no re-encode) and keeps the folder under the
 // size cap, oldest first. Phase 1 has no audio, no manual clip hotkey, no trim/share.
 const fs = require("fs");
+const { forGame } = require("./champ-config");
 const path = require("path");
 const { execFile, spawn } = require("child_process");
 
@@ -82,8 +83,8 @@ async function probe(force) {
 function createVideo(ctx) {
   let proc = null, startedAt = 0, file = null, starting = false;
   async function start(rec) {
-    const cfg = ctx.getConfig().recorder || {};
-    if (proc || starting || !cfg.enabled || !cfg.video) return;
+    const full = ctx.getConfig(), cfg = full.recorder || {};
+    if (proc || starting || !forGame(full, rec.game).record || !cfg.video) return; // DONI-594: that game's recording is on
     starting = true; let p; try { p = await probe(); } finally { starting = false; }
     if (proc) return;
     if (!p.found) { ctx.log("recorder video: ffmpeg not found on PATH"); return; }
