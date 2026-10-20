@@ -11,6 +11,7 @@
     "backfill-patch": "node src/main.js backfill-patch",
     "backup": "node src/main.js backup",
     "backfill-length": "node src/main.js backfill-length",
+    "repair-carries": "node src/main.js repair-carries",
     "backfill-comps": "node src/main.js backfill-comps",
     "backfill-players": "node src/main.js backfill-players",
     "vacuum": "node src/main.js vacuum",

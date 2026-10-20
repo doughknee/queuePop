@@ -61,6 +61,10 @@ if (process.argv[2] === "backfill-length") {
   log("backfill-length", JSON.stringify(jobs.backfillDuration(db)), "- now run: npm run aggregate");
   process.exit(0);
 }
+if (process.argv[2] === "repair-carries") {
+  log("repair-carries", JSON.stringify(jobs.repairCarries(db)), "- the next aggregation pass picks it up");
+  process.exit(0);
+}
 if (process.argv[2] === "backfill-comps") {
   log("backfill-comps", JSON.stringify(jobs.backfillComps(db)), "- now run: npm run aggregate");
   process.exit(0);

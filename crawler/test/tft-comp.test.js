@@ -34,9 +34,10 @@ test("backfill-comps re-keys boards from raw; rows without raw keep their key", 
   const raw = { info: { participants: [{ puuid: "a", traits: [T("Invoker", 4, 2)], units: [U("Ahri", 2, 4, 3)] }] } };
   db.prepare("INSERT INTO matches (id, game, region, status, raw) VALUES ('M', 'tft', 'na1', 'done', ?), ('N', 'tft', 'na1', 'done', NULL)").run(zlib.gzipSync(JSON.stringify(raw)));
   db.prepare("INSERT INTO tft_participants (match_id, puuid, comp) VALUES ('M', 'a', 'Invoker'), ('N', 'b', 'old')").run();
-  db.prepare("INSERT INTO tft_participants (match_id, puuid, comp) VALUES ('N', 'c', 'Exec,Azir')").run();
-  assert.deepStrictEqual(backfillComps(db), { matches: 1, boards: 1, stripped: 1 });
-  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id, puuid").all().map((r) => r.comp), ["Ahri", "old", "Azir"]);
+  db.prepare("INSERT INTO tft_participants (match_id, puuid, comp, board) VALUES ('N', 'c', 'DA_18_Invoker,DA_18_Lunar', '[[\"Azir\",2,[\"a\",\"b\"]],[\"Zyra\",3,[\"c\"]]]')").run();
+  assert.deepStrictEqual(backfillComps(db), { matches: 1, boards: 1, repaired: 2 });
+  // rows without raw: the carry comes from the stored board (Azir holds the most items); no board -> "none"
+  assert.deepStrictEqual(db.prepare("SELECT comp FROM tft_participants ORDER BY match_id, puuid").all().map((r) => r.comp), ["Ahri", "none", "Azir"]);
 });
 
 test("/tft/meta: ranked set data, icon URLs, cached a day, stale copy on a CDragon failure", async () => {
