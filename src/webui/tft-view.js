@@ -172,7 +172,7 @@ window.createTftView = function (host) {
     if (!el.isConnected) return;
     const r = info.connected && info.ranked && info.ranked.tft;
     el.querySelector('.ts-rank').innerHTML = `<small>Your TFT${info.connected && info.name ? ' · ' + esc(info.name) : ''}</small>`
-      + (!info.connected ? '<strong>Client not connected</strong>' : r ? `<strong>${rankText(r)}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>');
+      + (!info.connected ? '<strong>Client not connected</strong><span>Open the League client to see your rank and last games.</span>' : r ? `<strong>${rankText(r)}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>');
     if (!list.length) return;
     const avg = list.reduce((s, g) => s + g.placement, 0) / list.length, top4 = list.filter((g) => g.placement <= 4).length;
     el.querySelector('.ts-form').innerHTML = `<small>Last ${list.length} · avg ${avg.toFixed(2)} · ${top4} top 4</small><div class="ts-places">${list.map((g) => `<a class="ts-place p${g.placement <= 1 ? 1 : g.placement <= 4 ? 4 : 8}" href="#/tft/history" title="${esc(QUEUES[g.queueId] || 'TFT')}">${g.placement}</a>`).join('')}</div>`;
