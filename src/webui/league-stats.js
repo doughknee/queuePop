@@ -38,7 +38,7 @@ async function lgNames(patch) {
 const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, role });
 const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} Check its address in <a href="#/settings#crawler">Settings ↗</a>. The rest of the League world still works.</p>`;
 
-// --- Search: champions jump to their page, a Riot ID opens the account page (yours) or OP.GG (anyone else) ---
+// --- Search: champions jump to their page, a Riot ID opens your account page or anyone's summoner page (league-players.js) ---
 function lgSearch() {
   return `<div class="lg-search"><label class="lg-visually-hidden" for="lg-search">Search League</label><input id="lg-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a champion or a Riot ID (name#tag)" value="${lgEsc(lg.q)}" aria-controls="lg-results"><div id="lg-results" class="lg-results" aria-live="polite" ${lg.q ? '' : 'hidden'}>${lg.q ? lgResults(lg.q) : ''}</div></div>`;
 }
@@ -52,9 +52,8 @@ function lgResults(q) {
   if (champs.length) out.push(`<div class="lg-hits"><span class="lg-kicker">Champions</span>${champs.map(c => `<a class="lg-hit" href="#/league/champion/${c.id}">${lgIcon(c.id)}<span>${lgEsc(c.name)}</span></a>`).join('')}</div>`);
   if (mine) out.push(`<div class="lg-hits"><span class="lg-kicker">Summoner</span><a class="lg-hit" href="#/league/account">${s.icon ? lgImg(s.icon, '', 'lg-icon') : ''}<span>${lgEsc(s.name)}<small>#${lgEsc(s.tag)} · your account</small></span></a></div>`);
   else if (t.includes('#') || !champs.length) {
-    const [name, tag = ''] = q.trim().split('#'), region = s?.region || 'na';
-    const url = `https://op.gg/lol/summoners/${encodeURIComponent(region)}/${encodeURIComponent(name)}${tag ? '-' + encodeURIComponent(tag) : ''}`;
-    out.push(`<div class="lg-hits"><span class="lg-kicker">Summoner</span><button class="lg-hit" data-lg-ext="${lgEsc(url)}"><span>${lgEsc(q.trim())}<small>${tag ? 'look up on OP.GG ↗' : 'add #tag to look up a Riot ID'}</small></span></button></div>`);
+    const [name, tag = ''] = q.trim().split('#'), region = lgRegionCode(lg.region !== 'all' ? lg.region : s?.region);
+    out.push(`<div class="lg-hits"><span class="lg-kicker">Summoner</span>${tag ? `<a class="lg-hit" href="#/league/summoner/${lgRiotSlug(name + '#' + tag)}/${region}"><span>${lgEsc(q.trim())}<small>open their page · ${region.toUpperCase()}</small></span></a>` : `<span class="lg-hit"><span>${lgEsc(q.trim())}<small>add #tag to look up a Riot ID</small></span></span>`}</div>`);
   }
   return out.join('') || '<p class="lg-wait">No match.</p>';
 }
