@@ -2,6 +2,7 @@
 //   node src/main.js             crawl + serve
 //   node src/main.js aggregate   rebuild all stats_* now and exit
 //   node src/main.js backfill-patch  re-parse patch/set from stored raw for '?' rows, drop stale '?' stats, exit
+//   node src/main.js backfill-modes  give flex (440) etc. their "-flex" patch suffix, mark those patches dirty (DONI-596), exit
 //   node src/main.js backup       one VACUUM INTO BACKUP_DIR now (keeps the newest BACKUP_KEEP), exit
 //   node src/main.js backfill-length  matches.duration from stored raw (D6 length buckets), exit
 //   node src/main.js backfill-comps  re-key TFT boards with the current comp rule from stored raw (DONI-502), exit
@@ -22,8 +23,9 @@ const cfg = {
   minTier: (env.MIN_TIER || "EMERALD").toUpperCase(),
   dbPath: env.DB_PATH || "data/crawler.db",
   port: Number(env.PORT) || 47900,
-  queues: (env.QUEUES || "420,440,450,1100").split(",").map(Number), // 450 = ARAM (D13), capped by ARAM_SHARE
-  aramShare: Number(env.ARAM_SHARE ?? 0.1),
+  // 450 ARAM (D13), 400 normal draft, 480/490 swiftplay (DONI-596): capped by ARAM_SHARE / NORMAL_SHARE / SWIFT_SHARE
+  queues: (env.QUEUES || "420,440,450,400,480,490,1100").split(",").map(Number),
+  shares: { 450: Number(env.ARAM_SHARE ?? 0.1), 400: Number(env.NORMAL_SHARE ?? 0.05), 480: Number(env.SWIFT_SHARE ?? 0.05) },
   aggregateEveryMin: Number(env.AGGREGATE_EVERY_MIN ?? 60),
   retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
@@ -50,6 +52,10 @@ if (process.argv[2] === "aggregate") {
 }
 if (process.argv[2] === "backfill-patch") {
   log("backfill-patch", JSON.stringify(jobs.backfillPatch(db)), "- now run: npm run aggregate");
+  process.exit(0);
+}
+if (process.argv[2] === "backfill-modes") {
+  log("backfill-modes", JSON.stringify(jobs.backfillModes(db)), "- the next aggregation pass rebuilds those patches");
   process.exit(0);
 }
 if (process.argv[2] === "backup") {
@@ -84,7 +90,7 @@ const onAuthFail = (status, msg, used) => {
   if (db_.keyHealth(db, cfg.key).valid) log(`Riot key rejected (${status} ${msg}): crawl paused until a new key is posted to /admin/key`);
   try { db_.markKeyBad(db, cfg.key, `${status} ${msg}`, Date.now(), used); } catch (e) { log(`key health: ${e.message}`); }
 };
-const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, aramShare: cfg.aramShare, timelineSample: cfg.timelineSample };
+const ctx = { db, riot: createClient({ key: () => db_.riotKey(db, cfg.key).key, base: cfg.base, limiter, log, onAuthFail }), minTier: cfg.minTier, queues: cfg.queues, shares: cfg.shares, timelineSample: cfg.timelineSample };
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
 const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: () => db_.keyHealth(db, cfg.key).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
@@ -117,7 +123,7 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
     forever(`matches ${region}`, async () => {
       let did = false;
       // A match per game per pass; only ask for new ids when there's nothing left to fetch.
-      for (const g of games) did = (await jobs.fetchOne(ctx, g, region)) || (g === "lol" && (await jobs.aramIds(ctx, region))) || (await jobs.ids(ctx, g, region)) || did;
+      for (const g of games) did = (await jobs.fetchOne(ctx, g, region)) || (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.ids(ctx, g, region)) || did;
       return did;
     }, 60000);
   }

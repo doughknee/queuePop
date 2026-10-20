@@ -39,7 +39,8 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const [, tiers, headers] = await get("/lol/tiers?region=na1&bracket=emerald");
     assert.strictEqual(headers.get("access-control-allow-origin"), "*");
     assert.strictEqual(tiers.patch, "16.20");
-    assert.strictEqual(tiers.matches, 3);
+    assert.strictEqual(tiers.matches, 2, "solo only: the flex fixture lives under 16.20-flex (DONI-596)");
+    assert.strictEqual((await get("/lol/tiers?region=na1&queue=440"))[1].matches, 1);
     assert.ok(tiers.champions.length > 0, "non-empty tier list");
     const champ = tiers.champions[0];
     const [, page] = await get(`/lol/champion/${champ.champion}?role=${champ.role}`);

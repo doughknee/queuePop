@@ -4,7 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
-const { TIERS, nextAggregation } = require("./jobs");
+const { TIERS, nextAggregation, MODES, MODE_RE, basePatch } = require("./jobs");
 const { getMeta, setMeta, riotKey, keyHealth } = require("./db");
 const champ = require("./agg-champion");
 const win = require("./agg-window");
@@ -23,16 +23,20 @@ const dec = (s) => { try { return decodeURIComponent(s); } catch { throw bad("ma
 // at ~1,000 matches/h; TFT matches = boards / 8), else the patch with the most matches, so a new patch doesn't take over the app
 // with a handful of games. /patches lists every patch newest first plus counts, minMatches and that default.
 const MIN_MATCHES = { lol: 2000, tft: 1000 };
+const MODE_NAMES = ["flex", "aram", "normal", "swift"];
+// ?queue= on League stats: queue id or name -> patch suffix; solo/duo (420, "ranked") is the plain patch
+const QUEUE_SFX = { ...MODES, ranked: "", solo: "", ...Object.fromEntries(MODE_NAMES.map((m) => [m, "-" + m])) };
+const SFX_QUEUE = { "-flex": 440, "-aram": 450, "-normal": 400, "-swift": 480 };
 const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATCHES[game]) || [...list].sort((x, y) => counts[y] - counts[x])[0] || null;
 function patches(db) {
   const counts = (t, col, per) => Object.fromEntries(db.prepare(`SELECT patch, sum(${col}) n FROM ${t} GROUP BY patch`).all()
     .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
-  const all = counts("stats_lol_matches", "matches", 1);
-  // ARAM rows live under "<patch>-aram" (D13): listed apart as aram, counted per plain patch
-  const aramC = Object.fromEntries(Object.entries(all).filter(([p]) => /-aram$/.test(p)).map(([p, n]) => [p.replace(/-aram$/, ""), n]));
-  const c = { lol: Object.fromEntries(Object.entries(all).filter(([p]) => !/-aram$/.test(p))), tft: counts("stats_tft_boards", "boards", 8), aram: aramC };
-  const lol = Object.keys(c.lol).sort(byVersion), tft = Object.keys(c.tft).sort(byVersion), aram = Object.keys(aramC).sort(byVersion);
-  return { lol, tft, aram, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lol, c.lol), tft: pickPatch("tft", tft, c.tft) } };
+  // League modes live under "<patch>-<mode>" (D13, DONI-596): lol is solo/duo; flex, aram, normal and swift are listed apart,
+  // counted per plain patch
+  const c = { lol: {}, tft: counts("stats_tft_boards", "boards", 8), ...Object.fromEntries(MODE_NAMES.map((m) => [m, {}])) };
+  for (const [p, n] of Object.entries(counts("stats_lol_matches", "matches", 1))) (c[MODE_RE.exec(p)?.[1] || "lol"][basePatch(p)] = n);
+  const lists = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Object.keys(v).sort(byVersion)]));
+  return { ...lists, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lists.lol, c.lol), tft: pickPatch("tft", lists.tft, c.tft) } };
 }
 
 // WHERE clause for ?patch&region&bracket. bracket = minimum tier ("emerald" = Emerald and above).
@@ -55,15 +59,20 @@ function where(q, patch) {
 function head(db, q, game, windowed = false) {
   const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
   const ps = patches(db);
-  // ?queue=450|aram (League): the same patch's ARAM rows, stored under "<patch>-aram"; patch in the response keeps the suffix
-  const aram = game === "lol" && (["450", "aram"].includes(String(q.queue || "").toLowerCase()) || /-aram$/.test(q.patch || ""));
-  if (game === "lol" && q.queue && !aram && !["420", "440", "ranked"].includes(String(q.queue).toLowerCase())) throw bad("queue must be ranked (420/440) or aram (450)");
-  const base = (q.patch || "").replace(/-aram$/, "") || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
-  const patch = aram && base ? base + "-aram" : base;
+  // ?queue= (League): 420 solo (default), 440 flex, 450 ARAM, 400 normal, 480/490 swiftplay, or a name; that mode's rows live
+  // under "<patch>-<mode>" and patch in the response keeps the suffix. A suffixed ?patch picks its mode too.
+  let sfx = "";
+  if (game === "lol") {
+    const k = String(q.queue || "").toLowerCase();
+    if (k && !Object.hasOwn(QUEUE_SFX, k)) throw bad("queue must be 420 (solo), 440 (flex), 450 (aram), 400 (normal) or 480/490 (swift)");
+    sfx = k ? QUEUE_SFX[k] : (MODE_RE.exec(q.patch || "") || [""])[0];
+  }
+  const base = basePatch(q.patch) || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
+  const patch = sfx && base ? base + sfx : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
   const days = windowed ? win.days(q) : null;
-  return { patch, ...(aram && { queue: 450 }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
+  return { patch, ...(sfx && { queue: SFX_QUEUE[sfx] }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
@@ -94,8 +103,8 @@ function lolTiers(db, q = {}) {
 // games/wins stay the raw totals (the sample). Returns null when it doesn't apply.
 function regionWeighted(db, q, w, a, M, B, C) {
   if (q.region && q.region !== "all") return null;
-  // the weights are seeded Emerald+ ranked players: a bracket filter or ARAM would give a tiny region its full weight (Q review 2)
-  if ((q.bracket && q.bracket !== "all") || /-aram$/.test(a[0] || "")) return null;
+  // the weights are seeded Emerald+ solo players: a bracket filter or another mode would give a tiny region its full weight (Q review 2)
+  if ((q.bracket && q.bracket !== "all") || MODE_RE.test(a[0] || "")) return null;
   const pop = getMeta(db, "regionWeights")?.lol;
   const mt = Object.fromEntries(db.prepare(`SELECT region, sum(matches) n FROM ${M.t} WHERE ${w}${M.d} GROUP BY region`).all(...a, ...M.da).map((r) => [r.region, r.n]));
   const regions = Object.keys(mt).filter((r) => mt[r] > 0 && pop?.[r]);

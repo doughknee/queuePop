@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS lol_bans (match_id TEXT, team INT, champion INT);
 CREATE TABLE IF NOT EXISTS tft_participants (
   match_id TEXT, puuid TEXT, placement INT, tier TEXT, comp TEXT, traits TEXT, units TEXT, augments TEXT);
 CREATE INDEX IF NOT EXISTS tft_participants_match ON tft_participants (match_id);
+-- DONI-596: capped-mode discovery (jobs.capped): players seen in ARAM/normal/swift matches, asked per queue
+CREATE TABLE IF NOT EXISTS mode_players (puuid TEXT, region TEXT, queue INT, asked_at INT, PRIMARY KEY (puuid, queue));
+CREATE INDEX IF NOT EXISTS mode_players_due ON mode_players (region, queue, asked_at);
 CREATE INDEX IF NOT EXISTS tft_participants_puuid ON tft_participants (puuid); -- /tft/leaderboard crawled stats
 
 CREATE TABLE IF NOT EXISTS stats_lol_matches (patch TEXT, region TEXT, bracket TEXT, matches INT);

@@ -5,7 +5,7 @@
 const LG_ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 const LG_ROLE = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'Bot', utility: 'Support' };
 const LG_KEY = 'queuepop-league-stats-v1';
-const lg = { patch: '', region: 'all', bracket: 'all', days: '', queue: '', aramOk: false, role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
+const lg = { patch: '', region: 'all', bracket: 'all', days: '', queue: '', modeN: {}, role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
 try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'days', 'queue', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
 const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, days: lg.days, queue: lg.queue, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
 
@@ -35,7 +35,11 @@ const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/posit
 async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
-const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, ...(lg.queue ? { queue: '450', role: '' } : { role }) });
+// DONI-596: League modes, [lg.queue, tab label, crawler queue id]; the crawler's /patches counts each under the same key ('' = lol).
+const LG_MODES = [['', 'Ranked Solo', '420'], ['flex', 'Flex', '440'], ['aram', 'ARAM', '450'], ['normal', 'Normal', '400'], ['swift', 'Swiftplay', '480']];
+const LG_MODE_OF = { 440: 'flex', 450: 'aram', 400: 'normal', 480: 'swift', 490: 'swift' }; // a game's queueId -> mode ('' = solo)
+const lgMode = (q = lg.queue) => LG_MODES.find(m => m[0] === q) || LG_MODES[0];
+const lgParams = (role = lg.role, q = lg.queue) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, queue: lgMode(q)[2], role: q === 'aram' ? '' : role });
 // A failed fetch says the crawler is offline; anything else is a bug on the page and says so (and logs the stack).
 const lgBroke = (where, e) => { console.error(where, e); return '<p class="lg-offline">Something broke on this page. The stats crawler answered; reload with Ctrl+R, and if it stays, the log has the details.</p>'; };
 const lgFail = (where, e, what = 'the stats crawler did not answer.') => e?.fetch ? lgOffline(what) : lgBroke(where, e);
@@ -117,9 +121,12 @@ function lgSpark(daily) {
 const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+'], ['grandmaster', 'Grandmaster+'], ['challenger', 'Challenger']];
 // Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
-// DONI-565: Ranked (solo/duo) or ARAM. ARAM has no lanes, so the page drops lane tabs and the lane column (.lg-aram).
-// DONI-595: the mode tabs show whenever there is ARAM data; a thin sample says so on the tab instead of hiding it.
-const lgQueueTabs = () => lg.aramOk ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Game mode">${[['', 'Ranked'], ['aram', lg.aramN < 1000 ? `ARAM <small>${lgN(lg.aramN)}</small>` : 'ARAM']].map(([v, t]) => `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}"${v && lg.aramN < 1000 ? ` title="Only ${lgN(lg.aramN)} ARAM games this patch so far: read these as a rough guide"` : ''}>${t}</button>`).join('')}</div>` : '';
+// DONI-565/596: Ranked Solo, Flex, ARAM, Normal, Swiftplay. ARAM has no lanes, so the page drops lane tabs and the lane column (.lg-aram).
+// DONI-595: a mode's tab shows whenever it has data (or is picked); a thin sample (< 1,000 games) says so on the tab instead of hiding it.
+const lgQueueTabs = () => {
+  const tabs = LG_MODES.filter(([v]) => !v || lg.modeN[v] > 0 || lg.queue === v);
+  return tabs.length > 1 ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Game mode">${tabs.map(([v, t]) => { const n = lg.modeN[v] || 0, thin = v && n < 1000; return `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}"${thin ? ` title="Only ${lgN(n)} ${t} games this patch so far: read these as a rough guide"` : ''}>${t}${thin ? ` <small>${lgN(n)}</small>` : ''}</button>`; }).join('')}</div>` : '';
+};
 function lgFilters(withRole = true, lead = '', nums = withRole) {
   const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank', days: 'Window' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
@@ -132,8 +139,7 @@ async function lgFillPatches(token) {
     const p = await statsApi.patches(), def = p.default?.lol || (p.lol || [])[0];
     const sel = token === lg.token && document.querySelector('[data-lg-filter=patch]');
     if (sel) sel.innerHTML = (p.lol || []).map(v => `<option value="${v}" ${(lg.patch || def) === v ? 'selected' : ''}>Patch ${v}</option>`).join('');
-    lg.aramN = Math.max(0, ...Object.values(p.counts?.aram || {}));
-    lg.aramOk = lg.aramN > 0 || !!lg.queue;
+    lg.modeN = Object.fromEntries(LG_MODES.slice(1).map(([v]) => [v, Math.max(0, ...Object.values(p.counts?.[v] || {}))]));
     const q = token === lg.token && document.getElementById('lg-queues');
     if (q) q.innerHTML = lgQueueTabs();
   } catch {}
@@ -216,7 +222,7 @@ async function lgFillTiers(token, retried = false) {
     }
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
-    document.getElementById('lg-meta').innerHTML = `${lg.queue ? 'ARAM' : LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
+    document.getElementById('lg-meta').innerHTML = `${lg.queue ? lgMode()[1] : LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
   } catch (e) {
     console.error('tier list render failed', e);
     if (box()) box().innerHTML = '<p class="lg-offline">The tier list could not be drawn from this answer. Change a filter to try again.</p>';
@@ -242,7 +248,7 @@ function lgMount(page, fill) {
 function leagueRift() {
   lgMount('', t => { lgFillTiers(t); if (leagueLive.summoner) lgFillForm(t); });
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
-  return `<div class="lg-page${lg.queue ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Tier list</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>${lgYou()}`)}
+  return `<div class="lg-page${lg.queue === 'aram' ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Tier list</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>${lgYou()}`)}
     ${lgFilters()}<div id="lg-tiers"><p class="lg-wait">Loading the tier list…</p><div class="qp-skel" aria-hidden="true">${'<i></i>'.repeat(12)}</div></div>${lgTierRule}</div>`;
 }
 
@@ -298,8 +304,8 @@ async function lgExpandMatch(btn) {
   more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div><dt>Kills + assists</dt><dd>${g.kills + g.assists}</dd></div><div><dt>Deaths</dt><dd>${g.deaths}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>${g.gameId ? ` <a href="#/league/match/${lgMatchId(g.gameId)}">Open the full match ↗</a>` : ''}`;
   const slot = document.getElementById('lg-meta-' + btn.dataset.lgMatch);
   try {
-    // review #122: the game's own queue decides ARAM vs ranked numbers, not the tier list's toggle
-    const data = await statsApi.tiers(g.queueId === 450 ? { ...lgParams(), queue: '450', role: '' } : { ...lgParams(LG_ROLES.includes(role) ? role : 'all'), queue: '' });
+    // review #122: the game's own queue decides which mode's numbers, not the tier list's toggle (unknown queues read solo)
+    const data = await statsApi.tiers(lgParams(LG_ROLES.includes(role) ? role : 'all', LG_MODE_OF[g.queueId] || ''));
     const rows = leagueTierRows(data.champions), r = rows.filter(x => x.champion === Number(g.championId)).sort((a, b) => b.games - a.games)[0];
     slot.innerHTML = `<dt>${lgEsc(c.name)} ${LG_ROLE[role] || ''} · ${lgEsc(data.patch)}${[lg.region !== 'all' ? lg.region.replace(/\d+$/, '').toUpperCase() : '', lg.bracket !== 'all' ? (LG_BRACKETS.find(b => b[0] === lg.bracket) || [])[1] : '', lg.days ? (LG_WINDOWS.find(w => w[0] === lg.days) || [])[1] : ''].filter(Boolean).map(x => ' · ' + lgEsc(x)).join('')}</dt><dd${r?.lowSample ? ' class="low"' : ''}>${r ? `${lgTier(r.tier, r.lowSample)} ${lgPct(r.winRate)} <small>${lgN(r.games)} games</small>` : 'No crawler games yet'}</dd>`;
   } catch { slot.innerHTML = `<dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Stats offline</dd>`; }
@@ -327,7 +333,7 @@ document.addEventListener('click', e => {
   const ext = t.closest('[data-lg-ext]');
   if (ext) { const a = window.pywebview?.api; a?.open_external ? a.open_external(ext.dataset.lgExt) : window.open(ext.dataset.lgExt, '_blank', 'noopener'); return; }
   const queue = t.closest('[data-lg-queue]');
-  if (queue) { lg.queue = queue.dataset.lgQueue; lgSave(); document.querySelectorAll('[data-lg-queue]').forEach(b => b.setAttribute('aria-pressed', String(b === queue))); document.querySelector('.lg-page')?.classList.toggle('lg-aram', !!lg.queue); lgRefill(); return; }
+  if (queue) { lg.queue = queue.dataset.lgQueue; lgSave(); document.querySelectorAll('[data-lg-queue]').forEach(b => b.setAttribute('aria-pressed', String(b === queue))); document.querySelector('.lg-page')?.classList.toggle('lg-aram', lg.queue === 'aram'); lgRefill(); return; }
   const role = t.closest('[data-lg-role]');
   if (role) { lg.role = role.dataset.lgRole; lgSave(); document.querySelectorAll('[data-lg-role]').forEach(b => b.setAttribute('aria-pressed', String(b === role))); lgRefill(); return; }
   const sort = t.closest('[data-lg-sort]');

@@ -9,6 +9,7 @@
     "start": "node src/main.js",
     "aggregate": "node src/main.js aggregate",
     "backfill-patch": "node src/main.js backfill-patch",
+    "backfill-modes": "node src/main.js backfill-modes",
     "backup": "node src/main.js backup",
     "backfill-length": "node src/main.js backfill-length",
     "repair-carries": "node src/main.js repair-carries",

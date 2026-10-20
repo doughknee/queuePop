@@ -75,35 +75,48 @@ async function refreshApex(ctx, game, region) {
   return true;
 }
 
-// ARAM (D13): queue 450 matches are stored under patch "<patch>-aram", so every per-patch aggregate and endpoint serves ARAM
-// unchanged (?queue=450 picks it) and ranked stats never mix with it. Discovery is capped: aramIds runs only while ARAM is under
-// ctx.aramShare (ARAM_SHARE, default 0.1) of the region's League matches fetched in the last hour plus ARAM ids still waiting.
+// League modes (D13 ARAM, DONI-596): every queue but solo/duo is stored under "<patch><suffix>" ("16.20-flex", "16.20-aram"),
+// so every per-patch aggregate and endpoint serves a mode unchanged (?queue= picks it) and modes never mix.
+const MODES = { 420: "", 440: "-flex", 450: "-aram", 400: "-normal", 480: "-swift", 490: "-swift" };
+const MODE_RE = /-(flex|aram|normal|swift)$/;
+const basePatch = (patch) => (patch || "").replace(MODE_RE, "");
 const ARAM = 450;
-const isAram = (patch) => /-aram$/.test(patch || "");
-// Request gate (2026-10-20 10:30Z): ranked players rarely play ARAM, so most ARAM ids calls return nothing, yet each cost a
-// request and counted as work, and the loop called it again at once: ~1,000 calls/h per region starved ranked discovery (League
-// fetches fell from ~4,000/h to ~425/h). Now at most one ARAM ids call per region per ARAM_EVERY (60 s: ~2% of the quota).
-const ARAM_EVERY = 60000;
-const aramLast = new Map();
-async function aramIds(ctx, region) {
+// Capped discovery: ranked ids() never returns these queues, so capped() asks for them. Ranked players rarely play them (live,
+// 2026-10-20: ~9,300 ARAM ids calls on ranked players found 106 ARAM games), so the participants of every capped match fetched
+// go into mode_players and are asked next: an ARAM player's ARAM history is mostly ARAM. A queue's discovery runs only while it
+// is under its share (ctx.shares, MODE_SHARES) of the region's League matches fetched in the last hour plus its ids still
+// waiting, at most one ids call per region and queue per ctx.modeEvery (60 s), so ranked keeps the quota (#182).
+const CAPPED = { 450: [450], 400: [400], 480: [480, 490] }; // discovery queue -> stored queues counted against its share
+const SHARES = { 450: 0.1, 400: 0.05, 480: 0.05 };
+const MODE_EVERY = 60000;
+const modeLast = new Map();
+async function capped(ctx, region) {
   const { db, riot, now = Date.now } = ctx;
-  if (!ctx.queues.includes(ARAM)) return false;
-  if (now() - (aramLast.get(region) || 0) < (ctx.aramEvery ?? ARAM_EVERY)) return false;
-  const f = db.prepare(`SELECT count(*) n, sum(queue = ${ARAM}) aram FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
-  const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue = ${ARAM}`).get(region).n;
-  if (f.n && (f.aram || 0) + waiting >= (ctx.aramShare ?? 0.1) * (f.n + waiting)) return false;
-  const p = db.prepare(`SELECT puuid, tier, aram_at FROM players WHERE game = 'lol' AND region = ? AND (aram_at IS NULL OR aram_at < ?) ORDER BY aram_at, tier_n DESC LIMIT 1`)
-    .get(region, now() - 6 * IDS_EVERY);
-  if (!p) return false;
-  aramLast.set(region, now());
-  const since = Math.floor((p.aram_at || now() - DAY) / 1000);
-  const list = (await riot.get(ROUTING[region], `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?queue=${ARAM}&startTime=${since}&count=20`, "lol ids")) || [];
-  const ins = db.prepare(`INSERT OR IGNORE INTO matches (id, game, region, bracket, queue) VALUES (?, 'lol', ?, ?, ${ARAM})`);
-  tx(db, () => {
-    for (const id of list) ins.run(id, region, p.tier);
-    db.prepare("UPDATE players SET aram_at = ? WHERE puuid = ? AND game = 'lol'").run(now(), p.puuid);
-  });
-  return true;
+  for (const q of Object.keys(CAPPED).map(Number)) {
+    if (!ctx.queues.includes(q)) continue;
+    if (now() - (modeLast.get(`${region}:${q}`) || 0) < (ctx.modeEvery ?? MODE_EVERY)) continue;
+    const qs = CAPPED[q].join(",");
+    const f = db.prepare(`SELECT count(*) n, sum(queue IN (${qs})) mine FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
+    const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue IN (${qs})`).get(region).n;
+    if (f.n && (f.mine || 0) + waiting >= (ctx.shares?.[q] ?? SHARES[q]) * (f.n + waiting)) continue;
+    // a mode player never asked (NULL first) or not asked for 6 h, else a ranked player not yet asked for this queue
+    const p = db.prepare(`SELECT x.puuid, x.asked_at, pl.tier FROM mode_players x LEFT JOIN players pl ON pl.puuid = x.puuid AND pl.game = 'lol'
+      WHERE x.region = ? AND x.queue = ? AND (x.asked_at IS NULL OR x.asked_at < ?) ORDER BY x.asked_at LIMIT 1`).get(region, q, now() - 6 * IDS_EVERY)
+      || db.prepare(`SELECT puuid, tier FROM players p WHERE game = 'lol' AND region = ?
+        AND NOT EXISTS (SELECT 1 FROM mode_players x WHERE x.puuid = p.puuid AND x.queue = ?) LIMIT 1`).get(region, q);
+    if (!p) continue;
+    modeLast.set(`${region}:${q}`, now());
+    const since = Math.floor((p.asked_at || now() - 3 * DAY) / 1000);
+    const list = (await riot.get(ROUTING[region], `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?queue=${q}&startTime=${since}&count=20`, "lol ids")) || [];
+    const ins = db.prepare(`INSERT OR IGNORE INTO matches (id, game, region, bracket, queue) VALUES (?, 'lol', ?, ?, ${q})`);
+    tx(db, () => {
+      for (const id of list) ins.run(id, region, p.tier ?? null);
+      db.prepare("INSERT INTO mode_players (puuid, region, queue, asked_at) VALUES (?, ?, ?, ?) ON CONFLICT (puuid, queue) DO UPDATE SET asked_at = excluded.asked_at")
+        .run(p.puuid, region, q, now());
+    });
+    return true;
+  }
+  return false;
 }
 
 // Tier-balanced sampling (D14 accuracy audit, 2026-10-20): asking the oldest-asked player first, highest tier among equals,
@@ -142,7 +155,7 @@ async function ids(ctx, game, region) {
   for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY))) break;
   if (!p) return false;
   const since = Math.floor((p.ids_at || now() - 7 * DAY) / 1000);
-  const lolQ = ctx.queues.filter((q) => q !== 1100 && q !== ARAM);
+  const lolQ = ctx.queues.filter((q) => q === 420 || q === 440);
   const path = game === "lol"
     ? `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?${lolQ.length === 1 ? "queue=" + lolQ[0] : "type=ranked"}&startTime=${since}&count=100`
     : `/tft/match/v1/matches/by-puuid/${p.puuid}/ids?startTime=${since}&count=100`;
@@ -194,7 +207,7 @@ const patchOf = (info) => { const x = /(\d+)\.(\d+)/.exec(info?.gameVersion ?? i
 // the League patch whose first game started latest at or before it (league windows[]: [[firstStart, patch]] ascending).
 // Fallbacks: the newest League patch, then `set<N>`. ponytail: a TFT game right after a patch change, before the first
 // League game of that patch is crawled, lands on the previous patch; the next backfill-patch/aggregate pass doesn't re-derive it.
-const leagueWindows = (db) => db.prepare("SELECT min(started_at) t, patch FROM matches WHERE game = 'lol' AND status = 'done' AND patch <> '?' AND patch NOT LIKE '%-aram' AND started_at IS NOT NULL GROUP BY patch ORDER BY t").all().map((r) => [r.t, r.patch]);
+const leagueWindows = (db) => db.prepare("SELECT min(started_at) t, patch FROM matches WHERE game = 'lol' AND status = 'done' AND patch <> '?' AND patch NOT LIKE '%-%' AND started_at IS NOT NULL GROUP BY patch ORDER BY t").all().map((r) => [r.t, r.patch]);
 const windowsCache = new WeakMap(); // db -> { at, w }; only non-empty tables are cached, 5 min
 function tftPatch(info, windows) {
   const t = info?.game_datetime;
@@ -277,7 +290,7 @@ function store(ctx, game, id, m) {
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
     db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ?, duration = ? WHERE id = ?`).run(
-      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info) + (game === "lol" && queue === ARAM ? "-aram" : ""), game === "lol" ? null : setOf(info),
+      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info) + (game === "lol" ? MODES[queue] ?? "" : ""), game === "lol" ? null : setOf(info),
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, win.durationOf(info), id);
     if (!ok) return;
     if (game === "lol") {
@@ -298,6 +311,9 @@ function store(ctx, game, id, m) {
           JSON.stringify([...new Set(p.units.map((u) => u.character_id))]), JSON.stringify(p.augments || []), tftAgg.boardOf(p));
       }
     }
+    // capped modes snowball: this match's players are asked for that queue next (see capped())
+    const cq = game === "lol" && Object.keys(CAPPED).find((k) => CAPPED[k].includes(queue));
+    if (cq) { const mp = db.prepare("INSERT OR IGNORE INTO mode_players (puuid, region, queue) VALUES (?, (SELECT region FROM matches WHERE id = ?), ?)"); for (const p of info.participants) if (p.puuid) mp.run(p.puuid, id, Number(cq)); }
     // Riot ids per puuid, both games (TFT since DONI-512, for the leaderboard names).
     require("./agg-players").storeNames(db, db.prepare("SELECT region FROM matches WHERE id = ?").get(id).region, info.participants);
   });
@@ -325,6 +341,24 @@ function backfillPatch(db) {
   return { scanned: rows.length, fixed, unparsed, sample };
 }
 
+// DONI-596: before it, flex (440) shared the solo patch. Re-tags every League match whose queue has a mode suffix but whose patch
+// lacks it (normalised rows follow the patch at aggregation, raw not needed) and queues the old and new patches for the next
+// pass (meta dirtyPatches). Idempotent.
+function backfillModes(db) {
+  const patches = new Set(getMeta(db, "dirtyPatches") || []);
+  let retagged = 0;
+  tx(db, () => {
+    for (const [q, sfx] of Object.entries(MODES)) {
+      if (!sfx) continue;
+      const rows = db.prepare("SELECT DISTINCT patch FROM matches WHERE game = 'lol' AND queue = ? AND patch NOT LIKE '%-%' AND patch <> '?'").all(Number(q));
+      for (const r of rows) { patches.add(r.patch); patches.add(r.patch + sfx); }
+      retagged += Number(db.prepare("UPDATE matches SET patch = patch || ? WHERE game = 'lol' AND queue = ? AND patch NOT LIKE '%-%' AND patch <> '?'").run(sfx, Number(q)).changes);
+    }
+    setMeta(db, "dirtyPatches", [...patches]);
+  });
+  return { retagged, patches: [...patches] };
+}
+
 // Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass
 // (every patch with force, or when nothing was aggregated yet). A patch's rows are deleted and recomputed whole.
 function aggregate(db, now = Date.now, force = false) {
@@ -333,6 +367,7 @@ function aggregate(db, now = Date.now, force = false) {
   const all = force || last == null;
   const dirty = db.prepare(all ? "SELECT DISTINCT patch FROM matches WHERE status = 'done'"
     : "SELECT DISTINCT patch FROM matches WHERE status = 'done' AND coalesce(fetched_at, 0) > ?").all(...(all ? [] : [last])).map((r) => r.patch);
+  for (const p of getMeta(db, "dirtyPatches") || []) if (!dirty.includes(p)) dirty.push(p); // backfillModes
   const M = "JOIN matches m ON m.id = p.match_id AND m.patch = ?";
   const K = "m.patch, m.region, m.bracket";
   const inserts = [
@@ -373,6 +408,7 @@ function aggregate(db, now = Date.now, force = false) {
       log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
     setMeta(db, "aggregatedAt", cut);
+    setMeta(db, "dirtyPatches", []);
     setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   });
   return dirty.length;
@@ -392,4 +428,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { repairCarries, tierOrder, ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
