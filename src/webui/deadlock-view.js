@@ -271,7 +271,7 @@ async function loadCard() {
     <div class="card-heroes"><span class="ledger-label">Most played</span>${top.map(h => { const hero = heroById(h.hid); return `<button class="card-hero" ${hero ? `data-goto-hero="${hero.id}"` : "disabled"}><img src="${hero ? hero.icon || heroImg(hero) : ''}" alt="" width="36" height="36"><span>${esc(hero ? hero.name : 'Hero ' + h.hid)}<small>${h.n} games · ${pct(h.w/h.n)}%</small></span></button>`; }).join('') || '<small>No matches on record.</small>'}</div>
     <div class="card-edit" id="card-edit" hidden>${acctInput()}</div>`;
 }
-const acctInput = () => `<label class="record-hero-filter card-acct">Account ID<input id="record-acct" inputmode="numeric" autocomplete="off" placeholder="Steam account id" value="${esc(account)}" size="12"></label>`;
+const acctInput = () => `<label class="record-hero-filter card-acct">Account ID<input id="record-acct" inputmode="numeric" autocomplete="off" placeholder="Paste it, press Enter" value="${esc(account)}" size="20"></label>`;
 function setAccount(v) {
   v = String(v).trim();
   account = /^\d{17}$/.test(v) ? String(BigInt(v) - 76561197960265728n) : /^\d+$/.test(v) ? v : '';
