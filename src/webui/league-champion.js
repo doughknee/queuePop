@@ -8,13 +8,16 @@ lg.slv = 15; // skill order view: levels shown
 function leagueChampionPage(id) {
   lgMount('champion', t => lgFillChampion(t, id));
   const c = lgChamp(id), key = Object.keys(champions).find(k => champions[k].cid === c.id);
-  return `<div class="lg-page lg-champ-page">${lgSearch()}<header class="lg-champ-head" style="--champ-art:url('${statsApi.DD}/cdn/img/champion/splash/${lgEsc(c.alias || 'Ahri')}_0.jpg')"><span id="lg-champ-icon">${lgIcon(id, 'lg-portrait')}</span><div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></header>
-    ${lgFilters(false)}<div id="lg-champ"><p class="lg-wait">Loading ${lgEsc(c.name)}…</p></div></div>`;
+  const art = `url('${statsApi.DD}/cdn/img/champion/splash/${lgEsc(c.alias || 'Ahri')}_0.jpg')`;
+  return `<div class="lg-page lg-champ-page">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
+    <div class="lg-champ-side">${lgSearch()}<dl class="lg-strip" id="lg-champ-strip"></dl></div>`, ' lg-champ-band')}
+    ${lgFilters(false, '<nav class="lg-roles lg-croles" id="lg-champ-roles" aria-label="Role"></nav>')}<div id="lg-champ"><p class="lg-wait">Loading ${lgEsc(c.name)}…</p></div></div>`;
 }
+// Build picks are colored against the champion's own win rate in this role (lg.cwr), 1 = 5 points.
 function lgPick(icons, label, e, extra = '') {
-  return `<div class="lg-pick${e.lowSample ? ' low' : ''}"><span class="lg-pick-icons">${icons}</span><span class="lg-pick-label">${label}${extra}</span><b>${lgPct(e.winRate)}</b><small>${lgPct(e.pickRate)} · ${lgN(e.games)}</small></div>`;
+  return `<div class="lg-pick${e.lowSample ? ' low' : ''}"><span class="lg-pick-icons">${icons}</span><span class="lg-pick-label">${label}${extra}</span><b>${lgHeat(e.winRate, lg.cwr, 0.05, e.games, lgPct(e.winRate))}</b><small>${lgPct(e.pickRate)} · ${lgN(e.games)}</small></div>`;
 }
-const lgBlock = (title, note, body, cls = '') => `<article class="lg-block${cls ? ' ' + cls : ''}"><header><h3>${title}</h3>${note ? `<small>${note}</small>` : ''}</header><div class="lg-block-head" aria-hidden="true"><span></span><span></span><span>Win</span><span>Pick · games</span></div>${body || '<p class="lg-wait">No data yet.</p>'}</article>`;
+const lgBlock = (title, note, body, cls = '') => `<article class="lg-block${cls ? ' ' + cls : ''}"><header><h3>${title}</h3>${note ? `<small>${note}</small>` : ''}</header>${body ? `<div class="lg-block-head" aria-hidden="true"><span></span><span></span><span>Win</span><span>Pick · games</span></div>${body}` : '<p class="lg-wait">No games with this yet.</p>'}</article>`;
 // Deltas are fractions; colored around 0 (DONI-516's lgHeat), printed in points.
 const lgDelta = (x, spread, games) => lgHeat(x, 0, spread, games, x == null ? '' : lgSign(x * 100));
 const lgSection = (title, note, body) => `<section class="lg-section"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
@@ -160,19 +163,19 @@ async function lgFillChampion(token, id) {
     const s = d.strip || {}, delta = avg != null && s.games ? (s.winRate - avg) * 100 : null, role = lgRoleOf(d.role), R = LG_ROLE[role] || '';
     document.getElementById('lg-champ-name').textContent = c.name;
     document.getElementById('lg-champ-title').textContent = c.title || 'Champion stats';
-    if (!s.games) { box().innerHTML = `<p class="lg-wait">No ranked games for ${lgEsc(c.name)} on patch ${lgEsc(d.patch)} with these filters yet.</p>`; return; }
+    document.getElementById('lg-champ-roles').innerHTML = (d.roles || []).map(r => `<button data-lg-crole="${lgRoleOf(r.role)}" aria-pressed="${lgRoleOf(r.role) === role}" title="${lgN(r.games)} games as ${LG_ROLE[lgRoleOf(r.role)] || r.role}">${lgRoleIcon(lgRoleOf(r.role))}<span>${LG_ROLE[lgRoleOf(r.role)] || r.role}</span><small>${lgN(r.games)}</small></button>`).join('');
+    const strip = document.getElementById('lg-champ-strip');
+    if (!s.games) { strip.innerHTML = ''; box().innerHTML = `<p class="lg-wait">No ranked games for ${lgEsc(c.name)} on patch ${lgEsc(d.patch)} with these filters yet.</p>`; return; }
+    lg.cwr = s.winRate;
+    const cell = (dt, dd, sub) => `<div><dt>${dt}</dt><dd>${dd}</dd><dd class="lg-sub">${sub}</dd></div>`;
+    strip.className = `lg-strip${s.lowSample ? ' low' : ''}`;
+    strip.innerHTML = cell('Win', lgHeat(s.winRate, avg, 0.04, s.games, lgPct(s.winRate)), `${lgN(s.wins)} wins`)
+      + cell('Δ', delta == null ? '–' : lgHeat(delta / 100, 0, 0.04, s.games, lgSign(delta)), `vs ${R} ${avg == null ? '' : lgPct(avg)}`)
+      + cell('Tier', me ? lgTier(me.tier, me.lowSample) : '–', rank ? `#${rank} of ${banded.length}` : R)
+      + cell('Pick', lgPct(s.pickRate), `${lgN(s.matches)} matches`)
+      + cell('Ban', lgPct(s.banRate), lgEsc(d.patch))
+      + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} with timeline`);
     box().innerHTML = `
-      <dl class="lg-strip${s.lowSample ? ' low' : ''}">
-        <div><dt>Win rate</dt><dd>${lgPct(s.winRate)}</dd><dd class="lg-sub">${lgN(s.wins)} wins</dd></div>
-        <div><dt>Delta</dt><dd class="${delta == null ? '' : delta >= 0 ? 'up' : 'down'}">${delta == null ? '–' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</dd><dd class="lg-sub">vs ${R} average</dd></div>
-        <div><dt>Game avg</dt><dd>${avg == null ? '–' : lgPct(avg)}</dd><dd class="lg-sub">every ${R} pick</dd></div>
-        <div><dt>Pick rate</dt><dd>${lgPct(s.pickRate)}</dd><dd class="lg-sub">of ${lgN(s.matches)} matches</dd></div>
-        <div><dt>Ban rate</dt><dd>${lgPct(s.banRate)}</dd><dd class="lg-sub">of ${lgN(s.matches)} matches</dd></div>
-        <div><dt>Tier</dt><dd>${me ? lgTier(me.tier, me.lowSample) : '–'}</dd><dd class="lg-sub">${R} on ${lgEsc(d.patch)}</dd></div>
-        <div><dt>Rank</dt><dd>${rank ? `${rank} <small>/ ${banded.length}</small>` : '–'}</dd><dd class="lg-sub">${list ? `${lgN(list.matches)} matches` : ''}</dd></div>
-        <div><dt>Games</dt><dd>${lgN(s.games)}</dd><dd class="lg-sub">${s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} with timeline`}</dd></div>
-      </dl>
-      <nav class="lg-tabs" aria-label="Role">${(d.roles || []).map(r => `<button data-lg-crole="${lgRoleOf(r.role)}" aria-pressed="${lgRoleOf(r.role) === role}">${lgRoleIcon(lgRoleOf(r.role))}${LG_ROLE[lgRoleOf(r.role)] || r.role}<small>${lgN(r.games)}</small></button>`).join('')}</nav>
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes & spells', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
