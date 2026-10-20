@@ -277,13 +277,19 @@ function aggregate(db, now = Date.now, force = false) {
     ...win.inserts(M, K),
   ].map((q) => db.prepare(q));
   champ.ingestRaw(db);
+  // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
+  const log = getMeta(db, "aggregates") || { patches: {} };
+  const t0 = Date.now();
   tx(db, () => {
     for (const patch of dirty) {
+      const t1 = Date.now();
       for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
       for (const q of inserts) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
+      log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
     setMeta(db, "aggregatedAt", now());
+    setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   });
   return dirty.length;
 }

@@ -147,7 +147,26 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     retentionDays,
     disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
     key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey) }, // never the key itself
+    aggregates: getMeta(db, "aggregates"),
+    endpoints: endpoints(db),
   };
+}
+
+// What each route serves and how fresh it is (D7): stats routes read the newest patch's last aggregation; leaderboards the
+// newest ladder read; /tft/meta its Community Dragon fetch; lookups are live.
+function endpoints(db) {
+  const ps = patches(db), agg = getMeta(db, "aggregates")?.patches || {};
+  const stat = (game, paths) => paths.map((path) => ({ path, game, patch: ps[game][0] || null, updatedAt: agg[ps[game][0]]?.at ?? getMeta(db, "aggregatedAt") }));
+  const ladder = (game) => db.prepare("SELECT max(seeded_at) t FROM players WHERE game = ?").get(game).t;
+  return [
+    ...stat("lol", ["/lol/tiers", "/lol/champion/{id}", "/lol/champion/{id}/players", "/lol/items", "/lol/runes", "/lol/spells"]),
+    { path: "/lol/leaderboard", game: "lol", patch: null, updatedAt: ladder("lol") },
+    { path: "/lol/summoner/{riotId}", game: "lol", patch: null, updatedAt: null, live: true },
+    ...stat("tft", ["/tft/comps", "/tft/comp/{id}", "/tft/units", "/tft/unit/{key}", "/tft/items", "/tft/augments", "/tft/traits"]),
+    { path: "/tft/leaderboard", game: "tft", patch: null, updatedAt: ladder("tft") },
+    { path: "/tft/player/{riotId}", game: "tft", patch: null, updatedAt: null, live: true },
+    { path: "/tft/meta", game: "tft", patch: null, updatedAt: getMeta(db, "tftMeta")?.fetchedAt ?? null },
+  ];
 }
 
 // Memo for the heavier read-time rollups, keyed by path + query, dropped whenever an aggregation pass lands.
