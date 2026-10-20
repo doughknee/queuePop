@@ -26,7 +26,8 @@ function build(cd, set) {
 let inflight = null;
 // Cached meta for `set` (newest crawled TFT set when omitted); refetches when older than a day or for another set.
 async function tftMeta(db, set, { fetchJson = (u) => fetch(u, { signal: AbortSignal.timeout(120000) }).then((r) => { if (!r.ok) throw new Error(`CDragon ${r.status}`); return r.json(); }), now = Date.now } = {}) {
-  set ??= db.prepare('SELECT max("set") s FROM matches WHERE game = \'tft\'').get().s;
+  // newest fetched TFT match's set, off the matches_fetched index (max("set") scanned every match: ~2 s)
+  set ??= db.prepare('SELECT "set" s FROM matches WHERE game = \'tft\' AND "set" IS NOT NULL ORDER BY fetched_at DESC LIMIT 1').get()?.s;
   if (set == null) throw Object.assign(new Error("no TFT matches yet"), { status: 404 });
   const have = getMeta(db, "tftMeta");
   if (have && have.set === set && now() - have.fetchedAt < DAY) return have;
