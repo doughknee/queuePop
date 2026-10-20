@@ -39,7 +39,8 @@ if (!jobs.TIERS.includes(cfg.minTier)) throw new Error(`MIN_TIER must be one of 
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let aggregating = false; // true while the aggregation worker runs (see periodic below)
+let aggregating = false; // true while the aggregation worker holds the write lock (see periodic below): the crawl loops wait
+let passing = false; // an aggregation pass is running (retention skips it)
 let inflight = 0, backingUp = false; // crawl steps in progress; a backup worker running (DONI-568)
 // Logged, not fatal: a throw in a request listener must not take the crawler (and a pass in its worker) down (DONI-568).
 process.on("uncaughtException", (e) => log(`uncaught: ${e.stack || e.message}`));
@@ -131,23 +132,32 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
 }
 
 // Aggregate on start if due, then every AGGREGATE_EVERY_MIN; unchanged patches are skipped. The pass runs in a worker thread
-// with its own connection, so the API keeps answering (WAL readers see the previous stats until it commits) while the crawl
-// loops pause. ponytail: an in-memory DB (tests) can't be shared with a worker; tests call jobs.aggregate directly.
+// with its own connection, so the API keeps answering (WAL readers see the previous stats until it commits). The crawl keeps
+// going while the worker computes (into temp tables, jobs.aggregate); it pauses only while the worker holds the write lock: the
+// worker posts { lock: true } and blocks on `lock` until the in-flight crawl steps are done, then posts { lock: false }.
+// Before (2026-10-20) the crawl paused for the whole pass, ~20 min of every hour. ponytail: an in-memory DB (tests) can't be
+// shared with a worker; tests call jobs.aggregate directly.
 (function periodic(minDelay = 0) {
-  setTimeout(async () => {
+  setTimeout(() => {
     let failed = false;
-    aggregating = true;
-    // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
-    for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
-    const t = Date.now();
+    const t = Date.now(), lock = new Int32Array(new SharedArrayBuffer(4));
+    passing = true;
     try {
-      new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath } })
-        .once("message", (n) => log(`aggregated ${n} patches in ${Date.now() - t} ms`))
+      new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, lock: lock.buffer } })
+        .on("message", async (m) => {
+          if (m?.lock === true) {
+            aggregating = true;
+            // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
+            for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
+            Atomics.store(lock, 0, 1); Atomics.notify(lock, 0);
+          } else if (m?.lock === false) aggregating = false;
+          else log(`aggregated ${m} patches in ${Date.now() - t} ms`);
+        })
         .once("error", (e) => { failed = true; log(`aggregate: ${e.message}`); })
-        .once("exit", () => { aggregating = false; periodic(failed ? 60000 : 0); });
+        .once("exit", () => { aggregating = passing = false; periodic(failed ? 60000 : 0); });
     } catch (e) { // e.g. the worker can't be created: never leave the crawl paused behind a stuck flag (Q review 2)
       log(`aggregate: could not start the worker: ${e.message}`);
-      aggregating = false;
+      aggregating = passing = false;
       periodic(60000);
     }
   }, Math.max(minDelay, jobs.nextAggregation(db, cfg.aggregateEveryMin) - Date.now()));
@@ -156,7 +166,7 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
 // Raw JSON retention: a minute after start (so a pass has happened), then daily.
 // In the worker too: the UPDATE + incremental vacuum held the API thread ~12 s (seen 2026-10-20 08:02Z).
 function retain() {
-  if (aggregating) return log("retention: skipped, aggregation running");
+  if (passing) return log("retention: skipped, aggregation running");
   new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "retain", days: cfg.retentionDays } })
     .once("message", (n) => log(`retention: nulled raw on ${n} matches`))
     .once("error", (e) => log(`retention: ${e.message}`));
@@ -176,7 +186,7 @@ function nextBackup(from = Date.now()) {
   return d.getTime() - from;
 }
 function runBackup() {
-  if (aggregating) return setTimeout(runBackup, 600000).unref();
+  if (passing) return setTimeout(runBackup, 600000).unref();
   backingUp = true;
   new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "backup", dir: cfg.backupDir, keep: cfg.backupKeep } })
     .once("message", (b) => log(`backup: ${b.file} ${(b.bytes / 1048576).toFixed(0)} MB in ${(b.ms / 1000).toFixed(0)} s${b.removed.length ? ", removed " + b.removed.join(", ") : ""}`))

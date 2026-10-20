@@ -363,7 +363,10 @@ function backfillModes(db) {
 
 // Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass
 // (every patch with force, or when nothing was aggregated yet). A patch's rows are deleted and recomputed whole.
-function aggregate(db, now = Date.now, force = false) {
+// Write lock (2026-10-20, DONI-596): each patch is computed into same-named TEMP stats_* tables, which shadow main's on this
+// connection, so the minutes of GROUP BYs only read main and the crawl keeps writing. Only the writes to main (raw ingest, each
+// patch's swap from temp, the meta stamps) run inside locked(fn); the worker passes one that pauses the crawl loops around them.
+function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
   const cut = now(); // DONI-568: stamped as aggregatedAt, so a match committed after the dirty query is dirty next pass
   const last = getMeta(db, "aggregatedAt");
   const all = force || last == null;
@@ -393,26 +396,36 @@ function aggregate(db, now = Date.now, force = false) {
     ...win.inserts(M, K),
     ...draftAgg.inserts(M, K),
   ];
+  const tables = db.prepare("SELECT name FROM main.sqlite_master WHERE type = 'table' AND name GLOB 'stats_*'").all().map((r) => r.name);
+  for (const t of tables) db.exec(`CREATE TEMP TABLE IF NOT EXISTS ${t} AS SELECT * FROM main.${t} WHERE 0`); // before any prepare
   require("./lol-items").loadCompleted(db); // temp.lol_completed before the build-order inserts are prepared
   require("./tft-comps").init(db); // temp.tft_comp_label, filled per patch below
   const prepared = inserts.map((q) => db.prepare(q));
-  champ.ingestRaw(db);
+  locked(() => champ.ingestRaw(db));
   // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
   const log = getMeta(db, "aggregates") || { patches: {} };
   const t0 = Date.now();
-  tx(db, () => {
-    for (const patch of dirty) {
-      const t1 = Date.now();
-      for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES, ...draftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
+  try {
+  for (const patch of dirty) {
+    const t1 = Date.now();
+    tx(db, () => { // one read snapshot of main per patch; writes go to temp only
+      for (const t of tables) db.exec(`DELETE FROM temp.${t}`);
       require("./tft-comps").labelPatch(db, patch);
       for (const q of prepared) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
-      log.patches[patch] = { at: now(), ms: Date.now() - t1 };
-    }
+    });
+    const t2 = Date.now();
+    locked(() => tx(db, () => {
+      for (const t of tables) { db.prepare(`DELETE FROM main.${t} WHERE patch = ?`).run(patch); db.exec(`INSERT INTO main.${t} SELECT * FROM temp.${t}`); }
+    }));
+    log.patches[patch] = { at: now(), ms: Date.now() - t1, swapMs: Date.now() - t2 };
+  }
+  locked(() => tx(db, () => {
     setMeta(db, "aggregatedAt", cut);
     setMeta(db, "dirtyPatches", []);
     setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
-  });
+  }));
+  } finally { for (const t of tables) db.exec(`DROP TABLE IF EXISTS temp.${t}`); } // this connection reads main's stats again
   return dirty.length;
 }
 
