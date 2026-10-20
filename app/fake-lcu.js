@@ -49,6 +49,11 @@ function install(lcu, kind, log) {
   const all = () => s.actions.flat();
   const setPhase = (p) => { phase = p; emit("/lol-gameflow/v1/gameflow-phase", p); };
   const ok = (data = null) => ({ status: 200, data });
+  // The real client's champion list: from Data Dragon once, else the scripted champions only.
+  let summary = Object.entries(CHAMPS).map(([alias, id]) => ({ id, name: alias.charAt(0).toUpperCase() + alias.slice(1), alias }));
+  fetch("https://ddragon.leagueoflegends.com/api/versions.json").then((r) => r.json())
+    .then((v) => fetch(`https://ddragon.leagueoflegends.com/cdn/${v[0]}/data/en_US/champion.json`)).then((r) => r.json())
+    .then((j) => { summary = Object.values(j.data).map((c) => ({ id: Number(c.key), name: c.name, alias: c.id })); }).catch(() => {});
 
   lcu.creds = { port: 0, password: "fake" };
   Object.defineProperty(lcu, "connected", { get: () => true, configurable: true });
@@ -57,6 +62,7 @@ function install(lcu, kind, log) {
   lcu.request = async (method, uri, body) => {
     method = method.toLowerCase();
     if (uri === "/lol-gameflow/v1/gameflow-phase") return ok(phase);
+    if (uri === "/lol-game-data/assets/v1/champion-summary.json") return ok(summary);
     if (uri === "/lol-champ-select/v1/session") return sessionLive ? ok(JSON.parse(JSON.stringify(s))) : { status: 404, data: null };
     if (uri === "/lol-lobby/v2/lobby") return ok({ gameConfig: { queueId } });
     if (uri === "/lol-matchmaking/v1/search") return ok({ estimatedQueueTime: 95, timeInQueue: 20 });

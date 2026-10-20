@@ -38,11 +38,14 @@
     // Only components with a real sample (30+ games; arrays without counts are trusted); the lane matchup first.
     const real = x => Number.isFinite(x.delta) && (x.games === undefined || x.games >= 30);
     const vs = comps.filter(x => x.kind === 'vs' && real(x)).sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || Math.abs(b.delta) - Math.abs(a.delta))[0];
-    if (vs && Math.abs(pct(vs.delta)) >= 0.5) parts.push(`${signed(vs.delta)} vs ${name(vs.champion)}`);
+    if (vs && pct(vs.delta) >= 0.5) parts.push(`${signed(vs.delta)} vs ${name(vs.champion)}`);
     const w = comps.filter(x => x.kind === 'with' && x.delta > 0 && real(x)).sort((a, b) => b.delta - a.delta)[0];
     if (w && pct(w.delta) >= 0.5) parts.push(`good with ${name(w.champion)}`);
     if (Number.isFinite(c.winRate) && c.games) parts.push(`${pct(c.winRate).toFixed(1)} % over ${Number(c.games).toLocaleString('en-US')} games`);
-    return parts.join(', ');
+    // A bad matchup is worth knowing but never the headline (W11): "53.5 % over 654 games · weak into Thresh (−6.9)".
+    const line = parts.join(', ');
+    if (vs && pct(vs.delta) <= -0.5) return `${line}${line ? ' · ' : ''}weak into ${name(vs.champion)} (−${Math.abs(pct(vs.delta)).toFixed(1)})`;
+    return line;
   }
   // Response → the rows to show: best first, low samples after full ones, never a champion already gone.
   function topCandidates(resp, ctx, n = 5) {

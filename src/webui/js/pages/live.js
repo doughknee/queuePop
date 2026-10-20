@@ -150,7 +150,8 @@ function csPortrait(p) {
 
 function csRow(p) {
   const locked = p.championId > 0;
-  const name = locked ? p.name : p.intent > 0 ? p.intentName : "";
+  const known = (id, n) => n || (typeof idToName === "function" && idToName(id)) || (window.draftAdvice && draftAdvice.ddName(id)) || "";
+  const name = locked ? known(p.championId, p.name) || "Locked" : p.intent > 0 ? known(p.intent, p.intentName) || "Hovering…" : "";
   const nameCls = "cs-name" + (locked ? "" : " pending");
   const nameTxt = name || (p.intent > 0 ? "Hovering…" : "Picking…");
   const role = p.position
