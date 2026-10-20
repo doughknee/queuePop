@@ -15,19 +15,19 @@ const OBJECTIVES = { DragonKill: "dragon", BaronKill: "baron", HeraldKill: "hera
 // e = {EventID, EventName, EventTime, KillerName, VictimName, Assisters[], KillStreak, DragonType, Result, ...}
 function mapLiveEvents(raw, me) {
   const out = [];
+  // Riot sends FirstBlood and a ChampionKill for the same kill: the kill carries the note instead of counting twice (review).
+  const fb = (raw || []).filter((e) => e.EventName === "FirstBlood").map((e) => Number(e.EventTime) || 0);
   for (const e of raw || []) {
     const t = Math.round((Number(e.EventTime) || 0) * 10) / 10, id = e.EventID;
     // activeplayername is the Riot ID ("Name#TAG"); event names can be the game name alone.
     const mine = (n) => n && me && (String(n) === String(me) || String(n) === String(me).split("#")[0]);
     if (e.EventName === "ChampionKill") {
-      if (mine(e.KillerName)) out.push({ id, t, type: "kill", label: `Killed ${e.VictimName}` });
+      if (mine(e.KillerName)) out.push({ id, t, type: "kill", label: `Killed ${e.VictimName}${fb.some((x) => Math.abs(x - e.EventTime) < 1) ? " (first blood)" : ""}` });
       else if (mine(e.VictimName)) out.push({ id, t, type: "death", label: `Killed by ${e.KillerName}` });
       else if ((e.Assisters || []).some(mine)) out.push({ id, t, type: "assist", label: `Assist on ${e.VictimName}` });
     } else if (e.EventName === "Multikill" && mine(e.KillerName)) {
       const n = Number(e.KillStreak) || 2;
       out.push({ id, t, type: "multikill", label: ({ 2: "Double kill", 3: "Triple kill", 4: "Quadra kill", 5: "Penta kill" })[n] || `${n} kills` });
-    } else if (e.EventName === "FirstBlood" && mine(e.Recipient)) {
-      out.push({ id, t, type: "kill", label: "First blood" });
     } else if (OBJECTIVES[e.EventName]) {
       const what = OBJECTIVES[e.EventName], by = mine(e.KillerName) ? "You" : e.KillerName || "";
       const name = what === "dragon" && e.DragonType ? `${e.DragonType} dragon` : what;
@@ -56,7 +56,7 @@ function liveGet(p, timeout = 1500) {
 // ctx: { lcu, getConfig, dir, push, log, platform: () => Promise<string>, onGame?: (rec, phase) => void, live?: liveGet }
 function attachRecorder(ctx) {
   const live = ctx.live || liveGet;
-  let rec = null, timer = null, seen = new Set(), me = null;
+  let rec = null, timer = null, seen = new Set(), me = null, detached = false, misses = 0;
   const enabled = () => !!((ctx.getConfig().recorder || {}).enabled);
   const file = (id) => path.join(ctx.dir, `${String(id).replace(/[^\w-]/g, "_")}.json`);
   const save = () => { if (!rec) return; try { fs.mkdirSync(ctx.dir, { recursive: true }); fs.writeFileSync(file(rec.matchId), JSON.stringify(rec)); } catch (e) { ctx.log("recorder: save", e.message); } };
@@ -69,7 +69,7 @@ function attachRecorder(ctx) {
     const gameId = gd.gameId || Date.now();
     rec = { matchId: platform ? `${String(platform).toUpperCase()}_${gameId}` : String(gameId), gameId, queueId: queueId || null,
       game: TFT_QUEUES.has(queueId) || gd.queue?.gameMode === "TFT" ? "tft" : "league", startedAt: Date.now(), endedAt: null, champion: null, result: null, events: [] };
-    seen = new Set(); me = null;
+    seen = new Set(); me = null; detached = false; misses = 0;
     ctx.log(`recorder: recording ${rec.game} ${rec.matchId}`);
     ctx.onGame && ctx.onGame(rec, "start");
     if (rec.game === "league") { poll(); timer = setInterval(poll, 2000); }
@@ -80,7 +80,11 @@ function attachRecorder(ctx) {
     if (!me) { me = await live("/liveclientdata/activeplayername"); if (me && rec) { const p = await live("/liveclientdata/activeplayer"); rec.player = me; rec.champion = (p && p.championName) || rec.champion; } }
     if (rec && !rec.clock) { const gs = await live("/liveclientdata/gamestats"); if (gs && Number.isFinite(gs.gameTime) && rec) rec.clock = { wall: Date.now(), gameTime: gs.gameTime }; }
     const d = await live("/liveclientdata/eventdata");
-    if (!d || !rec) return;
+    // League client closed during the game ("Close client during game"): the live API is the only clock left, so the
+    // recording ends on GameEnd or after 30 s of silence instead of at the disconnect.
+    if (!d) { if (rec && detached && ++misses >= 15) queue(stop); return; }
+    misses = 0;
+    if (!rec) return;
     const fresh = mapLiveEvents((d.Events || []).filter((e) => !seen.has(e.EventID)), me);
     for (const e of d.Events || []) seen.add(e.EventID);
     if (!rec.champion) { const ps = await live("/liveclientdata/playerlist"); const mine = (ps || []).find((p) => p.riotIdGameName === me || p.summonerName === me || p.riotId === me); if (mine) rec.champion = mine.championName; }
@@ -89,6 +93,7 @@ function attachRecorder(ctx) {
       const end = fresh.find((e) => e.type === "end");
       if (end) rec.result = end.result === "Win" ? "win" : end.result === "Lose" ? "loss" : null;
       save();
+      if (end && detached) queue(stop);
     }
   }
   async function stop() {
@@ -97,7 +102,8 @@ function attachRecorder(ctx) {
     if (rec.game === "league") await poll(); // the GameEnd event often arrives on the last poll
     if (rec.game === "tft") {
       const eog = await ctx.lcu.request("get", "/lol-end-of-game/v1/tft-eog-stats").catch(() => null);
-      const lp = eog && eog.data && eog.data.localPlayer;
+      const same = !(eog && eog.data && eog.data.gameId) || String(eog.data.gameId) === String(rec.gameId); // not last game's screen
+      const lp = same && eog && eog.data && eog.data.localPlayer;
       if (lp && lp.ffaStanding) { rec.placement = lp.ffaStanding; rec.result = lp.ffaStanding <= 4 ? "win" : "loss"; rec.events.push({ id: "end", t: null, type: "end", label: `${lp.ffaStanding}${["th", "st", "nd", "rd"][lp.ffaStanding] || "th"} place` }); }
     }
     rec.endedAt = Date.now();
@@ -107,12 +113,17 @@ function attachRecorder(ctx) {
     rec = null;
   }
 
+  // Phase events arrive in bursts; start and stop run one at a time so a game is never recorded twice or half-stopped (review).
+  let chain = Promise.resolve();
+  function queue(f) { chain = chain.then(f).catch((err) => ctx.log("recorder:", err && err.message || err)); return chain; }
+  // TFT's placement is on the end-of-game screen, so TFT ends on EndOfGame (or leaving it); League on the first end phase.
+  const ENDS = { league: ["PreEndOfGame", "WaitingForStats", "EndOfGame", "None", "Lobby"], tft: ["EndOfGame", "None", "Lobby"] };
   ctx.lcu.on("event", (e) => {
     if (e.uri !== "/lol-gameflow/v1/gameflow-phase" || e.eventType === "Delete") return;
-    if (e.data === "InProgress") start();
-    else if (["EndOfGame", "PreEndOfGame", "WaitingForStats", "None", "Lobby"].includes(e.data)) stop();
+    if (e.data === "InProgress") queue(() => { if (rec && detached && rec.game === "league") { detached = false; return; } return start(); }); // client came back
+    else queue(() => { if (rec && ENDS[rec.game].includes(e.data)) return stop(); });
   });
-  ctx.lcu.on("disconnect", () => stop());
+  ctx.lcu.on("disconnect", () => queue(() => { if (rec && rec.game === "league" && timer) { detached = true; misses = 0; return; } return stop(); }));
 
   const readOne = (id) => { try { return JSON.parse(fs.readFileSync(file(id), "utf8")); } catch { return null; } };
   // "NA1_123" and "123" name the same game: a recording made while the platform was unknown is stored under the bare id.
@@ -121,14 +132,20 @@ function attachRecorder(ctx) {
   function list() {
     let names = [];
     try { names = fs.readdirSync(ctx.dir).filter((f) => f.endsWith(".json")); } catch { return []; }
-    return names.map((f) => read(f.slice(0, -5))).filter(Boolean).sort((a, b) => b.startedAt - a.startedAt).map((r) => ({
+    return names.map((f) => read(f.slice(0, -5))).filter((r) => r && Array.isArray(r.events) && r.matchId).sort((a, b) => b.startedAt - a.startedAt).map((r) => ({
       matchId: r.matchId, game: r.game, queueId: r.queueId, champion: r.champion, result: r.result, placement: r.placement || null,
       startedAt: r.startedAt, endedAt: r.endedAt, video: !!r.video, clips: (r.clips || []).length,
       counts: r.events.reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}) }));
   }
   return {
     list, get: read, live: () => rec,
-    remove(id) { const r = read(id); try { fs.unlinkSync(file(r ? r.matchId : id)); } catch { return { ok: false }; } return { ok: true, video: r && r.video }; },
+    remove(id) {
+      const r = read(id); try { fs.unlinkSync(file(r ? r.matchId : id)); } catch { return { ok: false }; }
+      // Its video and clips too, but only files inside the recordings folder (a moved or hand-edited file is left alone).
+      const inside = (f) => f && !path.relative(ctx.dir, path.resolve(ctx.dir, f)).startsWith("..") && !path.isAbsolute(path.relative(ctx.dir, path.resolve(ctx.dir, f)));
+      for (const f of [r && r.video && r.video.file, ...((r && r.clips) || []).map((c) => c.file)]) if (inside(f)) try { fs.unlinkSync(f); } catch {}
+      return { ok: true, video: r && r.video };
+    },
     update(id, patch) { const r = read(id); if (!r) return null; Object.assign(r, patch); fs.writeFileSync(file(id), JSON.stringify(r)); return r; },
   };
 }

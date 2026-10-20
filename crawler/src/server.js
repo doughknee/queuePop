@@ -94,6 +94,8 @@ function lolTiers(db, q = {}) {
 // games/wins stay the raw totals (the sample). Returns null when it doesn't apply.
 function regionWeighted(db, q, w, a, M, B, C) {
   if (q.region && q.region !== "all") return null;
+  // the weights are seeded Emerald+ ranked players: a bracket filter or ARAM would give a tiny region its full weight (Q review 2)
+  if ((q.bracket && q.bracket !== "all") || /-aram$/.test(a[0] || "")) return null;
   const pop = getMeta(db, "regionWeights")?.lol;
   const mt = Object.fromEntries(db.prepare(`SELECT region, sum(matches) n FROM ${M.t} WHERE ${w}${M.d} GROUP BY region`).all(...a, ...M.da).map((r) => [r.region, r.n]));
   const regions = Object.keys(mt).filter((r) => mt[r] > 0 && pop?.[r]);

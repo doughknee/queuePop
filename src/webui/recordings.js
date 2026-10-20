@@ -32,13 +32,16 @@
   async function render(host) {
     const on = !!(QP.store.config && QP.store.config.recorder && QP.store.config.recorder.enabled);
     let list = [];
+    const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
+    if (!here()) return;
     const head = `<header class="rec-head"><p class="eyebrow">Recorder (beta)</p><h1>Recordings</h1>
       <p>${on ? 'Every League and TFT game is recorded while queuePop runs: your kills, deaths, assists, multikills, objectives and the result, with their game time.' : 'The recorder is off. Turn it on in Settings to keep a timeline of every game.'}
       <a href="#/settings#recorder" data-rec-settings>Recorder settings ↗</a></p></header>`;
     // Off: the fix is one click away, right here (it applies at once, like every Settings control).
     if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
+    if (!here()) return;
     host.innerHTML = `<section class="rec-page">${head}<ol class="rec-list">${list.slice(0, 30).map((r, i) => {
       const rec = full[i] || r, f = recFacts(r), title = f.title, facts = f.facts;
       const strip = stripMarkers(rec).length ? window.recStrip(rec) : `<span class="rec-nostrip">${r.game === 'tft' ? 'Placement only for TFT' : 'No moments recorded'}</span>`;
