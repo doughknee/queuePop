@@ -150,14 +150,16 @@ window.createTftView = function (host) {
   }
   // DONI-561: MetaTFT's active-trait chips: per trait, the highest breakpoint at least half the boards reach, as icon + unit
   // count (breakpoints from /tft/meta), most units first, one-unit uniques left out; the title says how often.
-  function traitChips(active) {
+  function traitBest(active) {
     const best = new Map();
     // Review #118: frequencies are per exact tier, so add them from the top tier down ("this tier or higher") before the 50 % test.
     const by = new Map();
     for (const t of active || []) { const [k, tier] = t.key.split(':'); (by.get(k) || by.set(k, []).get(k)).push({ tier: +tier, f: t.frequency }); }
     for (const [k, list] of by) { let acc = 0; for (const x of list.sort((a, b) => b.tier - a.tier)) { acc += x.f; if (acc >= 0.5) { best.set(k, { tier: x.tier, f: acc }); break; } } }
-    return [...best].map(([k, b]) => ({ k, b, n: (S.info(k).breakpoints || [])[b.tier - 1] || b.tier })).filter((x) => x.n > 1).sort((x, y) => y.n - x.n).slice(0, 6)
-      .map(({ k, b, n }) => `<span class="ts-chip" title="${esc(name(k))} ${n} · ${pct(b.f)} of these boards">${icon(k, 'ts-ico-trait')}${n}</span>`).join('');
+    return [...best].map(([k, b]) => ({ k, b, n: (S.info(k).breakpoints || [])[b.tier - 1] || b.tier })).filter((x) => x.n > 1).sort((x, y) => y.n - x.n || y.b.f - x.b.f); // more units first, then more often
+  }
+  function traitChips(active) {
+    return traitBest(active).slice(0, 6).map(({ k, b, n }) => `<span class="ts-chip" title="${esc(name(k))} ${n} · ${pct(b.f)} of these boards">${icon(k, 'ts-ico-trait')}${n}</span>`).join('');
   }
   const matches = (r) => !query || (compName(r.id) + ' ' + (known.get(r.id) || []).map(name).join(' ')).toLowerCase().includes(query);
 
@@ -263,11 +265,20 @@ window.createTftView = function (host) {
     }
     if (parse().id !== id) return;
     page.querySelector('.ts-wrap').innerHTML = `<a class="ts-back" href="#/tft">← All comps</a>
-      <header class="ts-comp-head ${d.lowSample ? 'low' : ''}">${tierBadge(d.lowSample ? null : S.compTier(d))}<div><h1>${esc(compName(id))}</h1><div class="ts-name">${traitsMarkup(id)}</div></div></header>
-      <div class="ts-stats">${[['Avg place', d.avgPlacement.toFixed(2)], ['Top 4', pct(d.top4Rate)], ['Win', pct(d.winRate)], ['Pick', pct(d.pickRate)]].map(([l, v]) => `<div><small>${l}</small><strong>${v}</strong></div>`).join('')}<div><small>Sample</small><strong>${d.games.toLocaleString()}</strong>${d.lowSample ? `<span class="ts-quiet">under ${d.minGames} games</span>` : ''}</div></div>
+      <header class="ts-comp-head ${d.lowSample ? 'low' : ''}">${tierBadge(d.lowSample ? null : S.compTier(d))}<div><h1>${esc(compName(id))}</h1></div></header>
+      <div class="ts-stats">${[['Avg place', d.avgPlacement.toFixed(2)], ['Top 4', pct(d.top4Rate)], ['Win', pct(d.winRate)], ['Pick', pct(d.pickRate)]].map(([l, v]) => `<div><small>${l}</small><strong>${v}</strong></div>`).join('')}<div><small>Games</small><strong>${d.games.toLocaleString()}</strong>${d.lowSample ? `<span class="ts-quiet">under ${d.minGames} games</span>` : ''}</div></div>
       <p class="ts-quiet">Patch ${esc(d.patch)} · ${d.region === 'all' ? 'all regions' : esc(d.region.toUpperCase())} · ${d.bracket === 'all' ? 'all ranks' : esc(d.bracket) + '+'}</p>
-      <section class="ts-comp-board"><h3>Board</h3>${boardFor(d.units)}<p class="ts-quiet">Units played in at least 30% of these boards; melee in front, ranged behind. <a href="#/tft/planner">Open the planner ↗</a></p></section>
+      <div class="ts-comp-top"><section class="ts-comp-board"><h3>Board</h3>${boardFor(d.units)}<p class="ts-quiet">Units on at least 30% of these boards; melee in front, ranged behind. <a href="#/tft/planner">Open the planner ↗</a></p></section>
+      <section class="ts-comp-traits"><h3>Traits</h3>${traitList(d.activeTraits)}</section></div>
       ${compDetail(d)}`;
+  }
+
+  // Comp page (deck-out round, 2026-10-20): the traits these boards run, each at the highest breakpoint half of them reach,
+  // with how often; a bar per row, same purple as pick rates. Uniques (one unit) are left out like the chips.
+  function traitList(active) {
+    const list = traitBest(active);
+    if (!list.length) return '<p class="ts-quiet">No trait reaches a breakpoint on half of these boards.</p>';
+    return `<ol class="ts-tlist">${list.map(({ k, b, n }) => `<li><span class="ts-tname">${icon(k, 'ts-ico-trait')}<b>${n}</b> ${esc(name(k))}</span><span class="ts-tbar" style="--w:${Math.round(Math.min(1, b.f) * 100)}%"></span><span class="ts-tpct">${pct(Math.min(1, b.f))}</span></li>`).join('')}</ol>`;
   }
 
   // Match history: your recent TFT games from the client (bridge get_tft_match_history).
