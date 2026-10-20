@@ -150,7 +150,7 @@
 .lg-kinds a[aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
 .lg-bname{white-space:nowrap}
 .lg-bname,.lg-bname>span{display:flex;align-items:center;gap:6px}
-.lg-bname>span:last-child{font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.lg-bname>span:last-child{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis} /* block, not flex: the ellipsis only works on inline text */
 .lg-builds .lg-ico{width:20px;height:20px}
 .lg-bchamps{display:flex;gap:2px}
 .lg-bchamps .lg-icon{width:20px;height:20px}
