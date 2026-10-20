@@ -120,3 +120,11 @@
 .ledger-controls label{color:var(--muted)}
 /* DONI-571: Field guide lives in the sidebar; the row keeps the four stats pages so it fits at 1280 */
 .city-nav.city-nav.city-nav a[data-open=guides]{display:none}
+/* Morning pass: hero pages lead with the numbers (under the name, above the lore) and a compact heading */
+.deadlock-surface:has(#dossier) .page-heading{padding-top:8px!important;min-height:0!important;padding-bottom:12px!important}
+.deadlock-surface:has(#dossier) .page-heading h1{font-size:44px!important;line-height:1!important}
+.dossier-lede .hero-numbers{margin:10px 0 14px}
+.dossier-lede .hn-strip>div{padding:0 12px}
+.dossier-lede .hn-strip dd:not(.hn-sub){font-size:18px}
+.dossier-lede .hn-strip{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;row-gap:8px}
+.dossier-lede .hn-strip>div:nth-child(3n+1){padding-left:0;border-left:0}
