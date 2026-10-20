@@ -385,7 +385,7 @@ window.createTftView = function (host) {
       .sort((a, b) => a.lowSample - b.lowSample || a.avgPlacement - b.avgPlacement);
     page.querySelector('.ts-state').textContent = rows.length ? '' : 'Nothing recorded for these filters yet.';
     page.querySelector('.ts-meta').textContent = `${d.boards.toLocaleString()} boards · patch ${d.patch} · best average place first`;
-    const extraHead = { units: 'Popular items', items: 'Best holders', traits: 'By breakpoint (avg place · games)' }[kind];
+    const extraHead = { units: 'Popular items', items: 'Best holders', traits: 'By breakpoint' }[kind];
     const extra = (r) => kind === 'units' ? `<span class="ts-units">${(r.items || []).map((i) => `<span title="${esc(name(i.key))} · ${i.avgPlacement.toFixed(2)} avg · ${i.games.toLocaleString()} games">${icon(i.key, 'ts-ico-item')}</span>`).join('')}</span>`
       : kind === 'items' ? `<span class="ts-units">${(r.units || []).map((u) => unitLink(u.unit, ` · ${u.avgPlacement.toFixed(2)} avg · ${u.games.toLocaleString()} games`)).join('')}</span>`
       : `<span class="ts-tiers">${(r.tiers || []).map((t) => `<span class="${t.lowSample ? 'low' : ''}" title="Breakpoint ${t.tier}: ${t.games.toLocaleString()} games, ${pct(t.top4Rate)} top 4">${t.tier} ${heat(t.avgPlacement, 4.5, 0.6, t.games, t.avgPlacement.toFixed(2), true)}</span>`).join('')}</span>`;

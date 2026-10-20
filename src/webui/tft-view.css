@@ -126,6 +126,7 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-list-head a{margin-left:auto;font-size:11px;text-transform:uppercase;letter-spacing:.1em;text-decoration:none}
 .ts-head.ts-head-list,.ts-row-list{display:grid;grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(56px,76px)) minmax(0,1.6fr);gap:8px;align-items:center}
 .ts-head-list span:nth-child(n+2):nth-child(-n+6){text-align:right}
+.ts-head.ts-head-list span:nth-child(7){text-align:left}
 .ts-row-list{min-height:34px;padding:2px 8px}
 .ts-row-list:hover{background:var(--wash)}
 .ts-row-list .ts-name{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;text-decoration:none;color:var(--fg)}
@@ -137,7 +138,7 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-unit-link:hover .ts-ico{outline:1px solid var(--accent)}
 .ts-tiers{display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted)}
 .ts-tiers>span{display:inline-flex;align-items:center;gap:4px}
-.ts-tiers .ts-v{display:inline-block;margin:0;padding:0 4px;line-height:20px}
+.ts-tiers .ts-v{display:inline-block;margin:0;padding:0 4px;line-height:20px;color:var(--fg)}
 .ts-tiers .low{opacity:.45}
 .ts-costs{margin-top:6px}
 .ts-comp-head .ts-unit-name .ts-ico{width:56px;height:56px}
@@ -192,3 +193,5 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-more span{grid-column:1;color:var(--muted);font-size:12px;line-height:1.5}
 .ts-more i{grid-row:1;grid-column:2;font-style:normal;color:var(--accent)}
 .ts-mt-rec{margin:0 0 12px}
+/* 1024 px (Brandon's window at 125 %): narrower number columns leave the last column room for two breakpoint chips a line */
+@media (max-width:1150px) and (min-width:901px){.ts-head.ts-head-list,.ts-row-list{grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(52px,60px)) minmax(0,1.6fr)}}
