@@ -82,11 +82,11 @@
       <div class="sb-group" data-game="home"><a class="sb-item" href="#/" title="Home"><svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></a></div>
       <div class="sb-group" data-game="league">
         <a class="sb-item" href="#/league" title="League of Legends"><img src="assets/logos/league.svg" alt=""><span>League of Legends</span></a>
-        <div class="sb-pages"><a href="#/league">Tier list</a><a href="#/league/history">Match history</a><a href="#/league/items">Items</a><a class="lg-row-hide" href="#/league/leaderboard">Leaderboard</a><a class="lg-row-hide" href="#/league/champions">Champions</a><a class="lg-row-hide" href="#/league/champ">Champ select</a><a class="lg-row-hide" href="#/league/dashboard">Dashboard</a><a class="lg-row-only" href="#/league/more">More</a></div>
+        <div class="sb-pages"><a href="#/league">Tier list</a><a href="#/league/history">Match history</a><a href="#/league/items">Items</a><a href="#/league/more">More</a><a class="sb-set" href="#/settings#league"><svg class="sb-cog" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>Settings</a></div>
       </div>
       <div class="sb-group" data-game="tft">
         <a class="sb-item" href="#/tft" title="Teamfight Tactics"><img src="assets/logos/tft.png" alt=""><span>Teamfight Tactics</span></a>
-        <div class="sb-pages"><a href="#/tft">Tier list</a><a href="#/tft/history">Match history</a><a href="#/tft/units">Units</a><a class="lg-row-hide" href="#/tft/items">Items</a><a class="lg-row-hide" href="#/tft/traits">Traits</a><a class="lg-row-hide" href="#/tft/leaderboard">Leaderboard</a><a class="lg-row-hide" href="#/tft/planner">Planner</a><a class="lg-row-only" href="#/tft/more">More</a></div>
+        <div class="sb-pages"><a href="#/tft">Tier list</a><a href="#/tft/history">Match history</a><a href="#/tft/units">Units</a><a href="#/tft/more">More</a><a class="sb-set" href="#/settings#tft"><svg class="sb-cog" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>Settings</a></div>
       </div>
       <div class="sb-group" data-game="deadlock">
         <a class="sb-item" href="#/deadlock" title="Deadlock"><img src="assets/logos/deadlock.png" alt=""><span>Deadlock</span></a>
@@ -116,45 +116,9 @@
   </nav>
   <!-- The current world's pages, sticky at the top of its content (shell.js fills it from the sidebar); empty, it is the window's drag strip. -->
   <nav id="world-nav" aria-label="Pages">
-  <!-- League client dock: PLAY (launch / queue / live), shown on every League route. -->
+  <!-- DONI-595: one PLAY per game (League, TFT, Deadlock): the game's logo, its state, and that game's queue menu. -->
   <div id="league-dock" class="league-dock" data-keep hidden>
-    <button id="play-btn" class="play-btn" title="Launch League / quick queue">
-          <!-- PLAY button artwork (edited in brand/play-button.svg). Hooks the
-               app relies on: class="play-svg" (sizing), id="play-label" (state
-               text swap), and the .pb-* classes (hover). -->
-          <svg class="play-svg" aria-hidden="true" viewBox="231.54 215.543 216.801 54">
-            <defs>
-              <!-- Teal energy bloom inside the hex, faded in on hover / live. -->
-              <radialGradient id="pbCoreGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#79C9CF" stop-opacity="0.85"/>
-                <stop offset="55%" stop-color="#79C9CF" stop-opacity="0.28"/>
-                <stop offset="100%" stop-color="#79C9CF" stop-opacity="0"/>
-              </radialGradient>
-            </defs>
-            <path fill="#0a323c" d="M410.983 218.364h36.867v46.717h-36.867z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
-            <path fill="#010a13" d="M410.983 221.167h34.031v41.111h-34.031z" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
-            <path class="pb-frame" fill="#005a82" d="M278.643 218.364h139.903l30.249 23.358-30.249 23.359H278.643q18.905-23.36 0-46.717" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
-            <path fill="#1e2328" d="M283.369 221.167h133.286l27.414 20.555-27.414 20.556H283.369q16.07-20.556 0-41.111" style="stroke-width:1px" transform="matrix(1 0 0 .96113 -.454 9.85)"/>
-            <text id="play-label" x="359.54" y="250.543" font-size="21" font-weight="700" fill="#F0E6D0" text-anchor="middle" font-family="Marcellus, Georgia, serif" letter-spacing="1" style="white-space:pre;stroke-width:1px" transform="matrix(.94529 0 0 .89803 18.67 24.366)">PLAY</text>
-            <!-- The Queue Sigil IS the emblem now: a hex badge replacing the
-                 round medallion. Its body is the SAME flat dark slate (#1e2328)
-                 as the PLAY ribbon so the two halves read as one material; the
-                 gold hex ring + teal core dot are the brand accents. The mark's
-                 pennant is dropped here (it would stab into the ribbon, and the
-                 button already reads as "play") — the full mark with pennant
-                 lives in the About-card lockup. Centered on the old medallion
-                 spot; ignites bronze→gold+teal via the same .pb-* classes. -->
-            <g transform="translate(258.54 242.543) scale(0.6) translate(-56 -54)">
-              <polygon points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
-                       fill="#1e2328"/>
-              <circle class="pb-coreglow" cx="56" cy="54" r="33" fill="url(#pbCoreGlow)" opacity="0"/>
-              <polygon class="pb-sig-ring"
-                       points="96,54 84.28,82.28 56,94 27.72,82.28 16,54 27.72,25.72 56,14 84.28,25.72"
-                       fill="none" stroke="#785a28" stroke-width="7" stroke-linejoin="miter"/>
-              <circle class="pb-sig-core" cx="56" cy="54" r="7" fill="#005a82"/>
-            </g>
-          </svg>
-        </button>
+    <button id="play-btn" class="play-btn qp-play" title="Play" aria-haspopup="menu"><span class="qp-play-logo" aria-hidden="true"></span><span id="play-label">PLAY</span><svg class="qp-play-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button>
 
   </div>
 

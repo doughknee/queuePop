@@ -118,7 +118,8 @@ const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 
 // Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
 // DONI-565: Ranked (solo/duo) or ARAM. ARAM has no lanes, so the page drops lane tabs and the lane column (.lg-aram).
-const lgQueueTabs = () => lg.aramOk ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Queue">${[['', 'Ranked'], ['aram', 'ARAM']].map(([v, t]) => `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}">${t}</button>`).join('')}</div>` : '';
+// DONI-595: the mode tabs show whenever there is ARAM data; a thin sample says so on the tab instead of hiding it.
+const lgQueueTabs = () => lg.aramOk ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Game mode">${[['', 'Ranked'], ['aram', lg.aramN < 1000 ? `ARAM <small>${lgN(lg.aramN)}</small>` : 'ARAM']].map(([v, t]) => `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}"${v && lg.aramN < 1000 ? ` title="Only ${lgN(lg.aramN)} ARAM games this patch so far: read these as a rough guide"` : ''}>${t}</button>`).join('')}</div>` : '';
 function lgFilters(withRole = true, lead = '', nums = withRole) {
   const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank', days: 'Window' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
@@ -131,8 +132,8 @@ async function lgFillPatches(token) {
     const p = await statsApi.patches(), def = p.default?.lol || (p.lol || [])[0];
     const sel = token === lg.token && document.querySelector('[data-lg-filter=patch]');
     if (sel) sel.innerHTML = (p.lol || []).map(v => `<option value="${v}" ${(lg.patch || def) === v ? 'selected' : ''}>Patch ${v}</option>`).join('');
-    // DONI-565: the ARAM tab shows once the patch has ~1,000 ARAM games (or while you are on it, so you can leave).
-    lg.aramOk = Object.values(p.counts?.aram || {}).some(n => n >= 1000) || !!lg.queue;
+    lg.aramN = Math.max(0, ...Object.values(p.counts?.aram || {}));
+    lg.aramOk = lg.aramN > 0 || !!lg.queue;
     const q = token === lg.token && document.getElementById('lg-queues');
     if (q) q.innerHTML = lgQueueTabs();
   } catch {}

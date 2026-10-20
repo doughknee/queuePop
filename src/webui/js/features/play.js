@@ -23,12 +23,19 @@ function renderPause(paused) {
 
 // --- PLAY button (launch client / quick-queue / cancel) ----------------
 // Mode is set by updatePlay() from the live gameflow phase.
+// DONI-595: the one PLAY serves the game you're in. League and TFT share the client's state; Deadlock just launches.
+let playLast = {};
+const playGame = () => (document.body.className.match(/theme-(league|tft|deadlock)/) || [])[1] || "league";
+window.qpPlaySync = () => { closeQueueMenu(); updatePlay(playLast); };
 function updatePlay(s) {
+  playLast = s || {};
   const btn = $("play-btn");
   const label = $("play-label");
   if (!btn || !label) return;
   let text = "PLAY", mode = "queue", disabled = false;
-  if (!s.connected) {
+  if (playGame() === "deadlock") {
+    mode = "deadlock";
+  } else if (!s.connected) {
     text = "LAUNCH"; mode = "launch"; // no client → launch it
   } else {
     switch (s.gameflow_phase) {
@@ -44,11 +51,9 @@ function updatePlay(s) {
     }
   }
   label.textContent = text;
-  // Shrink the banner text for longer states so it stays inside the tag.
-  label.setAttribute("font-size", text.length <= 4 ? "21" : text.length <= 6 ? "17" : "14");
   btn.disabled = disabled;
   btn.dataset.mode = mode;
-  if (mode === "queue") btn.title = "Choose a queue";
+  btn.title = { queue: "Choose a queue", launch: "Open the League client", cancel: "Leave the queue", live: "Back to champ select", deadlock: "Launch Deadlock" }[mode] || text;
 }
 
 QP.bus.on("status", (s) => {
@@ -83,8 +88,11 @@ $("play-btn").addEventListener("click", async () => {
     closeQueueMenu();
     showLiveView();
   } else if (mode === "queue") {
-    // The queue list is its own page in the League world (no popup menus).
-    location.hash = "/league/play";
+    toggleQueueMenu(); // DONI-595: this game's queues, right under PLAY
+  } else if (mode === "deadlock") {
+    const label = $("play-label"); label.textContent = "LAUNCHING";
+    await playCall(() => api().launch_deadlock(), "Couldn't launch Deadlock");
+    setTimeout(() => { label.textContent = "PLAY"; }, 4000);
   }
 });
 
@@ -163,7 +171,7 @@ function qmRowHtml(q, idx, opts) {
       `data-qid="${q.id}" style="--i:${idx}">` +
       `<span class="qm-row-content">` +
         `<span class="qm-ico">${qmGroupIcon(q.group)}</span>` +
-        `<span class="qm-name">${q.name}</span>` +
+        `<span class="qm-name">${q.group === "tft" ? qmStripPrefix(q.name, "Teamfight Tactics") : q.name}</span>` +
         pill +
       `</span>` +
     `</button>`
@@ -173,10 +181,12 @@ function qmRowHtml(q, idx, opts) {
 // Normal view: last-played on top (optional), then the chosen modes (or, until
 // the user curates any, the full curated list so the menu is never empty). Flat,
 // no group headers, no sorting — order is the user's pick / the backend's order.
+// DONI-595: League's PLAY lists League queues, TFT's lists TFT's.
+const qmMine = (q) => q && (q.group === "tft") === (playGame() === "tft");
 function qmNormalInner() {
-  const last = qmShowLast && qmLast != null ? qmQueueById(qmLast) : null;
-  let chosen = qmShown.map(qmQueueById).filter(Boolean);
-  if (!chosen.length) chosen = qmQueues.slice();
+  const last = qmShowLast && qmLast != null && qmMine(qmQueueById(qmLast)) ? qmQueueById(qmLast) : null;
+  let chosen = qmShown.map(qmQueueById).filter(qmMine);
+  if (!chosen.length) chosen = qmQueues.filter(qmMine);
   if (last) chosen = chosen.filter((q) => q.id !== last.id);
 
   let rows = last ? qmRowHtml(last, 0, { replay: true }) : "";
@@ -197,7 +207,7 @@ function qmNormalInner() {
 function qmEditInner() {
   let secs = "";
   for (const g of qmGroups) {
-    const qs = qmQueues.filter((q) => q.group === g.key);
+    const qs = qmQueues.filter((q) => q.group === g.key && qmMine(q));
     if (!qs.length) continue;
     secs +=
       `<div class="qm-egroup"><div class="qm-ehead">${g.label}</div>` +
@@ -322,6 +332,7 @@ function openQueueMenu() {
   const menu = $("queue-menu");
   const btn = $("play-btn");
   if (!menu || !btn) return;
+  renderQueueMenu(); // the list depends on which game's PLAY opened it
   // The menu is position:fixed at the body level, so place it under PLAY.
   const r = btn.getBoundingClientRect();
   menu.style.left = Math.round(r.left) + "px";

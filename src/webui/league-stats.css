@@ -227,8 +227,6 @@
 .lg-filters .lg-legend i{width:40px}
 
 /* DONI-571: the page row shows four stats pages + More; the sidebar keeps every page. */
-#world-nav#world-nav > a.lg-row-hide{display:none}
-#qp-sidebar .lg-row-only{display:none}
 .lg-more{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:6px}
 .lg-more a{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:14px 16px;border:1px solid var(--line);text-decoration:none;color:var(--fg)}
 .lg-more a:hover{border-color:var(--accent);background:var(--wash)}
@@ -256,3 +254,4 @@
 /* Q speed review: skeleton rows while a tier list loads (the table's row height, tokens only; still under reduced motion) */
 .qp-skel{display:grid;gap:4px;margin-top:8px}.qp-skel i{display:block;height:22px;background:var(--line);opacity:.5;animation:qp-skel 1.2s ease-in-out infinite alternate}.qp-skel i:nth-child(odd){opacity:.35}
 @keyframes qp-skel{to{opacity:.15}}@media (prefers-reduced-motion:reduce){.qp-skel i{animation:none}}
+.lg-queues-tabs button small{margin-left:6px;color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0}

@@ -55,14 +55,15 @@
     bar.querySelector('.sb-rec')?.toggleAttribute('aria-current', game === 'recordings');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     const src = bar.querySelector(`[data-game="${game}"] .sb-pages`), html = src ? src.innerHTML : '';
-    if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.dataset.label = src ? src.previousElementSibling.title : ''; }
+    // DONI-595: a new game's pages slide in (the label above them was the game's name again, so it's gone).
+    if (block.dataset.html !== html) { block.dataset.html = html; block.innerHTML = html; block.classList.remove('sb-in'); void block.offsetWidth; block.classList.add('sb-in'); }
     // The world's page row repeats its sidebar pages, so a collapsed rail still reaches every page.
     // Deadlock draws its own row; home and companion leave it empty (just the drag strip).
-    const pages = game !== 'deadlock' && bar.querySelector(`[data-game="${game}"] .sb-pages`);
+    const pages = bar.querySelector(`[data-game="${game}"] .sb-pages`); // DONI-595: Deadlock uses the shared row too
     const row = game === 'settings' ? settingsView.row() : pages ? pages.innerHTML : '';
     // The Play control ([data-keep]: League's dock, TFT's button) stays first; only the page links are replaced.
-    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); }
-    const tp = document.getElementById('tft-play'); if (tp) tp.hidden = game !== 'tft';
+    if (nav.dataset.row !== row) { nav.dataset.row = row; nav.querySelectorAll(':scope > :not([data-keep])').forEach(e => e.remove()); nav.insertAdjacentHTML('beforeend', row); nav.classList.remove('sb-in'); void nav.offsetWidth; nav.classList.add('sb-in'); }
+    const tp = document.getElementById('tft-play'); if (tp) tp.hidden = true; // DONI-595: the shared PLAY covers TFT
     remember();
     setTimeout(rowEdges);
   };
@@ -187,9 +188,10 @@ window.homeContinue = (() => {
     box.querySelectorAll('[data-comp]').forEach(el => { if (window.tftStats) el.querySelector('b').textContent = el.dataset.comp.split(',').map(k => tftStats.info(k).name).join(' · '); });
   }
   function html() {
-    const tiles = resumeTiles(window.qpLast ? qpLast() : {}, window.qpGames ? qpGames() : [], pages()).slice(0, 4);
+    // DONI-595: a game's tier list is already a quick link above, so only deeper pages (a champion, a comp, history…) show here.
+    const tiles = resumeTiles(window.qpLast ? qpLast() : {}, window.qpGames ? qpGames() : [], pages()).filter(t => !/^#\/(league|tft|deadlock)\/?$/.test(t.href)).slice(0, 4);
     setTimeout(fill);
-    if (!tiles.length) return '<p class="eyebrow hc-first">Pick a game to start</p>';
+    if (!tiles.length) return '';
     return `<section class="hc" id="home-continue" aria-label="Pick up where you left off"><p class="eyebrow">Pick up where you left off</p><div class="hc-row">${tiles.map(t =>
       `<a class="hc-tile" href="${E(t.href)}" data-game="${t.game}"${t.champion ? ` data-champ="${E(t.champion)}"` : ''}${t.comp ? ` data-comp="${E(t.comp)}"` : ''}><img src="${LOGO[t.game]}" alt=""><span><small>${E(NAME[t.game])}${t.detail || t.champion || t.comp ? ' · ' + E(t.page) : ''}</small><b>${E(t.detail || (t.champion ? 'Champion ' + t.champion : t.comp ? 'Comp' : t.page))}</b></span><i aria-hidden="true">↗</i></a>`).join('')}</div></section>`;
   }

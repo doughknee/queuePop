@@ -71,8 +71,7 @@ document.addEventListener('click', e => {
 // League's page row (DONI-571): three stats pages plus "More", which lands here: the rest of the League pages as an
 // inline list (no popup). The sidebar keeps every page (index.html: .lg-row-hide hides them in the row only).
 function leagueMorePage() {
-  const P = [['#/league/leaderboard', 'Leaderboard', 'The ranked ladder per region; open anyone for their ranks and last 20 matches.'], ['#/league/champions', 'Champions', 'Your most-played champions: lore, abilities and a plan for each.'],
-    ['#/league/champ', 'Champ select', 'Auto pick and ban, runes and loadouts for every role, set up before the timer starts.'],
+  const P = [['#/league/leaderboard', 'Leaderboard', 'The ranked ladder per region; open anyone for their ranks and last 20 matches.'], ['#/league/champ', 'Champ select', 'Auto pick and ban, runes and loadouts for every role, set up before the timer starts.'],
     ['#/league/dashboard', 'Dashboard', 'Auto-accept, alerts and what happened in your last queues.'],
     ['#/league/play', 'Queue', 'Start any queue from here, with your favourites first.'],
     ['#/league/account', 'Account', 'Your ranks, mastery and challenges from the League client.']];

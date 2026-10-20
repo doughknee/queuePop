@@ -28,7 +28,6 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-pages{display:none} /* the source lists; shell.js copies the current game's into .sb-block (DONI-527) */
 .sb-block{display:flex;flex-direction:column;gap:1px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)}
 .sb-block:empty{display:none}
-.sb-block::before{content:attr(data-label);padding:0 8px 6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-block a{padding:6px 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #qp-sidebar [aria-current="page"]{background:var(--wash);color:var(--accent);box-shadow:inset 2px 0 var(--accent)}
 .sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid var(--line)}
@@ -71,12 +70,10 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 #world-nav{position:sticky;top:0;z-index:30;-webkit-app-region:drag}
 #world-nav,.city-nav{overflow-x:auto;scrollbar-width:none} /* DONI-516: the row scrolls sideways at large Text sizes */
 #world-nav a,#world-nav>[data-keep]{-webkit-app-region:no-drag}
-.theme-deadlock #world-nav#world-nav{display:none}
 #world-nav#world-nav,.city-nav.city-nav{display:flex;align-items:center;justify-content:flex-start;gap:2px;height:auto;min-height:48px;padding:0 136px 0 16px;background:var(--bg);background-image:none;border-bottom:1px solid var(--line);box-shadow:none}
 #world-nav#world-nav:not(:has(a)){min-height:32px;background:none;border-bottom:0} /* home: just the drag strip */
-#world-nav#world-nav::before,.city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
-.theme-league #world-nav#world-nav::before{background-image:url(assets/logos/league.svg)}
-.theme-tft #world-nav#world-nav::before{background-image:url(assets/logos/tft.png)}
+#world-nav#world-nav::before{content:none}
+.city-nav.city-nav::before{content:'';flex:none;width:24px;height:24px;margin-right:12px;background:center/contain no-repeat}
 .city-nav.city-nav::before{background-image:url(assets/logos/deadlock.png)}
 #world-nav#world-nav:not(:has(a))::before,.theme-settings #world-nav#world-nav::before{content:none}
 #world-nav#world-nav a,.city-nav.city-nav a{position:relative;display:flex;flex:none;align-items:center;gap:0;height:auto;min-height:48px;padding:0 14px;border:0;border-radius:0;background:none;box-shadow:none;clip-path:none;color:var(--fg);font:400 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;text-decoration:none;white-space:nowrap}
@@ -292,3 +289,44 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .rec-del:hover,.rec-del:focus-visible{color:var(--neg)}.rec-del[data-sure]{color:var(--neg)}
 .rec-nostrip{color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding-bottom:4px}
 .rec-empty .st-btn{margin-left:12px}
+/* DONI-595: a game's pages slide in when you switch games (sidebar block and the page row), staggered; Settings sits apart
+   with a cog. Reduced motion just shows them. */
+@keyframes sbIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.sb-block.sb-in>a{animation:sbIn .26s cubic-bezier(.2,.7,.2,1) both}
+#world-nav.sb-in>a{animation:rowIn .22s cubic-bezier(.2,.7,.2,1) both}
+.sb-block.sb-in>a:nth-child(2),#world-nav.sb-in>a:nth-of-type(2){animation-delay:.03s}
+.sb-block.sb-in>a:nth-child(3),#world-nav.sb-in>a:nth-of-type(3){animation-delay:.06s}
+.sb-block.sb-in>a:nth-child(4),#world-nav.sb-in>a:nth-of-type(4){animation-delay:.09s}
+.sb-block.sb-in>a:nth-child(5),#world-nav.sb-in>a:nth-of-type(5){animation-delay:.12s}
+@media (prefers-reduced-motion:reduce){.sb-block.sb-in>a,#world-nav.sb-in>a{animation:none}}
+.sb-block a.sb-set{display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
+.sb-cog{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7}
+#world-nav#world-nav a.sb-set{display:none} /* Settings lives in the sidebar; the row is the game's pages */
+/* DONI-595: Home quick links: the tier list of each game you play, and Settings. Game color on hover. */
+.theme-home .hq{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:28px 5% 0}
+.hq-link{--gc:var(--accent);display:flex;align-items:center;gap:14px;min-height:84px;padding:14px 18px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .15s}
+.hq-link[data-game=league]{--gc:var(--blue)}.hq-link[data-game=tft]{--gc:var(--purple)}.hq-link[data-game=deadlock]{--gc:var(--amber)}
+.hq-link:hover,.hq-link:focus-visible{border-color:var(--gc);transform:translateY(-2px)}
+.hq-link img,.hq-link svg{width:40px;height:40px;flex:none;object-fit:contain}
+.hq-link svg{fill:none;stroke:var(--accent);stroke-width:1.5}
+.hq-link span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hq-link small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+.hq-link b{font:400 26px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.hq-link i{font-style:normal;color:var(--gc)}
+@media (prefers-reduced-motion:reduce){.hq-link{transition:none}.hq-link:hover{transform:none}}
+/* DONI-595: one PLAY for every game. A lime plate: the game's logo cut out of it (CSS mask), PLAY or the client's state,
+   and a caret when it opens that game's queue menu. In queue it turns outlined; disabled while a match is loading/playing. */
+#world-nav#world-nav .qp-play{display:flex;align-items:center;gap:10px;height:34px;padding:0 12px 0 9px;border:0;border-radius:0;background:var(--accent);color:var(--bg);font:400 18px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s}
+#world-nav#world-nav .qp-play:hover:not(:disabled),#world-nav#world-nav .qp-play.menu-open{background:var(--fg)}
+#world-nav#world-nav .qp-play:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+#world-nav#world-nav .qp-play:disabled{opacity:.6;cursor:default}
+#world-nav#world-nav .qp-play[data-mode=cancel],#world-nav#world-nav .qp-play[data-mode=live]{background:var(--bg);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.qp-play-logo{width:22px;height:22px;flex:none;background:currentColor;-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat}
+.theme-league .qp-play{--logo:url(assets/logos/league.svg)}
+.theme-tft .qp-play{--logo:url(assets/logos/tft.png)}
+.theme-deadlock .qp-play{--logo:url(assets/logos/deadlock.png)}
+.theme-deadlock .qp-play-logo{-webkit-mask:none;mask:var(--logo) center/contain no-repeat;mask-mode:luminance} /* the emblem is a filled disc: its light parts make the shape */
+.qp-play-caret{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;display:none}
+.qp-play[data-mode=queue] .qp-play-caret{display:block}
+.qp-play.menu-open .qp-play-caret{transform:rotate(180deg)}
