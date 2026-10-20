@@ -138,7 +138,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     },
     test_desktop: () => {
       const ok = notifier.desktop("queuePop test", "Desktop notifications are working.", "Test message");
-      if (ok) push("Desktop test notification sent", "success");
+      if (ok) push("Test Windows notification sent", "success");
       return { ok, error: ok ? null : "Couldn't show a notification" };
     },
     test_discord: async (url, userId) => {

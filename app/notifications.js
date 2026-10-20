@@ -86,7 +86,7 @@ function createNotifier(ctx) {
   const mark = (channel, what) => { lastSent[channel] = { ts: Date.now() / 1000, what }; };
   const fail = (channel, what, err) => {
     lastSent[channel] = { ts: Date.now() / 1000, what, error: String(err) };
-    ctx.push(`${channel[0].toUpperCase() + channel.slice(1)} alert failed: ${err}`, "warning");
+    ctx.push(`${{ desktop: "Windows notification", discord: "Discord alert", ntfy: "ntfy push" }[channel] || channel} failed: ${err}`, "warning");
   };
 
   function desktop(title, message, what = "alert") {

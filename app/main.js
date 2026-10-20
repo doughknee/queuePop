@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const { app, BrowserWindow, ipcMain, shell, screen, powerMonitor } = require("electron");
 const { windowState } = require("./window-state"); // DONI-539
+const { QUEUE_ID_MAP } = require("./account");
+const qname = (id) => QUEUE_ID_MAP[id] || (id ? `queue ${id}` : "this queue");
 const { createFloat, FLOAT_METHODS } = require("./float"); // DONI-346
 let float = null;
 const { LCU } = require("./lcu");
@@ -61,26 +63,26 @@ async function readyCheck(data) {
   const allowed = loadConfig().allowed_queue_ids || [];
   if (allowed.length && !allowed.includes(queueId)) {
     log(`Ready check for queue ${queueId} skipped (not in allowed list)`);
-    push(`Skipped queue ${queueId} (not in allowed list)`, "warning", "match");
+    push(`Didn't accept ${qname(queueId)}: it isn't one of your queues to auto-accept`, "warning", "match");
     state.accepting = false;
     return;
   }
   // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
   // Off still pushes the pop (the phone alarms on it), it just doesn't accept.
   const autoAccept = state.away || loadConfig().auto_accept !== false;
-  if (!state.popPushed) push(`Queue popped (queue ${queueId}), ${autoAccept ? "accepting…" : "accept it in the client"}`, "danger", "queue_pop"); // once per pop, not per retry
+  if (!state.popPushed) push(`Queue popped: ${qname(queueId)}. ${autoAccept ? "Accepting…" : "Accept it in the client."}`, "danger", "queue_pop"); // once per pop, not per retry
   state.popPushed = true;
   if (!autoAccept) { log(`Ready check popped queue=${queueId}; auto-accept is off`); return; } // the latch stays until the check ends
   log(`Ready check popped queue=${queueId}`);
   const delay = Math.min(10, Math.max(0, Number(loadConfig().accept_delay_seconds) || 0));
   if (delay) {
-    push(`Accepting in ${delay}s…`, "info", "match");
+    push(`Accepting in ${delay} s…`, "info", "match");
     await new Promise((r) => setTimeout(r, delay * 1000));
     // A teammate may have declined or the user answered by hand during the wait.
     const rc = await lcu.request("get", "/lol-matchmaking/v1/ready-check").catch(() => null);
     if (!rc || !rc.data || rc.data.state !== "InProgress" || rc.data.playerResponse !== "None") {
       log("Ready check ended during the accept delay; standing down");
-      push("Ready check ended during the wait — not accepted", "warning", "match");
+      push("The queue pop ended during the wait, so nothing was accepted", "warning", "match");
       state.accepting = false;
       return;
     }
@@ -94,7 +96,7 @@ async function readyCheck(data) {
     return;
   }
   log(`READY CHECK ACCEPTED queue=${queueId} status=${r.status}`);
-  push(`Match accepted (queue ${queueId})`, "success", "match");
+  push(`Match accepted: ${qname(queueId)}`, "success", "match");
 }
 
 let win;
