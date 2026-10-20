@@ -103,8 +103,8 @@ async function capped(ctx, region) {
     // a mode player never asked (NULL first) or not asked for 6 h, else a ranked player not yet asked for this queue
     const p = db.prepare(`SELECT x.puuid, x.asked_at, pl.tier FROM mode_players x LEFT JOIN players pl ON pl.puuid = x.puuid AND pl.game = 'lol'
       WHERE x.region = ? AND x.queue = ? AND (x.asked_at IS NULL OR x.asked_at < ?) ORDER BY x.asked_at LIMIT 1`).get(region, q, now() - 6 * IDS_EVERY)
-      || db.prepare(`SELECT puuid, tier FROM players p WHERE game = 'lol' AND region = ?
-        AND NOT EXISTS (SELECT 1 FROM mode_players x WHERE x.puuid = p.puuid AND x.queue = ?) LIMIT 1`).get(region, q);
+      || db.prepare(`SELECT puuid, tier FROM players p WHERE game = 'lol' AND region = ? AND coalesce(seeded_at, 0) >= ?
+        AND NOT EXISTS (SELECT 1 FROM mode_players x WHERE x.puuid = p.puuid AND x.queue = ?) LIMIT 1`).get(region, freshFrom(db, "lol"), q);
     if (!p) continue;
     modeLast.set(`${region}:${q}`, now());
     const since = Math.floor((p.asked_at || now() - 3 * DAY) / 1000);
@@ -122,16 +122,19 @@ async function capped(ctx, region) {
 
 // Key changed apps (a personal key replacing a development key, 2026-10-20): Riot encrypts puuids per app (and a personal key
 // is registered per product, so League and TFT each get their own), so every stored puuid of that game now answers 400
-// "Exception decrypting". When the failing puuid is one the crawl still asks (players / mode_players of that game), that game's
-// player rows are kept but retired (game "lol" -> "lol-stale", so ids(), leaderboards and stats joins stop using them;
-// aggregatePatch still reads their rank for the matches they played), League's mode_players likewise, and that game's ladder
-// walk restarts: Master+ (three requests per region) comes back with fresh puuids within minutes. Match ids aren't
-// encrypted, so matches and stats stay. Returns whether it retired anything (a late error for a retired puuid is a no-op).
+// "Exception decrypting". When the failing puuid is one the crawl still asks, retirePuuids starts that game's retirement: it
+// stamps meta retiring:<game> = { epoch }, retires League's mode_players and restarts that game's ladder walk; Master+ comes
+// back with fresh puuids within minutes. The player rows themselves (1.5M for League) move in batches (retireBatch, one per
+// crawl step): renaming them in one statement re-keyed every index and held the main thread for 5+ min (21:07Z). Moved rows
+// are kept as game "lol-stale" (ids(), leaderboards and stats joins stop using them; aggregatePatch still reads their rank).
+// Until the move ends, ids() and capped() only ask players seeded after the epoch. Match ids aren't encrypted, so matches and
+// stats stay. Returns whether it started a retirement (a late error during or after one is a no-op).
 function retirePuuids(db, puuid, game, now = Date.now) {
+  if (getMeta(db, `retiring:${game}`)) return false;
   const live = db.prepare("SELECT 1 FROM players WHERE puuid = ? AND game = ? UNION ALL SELECT 1 FROM mode_players WHERE ? = 'lol' AND puuid = ? AND region NOT LIKE '%-stale'").get(puuid, game, game, puuid);
   if (!live) return false;
   tx(db, () => {
-    db.prepare("UPDATE OR REPLACE players SET game = game || '-stale' WHERE game = ?").run(game);
+    setMeta(db, `retiring:${game}`, { epoch: now(), puuid });
     if (game === "lol") db.exec("UPDATE mode_players SET region = region || '-stale' WHERE region NOT LIKE '%-stale'");
     db.prepare("DELETE FROM meta WHERE k LIKE ? OR k LIKE ?").run(`seed:${game}:%`, `apex:${game}:%`);
     setMeta(db, `puuidsRetired:${game}`, { at: now(), puuid });
@@ -139,6 +142,17 @@ function retirePuuids(db, puuid, game, now = Date.now) {
   tierCache.clear();
   return true;
 }
+// One batch of a retirement: moves up to n of the game's rows seeded before the epoch. True while it did something.
+function retireBatch(db, game, n = 2000) {
+  const r = getMeta(db, `retiring:${game}`);
+  if (!r) return false;
+  const moved = Number(db.prepare(`UPDATE OR REPLACE players SET game = game || '-stale' WHERE rowid IN
+    (SELECT rowid FROM players WHERE game = ? AND (seeded_at IS NULL OR seeded_at < ?) LIMIT ${n})`).run(game, r.epoch).changes);
+  if (!moved) { db.prepare("DELETE FROM meta WHERE k = ?").run(`retiring:${game}`); tierCache.clear(); }
+  return true;
+}
+// ids()/capped(): during a retirement only players seeded after its epoch (0: everyone)
+const freshFrom = (db, game) => getMeta(db, `retiring:${game}`)?.epoch ?? 0;
 
 // Tier-balanced sampling (D14 accuracy audit, 2026-10-20): asking the oldest-asked player first, highest tier among equals,
 // spent the first two days on Master+ (95% of matches), so "Emerald+" stats were really Master+. Each ids() call now picks
@@ -171,9 +185,10 @@ function tierOrder(db, game, region, now) {
 async function ids(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
   const pick = db.prepare(`SELECT puuid, tier, ids_at FROM players WHERE game = ? AND region = ? AND tier = ? AND (ids_at IS NULL OR ids_at < ?)
-    ORDER BY ids_at LIMIT 1`);
+    AND coalesce(seeded_at, 0) >= ? ORDER BY ids_at LIMIT 1`);
   let p = null;
-  for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY))) break;
+  const fresh = freshFrom(db, game);
+  for (const tier of tierOrder(db, game, region, now())) if ((p = pick.get(game, region, tier, now() - IDS_EVERY, fresh))) break;
   if (!p) return false;
   const since = Math.floor((p.ids_at || now() - 7 * DAY) / 1000);
   const lolQ = ctx.queues.filter((q) => q === 420 || q === 440);
@@ -469,4 +484,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { retirePuuids, repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { retirePuuids, retireBatch, repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

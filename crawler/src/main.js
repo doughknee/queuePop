@@ -121,7 +121,8 @@ async function forever(name, game, step, idle) {
 if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is posted to /admin/key");
 {
   for (const region of cfg.regions) for (const g of games) {
-    forever(`seed ${g} ${region}`, g, () => jobs.seed(ctx, g, region), 600000);
+    // a retirement's row moves (jobs.retireBatch) ride the seed loops: one batch per step, so the API and the swaps get turns
+    forever(`seed ${g} ${region}`, g, async () => jobs.retireBatch(db, g) || jobs.seed(ctx, g, region), 600000);
     // A match per pass; only ask for new ranked ids when there's nothing left to fetch. Capped modes go first so they don't
     // depend on the ranked queue running dry (DONI-596); each is gated to one call per region and queue a minute, and by share.
     forever(`matches ${g} ${region}`, g, async () => (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)), 60000);

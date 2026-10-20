@@ -24,6 +24,11 @@ test("stored puuids from another app: decrypt error, players retired, re-seeded,
     assert.ok(err?.decrypt && err.game === "lol" && err.puuid.startsWith("OLD_"), "400 decrypt flagged with game and puuid");
     assert.strictEqual(jobs.retirePuuids(db, err.puuid, "tft"), false, "not a TFT player");
     assert.strictEqual(jobs.retirePuuids(db, err.puuid, err.game), true);
+    assert.strictEqual(jobs.retirePuuids(db, err.puuid, err.game), false, "one retirement at a time");
+    assert.strictEqual(await jobs.ids(ctx, "lol", "na1"), false, "during the move, old rows are never asked (no decrypt errors)");
+    let batches = 0;
+    while (jobs.retireBatch(db, "lol", 7)) batches++; // the crawl loop's batches
+    assert.ok(batches >= Math.ceil(n / 7), "moved in batches");
     assert.deepStrictEqual(db.prepare("SELECT game, count(*) n FROM players GROUP BY game ORDER BY game").all().map((r) => [r.game, r.n]), [["lol-stale", n], ["tft", tft]], "League kept and retired, TFT untouched");
     assert.strictEqual(db.prepare("SELECT count(*) n FROM mode_players WHERE region NOT LIKE '%-stale'").get().n, 0);
     assert.strictEqual(leaderboard(db, "lol").players.length, 0, "leaderboard skips retired rows");
