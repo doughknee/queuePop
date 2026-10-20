@@ -52,13 +52,20 @@ ${s.health ? `<small>data health as of ${ago(s.health.at)}</small>` : ""}
 $("f").onsubmit = async (e) => {
   e.preventDefault();
   const m = $("msg");
-  try {
-    const r = await fetch("/admin/key", { method: "POST", headers: { authorization: "Bearer " + $("t").value, "content-type": "application/json" }, body: JSON.stringify({ key: $("k").value.trim() }) });
-    const j = await r.json();
-    m.className = r.ok ? "ok" : "err";
-    m.textContent = r.ok ? "Key saved. Crawler uses it from the next request." : j.error;
-    if (r.ok) { $("k").value = ""; load(); }
-  } catch (x) { m.className = "err"; m.textContent = x.message; }
+  // 503 = the hourly aggregation holds the database (a few minutes): retry every 10 s for up to 15 min, saying so (DONI-568)
+  const body = JSON.stringify({ key: $("k").value.trim() }), headers = { authorization: "Bearer " + $("t").value, "content-type": "application/json" };
+  for (let i = 0; i < 90; i++) {
+    try {
+      const r = await fetch("/admin/key", { method: "POST", headers, body });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 503) { m.className = ""; m.textContent = `Crawler busy (aggregating). Retrying in 10 s… (${i + 1})`; await new Promise((ok) => setTimeout(ok, 10000)); continue; }
+      m.className = r.ok ? "ok" : "err";
+      m.textContent = r.ok ? "Key saved. Crawler uses it from the next request." : j.error || r.statusText;
+      if (r.ok) { $("k").value = ""; load(); }
+      return;
+    } catch (x) { m.className = ""; m.textContent = `Crawler not answering (${x.message}). Retrying in 10 s…`; await new Promise((ok) => setTimeout(ok, 10000)); }
+  }
+  m.className = "err"; m.textContent = "Gave up after 15 min; reload the page and try again.";
 };
 load().then(() => { if (document.querySelector(".bad")) $("k").focus(); }); setInterval(load, 10000);
 </script>

@@ -39,7 +39,8 @@ const log = (...a) => console.log(new Date().toISOString(), ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let aggregating = false; // true while the aggregation worker runs (see periodic below)
 let inflight = 0, backingUp = false; // crawl steps in progress; a backup worker running (DONI-568)
-process.on("uncaughtException", (e) => { log(`uncaught: ${e.stack || e.message}`); process.exit(1); }); // logged, then Docker restarts us
+// Logged, not fatal: a throw in a request listener must not take the crawler (and a pass in its worker) down (DONI-568).
+process.on("uncaughtException", (e) => log(`uncaught: ${e.stack || e.message}`));
 const db = db_.open(cfg.dbPath);
 
 if (process.argv[2] === "aggregate") {
