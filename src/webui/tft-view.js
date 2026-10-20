@@ -159,7 +159,7 @@ window.createTftView = function (host) {
     return '';
   }
   function compDetail(d) {
-    const table = (list, label) => list.length ? `<table class="ts-table"><thead><tr><th>${label}</th><th>Played</th><th>Avg place</th><th>Top 4</th><th>Games</th></tr></thead><tbody>${list.map((u) => `<tr class="${u.lowSample ? 'low' : ''}"><td>${icon(u.key)}${esc(name(u.key))}</td><td>${pct(u.frequency)}</td><td>${u.avgPlacement.toFixed(2)}</td><td>${pct(u.top4Rate)}</td><td>${u.games.toLocaleString()}</td></tr>`).join('')}</tbody></table>` : `<p class="ts-quiet">No ${label.toLowerCase()} recorded.</p>`;
+    const table = (list, label) => list.length ? `<table class="ts-table"><thead><tr><th>${label}</th><th>Played</th><th>Avg place</th><th>Top 4</th><th>Games</th></tr></thead><tbody>${list.map((u) => `<tr class="${u.lowSample ? 'low' : ''}"><td>${icon(u.key)}${esc(name(u.key))}</td><td>${mag(u.frequency, 1, pct(u.frequency))}</td><td>${heat(u.avgPlacement, 4.5, 0.6, u.games, u.avgPlacement.toFixed(2), true)}</td><td>${heat(u.top4Rate, 0.5, 0.12, u.games, pct(u.top4Rate))}</td><td>${u.games.toLocaleString()}</td></tr>`).join('')}</tbody></table>` : `<p class="ts-quiet">No ${label.toLowerCase()} recorded.</p>`;
     return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${table(d.augments, 'Augment')}</div></div>`;
   }
   function renderList() {
