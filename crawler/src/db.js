@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS players (
   puuid TEXT, game TEXT, region TEXT, tier TEXT, tier_n INT, division TEXT, lp INT,
   seeded_at INT, ids_at INT, PRIMARY KEY (puuid, game));
-CREATE INDEX IF NOT EXISTS players_due ON players (game, region, ids_at);
+-- ids(): oldest-asked player first, highest tier among equals, without a temp sort over every due player (D13 review)
+DROP INDEX IF EXISTS players_due;
+CREATE INDEX IF NOT EXISTS players_due_tier ON players (game, region, ids_at, tier_n DESC);
 CREATE TABLE IF NOT EXISTS matches (
   id TEXT PRIMARY KEY, game TEXT, region TEXT, bracket TEXT, status TEXT DEFAULT 'new',
   queue INT, patch TEXT, started_at INT, fetched_at INT, raw BLOB);

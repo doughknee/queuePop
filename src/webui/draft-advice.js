@@ -23,11 +23,23 @@
   const signed = d => (d > 0 ? '+' : '') + pct(d).toFixed(1);
   // One line per candidate: its strongest matchup edge, its best ally, then the sample. E.g.
   // "+3.1 vs Caitlyn, good with Thresh, 52.4 % over 3,961 games".
+  // The crawler's components ({base, lane, enemies[], allies[]}, raw deltas, null when unseen) as one list of {kind, champion, delta}.
+  function componentList(c) {
+    const k = c.components;
+    if (Array.isArray(k)) return k;
+    if (!k) return [];
+    const ok = x => x && Number.isFinite(x.value);
+    return [...(ok(k.lane) ? [{ kind: 'vs', champion: k.lane.champion, delta: k.lane.value, games: k.lane.games, lane: true }] : []),
+      ...(k.enemies || []).filter(ok).map(x => ({ kind: 'vs', champion: x.champion, delta: x.value, games: x.games })),
+      ...(k.allies || []).filter(ok).map(x => ({ kind: 'with', champion: x.champion, delta: x.value, games: x.games }))];
+  }
   function whyLine(c, name) {
-    const parts = [], comps = c.components || [];
-    const vs = comps.filter(x => x.kind === 'vs' && Number.isFinite(x.delta)).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
+    const parts = [], comps = componentList(c);
+    // Only components with a real sample (30+ games; arrays without counts are trusted); the lane matchup first.
+    const real = x => Number.isFinite(x.delta) && (x.games === undefined || x.games >= 30);
+    const vs = comps.filter(x => x.kind === 'vs' && real(x)).sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || Math.abs(b.delta) - Math.abs(a.delta))[0];
     if (vs && Math.abs(pct(vs.delta)) >= 0.5) parts.push(`${signed(vs.delta)} vs ${name(vs.champion)}`);
-    const w = comps.filter(x => x.kind === 'with' && x.delta > 0).sort((a, b) => b.delta - a.delta)[0];
+    const w = comps.filter(x => x.kind === 'with' && x.delta > 0 && real(x)).sort((a, b) => b.delta - a.delta)[0];
     if (w && pct(w.delta) >= 0.5) parts.push(`good with ${name(w.champion)}`);
     if (Number.isFinite(c.winRate) && c.games) parts.push(`${pct(c.winRate).toFixed(1)} % over ${Number(c.games).toLocaleString('en-US')} games`);
     return parts.join(', ');
@@ -38,7 +50,7 @@
     return ((resp && resp.candidates) || []).filter(c => !gone.has(Number(c.champion)))
       .sort((a, b) => (a.lowSample ? 1 : 0) - (b.lowSample ? 1 : 0) || (b.score ?? 0) - (a.score ?? 0)).slice(0, n);
   }
-  const api = { draftContext, draftQuery, whyLine, topCandidates };
+  const api = { draftContext, draftQuery, whyLine, topCandidates, componentList };
   if (typeof window !== 'undefined') window.draftAdvice = api;
   if (typeof document === 'undefined') return;
 

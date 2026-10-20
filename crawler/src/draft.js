@@ -8,7 +8,7 @@
 //   enemies = mean over the other enemies of (win rate vs them - own win rate)  (K = 100, weight 0.5)
 //   allies  = mean over the allies of synergy delta2                           (K = 100, weight 0.5)
 // The lane enemy is the one given as id:ROLE with our role, else the enemy whose most-played role is ours. Banned and already
-// picked champions are not candidates. Candidates need MIN_GAMES games in the role.
+// picked champions are not candidates. Candidates need MIN_GAMES games in the role, unless ?pool lists them (then any sample).
 const r4 = (x) => Math.round(x * 10000) / 10000;
 const SCHEMA = "CREATE TABLE IF NOT EXISTS stats_lol_vs (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, opponent INT, games INT, wins INT);";
 const TABLES = ["lol_vs"];
@@ -34,6 +34,7 @@ function draft(db, head, where, q = {}) {
   const [w, a] = where(q, h.patch);
   const allies = ids(q.allies), enemies = ids(q.enemies), bans = ids(q.bans);
   const taken = new Set([...allies, ...enemies, ...bans].map((x) => x.id));
+  const pool = q.pool ? new Set(ids(q.pool).map((x) => x.id)) : null; // optional: only these champions (the player's pool)
 
   const champ = db.prepare(`SELECT champion, role, sum(games) g, sum(wins) w FROM stats_lol_champ WHERE ${w} GROUP BY champion, role`).all(...a);
   const avg = new Map(champ.map((r) => [`${r.champion}|${r.role}`, r.w / r.g]));
@@ -50,7 +51,7 @@ function draft(db, head, where, q = {}) {
   const synRows = byKey(db.prepare(`SELECT champion, ally, sum(games) g, sum(wins) w FROM stats_lol_synergy WHERE ${w} AND role = ? AND ally IN ${IN(allies.map((x) => x.id))} GROUP BY champion, ally`).all(...a, role, ...allies.map((x) => x.id)), "ally");
   const allyRole = (x) => x.role || mainRole.get(x.id)?.role;
 
-  const candidates = champ.filter((r) => r.role === role && r.g >= MIN_GAMES && !taken.has(r.champion)).map((r) => {
+  const candidates = champ.filter((r) => r.role === role && (pool ? pool.has(r.champion) : r.g >= MIN_GAMES) && !taken.has(r.champion)).map((r) => {
     const own = r.w / r.g;
     const base = { value: r4(own - 0.5), games: r.g, score: shrink(own - 0.5, r.g, 200) };
     let laneC = null;

@@ -12,9 +12,20 @@ assert.deepStrictEqual(planLines(plan, names), [
   "Skills: max Q > E > W (start Q W E)",
   "Keystone: Electrocute",
   "Watch out: Caitlyn -4.1 (2,100 games), Lux -2.0 (900 games)",
-  "First objectives: first dragon 54.0 % win, herald 52.1 % win",
+  "First objectives: first dragon 54.0 % win, herald 52.1 % win when you take them",
 ]);
 assert.deepStrictEqual(planLines(null, names), []);
+// The crawler's live shape (D8).
+const live = { champion: 103, core: { key: "6655,3020,3089" }, skillOrder: { key: "QEW" }, skills15: { key: "QWEQQRQEQEREEWW" }, keystone: { key: "8112" },
+  threats: [{ champion: 51, games: 2100, winRate: 0.47, delta: -0.041 }],
+  objectives: [{ objective: "baron", securedWinRate: 0.82, lowSample: false }, { objective: "first_blood", securedWinRate: 0.58, lowSample: false }, { objective: "first_tower", securedWinRate: 0.7, lowSample: true }] };
+assert.deepStrictEqual(planLines(live, names), [
+  "Build: Luden's Companion → Sorcerer's Shoes → Rabadon's Deathcap",
+  "Skills: max Q > E > W (start Q W E)",
+  "Keystone: Electrocute",
+  "Watch out: Caitlyn -4.1 (2,100 games)",
+  "First objectives: first blood 58.0 % win, baron 82.0 % win when you take them",
+]);
 assert.deepStrictEqual(planLines({ core: [1] }, {}), ["Build: 1"]); // names missing: ids, never a crash
 
 // Flow: nothing before you lock; the plan once you lock; the phone/Discord once all ten are in, once per game.

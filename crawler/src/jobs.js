@@ -75,6 +75,30 @@ async function refreshApex(ctx, game, region) {
   return true;
 }
 
+// ARAM (D13): queue 450 matches are stored under patch "<patch>-aram", so every per-patch aggregate and endpoint serves ARAM
+// unchanged (?queue=450 picks it) and ranked stats never mix with it. Discovery is capped: aramIds runs only while ARAM is under
+// ctx.aramShare (ARAM_SHARE, default 0.1) of the region's League matches fetched in the last hour plus ARAM ids still waiting.
+const ARAM = 450;
+const isAram = (patch) => /-aram$/.test(patch || "");
+async function aramIds(ctx, region) {
+  const { db, riot, now = Date.now } = ctx;
+  if (!ctx.queues.includes(ARAM)) return false;
+  const f = db.prepare(`SELECT count(*) n, sum(queue = ${ARAM}) aram FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
+  const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue = ${ARAM}`).get(region).n;
+  if (f.n && (f.aram || 0) + waiting >= (ctx.aramShare ?? 0.1) * (f.n + waiting)) return false;
+  const p = db.prepare(`SELECT puuid, tier, aram_at FROM players WHERE game = 'lol' AND region = ? AND (aram_at IS NULL OR aram_at < ?) ORDER BY aram_at, tier_n DESC LIMIT 1`)
+    .get(region, now() - 6 * IDS_EVERY);
+  if (!p) return false;
+  const since = Math.floor((p.aram_at || now() - DAY) / 1000);
+  const list = (await riot.get(ROUTING[region], `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?queue=${ARAM}&startTime=${since}&count=20`, "lol ids")) || [];
+  const ins = db.prepare(`INSERT OR IGNORE INTO matches (id, game, region, bracket, queue) VALUES (?, 'lol', ?, ?, ${ARAM})`);
+  tx(db, () => {
+    for (const id of list) ins.run(id, region, p.tier);
+    db.prepare("UPDATE players SET aram_at = ? WHERE puuid = ? AND game = 'lol'").run(now(), p.puuid);
+  });
+  return true;
+}
+
 // Newest ranked match ids for the player we asked longest ago (highest tier first among equals).
 async function ids(ctx, game, region) {
   const { db, riot, now = Date.now } = ctx;
@@ -82,7 +106,7 @@ async function ids(ctx, game, region) {
     ORDER BY ids_at, tier_n DESC LIMIT 1`).get(game, region, now() - IDS_EVERY);
   if (!p) return false;
   const since = Math.floor((p.ids_at || now() - 7 * DAY) / 1000);
-  const lolQ = ctx.queues.filter((q) => q !== 1100);
+  const lolQ = ctx.queues.filter((q) => q !== 1100 && q !== ARAM);
   const path = game === "lol"
     ? `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?${lolQ.length === 1 ? "queue=" + lolQ[0] : "type=ranked"}&startTime=${since}&count=100`
     : `/tft/match/v1/matches/by-puuid/${p.puuid}/ids?startTime=${since}&count=100`;
@@ -134,7 +158,7 @@ const patchOf = (info) => { const x = /(\d+)\.(\d+)/.exec(info?.gameVersion ?? i
 // the League patch whose first game started latest at or before it (league windows[]: [[firstStart, patch]] ascending).
 // Fallbacks: the newest League patch, then `set<N>`. ponytail: a TFT game right after a patch change, before the first
 // League game of that patch is crawled, lands on the previous patch; the next backfill-patch/aggregate pass doesn't re-derive it.
-const leagueWindows = (db) => db.prepare("SELECT min(started_at) t, patch FROM matches WHERE game = 'lol' AND status = 'done' AND patch <> '?' AND started_at IS NOT NULL GROUP BY patch ORDER BY t").all().map((r) => [r.t, r.patch]);
+const leagueWindows = (db) => db.prepare("SELECT min(started_at) t, patch FROM matches WHERE game = 'lol' AND status = 'done' AND patch <> '?' AND patch NOT LIKE '%-aram' AND started_at IS NOT NULL GROUP BY patch ORDER BY t").all().map((r) => [r.t, r.patch]);
 const windowsCache = new WeakMap(); // db -> { at, w }; only non-empty tables are cached, 5 min
 function tftPatch(info, windows) {
   const t = info?.game_datetime;
@@ -200,7 +224,7 @@ function store(ctx, game, id, m) {
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
     db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ?, duration = ? WHERE id = ?`).run(
-      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info), game === "lol" ? null : setOf(info),
+      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info) + (game === "lol" && queue === ARAM ? "-aram" : ""), game === "lol" ? null : setOf(info),
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, win.durationOf(info), id);
     if (!ok) return;
     if (game === "lol") {
@@ -310,4 +334,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { ARAM, isAram, aramIds, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
