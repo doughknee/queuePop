@@ -124,7 +124,13 @@ function tftComps(db, q = {}) {
   const rows = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d}
     GROUP BY comp ORDER BY games DESC LIMIT 200`).all(...a, ...C.da);
   const series = q.trend ? win.daily(db, w, a, q, "tft_comp", "comp", "sum(games) games, sum(placement_sum) ps") : null;
-  return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames),
+  // units: the comp's 8 most-fielded units (keys), so a list or search needs no /tft/comp/{id} per row
+  const units = new Map();
+  for (const u of db.prepare(`SELECT comp, key, sum(games) g FROM stats_tft_part WHERE ${w} AND kind = 'unit' GROUP BY comp, key ORDER BY g DESC`).all(...a)) {
+    const l = units.get(u.comp) || units.set(u.comp, []).get(u.comp);
+    if (l.length < 8) l.push(u.key);
+  }
+  return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames), units: units.get(r.comp) || [],
     ...(series && { daily: (series.get(r.comp) || []).map((d) => ({ day: d.day, games: d.games, avgPlacement: r4(d.ps / d.games) })) }) })) };
 }
 
