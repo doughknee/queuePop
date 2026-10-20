@@ -74,8 +74,9 @@
           edge: grip.dataset.edge,
           startX: e.screenX,
           startY: e.screenY,
-          startW: window.innerWidth,
-          startH: window.innerHeight,
+          // outer* are screen pixels like screenX and setBounds; inner* shrink with the Text size zoom.
+          startW: window.outerWidth,
+          startH: window.outerHeight,
         };
       });
 

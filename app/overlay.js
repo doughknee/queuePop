@@ -32,6 +32,7 @@ async function deadlock_overlay_status() {
 function launch_deadlock_overlay() {
   const file = exe();
   if (!file) return { ok: false, error: "No overlay configured (deadlock_overlay_exe)" };
+  if (!require("path").isAbsolute(file) || !/\.exe$/i.test(file)) return { ok: false, error: "deadlock_overlay_exe must be a full path to an .exe" };
   if (!fs.existsSync(file)) return { ok: false, error: "Overlay not found at " + file };
   try {
     spawn(file, ["--minimized"], { detached: true, stdio: "ignore" }).on("error", () => {}).unref();

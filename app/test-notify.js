@@ -23,6 +23,7 @@ assert.ok(isNewer("v1.5.0", "1.4.7") && !isNewer("1.4.7", "1.4.7") && !isNewer("
   assert.strictEqual(page[0], 200);
   assert.ok(page[1].includes("<html"));
   assert.strictEqual(await new Promise((r) => http.get({ port, path: "/../index.js" }, (res) => { res.resume(); r(res.statusCode); })), 404);
+  assert.strictEqual(await new Promise((r) => http.get({ port, path: "/%E0%A4%A" }, (res) => { res.resume(); r(res.statusCode); })), 400);
 
   // Simulated queue pop after the phone connected: must arrive after the 'synced' marker.
   const body = await new Promise((resolve) => {

@@ -23,6 +23,7 @@
   }
   apply();
   toggle.addEventListener('click', () => { s.collapsed = !s.collapsed; apply(); save(); });
+  window.qpSidebarWidth = w => { s.w = w; apply(); save(); }; // keys.js: the grip by keyboard
   grip.addEventListener('pointerdown', e => { grip.setPointerCapture(e.pointerId); root.classList.add('sb-dragging'); });
   grip.addEventListener('pointermove', e => { if (grip.hasPointerCapture(e.pointerId)) { s.w = e.clientX; apply(); } });
   grip.addEventListener('lostpointercapture', () => { root.classList.remove('sb-dragging'); save(); });
@@ -53,6 +54,10 @@
   // Deadlock and the TFT frame move the address with pushState/replaceState, which fires no hashchange.
   addEventListener('popstate', window.syncSidebar);
   addEventListener('click', () => setTimeout(window.syncSidebar));
+  // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
+  for (const src of ['palette.js', 'keys.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
+  // The skip link lands on Settings too (worlds.js focuses it), so it must take focus.
+  document.getElementById('settings-view')?.setAttribute('tabindex', '-1');
 })();
 
 /* Home's paged bar (DONI-527) on scrollr's Pages model (myscrollr docs/CHIP_SPEC.md §P): a 192 px band with the game's
@@ -86,7 +91,7 @@ window.homeTicker = (() => {
   let data = {}, cur = 0, at = 0;
   const esc = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
   const cell = c => c.note ? `<span class="hp-note">${esc(c.note)}</span>`
-    : `<span class="hp-label">${esc(c.label)}</span><span class="hp-value">${c.strip ? (c.strip.length ? `<span class="hp-strip">${c.strip.map(x => `<i${x === 'W' || +x <= 4 ? ' class="up"' : ''}>${x}</i>`).join('')}</span>` : 'No games') : esc(c.value ?? DASH)}${c.sub ? ` <small>${esc(c.sub)}</small>` : ''}</span>`;
+    : `<span class="hp-label">${esc(c.label)}</span><span class="hp-value">${c.strip ? (c.strip.length ? `<span class="hp-strip">${c.strip.map(x => `<i${x === 'W' || +x <= 4 ? ' class="up"' : ''}>${esc(x)}</i>`).join('')}</span>` : 'No games') : esc(c.value ?? DASH)}${c.sub ? ` <small>${esc(c.sub)}</small>` : ''}</span>`;
   const cols = p => p.cols.map(c => `<span class="hp-col">${cell(c)}</span>`).join('');
   const page = (p, cls = '') => `<a class="hp-page ${cls}" href="${p.href}" style="--n:${p.cols.length}" data-game="${p.game}">${cols(p)}</a>`;
   const band = (pages) => `<div class="hp-id" data-game="${pages[cur].game}"><span class="hp-logo" style="--logo:url(${pages[cur].logo})"></span><b>${pages[cur].name}</b></div>
@@ -113,7 +118,7 @@ window.homeTicker = (() => {
       let dlId = id || ''; if (!dlId) try { dlId = localStorage.getItem('queuepop-deadlock-acct') || ''; } catch {}
       if (info && info.connected) Object.assign(data, { info, lol: lol || undefined, tft: tft || undefined }); else at = 0; // offline: dashes, retry next visit
       data.dlId = dlId; refresh();
-      if (dlId) { data.dl = await fetch(`https://api.deadlock-api.com/v1/players/${dlId}/match-history`).then(r => r.ok ? r.json() : undefined).catch(() => undefined); refresh(); }
+      if (dlId) { data.dl = await fetch(`https://api.deadlock-api.com/v1/players/${dlId}/match-history`, { signal: AbortSignal.timeout(10000) }).then(r => r.ok ? r.json() : undefined).then(j => Array.isArray(j) ? j : undefined).catch(() => undefined); refresh(); }
     },
   };
 })();

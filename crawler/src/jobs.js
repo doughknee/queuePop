@@ -127,9 +127,37 @@ const windowsFor = (db, now = Date.now) => {
 };
 const setOf = (info) => info?.tft_set_number ?? null;
 
-// TFT comp rule: the sorted set of traits at their 2nd breakpoint or higher (tier_current >= 2).
-// Deliberately simple; clustering boards into named comps MetaTFT-style is a later issue.
-const compOf = (traits) => traits.filter((t) => t.tier_current >= 2).map((t) => t.name).sort().join(",") || "none";
+// TFT comp rule (DONI-502): "<top trait>,<carry unit>", e.g. "DA_18_Invoker,DA_18_Ahri" (comma, so a reader that splits ids
+// on "," and names each part keeps working).
+// Top trait: the active trait (tier_current >= 1) that is not a one-unit unique trait (tier_total > 1), highest tier_current,
+// then most units, then name; "none" when the board has none. Carry: the unit holding the most items, then highest star,
+// then highest cost (rarity), then name. On 3,200 live boards (patch 16.20) this left 0% in "none" (the old "traits at
+// tier >= 2" rule: 22.5%) and explained 2.7x more placement variance. Deterministic: same board, same key.
+const byStrength = (a, b) => b.tier_current - a.tier_current || b.num_units - a.num_units || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+const carryOf = (units = []) => [...units].sort((x, y) => (y.itemNames || []).length - (x.itemNames || []).length || y.tier - x.tier
+  || (y.rarity ?? 0) - (x.rarity ?? 0) || (x.character_id < y.character_id ? -1 : 1))[0]?.character_id || "";
+function compOf(p) {
+  const top = (p.traits || []).filter((t) => t.tier_current >= 1 && (t.tier_total ?? 2) > 1).sort(byStrength)[0];
+  return `${top ? top.name : "none"},${carryOf(p.units)}`;
+}
+
+// Re-derives tft_participants.comp from stored raw JSON with the current rule (after a rule change). Rows whose raw was
+// already dropped by retention keep their old key. Run `aggregate` after it.
+function backfillComps(db) {
+  const up = db.prepare("UPDATE tft_participants SET comp = ? WHERE match_id = ? AND puuid = ?");
+  let matches = 0, boards = 0;
+  const ids = db.prepare("SELECT id FROM matches WHERE game = 'tft' AND status = 'done' AND raw IS NOT NULL").all().map((r) => r.id);
+  const raw = db.prepare("SELECT raw FROM matches WHERE id = ?");
+  for (let i = 0; i < ids.length; i += 500) {
+    tx(db, () => {
+      for (const id of ids.slice(i, i + 500)) {
+        for (const p of JSON.parse(zlib.gunzipSync(raw.get(id).raw)).info.participants) boards += Number(up.run(compOf(p), id, p.puuid).changes);
+        matches++;
+      }
+    });
+  }
+  return { matches, boards };
+}
 
 function store(ctx, game, id, m) {
   const { db, queues, now = Date.now } = ctx;
@@ -158,7 +186,7 @@ function store(ctx, game, id, m) {
     } else {
       const ins = db.prepare("INSERT INTO tft_participants VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
       for (const p of info.participants) {
-        ins.run(id, p.puuid, p.placement, tier(p.puuid), compOf(p.traits),
+        ins.run(id, p.puuid, p.placement, tier(p.puuid), compOf(p),
           JSON.stringify(p.traits.filter((t) => t.tier_current > 0).map((t) => [t.name, t.tier_current])),
           JSON.stringify([...new Set(p.units.map((u) => u.character_id))]), JSON.stringify(p.augments || []));
       }
@@ -211,6 +239,7 @@ function aggregate(db, now = Date.now, force = false) {
     `INSERT INTO stats_tft_boards SELECT ${K}, count(*) FROM tft_participants p ${M} GROUP BY 1, 2, 3`,
     `INSERT INTO stats_tft_comp SELECT ${K}, p.comp, count(*), sum(p.placement), sum(p.placement <= 4), sum(p.placement = 1) FROM tft_participants p ${M} GROUP BY 1, 2, 3, 4`,
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'unit', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.units) j GROUP BY 1, 2, 3, 4, 6`,
+    `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'trait', json_extract(j.value, '$[0]') || ':' || json_extract(j.value, '$[1]'), count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.traits) j GROUP BY 1, 2, 3, 4, 6`,
     `INSERT INTO stats_tft_part SELECT ${K}, p.comp, 'augment', j.value, count(*), sum(p.placement), sum(p.placement <= 4) FROM tft_participants p ${M}, json_each(p.augments) j GROUP BY 1, 2, 3, 4, 6`,
     ...champ.inserts(M, K),
   ].map((q) => db.prepare(q));
@@ -240,4 +269,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

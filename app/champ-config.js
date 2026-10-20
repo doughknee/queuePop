@@ -215,6 +215,9 @@ function mergeForSave(newConfig, prev) {
   if (!has(newConfig, "last_queue_id")) cfg.last_queue_id = coerceQueueId(prev.last_queue_id);
   if (!has(newConfig, "show_last_queue")) cfg.show_last_queue = T(getd(prev, "show_last_queue", true));
   if (!has(newConfig, "window")) cfg.window = cleanWindow(prev.window);
+  // Keys only the file knows (deadlock_overlay_exe, the Python app's extras) survive a save from the renderer,
+  // which can't set them: they come from prev, never from newConfig (DONI-529).
+  for (const k of Object.keys(prev)) if (!has(cfg, k)) cfg[k] = prev[k];
   return cfg;
 }
 
