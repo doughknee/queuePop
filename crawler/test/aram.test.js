@@ -74,3 +74,20 @@ test("an ARAM match's players are asked for ARAM next (snowball), normal and swi
   assert.strictEqual(await capped(ctx, "na1"), true);
   assert.match(asked[1], /\/by-puuid\/r\/ids\?queue=400&/);
 });
+
+test("no live mode players (a key change retired them): the newest stored matches of the queue are refetched for fresh puuids", async () => {
+  const db = open(":memory:");
+  db.prepare("INSERT INTO matches (id, game, region, bracket) VALUES ('NA1_777', 'lol', 'kr', NULL)").run();
+  store({ db, queues: [420, 450], now: () => 0 }, "lol", "NA1_777", aram);
+  db.exec("UPDATE mode_players SET region = region || '-stale'"); // retired
+  const fresh = JSON.parse(JSON.stringify(aram));
+  for (const p of fresh.info.participants) p.puuid = "NEW_" + p.puuid;
+  const asked = [];
+  const riot = { get: async (_r, path) => { asked.push(path); return path.endsWith("/NA1_777") ? fresh : []; } };
+  const ctx = { db, riot, queues: [420, 450], modeEvery: 0, now: () => Date.now() };
+  assert.strictEqual(await capped(ctx, "kr"), true);
+  assert.deepStrictEqual(asked, ["/lol/match/v5/matches/NA1_777"]);
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM mode_players WHERE region = 'kr' AND queue = 450 AND puuid LIKE 'NEW_%'").get().n, 10);
+  await capped(ctx, "kr");
+  assert.ok(asked[1].includes("/by-puuid/NEW_"), "then the snowball asks a fresh ARAM player");
+});

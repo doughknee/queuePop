@@ -90,12 +90,29 @@ const ARAM = 450;
 const CAPPED = { 450: [450], 400: [400], 480: [480, 490] }; // discovery queue -> stored queues counted against its share
 const SHARES = { 450: 0.1, 400: 0.05, 480: 0.05 };
 const MODE_EVERY = 60000;
-const modeLast = new Map();
+const modeLast = new Map(), reseeded = new Set();
+// No live mode player for a queue in a region (first start, or a League key change retired them all, 2026-10-20 22:07Z: ARAM
+// fell to 0/h): refetch the region's 5 newest stored matches of that queue (match ids aren't encrypted) and queue their players,
+// so the snowball restarts at once instead of from ranked players' ~1% ARAM yield. Once per process per region and queue.
+async function reseedMode(ctx, region, q) {
+  const { db, riot } = ctx;
+  const rows = db.prepare(`SELECT id FROM matches WHERE game = 'lol' AND region = ? AND status = 'done' AND queue IN (${CAPPED[q].join(",")}) ORDER BY started_at DESC LIMIT 5`).all(region);
+  const ins = db.prepare("INSERT OR IGNORE INTO mode_players (puuid, region, queue) VALUES (?, ?, ?)");
+  for (const { id } of rows) {
+    const m = await riot.get(ROUTING[region], `/lol/match/v5/matches/${id}`, "lol match");
+    tx(db, () => { for (const p of m?.info?.participants || []) if (p.puuid) ins.run(p.puuid, region, q); });
+  }
+  return rows.length > 0;
+}
 async function capped(ctx, region) {
   const { db, riot, now = Date.now } = ctx;
   for (const q of Object.keys(CAPPED).map(Number)) {
     if (!ctx.queues.includes(q)) continue;
     if (now() - (modeLast.get(`${region}:${q}`) || 0) < (ctx.modeEvery ?? MODE_EVERY)) continue;
+    if (!reseeded.has(`${region}:${q}`) && !db.prepare("SELECT 1 FROM mode_players WHERE region = ? AND queue = ? LIMIT 1").get(region, q)) {
+      reseeded.add(`${region}:${q}`);
+      if (await reseedMode(ctx, region, q)) return true;
+    }
     const qs = CAPPED[q].join(",");
     const f = db.prepare(`SELECT count(*) n, sum(queue IN (${qs})) mine FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
     const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue IN (${qs})`).get(region).n;
