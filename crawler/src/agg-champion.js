@@ -61,17 +61,18 @@ function objectiveRows(info) {
 // Stat mods "offense,flex,defense" ids, e.g. "5008,5008,5011".
 const shardsOf = (p) => { const s = p.perks?.statPerks; return s ? [s.offense, s.flex, s.defense].join(",") : null; };
 
-function ingestRaw(db) {
+// Reads and parses outside locked(fn) (the aggregation worker's crawl pause), writes inside it.
+function ingestRaw(db, locked = (fn) => fn()) {
   const todo = db.prepare(`SELECT id, raw FROM matches m WHERE game = 'lol' AND status = 'done' AND raw IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM lol_objectives o WHERE o.match_id = m.id)`).all();
+  const rows = todo.map((r) => { const info = JSON.parse(zlib.gunzipSync(r.raw)).info; return [r.id, objectiveRows(info), info.participants || []]; });
   const ins = db.prepare("INSERT INTO lol_objectives VALUES (?, ?, ?, ?)"), sh = db.prepare("INSERT INTO lol_shards VALUES (?, ?, ?)");
-  tx(db, () => {
-    for (const r of todo) {
-      const info = JSON.parse(zlib.gunzipSync(r.raw)).info;
-      for (const x of objectiveRows(info)) ins.run(r.id, ...x);
-      for (const p of info.participants || []) if (shardsOf(p)) sh.run(r.id, p.puuid, shardsOf(p));
+  locked(() => tx(db, () => {
+    for (const [id, objs, parts] of rows) {
+      for (const x of objs) ins.run(id, ...x);
+      for (const p of parts) if (shardsOf(p)) sh.run(id, p.puuid, shardsOf(p));
     }
-  });
+  }));
   return todo.length;
 }
 

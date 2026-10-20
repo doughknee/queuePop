@@ -31,7 +31,7 @@
   const crawler = async (path, params = {}, ms) => { const q = qs(params), b = await base(); return once(`c${b}${path}?${q}`, () => json(`${b}${path}${q ? '?' + q : ''}`, ms)); }; // the base is in the key (review #74)
   // A crawler patch ("16.20") maps to the newest Data Dragon build of it ("16.20.1"); unknown patches use the newest build.
   const ddVersion = patch => once('ddv', () => json(`${DD}/api/versions.json`), 3600000)
-    .then(v => { const p = String(patch || '').replace(/-aram$/, ''); return v.find(x => p && x.startsWith(p + '.')) || v[0]; }); // D15: ARAM answers carry "16.20-aram"
+    .then(v => { const p = String(patch || '').replace(/-(flex|aram|normal|swift)$/, ''); return v.find(x => p && x.startsWith(p + '.')) || v[0]; }); // D15/DONI-596: mode answers carry "16.20-aram", "16.20-flex", ...
   const ddData = (patch, file) => ddVersion(patch).then(v => once(`dd${v}${file}`, () => json(`${DD}/cdn/${v}/data/en_US/${file}`), 3600000).then(d => ({ v, d })));
 
   /* Tier banding (DONI-506, Lolalytics-style S+ .. D-), over the rows of one /lol/tiers response:

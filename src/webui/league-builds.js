@@ -10,7 +10,7 @@ function leagueBuildsPage() {
   lgMount('items', t => lgFillBuilds(t));
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
   const tabs = `<nav class="lg-roles lg-kinds" aria-label="What to list">${Object.entries(LG_KINDS).map(([k, l]) => `<a href="#/league/items/${k}" aria-pressed="${k === kind}">${l}</a>`).join('')}</nav>`;
-  return `<div class="lg-page${lg.queue ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>${LG_KINDS[kind]}</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>`)}
+  return `<div class="lg-page${lg.queue === 'aram' ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>${LG_KINDS[kind]}</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>`)}
     ${lgFilters(true, '', false)}${tabs}<div id="lg-builds"><p class="lg-wait">Loading ${LG_KINDS[kind].toLowerCase()}…</p></div>
     <p class="lg-rule">Win and Δ tint red below and green above everyone's average in this lane, fainter on smaller samples; pick tints purple by size. Pick = share of champion-games in this lane that ${kind === 'items' ? 'finished the item' : kind === 'spells' ? 'took the pair' : 'took it'}. Top champions = the five that use it most; click one for its page.</p></div>`;
 }

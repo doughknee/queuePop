@@ -9,9 +9,11 @@ const DIR = path.join(__dirname, "..", "fixtures");
 const load = (f) => JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8"));
 
 // rejectKey: requests carrying that key get 403 Forbidden, like an expired development key.
+// foreignPrefix: by-puuid requests for puuids starting with it answer 400 "Exception decrypting", as Riot does for a puuid
+// encrypted for another app (the key changed apps).
 // accountGame: which fixture set account-v1 resolves Riot ids from ("lol" | "tft"); the fixtures give one name a different
 // puuid per game, unlike Riot.
-function startMock(port = 0, { fail429Once = false, rejectKey = null, accountGame = "lol" } = {}) {
+function startMock(port = 0, { fail429Once = false, rejectKey = null, accountGame = "lol", foreignPrefix = null } = {}) {
   const matches = {};
   const timelines = {};
   for (const f of fs.readdirSync(DIR).filter((f) => /^(lol|tft)-(match|timeline)-\d+\.json$/.test(f))) {
@@ -37,6 +39,7 @@ function startMock(port = 0, { fail429Once = false, rejectKey = null, accountGam
     // ids file picked by a hash of the puuid so players see different but overlapping lists
     const idsFor = (game, puuid) => file(`${game}-ids-${[...puuid].reduce((s, c) => s + c.charCodeAt(0), 0) % 3}.json`);
     let m;
+    if (foreignPrefix && (m = /\/by-puuid\/([^/]+)/.exec(p)) && m[1].startsWith(foreignPrefix)) return send(400, { status: { message: `Bad Request - Exception decrypting ${m[1]}`, status_code: 400 } });
     if ((m = /^\/lol\/league\/v4\/(challenger|grandmaster|master)leagues\/by-queue\//.exec(p))) return send(200, load(`lol-league-${m[1]}.json`));
     if ((m = /^\/tft\/league\/v1\/(challenger|grandmaster|master)$/.exec(p))) return send(200, load(`tft-league-${m[1]}.json`));
     if ((m = /^\/lol\/league\/v4\/entries\/[^/]+\/(\w+)\/(\w+)$/.exec(p)) || (m = /^\/tft\/league\/v1\/entries\/(\w+)\/(\w+)$/.exec(p))) {

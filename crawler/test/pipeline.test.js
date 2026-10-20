@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const zlib = require("zlib");
-const { open } = require("../src/db");
+const { open, getMeta } = require("../src/db");
 const jobs = require("../src/jobs");
 const { Limiter } = require("../src/limiter");
 const { createClient } = require("../src/riot");
@@ -18,6 +18,7 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
   try {
     for (const g of ["lol", "tft"]) {
       assert.strictEqual(await jobs.seed(ctx, g, "na1"), true);
+      while (!getMeta(db, `seed:${g}:na1`)?.doneAt) await jobs.seed(ctx, g, "na1"); // one ladder page per call
       assert.strictEqual(await jobs.seed(ctx, g, "na1"), false, "seeded today already");
       while (await jobs.ids(ctx, g, "na1"));
       while (await jobs.fetchOne(ctx, g, "na1"));
@@ -39,7 +40,8 @@ test("crawl fixtures end to end and serve a non-empty tier list", async () => {
     const [, tiers, headers] = await get("/lol/tiers?region=na1&bracket=emerald");
     assert.strictEqual(headers.get("access-control-allow-origin"), "*");
     assert.strictEqual(tiers.patch, "16.20");
-    assert.strictEqual(tiers.matches, 3);
+    assert.strictEqual(tiers.matches, 2, "solo only: the flex fixture lives under 16.20-flex (DONI-596)");
+    assert.strictEqual((await get("/lol/tiers?region=na1&queue=440"))[1].matches, 1);
     assert.ok(tiers.champions.length > 0, "non-empty tier list");
     const champ = tiers.champions[0];
     const [, page] = await get(`/lol/champion/${champ.champion}?role=${champ.role}`);

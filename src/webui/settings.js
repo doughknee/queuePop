@@ -93,6 +93,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         <div id="st-cr-grid" class="st-grid"></div>
         <details class="st-more" id="st-cr-keybox"><summary>Replace the Riot key</summary>
         ${act('Get a new key', 'Riot’s developer portal: log in, then Regenerate API Key. A development key lasts 24 hours.', '<button class="st-btn" data-do="riot-dev">Open developer.riotgames.com</button>')}
+        <label class="st-row"><span class="st-lbl">For${tip('A personal key is registered per product: give League’s and TFT’s each to their game. One development key covers both.')}</span><select class="st-in" id="st-cr-game"><option value="">Both games</option><option value="lol">League only</option><option value="tft">TFT only</option></select></label>
         <label class="st-row"><span class="st-lbl">New key${tip('Starts with RGAPI-')}</span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
         <label class="st-row"><span class="st-lbl">Admin token${tip('The crawler’s ADMIN_TOKEN. Used once, never stored.')}</span><input class="st-in st-wide" id="st-cr-token" type="password" autocomplete="off"></label>
         <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div></details>`,
@@ -340,21 +341,21 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         cell('Matches done', `${(sum(Object.values(m).map(x => (x && x.done) || 0))).toLocaleString()} (${(m.lol?.done || 0).toLocaleString()} LoL · ${(m.tft?.done || 0).toLocaleString()} TFT)`) +
         cell('Last fetch', ago(d.lastFetch)) + cell('Aggregated', ago(d.aggregatedAt)) +
         cell('Disk', `${mb((dk.dbBytes || 0) + (dk.walBytes || 0) + (dk.rawBytes || 0))} (${mb(dk.dbBytes || 0)} db)`) +
-        cell('Riot key', k.source === 'none' ? 'none set' : k.valid === false ? `rejected${k.reason ? ' (' + k.reason + ')' : ''}` : `${k.source}${k.set_at ? ' · set ' + ago(k.set_at) : ''}`) +
+        Object.entries(k.games || { '': k }).map(([g, x]) => cell(`${{ lol: 'League', tft: 'TFT' }[g] || 'Riot'} key`, x.source === 'none' ? 'none set' : x.valid === false ? `rejected${x.reason ? ' (' + x.reason + ')' : ''}` : `${x.source === 'meta' && k.games ? 'shared' : x.source.replace(/^meta:\w+$/, 'own key')}${x.set_at ? ' · set ' + ago(x.set_at) : ''}`)).join('') +
         `<div class="st-buckets">${buckets}</div>`;
     } catch (err) {
       st.textContent = err.name === 'TimeoutError' ? 'Not answering (waited 8 s)' : err instanceof SyntaxError ? 'Online, but its status didn’t make sense' : /fetch/i.test(err.message) ? 'Not answering. Is it running, and is this the right address?' : 'Not answering (' + (err.message || err) + ')'; st.className = 'st-val bad'; grid.innerHTML = '';
     }
   }
   async function postKey() {
-    const key = root.querySelector('#st-cr-key').value.trim(), tok = root.querySelector('#st-cr-token').value.trim();
+    const key = root.querySelector('#st-cr-key').value.trim(), tok = root.querySelector('#st-cr-token').value.trim(), game = root.querySelector('#st-cr-game').value;
     if (!/^RGAPI-/.test(key)) return say('crawler-key', 'That does not look like a Riot key (RGAPI-…)', false);
     if (!tok) return say('crawler-key', 'Admin token required', false);
     say('crawler-key', 'Sending…', true);
     try {
       // While a stats rebuild holds the crawler's database it answers 503 "busy": keep trying every 10 s for up to
       // 15 minutes (as its status page does) instead of making you press again.
-      const send = () => fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key }) });
+      const send = () => fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key, ...(game && { game }) }) });
       let r = await send();
       for (let i = 0; r.status === 503 && i < 90; i++) {
         const said = await r.clone().json().then(j => String(j && (j.error || j.message) || ''), () => '');

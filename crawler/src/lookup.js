@@ -66,7 +66,7 @@ function createLookup({ db, riot, keyOk = () => true, perMin = 3, ttl = 600000, 
   const rawOf = db.prepare("SELECT raw FROM matches WHERE id = ? AND raw IS NOT NULL");
 
   async function fetchPlayer(game, region, name, tag) {
-    const host = ROUTING[region], acct = await riot.get(host === "sea" ? "asia" : host, `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, "account");
+    const host = ROUTING[region], acct = await riot.get(host === "sea" ? "asia" : host, `/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, `${game} account`); // puuids are per key: the game's
     if (!acct) throw err(404, "no such Riot id");
     const puuid = acct.puuid;
     const [summ, league, ids] = await Promise.all([
@@ -85,10 +85,10 @@ function createLookup({ db, riot, keyOk = () => true, perMin = 3, ttl = 600000, 
 
   // game = "lol" | "tft". Rejects with .status 400 (bad id/region), 404 (unknown), 429 (cap, .retryAfter s), 503 (key invalid).
   // Cache (ttl) + per-minute cap shared by every on-demand Riot fetch (players, D9 matches). fn() returns a promise.
-  function cached(k, fn) {
+  function cached(k, fn, game) {
     const hit = cache.get(k);
     if (hit && now() - hit.at < ttl) return hit.p;
-    if (!keyOk()) return Promise.reject(err(503, "Riot key invalid; lookups resume when a new key is posted"));
+    if (!keyOk(game)) return Promise.reject(err(503, "Riot key invalid; lookups resume when a new key is posted"));
     while (recent.length && recent[0] <= now() - 60000) recent.shift();
     if (recent.length >= perMin) return Promise.reject(err(429, `at most ${perMin} lookups a minute`, { retryAfter: Math.ceil((recent[0] + 60000 - now()) / 1000) }));
     recent.push(now());
@@ -102,7 +102,7 @@ function createLookup({ db, riot, keyOk = () => true, perMin = 3, ttl = 600000, 
   async function player(game, riotId, region) {
     if (!ROUTING[region]) throw err(400, `unknown region ${region}`);
     const { name, tag } = parseRiotId(riotId);
-    return cached(`${game}:${region}:${name.toLowerCase()}#${tag.toLowerCase()}`, () => fetchPlayer(game, region, name, tag));
+    return cached(`${game}:${region}:${name.toLowerCase()}#${tag.toLowerCase()}`, () => fetchPlayer(game, region, name, tag), game);
   }
 
   // A match we don't hold (D9): raw match JSON from Riot, region from the id prefix ("NA1_123" -> na1).
@@ -113,7 +113,7 @@ function createLookup({ db, riot, keyOk = () => true, perMin = 3, ttl = 600000, 
       const m = await riot.get(ROUTING[region], game === "lol" ? `/lol/match/v5/matches/${id}` : `/tft/match/v1/matches/${id}`, `${game} match`);
       if (!m) throw err(404, "no such match");
       return m;
-    });
+    }, game);
   }
 
   return { player, match };

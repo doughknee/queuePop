@@ -97,3 +97,17 @@ test("POST /admin/key while another connection holds the write lock answers 503 
     assert.strictEqual((await fetch(url + "/admin/key", { method: "POST", headers: { authorization: "Bearer tok" }, body: JSON.stringify({ key: KEY }) })).status, 200);
   } finally { api.close(); db.close(); other.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("POST /admin/key { game }: sets that game's key only; status shows each game's key", async () => {
+  const t = await setup("tok");
+  const TFT = "RGAPI-87654321-abcd-ef01-2345-6789abcdef01";
+  try {
+    assert.strictEqual((await t.post({ key: TFT, game: "dota" }, "tok")).status, 400);
+    assert.strictEqual((await t.post({ key: TFT, game: "tft" }, "tok")).status, 200);
+    assert.deepStrictEqual([riotKey(t.db, "RGAPI-env", "lol").key, riotKey(t.db, "RGAPI-env", "tft").key], ["RGAPI-env", TFT]);
+    const k = (await (await fetch(t.url + "/status")).json()).key;
+    assert.deepStrictEqual([k.source, k.games.lol.source, k.games.tft.source, k.games.tft.valid], ["env", "env", "meta:tft", true]);
+    await t.post({ key: KEY }, "tok"); // no game: the shared key; TFT keeps its own
+    assert.deepStrictEqual([riotKey(t.db, "", "lol").key, riotKey(t.db, "", "tft").key], [KEY, TFT]);
+  } finally { t.close(); }
+});

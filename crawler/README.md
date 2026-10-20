@@ -28,11 +28,11 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `BACKUP_DIR` | `/backups` (image) | nightly `VACUUM INTO` target (compose mounts `./backups`, inside appdata so the server backup copies it); empty = off. `npm run -s backup` runs one now |
 | `BACKUP_KEEP` | 3 | newest `crawler-YYYYMMDD-HHMM.db` files kept; only files with that name are ever deleted |
 | `BACKUP_HOUR_UTC` | 10 | hour of the nightly backup (03:00 PT); waits while an aggregation pass runs; `/status` `backup` = `{ at, file, bytes, ms, removed }` |
-| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), and at most one ARAM ids call per region per minute (~2% of the request budget), so ranked keeps the quota |
+| `ARAM_SHARE` / `NORMAL_SHARE` / `SWIFT_SHARE` | 0.1 / 0.05 / 0.05 | capped discovery (DONI-596) for ARAM (450), normal draft (400) and swiftplay (480/490): a queue's ids are asked only while it is under this share of the region's League matches fetched in the last hour (plus its ids still waiting), at most one ids call per region and queue per minute. Players of every fetched match of that queue are asked next (ranked players rarely play these modes), so ranked keeps the quota |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
-| `QUEUES` | `420,440,450,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
+| `QUEUES` | `420,440,450,400,480,490,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
 | `DB_PATH` | `data/crawler.db` | `/data/crawler.db` in the image |
 | `PORT` | `47900` | |
 | `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order, starting/early items, build order); each costs one more request |
@@ -83,7 +83,7 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   draws one sparkline per region, the default patch's row count and its share under 200 games, plus the last backup; computed by the aggregation worker after each pass, `health.at`)
 - `GET /` → the status page (`src/status.html`, one static file): progress, per-bucket usage bars, DB size, key source,
   and a form to paste a new Riot key (password + admin token). Refreshes every 10 s.
-- `POST /admin/key` `{ "key": "RGAPI-…" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table.
+- `POST /admin/key` `{ "key": "RGAPI-…", "game"?: "lol" | "tft" }` with `Authorization: Bearer <ADMIN_TOKEN>` → stores the key in the `meta` table: with `game`, that game's own key (Riot registers a personal key per product, each with its own puuid encryption and rate limits; League and TFT calls then use separate limiter lanes, `americas/lol`, `americas/tft`); without, the key both games use unless they have their own. `/status` `key.games.{lol,tft}` shows each. When a key changes Riot apps, stored puuids answer 400 "Exception decrypting": that game's players are retired (`game` `lol-stale` / `tft-stale`, kept) and its ladder walk restarts (`/status puuidsRetired`).
   The Riot client reads it (meta first, `RIOT_API_KEY` second) on every request, so no restart. 401 bad/missing token,
   400 malformed key, 503 no `ADMIN_TOKEN` configured. The key is never logged or returned; `/status` shows
   `key: { source: "meta"|"env"|"none", set_at, valid, reason, since }`. `/` and `/admin/*` answer only loopback and private-LAN
@@ -92,10 +92,12 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `meta.keyBad = { hash, reason, since }`, logs once, and every loop idles (one check per 10 s, no Riot calls) while the
   current key still has that hash. `/status` `key.valid` is false with `reason` ("403 Forbidden") and `since`; the status
   page shows it in red. Posting a new key changes the hash, so the crawl resumes by itself on the next loop.
-- ARAM (D13): ARAM matches are stored under patch `"<patch>-aram"`, so every per-patch aggregate serves them apart from ranked.
-  `?queue=450` (or `aram`) on any League stats endpoint (`/lol/tiers`, `/lol/champion/{id}`, items/runes/spells, draft, plan, ...) reads them;
-  the response echoes `queue: 450` and `patch: "16.20-aram"`. Roles are empty in ARAM (role `""`, no matchups). `/patches.aram` lists the
-  patches with ARAM data and `counts.aram` their matches; ARAM never becomes the League default patch. `?queue=420|440|ranked` = default.
+- Modes (D13, DONI-596): only solo/duo (420) is stored under the plain patch; flex, ARAM, normal draft and swiftplay are stored under
+  `"<patch>-flex"`, `-aram`, `-normal`, `-swift`, so every per-patch aggregate serves them apart. `?queue=440|450|400|480|490` (or
+  `flex|aram|normal|swift`) on any League stats endpoint (`/lol/tiers`, `/lol/champion/{id}`, items/runes/spells, draft, plan, ...) reads
+  one; the response echoes `queue` (440, 450, 400 or 480) and the suffixed patch. `?queue=420|ranked|solo` = default. A suffixed
+  `?patch` picks its mode too. ARAM roles are empty (role `""`, no matchups). `/patches` lists `flex`, `aram`, `normal`, `swift` like
+  `lol` with `counts.<mode>` per plain patch; no mode ever becomes the League default patch. Region weighting is solo only.
 - Input hardening (DONI-568): malformed %-encoding in a path answers 400; `limit` is truncated to an integer; draft ids accept only
   `:TOP|JUNGLE|MIDDLE|BOTTOM|UTILITY` tags (400 otherwise); `?days` is echoed only by routes that apply it (tiers, champion strip, comps);
   a `-aram` suffix on `?patch` means ARAM; `/status` is LAN-only like `/`, and any request carrying `x-forwarded-for` counts as not LAN.
@@ -274,6 +276,7 @@ has no number the patch is the League patch whose first crawled game started lat
 npm test                 # rate limiter, pipeline on fixtures, aggregation math
 npm run mock             # mock Riot API on :47901 serving fixtures/
 RIOT_API_KEY=x RIOT_BASE_URL=http://127.0.0.1:47901 REGIONS=na1 npm start
+npm run backfill-modes   # one-off (DONI-596, stop the service first): flex rows stored before DONI-596 get "-flex"; the next aggregation pass rebuilds those patches
 npm run backfill-patch   # one-off (stop the service first; db busy_timeout is 5 s): re-derive patch/set from stored raw for '?' rows, drop stale '?' stats; then run aggregate (Docker: node src/main.js backfill-patch)
 npm run aggregate        # rebuild all stats now (every patch) (in Docker: docker exec queuepop-crawler node src/main.js aggregate)
 ```
@@ -391,6 +394,18 @@ mkdir -p data backups && chown -R 1000:1000 data backups   # the image runs as "
 docker compose up -d --build
 curl http://127.0.0.1:47900/status
 docker compose logs -f
+```
+
+On Unraid, mount the cache pool directly, not the FUSE user share: `/mnt/user` (shfs) made every SQLite commit's sync slow enough to
+hold the API thread (2026-10-20). With `appdata` cache-only, the same files are at `/mnt/cache/appdata/...`; the host keeps this in a
+`docker-compose.override.yml` next to the compose file (not in the repo, so updates don't touch it):
+
+```yaml
+services:
+  crawler:
+    volumes: !override
+      - /mnt/cache/appdata/queuepop-crawler/data:/data
+      - /mnt/cache/appdata/queuepop-crawler/backups:/backups
 ```
 
 Updates (from the repo root on the dev PC; never copies `.env`, `data/` or `backups/`). `backfill-comps` rewrites every TFT board and took

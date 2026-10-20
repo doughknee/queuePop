@@ -18,8 +18,8 @@ function migrate(db) {
   db.exec(SCHEMA);
   // DONI-508/512: ladder wins/losses for the leaderboards
   const cols = db.prepare("PRAGMA table_info(players)").all().map((c) => c.name);
-  for (const c of ["wins", "losses", "aram_at"]) if (!cols.includes(c)) db.exec(`ALTER TABLE players ADD COLUMN ${c} INT`); // aram_at: D13
-  db.exec("CREATE INDEX IF NOT EXISTS players_aram ON players (game, region, aram_at, tier_n DESC)");
+  for (const c of ["wins", "losses"]) if (!cols.includes(c)) db.exec(`ALTER TABLE players ADD COLUMN ${c} INT`);
+  db.exec("DROP INDEX IF EXISTS players_aram"); // D13's players.aram_at is unused since DONI-596 (mode_players)
 }
 
 const riotId = (p) => p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagline || ""}` : null;
@@ -36,7 +36,7 @@ function aggregatePatch(db, patch) {
   db.prepare(`INSERT INTO stats_lol_player_champ
     SELECT m.patch, m.region, pl.tier, p.puuid, p.role, p.champion, count(*), sum(p.win), pl.division, pl.lp,
       pl.tier_n + CASE WHEN pl.tier_n >= 7 THEN 0 ELSE CASE pl.division WHEN 'I' THEN .75 WHEN 'II' THEN .5 WHEN 'III' THEN .25 ELSE 0 END END
-    FROM lol_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ? LEFT JOIN players pl ON pl.puuid = p.puuid AND pl.game = 'lol'
+    FROM lol_participants p JOIN matches m ON m.id = p.match_id AND m.patch = ? LEFT JOIN players pl ON pl.puuid = p.puuid AND pl.game IN ('lol', 'lol-stale')
     GROUP BY m.region, p.puuid, p.role, p.champion HAVING count(*) >= ${KEEP_MIN}`).run(patch);
 }
 

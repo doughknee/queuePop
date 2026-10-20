@@ -4,8 +4,8 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
-const { TIERS, nextAggregation } = require("./jobs");
-const { getMeta, setMeta, riotKey, keyHealth } = require("./db");
+const { TIERS, nextAggregation, MODES, MODE_RE, basePatch } = require("./jobs");
+const { getMeta, setMeta, riotKey, setKey, keyHealth, GAMES } = require("./db");
 const champ = require("./agg-champion");
 const win = require("./agg-window");
 
@@ -23,16 +23,31 @@ const dec = (s) => { try { return decodeURIComponent(s); } catch { throw bad("ma
 // at ~1,000 matches/h; TFT matches = boards / 8), else the patch with the most matches, so a new patch doesn't take over the app
 // with a handful of games. /patches lists every patch newest first plus counts, minMatches and that default.
 const MIN_MATCHES = { lol: 2000, tft: 1000 };
+const MODE_NAMES = ["flex", "aram", "normal", "swift"];
+// ?queue= on League stats: queue id or name -> patch suffix; solo/duo (420, "ranked") is the plain patch
+const QUEUE_SFX = { ...MODES, ranked: "", solo: "", ...Object.fromEntries(MODE_NAMES.map((m) => [m, "-" + m])) };
+const SFX_QUEUE = { "-flex": 440, "-aram": 450, "-normal": 400, "-swift": 480 };
 const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATCHES[game]) || [...list].sort((x, y) => counts[y] - counts[x])[0] || null;
+// Cached until stats_lol_matches or stats_tft_boards change (max rowid, count, sum: a few hundred rows): every stats request calls it,
+// and its two GROUP BYs took seconds while a retirement and a pass were writing (2026-10-20 22:00Z).
+const patchesCache = new WeakMap();
 function patches(db) {
+  const ver = JSON.stringify(db.prepare("SELECT (SELECT max(rowid) || ':' || count(*) || ':' || sum(matches) FROM stats_lol_matches) l, (SELECT max(rowid) || ':' || count(*) || ':' || sum(boards) FROM stats_tft_boards) t").get());
+  const c = patchesCache.get(db);
+  if (c?.ver === ver) return c.v;
+  const v = patchesUncached(db);
+  patchesCache.set(db, { ver, v });
+  return v;
+}
+function patchesUncached(db) {
   const counts = (t, col, per) => Object.fromEntries(db.prepare(`SELECT patch, sum(${col}) n FROM ${t} GROUP BY patch`).all()
     .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
-  const all = counts("stats_lol_matches", "matches", 1);
-  // ARAM rows live under "<patch>-aram" (D13): listed apart as aram, counted per plain patch
-  const aramC = Object.fromEntries(Object.entries(all).filter(([p]) => /-aram$/.test(p)).map(([p, n]) => [p.replace(/-aram$/, ""), n]));
-  const c = { lol: Object.fromEntries(Object.entries(all).filter(([p]) => !/-aram$/.test(p))), tft: counts("stats_tft_boards", "boards", 8), aram: aramC };
-  const lol = Object.keys(c.lol).sort(byVersion), tft = Object.keys(c.tft).sort(byVersion), aram = Object.keys(aramC).sort(byVersion);
-  return { lol, tft, aram, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lol, c.lol), tft: pickPatch("tft", tft, c.tft) } };
+  // League modes live under "<patch>-<mode>" (D13, DONI-596): lol is solo/duo; flex, aram, normal and swift are listed apart,
+  // counted per plain patch
+  const c = { lol: {}, tft: counts("stats_tft_boards", "boards", 8), ...Object.fromEntries(MODE_NAMES.map((m) => [m, {}])) };
+  for (const [p, n] of Object.entries(counts("stats_lol_matches", "matches", 1))) (c[MODE_RE.exec(p)?.[1] || "lol"][basePatch(p)] = n);
+  const lists = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Object.keys(v).sort(byVersion)]));
+  return { ...lists, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lists.lol, c.lol), tft: pickPatch("tft", lists.tft, c.tft) } };
 }
 
 // WHERE clause for ?patch&region&bracket. bracket = minimum tier ("emerald" = Emerald and above).
@@ -55,15 +70,20 @@ function where(q, patch) {
 function head(db, q, game, windowed = false) {
   const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
   const ps = patches(db);
-  // ?queue=450|aram (League): the same patch's ARAM rows, stored under "<patch>-aram"; patch in the response keeps the suffix
-  const aram = game === "lol" && (["450", "aram"].includes(String(q.queue || "").toLowerCase()) || /-aram$/.test(q.patch || ""));
-  if (game === "lol" && q.queue && !aram && !["420", "440", "ranked"].includes(String(q.queue).toLowerCase())) throw bad("queue must be ranked (420/440) or aram (450)");
-  const base = (q.patch || "").replace(/-aram$/, "") || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
-  const patch = aram && base ? base + "-aram" : base;
+  // ?queue= (League): 420 solo (default), 440 flex, 450 ARAM, 400 normal, 480/490 swiftplay, or a name; that mode's rows live
+  // under "<patch>-<mode>" and patch in the response keeps the suffix. A suffixed ?patch picks its mode too.
+  let sfx = "";
+  if (game === "lol") {
+    const k = String(q.queue || "").toLowerCase();
+    if (k && !Object.hasOwn(QUEUE_SFX, k)) throw bad("queue must be 420 (solo), 440 (flex), 450 (aram), 400 (normal) or 480/490 (swift)");
+    sfx = k ? QUEUE_SFX[k] : (MODE_RE.exec(q.patch || "") || [""])[0];
+  }
+  const base = basePatch(q.patch) || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
+  const patch = sfx && base ? base + sfx : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
   const days = windowed ? win.days(q) : null;
-  return { patch, ...(aram && { queue: 450 }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
+  return { patch, ...(sfx && { queue: SFX_QUEUE[sfx] }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
@@ -94,8 +114,8 @@ function lolTiers(db, q = {}) {
 // games/wins stay the raw totals (the sample). Returns null when it doesn't apply.
 function regionWeighted(db, q, w, a, M, B, C) {
   if (q.region && q.region !== "all") return null;
-  // the weights are seeded Emerald+ ranked players: a bracket filter or ARAM would give a tiny region its full weight (Q review 2)
-  if ((q.bracket && q.bracket !== "all") || /-aram$/.test(a[0] || "")) return null;
+  // the weights are seeded Emerald+ solo players: a bracket filter or another mode would give a tiny region its full weight (Q review 2)
+  if ((q.bracket && q.bracket !== "all") || MODE_RE.test(a[0] || "")) return null;
   const pop = getMeta(db, "regionWeights")?.lol;
   const mt = Object.fromEntries(db.prepare(`SELECT region, sum(matches) n FROM ${M.t} WHERE ${w}${M.d} GROUP BY region`).all(...a, ...M.da).map((r) => [r.region, r.n]));
   const regions = Object.keys(mt).filter((r) => mt[r] > 0 && pop?.[r]);
@@ -203,7 +223,7 @@ function playerCounts(db) {
 }
 
 function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retentionDays = 7 } = {}) {
-  const k = riotKey(db, envKey);
+  const k = riotKey(db, envKey, "lol");
   const size = (f) => { try { return dbPath && dbPath !== ":memory:" ? fs.statSync(f).size : null; } catch { return null; } };
   // rawStats is measured by the aggregation worker (agg-worker.js); null until its first pass.
   const raw = getMeta(db, "rawStats") || { bytes: null, n: null };
@@ -216,12 +236,18 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregatedAt: getMeta(db, "aggregatedAt"),
     seed: Object.fromEntries(db.prepare("SELECT k, v FROM meta WHERE k LIKE 'seed:%'").all().map((r) => [r.k.slice(5), JSON.parse(r.v)])),
     rateLimits: limiter ? limiter.state() : {},
+    puuidsRetired: Object.fromEntries(GAMES.map((g) => [g, getMeta(db, `puuidsRetired:${g}`)])), // the last key change across Riot apps per game (jobs.retirePuuids)
+    requests: limiter ? limiter.requests() : {}, // sent in the last 60 min per host and method: is every bucket spent, and on what
     nextAggregation: nextAggregation(db, aggregateEveryMin),
     aggregateEveryMin,
     retentionDays,
     disk: { dbBytes: size(dbPath), walBytes: size(dbPath + "-wal"), rawBytes: raw.bytes, rawMatches: raw.n },
-    key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey) }, // never the key itself
+    // never the key itself. Top level: League's key and the worse health of the two (what the app's status line reads);
+    // games: each game's key, which differ once a personal key is registered per product.
+    key: { source: k.source, set_at: k.set_at, ...keyHealth(db, envKey),
+      games: Object.fromEntries(GAMES.map((g) => { const x = riotKey(db, envKey, g); return [g, { source: x.source, set_at: x.set_at, ...keyHealth(db, envKey, g) }]; })) },
     aggregates: getMeta(db, "aggregates"),
+    aggPause: getMeta(db, "aggPause"), // { passMs, pausedMs, locks }: how long the last pass held the crawl (main.js periodic)
     backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
     health: getMeta(db, "health"), // written by the aggregation worker (agg-worker.js)
@@ -238,11 +264,17 @@ function health(db, now = Date.now()) {
     for (const r of db.prepare("SELECT region, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = ? AND status = 'done' GROUP BY 1, 2").all(from, from, game)) {
       (hourly[r.region] ??= Array(24).fill(0))[Math.min(23, r.h)] = r.n;
     }
+    // League per mode (DONI-596): matches stored per hour, all regions
+    const modes = {};
+    if (game === "lol") for (const r of db.prepare("SELECT queue, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = 'lol' AND status = 'done' GROUP BY 1, 2").all(from, from)) {
+      const m = (MODE_RE.exec(MODES[r.queue] ?? "") || [, "solo"])[1];
+      (modes[m] ??= Array(24).fill(0))[Math.min(23, r.h)] += r.n;
+    }
     const patch = patches(db).default[game];
     const rows = !patch ? [] : game === "lol"
       ? db.prepare("SELECT sum(games) g FROM stats_lol_champ WHERE patch = ? GROUP BY champion, role").all(patch)
       : db.prepare("SELECT sum(games) g FROM stats_tft_comp WHERE patch = ? GROUP BY comp").all(patch);
-    out[game] = { patch, hourly, rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
+    out[game] = { patch, hourly, ...(game === "lol" && { modes }), rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
       last24h: Object.values(hourly).flat().reduce((s, n) => s + n, 0) };
   }
   return { ...out, at: now };
@@ -300,16 +332,17 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       let body = "";
       req.on("data", (c) => { if ((body += c).length > 4096) req.destroy(); });
       return req.on("end", () => {
-        let key;
-        try { key = JSON.parse(body).key; } catch {}
+        let key, game;
+        try { ({ key, game } = JSON.parse(body)); } catch {}
         if (typeof key !== "string" || !KEY_RE.test(key)) return send(400, { error: "key must look like RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" });
+        // game: "lol" | "tft" sets that game's key (a personal key per product); absent: the key both games use unless they have their own
+        if (game != null && !GAMES.includes(game)) return send(400, { error: 'game must be "lol", "tft" or absent (both)' });
         const set_at = Date.now();
         // DONI-568: while the aggregation worker holds the write lock this waits busy_timeout and throws; answer 503, never crash.
         try {
-          setMeta(db, "riotKey", { key, set_at });
-          db.prepare("DELETE FROM meta WHERE k = 'keyBad'").run(); // a posted key is trusted until Riot rejects it again
+          setKey(db, key, game, set_at);
         } catch (e) { return send(503, { error: `database busy (${e.message}); try again in a minute` }); }
-        send(200, { ok: true, source: "meta", set_at });
+        send(200, { ok: true, source: game ? `meta:${game}` : "meta", set_at });
       });
     }
     if (req.method !== "GET") return send(405, { error: "read-only" });
