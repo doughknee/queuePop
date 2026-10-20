@@ -28,7 +28,7 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `BACKUP_DIR` | `/backups` (image) | nightly `VACUUM INTO` target (compose mounts `./backups`, inside appdata so the server backup copies it); empty = off. `npm run -s backup` runs one now |
 | `BACKUP_KEEP` | 3 | newest `crawler-YYYYMMDD-HHMM.db` files kept; only files with that name are ever deleted |
 | `BACKUP_HOUR_UTC` | 10 | hour of the nightly backup (03:00 PT); waits while an aggregation pass runs; `/status` `backup` = `{ at, file, bytes, ms, removed }` |
-| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), so ranked keeps ~90% of the quota |
+| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), and at most one ARAM ids call per region per minute (~2% of the request budget), so ranked keeps the quota |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |

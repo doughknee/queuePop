@@ -80,15 +80,22 @@ async function refreshApex(ctx, game, region) {
 // ctx.aramShare (ARAM_SHARE, default 0.1) of the region's League matches fetched in the last hour plus ARAM ids still waiting.
 const ARAM = 450;
 const isAram = (patch) => /-aram$/.test(patch || "");
+// Request gate (2026-10-20 10:30Z): ranked players rarely play ARAM, so most ARAM ids calls return nothing, yet each cost a
+// request and counted as work, and the loop called it again at once: ~1,000 calls/h per region starved ranked discovery (League
+// fetches fell from ~4,000/h to ~425/h). Now at most one ARAM ids call per region per ARAM_EVERY (60 s: ~2% of the quota).
+const ARAM_EVERY = 60000;
+const aramLast = new Map();
 async function aramIds(ctx, region) {
   const { db, riot, now = Date.now } = ctx;
   if (!ctx.queues.includes(ARAM)) return false;
+  if (now() - (aramLast.get(region) || 0) < (ctx.aramEvery ?? ARAM_EVERY)) return false;
   const f = db.prepare(`SELECT count(*) n, sum(queue = ${ARAM}) aram FROM matches WHERE fetched_at > ? AND game = 'lol' AND region = ?`).get(now() - 3600000, region);
   const waiting = db.prepare(`SELECT count(*) n FROM matches WHERE status = 'new' AND game = 'lol' AND region = ? AND queue = ${ARAM}`).get(region).n;
   if (f.n && (f.aram || 0) + waiting >= (ctx.aramShare ?? 0.1) * (f.n + waiting)) return false;
   const p = db.prepare(`SELECT puuid, tier, aram_at FROM players WHERE game = 'lol' AND region = ? AND (aram_at IS NULL OR aram_at < ?) ORDER BY aram_at, tier_n DESC LIMIT 1`)
     .get(region, now() - 6 * IDS_EVERY);
   if (!p) return false;
+  aramLast.set(region, now());
   const since = Math.floor((p.aram_at || now() - DAY) / 1000);
   const list = (await riot.get(ROUTING[region], `/lol/match/v5/matches/by-puuid/${p.puuid}/ids?queue=${ARAM}&startTime=${since}&count=20`, "lol ids")) || [];
   const ins = db.prepare(`INSERT OR IGNORE INTO matches (id, game, region, bracket, queue) VALUES (?, 'lol', ?, ?, ${ARAM})`);
