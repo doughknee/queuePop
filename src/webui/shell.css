@@ -12,6 +12,8 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-top>*{-webkit-app-region:no-drag}
 .sb-brand{display:flex;align-items:center;gap:10px;font:22px/1 var(--display);text-transform:uppercase;letter-spacing:.01em;color:var(--accent);white-space:nowrap}
 /* The Q sigil, lime on black: the svg is the mask, the accent is the paint. */
+.sb-brand b{color:var(--accent);font-weight:400}
+.sb-brand span{color:var(--fg)}
 .sb-brand img,.home-sigil img{object-position:-9999px 0;background:var(--accent);-webkit-mask:url(assets/queuepop.svg) center/contain no-repeat;mask:url(assets/queuepop.svg) center/contain no-repeat}
 .sb-toggle,.sb-gear{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;border:0;border-radius:0;background:none;color:var(--muted);cursor:pointer}
 .sb-toggle:hover,.sb-gear:hover{background:var(--wash);color:var(--accent)}
@@ -21,11 +23,13 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-item{display:flex;align-items:center;gap:10px;height:36px;padding:0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden}
 .sb-item img,.sb-ico{width:22px;height:22px;flex-shrink:0;object-fit:contain;color:var(--fg)}
 .sb-item>span:last-child{overflow:hidden;text-overflow:ellipsis}
-.sb-item:hover,.sb-pages a:hover{background:var(--wash);color:var(--fg)}
+.sb-item:hover,.sb-block a:hover{background:var(--wash);color:var(--fg)}
 .sb-group.open>.sb-item{color:var(--fg);font-weight:700}
-.sb-pages{display:none;flex-direction:column;gap:1px;margin:2px 0 4px 18px;padding-left:10px;border-left:1px solid var(--line)}
-.sb-group.open>.sb-pages{display:flex}
-.sb-pages a{padding:6px 8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-pages{display:none} /* the source lists; shell.js copies the current game's into .sb-block (DONI-527) */
+.sb-block{display:flex;flex-direction:column;gap:1px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line)}
+.sb-block:empty{display:none}
+.sb-block::before{content:attr(data-label);padding:0 8px 6px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-block a{padding:6px 8px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #qp-sidebar [aria-current="page"]{background:var(--wash);color:var(--accent);box-shadow:inset 2px 0 var(--accent)}
 .sb-user{display:flex;align-items:center;gap:4px;padding:8px;border-top:1px solid var(--line)}
 .sb-user .summoner{right:auto;flex:1;min-width:0;padding:4px;gap:10px;color:var(--fg)}
@@ -43,7 +47,7 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 .sb-dragging iframe{pointer-events:none}
 /* Icon rail: logos only; titles give the tooltips. */
 .sb-collapsed .sb-top{flex-direction:column;justify-content:center;height:auto;padding:12px 0 6px}
-.sb-collapsed .sb-brand span,.sb-collapsed .sb-item>span:last-child,.sb-collapsed .sb-group>.sb-pages,.sb-collapsed .summoner-meta,.sb-collapsed .sb-resize{display:none}
+.sb-collapsed .sb-brand span,.sb-collapsed .sb-item>span:last-child,.sb-collapsed .sb-block,.sb-collapsed .summoner-meta,.sb-collapsed .sb-resize{display:none}
 .sb-collapsed .sb-scroll{padding:4px 6px}
 .sb-collapsed .sb-item{justify-content:center;padding:0}
 .sb-collapsed .sb-group.open>.sb-item{background:var(--wash);box-shadow:inset 2px 0 var(--accent)}
@@ -101,9 +105,39 @@ body{padding-left:var(--sb-w);box-sizing:border-box}
 
 /* Home: the lime marquee is the hero (worlds.js home() fills it with the live line), then the three games. */
 body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
-.qp-ticker{overflow:hidden;padding:14px 0;background:var(--accent);color:var(--bg);border-bottom:1px solid var(--line)}
-.qp-ticker .track{display:flex;width:max-content;animation:qp-marquee var(--dur,40s) linear infinite;font:40px/.9 var(--display);text-transform:uppercase;letter-spacing:.01em}
-.qp-ticker span{padding:0 28px;white-space:nowrap}
+.qp-pages{position:relative;display:flex;height:64px;overflow:hidden;background:var(--accent);color:var(--bg);border-bottom:1px solid var(--line)}
+.hp-band{position:relative;flex:none;width:192px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 10px 0 14px;overflow:hidden;background:color-mix(in srgb,var(--accent) 84%,var(--bg));border-right:1px solid color-mix(in srgb,var(--accent) 60%,var(--bg))}
+.hp-id{display:flex;align-items:center;gap:8px;height:26px;animation:hp-up .45s cubic-bezier(.32,.72,0,1) both}
+.hp-logo{flex:none;width:20px;height:20px;background:var(--bg);-webkit-mask:var(--logo) center/contain no-repeat;mask:var(--logo) center/contain no-repeat}
+.hp-id[data-game=deadlock] .hp-logo{-webkit-mask:none;mask:none;background:var(--logo) center/contain no-repeat} /* an opaque badge: masked it is a disc */
+.hp-id b{font:24px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;font-weight:400;white-space:nowrap}
+.hp-pills{display:flex;gap:3px}
+.hp-pill{position:relative;flex:1 1 0;min-width:3px;height:13px;padding:0;border:0;border-radius:0;cursor:pointer;background:linear-gradient(color-mix(in srgb,var(--bg) 30%,transparent),color-mix(in srgb,var(--bg) 30%,transparent)) center/100% 5px no-repeat}
+.hp-pill.seen{background-image:linear-gradient(color-mix(in srgb,var(--bg) 75%,transparent),color-mix(in srgb,var(--bg) 75%,transparent))}
+.hp-pill span{position:absolute;left:0;right:0;top:4px;height:5px;background:var(--bg);transform-origin:left;animation:hp-fill 6s linear both}
+.qp-pages:hover .hp-pill span,.qp-pages:focus-within .hp-pill span{animation-play-state:paused}
+.hp-pill:focus-visible{outline:2px solid var(--bg);outline-offset:1px}
+.hp-block{position:relative;flex:1;min-width:0;overflow:hidden}
+.hp-page{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));color:inherit;text-decoration:none}
+.hp-page:focus-visible{outline:2px solid var(--bg);outline-offset:-4px}
+.hp-page.enter{animation:hp-in .6s cubic-bezier(.32,.72,0,1) both}
+.hp-page.leave{animation:hp-out .6s cubic-bezier(.32,.72,0,1) both;pointer-events:none}
+.qp-pages[data-back] .hp-page.enter{animation-name:hp-in-back}.qp-pages[data-back] .hp-page.leave{animation-name:hp-out-back}
+.hp-col{position:relative;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;padding:0 clamp(8px,3vw,16px);container-type:inline-size;white-space:nowrap}
+.hp-col+.hp-col::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:1px;background:color-mix(in srgb,var(--bg) 40%,transparent)}
+.hp-label{font:12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.hp-value{display:flex;align-items:baseline;gap:6px;font:clamp(16px,16cqi,28px)/1 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.hp-value small{font:700 12px/1 var(--mono);letter-spacing:.04em}
+@container (max-width:180px){.hp-col .hp-strip i{font-size:0}.hp-col{gap:3px}.hp-value{flex-direction:column;align-items:flex-start;gap:3px;font-size:clamp(16px,19cqi,22px)}} /* narrow (1280 at 150 %): LP and W/L go under the figure */
+.hp-strip{display:flex;gap:2px;align-self:center;width:100%;max-width:220px}
+.hp-strip i{flex:0 1 20px;min-width:0;height:20px;display:grid;place-items:center;overflow:hidden;box-sizing:border-box;border:1px solid var(--bg);font:700 11px/1 var(--mono);font-style:normal}
+.hp-strip i.up{background:var(--bg);color:var(--accent)}
+.hp-note{align-self:flex-start;font:12px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em}
+@keyframes hp-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes hp-up{from{transform:translateY(100%);opacity:0}}
+@keyframes hp-in{from{transform:translateX(100%)}}@keyframes hp-out{to{transform:translateX(-100%)}}
+@keyframes hp-in-back{from{transform:translateX(-100%)}}@keyframes hp-out-back{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.hp-page.enter,.hp-id{animation:none}.hp-page.leave{display:none}}
 .qp-rise{animation:qp-rise .7s cubic-bezier(.2,.9,.2,1) both}
 .theme-home .hub-intro{padding:48px 5% 40px}
 .theme-home .eyebrow{color:var(--muted);font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase}
