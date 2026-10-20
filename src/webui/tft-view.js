@@ -27,7 +27,7 @@ window.createTftView = function (host) {
       if (info.name) myRiot = `${info.name}#${info.tag || ''}`.toLowerCase();
       const r = info.connected && info.ranked && info.ranked.tft;
       rankEl.textContent = !info.connected ? 'TFT rank: client not connected'
-        : r ? `TFT rank: ${rankText(r)} · ${r.lp} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
+        : r ? `TFT rank: ${rankText(r)} · ${Number(r.lp).toLocaleString()} LP · ${r.wins}W ${r.losses}L` : 'TFT rank: unranked';
     } catch (_) { rankEl.textContent = 'TFT rank: unavailable'; }
   }
   // Play lives in the page row (#tft-play, index.html): start the ranked TFT queue (1100), click again to cancel.
@@ -172,7 +172,7 @@ window.createTftView = function (host) {
     if (!el.isConnected) return;
     const r = info.connected && info.ranked && info.ranked.tft;
     el.querySelector('.ts-rank').innerHTML = `<small>Your TFT${info.connected && info.name ? ' · ' + esc(info.name) : ''}</small>`
-      + (!info.connected ? '<strong>Client not connected</strong><span>Open the League client to see your rank and last games.</span>' : r ? `<strong>${rankText(r)}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>');
+      + (!info.connected ? '<strong>Client not connected</strong><span>Open the League client to see your rank and last games.</span>' : r ? `<strong>${rankText(r)}</strong><span>${Number(r.lp).toLocaleString()} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>');
     if (!list.length) return;
     const avg = list.reduce((s, g) => s + g.placement, 0) / list.length, top4 = list.filter((g) => g.placement <= 4).length;
     el.querySelector('.ts-form').innerHTML = `<small>Last ${list.length} · avg ${avg.toFixed(2)} · ${top4} top 4</small><div class="ts-places">${list.map((g) => `<a class="ts-place p${g.placement <= 1 ? 1 : g.placement <= 4 ? 4 : 8}" href="#/tft/history" title="${esc(QUEUES[g.queueId] || 'TFT')}">${g.placement}</a>`).join('')}</div>`;
@@ -496,7 +496,7 @@ window.createTftView = function (host) {
     const r = (d.ranked || []).find((x) => /TFT/.test(x.queue)) || (d.ranked || [])[0], g = d.matches || [];
     const avg = g.length ? g.reduce((s, x) => s + x.placement, 0) / g.length : 0;
     page.querySelector('.ts-state').textContent = '';
-    page.querySelector('.ts-player').innerHTML = `<section class="ts-card"><div class="ts-rank"><small>${esc(d.region.toUpperCase())}</small>${r ? `<strong>${tierWord(r.tier)}${r.division && !/MASTER|CHALLENGER/.test(r.tier) ? ' ' + r.division : ''}</strong><span>${r.lp} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>'}</div>
+    page.querySelector('.ts-player').innerHTML = `<section class="ts-card"><div class="ts-rank"><small>${esc(d.region.toUpperCase())}</small>${r ? `<strong>${tierWord(r.tier)}${r.division && !/MASTER|CHALLENGER/.test(r.tier) ? ' ' + r.division : ''}</strong><span>${Number(r.lp).toLocaleString()} LP · ${r.wins}W ${r.losses}L</span>` : '<strong>Unranked</strong>'}</div>
       ${g.length ? `<div class="ts-form"><small>Last ${g.length} · avg ${avg.toFixed(2)} · ${g.filter((x) => x.placement <= 4).length} top 4</small><div class="ts-places">${g.map((x) => `<span class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}">${x.placement}</span>`).join('')}</div></div>` : ''}</section>
       <div class="ts-hist">${g.map((x) => `<div class="ts-game"><div class="ts-game-main ts-game-static"><a class="ts-place p${x.placement <= 1 ? 1 : x.placement <= 4 ? 4 : 8}" href="#/tft/match/${enc(x.id)}" title="Open the full match">${x.placement}</a>
         <span class="ts-game-meta"><strong>${esc(QUEUES[x.queueId] || 'TFT')}</strong><small>${ago(Math.round(x.startedAt / 1000))} · level ${x.level} · ${Math.round(x.length / 60)} min</small></span>

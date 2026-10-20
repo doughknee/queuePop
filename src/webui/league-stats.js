@@ -69,7 +69,7 @@ function lgOnSearch(input) {
 function lgYouRank(label, r) {
   if (!r) return `<span class="lg-you-rank"><small>${label}</small> Unranked</span>`;
   const tier = r.tier.charAt(0) + r.tier.slice(1).toLowerCase(), g = r.wins + r.losses, apex = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.tier.toUpperCase());
-  return `<span class="lg-you-rank" title="${r.wins}W ${r.losses}L"><small>${label}</small> ${tier}${apex ? '' : ' ' + r.division} <small>${r.lp} LP</small> ${g ? lgHeat(r.wins / g, 0.5, 0.1, g, lgPct(r.wins / g)) : ''}<small>${g} games</small></span>`;
+  return `<span class="lg-you-rank" title="${r.wins}W ${r.losses}L"><small>${label}</small> ${tier}${apex ? '' : ' ' + r.division} <small>${lgN(r.lp)} LP</small> ${g ? lgHeat(r.wins / g, 0.5, 0.1, g, lgPct(r.wins / g)) : ''}<small>${g} games</small></span>`;
 }
 function lgYou() {
   const s = leagueLive.summoner;
