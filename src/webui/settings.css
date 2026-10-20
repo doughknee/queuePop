@@ -9,7 +9,7 @@ body.theme-settings{background:var(--bg)}
 .st-card h2{font:700 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
 .st-card h2:before{content:'// ';color:var(--muted)}
 .st-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid var(--line);min-width:0}
-.st-card h2+.st-row{border-top:0}
+.st-body>.st-row:first-child{border-top:0}
 .st-row[hidden]{display:none}
 .st-lbl{color:var(--fg);min-width:0}
 .st-lbl small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
@@ -62,3 +62,24 @@ body.theme-settings{background:var(--bg)}
 .st-more summary::marker{color:var(--accent)}
 a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 .st-in::placeholder{color:var(--muted)}
+/* DONI-590: grouped by game. Game chips under each card title, folded cards for games switched off, game tiles in Games. */
+.st-group{font:400 clamp(22px,2.4vw,30px)/1 var(--display);text-transform:uppercase;letter-spacing:.02em;color:var(--fg);margin:30px 0 12px}
+.st-group:first-of-type{margin-top:6px}
+.st-for{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 8px;font-size:12px}
+.st-for small{flex-basis:100%;color:var(--muted)}
+.st-g{padding:2px 8px;border:1px solid var(--accent);color:var(--accent);font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.st-g.is-off{border-color:var(--edge);color:var(--muted);text-decoration:line-through}
+.st-fold{margin:4px 0 6px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.st-fold a{color:var(--accent)}
+#settings-view:not(.st-searching) .st-folded .st-body,#settings-view:not(.st-searching) .st-folded .st-for small{display:none}
+#settings-view.st-searching .st-fold{display:none}
+.st-folded h2{color:var(--muted)}
+.st-games{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.st-game{border:1px solid var(--line);padding:12px 14px;display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-items:center;min-width:0}
+.st-game>img{width:40px;height:40px;object-fit:contain}
+.st-game>.st-row{border-top:0;padding:0}
+.st-game .st-lbl{font:400 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.st-game>p{grid-column:1/-1;margin:8px 0 0;font-size:12px}
+.st-who{color:var(--fg);overflow-wrap:anywhere}
+.st-does{display:flex;flex-wrap:wrap;gap:4px 12px}.st-does a{color:var(--accent);text-decoration:none}.st-does a:hover{text-decoration:underline}
+.st-game.is-off{opacity:.55}.st-game.is-off .st-does{display:none}
