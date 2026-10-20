@@ -143,7 +143,8 @@ function retirePuuids(db, puuid, game, now = Date.now) {
   tierCache.clear();
   return true;
 }
-// One batch of a retirement: moves up to n of the game's rows seeded before the epoch. True while it did something.
+// One batch of a retirement: moves up to n of the game's rows seeded before the epoch and returns how many (0: done, the
+// retirement ends; false: none running).
 function retireBatch(db, game, n = 500) {
   const r = getMeta(db, `retiring:${game}`);
   if (!r) return false;
@@ -152,7 +153,7 @@ function retireBatch(db, game, n = 500) {
     (SELECT rowid FROM players INDEXED BY players_seeded WHERE game = ? AND ${w} LIMIT ${n})`).run(game, ...(w.includes("?") ? [r.epoch] : [])).changes);
   const moved = move("seeded_at < ?") || move("seeded_at IS NULL");
   if (!moved) { db.prepare("DELETE FROM meta WHERE k = ?").run(`retiring:${game}`); tierCache.clear(); }
-  return true;
+  return moved;
 }
 // ids()/capped(): during a retirement only players seeded after its epoch (0: everyone)
 const freshFrom = (db, game) => getMeta(db, `retiring:${game}`)?.epoch ?? 0;

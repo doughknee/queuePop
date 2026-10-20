@@ -114,18 +114,31 @@ async function forever(name, game, step, idle) {
       await new Promise((r) => setImmediate(r));
       if (!did) await sleep(idle);
     } catch (e) {
-      if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid, e.game)) { log(`${name}: stored ${e.game} puuids belong to another Riot app (the key changed apps): those players retired, re-seeding from the ladders`); continue; }
+      if (e.decrypt && e.puuid && jobs.retirePuuids(db, e.puuid, e.game)) { log(`${name}: stored ${e.game} puuids belong to another Riot app (the key changed apps): retiring those players, re-seeding from the ladders`); retireWorker(e.game); continue; }
       if (!e.auth && !e.decrypt) log(`${name}: ${e.message}`);
       await sleep(10000);
     }
   }
 }
 
+// A retirement's row moves (jobs.retireBatch, 1.5M rows for League) run in a worker on its own connection: on the main thread
+// they starved the API (21:07-21:24Z). One per game; a restart resumes an unfinished one.
+const retiring = new Set();
+function retireWorker(game) {
+  if (retiring.has(game) || cfg.dbPath === ":memory:") return;
+  retiring.add(game);
+  const t = Date.now();
+  new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "retire", game } })
+    .once("message", (n) => log(`retired ${n} ${game} players in ${Math.round((Date.now() - t) / 1000)} s`))
+    .once("error", (e) => log(`retire ${game}: ${e.message}`))
+    .once("exit", () => retiring.delete(game));
+}
+for (const g of games) if (db_.getMeta(db, `retiring:${g}`)) retireWorker(g);
+
 if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is posted to /admin/key");
 {
   for (const region of cfg.regions) for (const g of games) {
-    // a retirement's row moves (jobs.retireBatch) ride the seed loops: one batch per step, so the API and the swaps get turns
-    forever(`seed ${g} ${region}`, g, async () => jobs.retireBatch(db, g) || jobs.seed(ctx, g, region), 600000);
+    forever(`seed ${g} ${region}`, g, () => jobs.seed(ctx, g, region), 600000);
     // A match per pass; only ask for new ranked ids when there's nothing left to fetch. Capped modes go first so they don't
     // depend on the ranked queue running dry (DONI-596); each is gated to one call per region and queue a minute, and by share.
     forever(`matches ${g} ${region}`, g, async () => (g === "lol" && (await jobs.capped(ctx, region))) || (await jobs.fetchOne(ctx, g, region)) || (await jobs.ids(ctx, g, region)), 60000);
