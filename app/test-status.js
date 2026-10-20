@@ -21,3 +21,11 @@ console.log("test-status ok");
 assert.strictEqual(ids({ game: "deadlock", away: true }), "away"); // DONI-424: shows on every page, first
 assert.strictEqual(ids({ game: "league", away: true, client: false }), "away,client");
 console.log("test-status away ok");
+// Crawler down mid-session: the quiet "already loaded; retrying" line, not the empty-state one; gone once it answers.
+const st = (f) => ctx.window.statusIssues(f)[0];
+assert.strictEqual(st({ game: "league", stale: true }).level, "warn");
+assert.ok(st({ game: "tft", stale: true, crawler: "down" }).text.includes("already loaded"));
+assert.strictEqual(st({ game: "league", crawler: "down" }).level, "bad");
+assert.strictEqual(ids({ game: "league", stale: true, crawler: "ok" }), "");
+assert.strictEqual(ids({ game: "deadlock", stale: true }), "");
+console.log("test-status stale ok");
