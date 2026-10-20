@@ -39,6 +39,9 @@
   }
 
   function wireButtons() {
+    // DONI-595: Chromium applies drag regions in document order, so the page row's drag area (later in the page) was
+    // covering these no-drag buttons and real clicks dragged the window instead. Last in the body, they win.
+    const wc = document.querySelector(".win-controls"); if (wc) document.body.append(wc);
     $("win-min") && ($("win-min").onclick = () => api() && api().minimize_window());
     // Closing hides to the tray (matches the old native ✕ → on_closing behaviour).
     $("win-close") && ($("win-close").onclick = () => api() && api().hide_window());
