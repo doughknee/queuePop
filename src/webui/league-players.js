@@ -2,6 +2,11 @@
 // #/league/summoner/{Name-TAG}[/{region}] reads GET /lol/summoner/{riotId}?region (account, ranks, last 20 matches; the crawler
 // caches 10 min and allows a few uncached lookups a minute), #/league/leaderboard[/{region}] reads GET /lol/leaderboard.
 // The League search opens Riot IDs here (league-stats.js). Champion leaderboards stay on each champion page (best players).
+// D15: one sentence per lookup failure (crawler /lol/summoner, /lol/match, /tft/player, /tft/match).
+const lgLookupError = (e, what) => { const c = e?.status || Number(String(e?.message).split(' ')[0]);
+  return c === 404 ? `Riot has no ${what}.` : c === 400 ? `That ${what === 'match with this id' ? 'match id' : 'Riot ID or region'} doesn't look right.`
+    : c === 429 ? `The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in ${e?.retry ? e.retry + ' s' : 'a minute'}.`
+    : c === 503 ? "The crawler's Riot key is not valid right now; replace it in Settings > Stats crawler." : 'Stats offline · the stats crawler did not answer. Check its address in Settings > Stats crawler.'; };
 const LG_QUEUE_NAME = { RANKED_SOLO_5x5: 'Solo / duo', RANKED_FLEX_SR: 'Flex' };
 const LG_REGION_CODE = { na: 'na1', euw: 'euw1', eune: 'eun1', oc: 'oc1', oce: 'oc1', br: 'br1', jp: 'jp1', tr: 'tr1', la: 'la1', lan: 'la1', las: 'la2', sg: 'sg2', tw: 'tw2', vn: 'vn2', ph: 'ph2', th: 'th2', me: 'me1', ru: 'ru', kr: 'kr' };
 // DONI-569: your own Riot platform id (summoner.platform, e.g. sg2), not the op.gg-style region.
@@ -24,8 +29,7 @@ async function lgFillSummoner(token, riot, region) {
   const box = () => token === lg.token && document.getElementById('lg-sum');
   let d;
   try { d = await statsApi.summoner(riot, region); } catch (e) {
-    const code = String(e.message).split(' ')[0];
-    if (box()) box().innerHTML = `<p class="lg-offline">${code === '404' ? `No Riot ID "${lgEsc(riot)}" on ${lgEsc(region.toUpperCase())}. Check the #tag, or pick the region in the filters of the tier list.` : code === '429' ? 'The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in a minute.' : code === '503' ? 'The crawler\'s Riot key is not valid right now, so it cannot look players up. Replace it in Settings > Stats crawler.' : code === '400' ? 'That does not look like a Riot ID (name#tag).' : 'Stats offline · the stats crawler did not answer.'}</p>`;
+    if (box()) box().innerHTML = `<p class="lg-offline">${e?.status === 404 || String(e?.message).startsWith('404') ? `No Riot ID "${lgEsc(riot)}" on ${lgEsc(region.toUpperCase())}. Check the #tag.` : lgLookupError(e, 'player with this Riot ID')}</p>`;
     return;
   }
   await lgNames().catch(() => null);

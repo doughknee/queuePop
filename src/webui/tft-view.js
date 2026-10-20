@@ -117,7 +117,7 @@ window.createTftView = function (host) {
   // Region, rank and window are remembered between sessions like League's (patch always starts on the newest).
   const FKEY = 'queuepop-tft-filters-v1', saveFilters = () => { try { localStorage.setItem(FKEY, JSON.stringify({ region: filters.region, bracket: filters.bracket, days: filters.days })); } catch (_) {} };
   try { const s = JSON.parse(localStorage.getItem(FKEY) || '{}'); for (const k of ['region', 'bracket', 'days']) if (typeof s[k] === 'string') filters[k] = s[k]; } catch (_) {}
-  let rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
+  let defaultPatch = '', augmentNote = '', rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
   const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
   // DONI-570: units, augments and traits are whole-patch tables, so the detail never sends the window (Played stays <= 100 %).
   const detail = (id) => S.get(`/tft/comp/${enc(id)}?patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}`);
@@ -126,8 +126,9 @@ window.createTftView = function (host) {
   async function loadComps() {
     offline = false;
     try {
-      if (!patches) [patches, regions] = await Promise.all([S.get('/patches').then((p) => p.tft || []), S.regions()]);
-      if (!filters.patch) filters.patch = patches[0] || '';
+      if (!patches) [patches, regions] = await Promise.all([S.get('/patches').then((p) => { defaultPatch = p.default?.tft || ''; return p.tft || []; }), S.regions()]);
+      S.get('/tft/augments').then((a) => { augmentNote = a.note || ''; }).catch(() => {}); // D15: Riot's own reason when there are none
+      if (!filters.patch) filters.patch = defaultPatch || patches[0] || ''; // D15: the crawler's default waits on patch day
       rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}&trend=1`)) : [];
     } catch (_) { offline = true; rows = []; }
   }
@@ -191,7 +192,7 @@ window.createTftView = function (host) {
   }
   function compDetail(d) {
     const table = (list, label) => list.length ? `<table class="ts-table"><thead><tr><th>${label}</th><th>Played</th><th>Avg place</th><th>Top 4</th><th>Games</th></tr></thead><tbody>${list.map((u) => `<tr class="${u.lowSample ? 'low' : ''}"><td>${icon(u.key)}${esc(name(u.key))}</td><td>${mag(u.frequency, 1, pct(u.frequency))}</td><td>${heat(u.avgPlacement, 4.5, 0.6, u.games, u.avgPlacement.toFixed(2), true)}</td><td>${heat(u.top4Rate, 0.5, 0.12, u.games, pct(u.top4Rate))}</td><td>${u.games.toLocaleString()}</td></tr>`).join('')}</tbody></table>` : `<p class="ts-quiet">No ${label.toLowerCase()} recorded.</p>`;
-    return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${table(d.augments, 'Augment')}</div></div>`;
+    return `<div class="ts-detail-grid"><div><h3>Units</h3>${table(d.units, 'Unit')}</div><div><h3>Augments</h3>${d.augments.length ? table(d.augments, 'Augment') : `<p class="ts-quiet">${esc(augmentNote || 'No augments recorded for this comp.')}</p>`}</div></div>`;
   }
   function renderList() {
     const list = page.querySelector('.ts-list');
@@ -429,7 +430,7 @@ window.createTftView = function (host) {
     let m;
     try { m = await S.get(`/tft/match/${enc(id)}`, 30000); } catch (e) {
       const code = String(e.message || e).split(' ')[0];
-      page.querySelector('.ts-state').textContent = code === '404' ? 'Riot has no match with this id.' : code === '429' ? 'The crawler allows a few fresh lookups a minute. Try again in a minute.' : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
+      page.querySelector('.ts-state').textContent = code === '404' ? 'Riot has no match with this id.' : code === '400' ? "That match id doesn't look right." : code === '429' ? `The crawler allows a few fresh lookups a minute. Try again in ${e.retry ? e.retry + ' s' : 'a minute'}.` : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
       return;
     }
     if (parse().p !== 'match' || parse().id !== id) return;
@@ -475,7 +476,7 @@ window.createTftView = function (host) {
     let d;
     try { d = await S.get(`/tft/player/${enc(riot)}?region=${enc(region)}`, 60000); } catch (e) {
       const code = String(e.message || e).split(' ')[0];
-      page.querySelector('.ts-state').textContent = code === '404' ? `No Riot ID "${riot}" on ${region.toUpperCase()}.` : code === '429' ? 'The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in a minute.'
+      page.querySelector('.ts-state').textContent = code === '404' ? `No Riot ID "${riot}" on ${region.toUpperCase()}.` : code === '400' ? "That Riot ID or region doesn't look right (name#tag)." : code === '429' ? `The crawler allows a few fresh lookups a minute so the Riot key stays healthy. Try again in ${e.retry ? e.retry + ' s' : 'a minute'}.`
         : code === '503' ? "The crawler's Riot key is not valid right now; replace it in Settings > Stats crawler." : 'Stats offline: the stats crawler did not answer. Check its address in Settings > Stats crawler.';
       return;
     }
