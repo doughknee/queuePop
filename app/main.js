@@ -119,7 +119,7 @@ app.whenReady().then(() => {
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
   win.webContents.on("did-finish-load", () => {
     win.webContents.insertCSS(".pywebview-drag-region{-webkit-app-region:drag}.appbar>:not(.pywebview-drag-region){-webkit-app-region:no-drag}");
-    impl.set_ui_scale(loadConfig().ui_scale) || win.webContents.setZoomFactor(1.1);
+    impl.set_ui_scale(loadConfig().ui_scale) || win.webContents.setZoomFactor(1.25);
   });
   // Ctrl+= / Ctrl+- / Ctrl+0 step the Text size (settings.js qpStepScale saves it); preventDefault also stops Chromium's own zoom keys.
   win.webContents.on("before-input-event", (e, i) => {

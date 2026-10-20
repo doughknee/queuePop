@@ -198,7 +198,7 @@ function normalizeConfig(data) {
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
     crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),
-    ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.1, // DONI-516 Text size (zoom factor)
+    ui_scale: UI_SCALES.includes(Number(data.ui_scale)) ? Number(data.ui_scale) : 1.25, // DONI-516 Text size (zoom factor)
     setup_done: T(getd(data, "setup_done", T(data.allowed_queue_ids))),
     companion: normalizeCompanion(data.companion),
     champ_select: normalizeChampSelect(data.champ_select),
