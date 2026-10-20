@@ -330,7 +330,9 @@ function aggregate(db, now = Date.now, force = false) {
     ...tftAgg.inserts(M, K),
     ...win.inserts(M, K),
     ...draftAgg.inserts(M, K),
-  ].map((q) => db.prepare(q));
+  ];
+  require("./lol-items").loadCompleted(db); // temp.lol_completed before the build-order inserts are prepared
+  const prepared = inserts.map((q) => db.prepare(q));
   champ.ingestRaw(db);
   // meta.aggregates (D7, shown on /status): when each patch was last rebuilt and how long it took, plus the last pass.
   const log = getMeta(db, "aggregates") || { patches: {} };
@@ -339,7 +341,7 @@ function aggregate(db, now = Date.now, force = false) {
     for (const patch of dirty) {
       const t1 = Date.now();
       for (const t of ["lol_matches", "lol_champ", "lol_bans", "lol_build", "lol_matchup", "tft_boards", "tft_comp", "tft_part", ...champ.TABLES, ...tftAgg.TABLES, ...win.TABLES, ...draftAgg.TABLES]) db.prepare(`DELETE FROM stats_${t} WHERE patch = ?`).run(patch);
-      for (const q of inserts) q.run(patch);
+      for (const q of prepared) q.run(patch);
       require("./agg-players").aggregatePatch(db, patch);
       log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
