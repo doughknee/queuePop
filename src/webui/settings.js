@@ -11,14 +11,14 @@
   const root = document.getElementById('settings-view');
   let built = false, timer = null, customSound = '';
 
-  const sw = (key, label, hint) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st-sw"><input type="checkbox" data-k="${key}"><i></i></span></label>`;
+  const sw = (key, label, hint) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><span class="st-sw"><input type="checkbox" role="switch" data-k="${key}"><i aria-hidden="true"></i></span></label>`;
   const num = (key, label, hint, min, max) => `<label class="st-row"><span class="st-lbl">${label}${hint ? `<small>${hint}</small>` : ''}</span><input class="st-in st-num" type="number" data-k="${key}" data-num min="${min}" max="${max}"></label>`;
   const card = (id, title, body) => `<section class="st-card" id="st-${id}"><h2>${title}</h2>${body}</section>`;
 
   function build() {
     root.innerHTML = `<div class="st-wrap"><header class="st-head"><h1>Settings</h1><p>Everything queuePop can be told, in one place. Changes apply as you make them.</p>
         <label class="st-find"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg><input type="search" id="st-find" placeholder="Find a setting" aria-label="Find a setting" autocomplete="off" spellcheck="false"></label>
-        <p class="st-none" id="st-none" hidden></p></header>` +
+        <p class="st-none" id="st-none" role="status" hidden></p></header>` +
       card('account', 'Account', `
         <div class="st-row"><span class="st-lbl">League summoner<small>Read from the League client. Sign in there to change it.</small></span><span id="st-summoner" class="st-val">Offline</span></div>
         <label class="st-row"><span class="st-lbl">Deadlock account ID<small>Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.</small></span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="e.g. 123456789"></label>`) +

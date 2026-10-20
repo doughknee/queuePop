@@ -42,6 +42,13 @@
     $("win-min") && ($("win-min").onclick = () => api() && api().minimize_window());
     // Closing hides to the tray (matches the old native ✕ → on_closing behaviour).
     $("win-close") && ($("win-close").onclick = () => api() && api().hide_window());
+    // The ✕ says what it will do: hide to the tray, or quit (Settings > App & display > Close to the tray).
+    const closeLabel = () => {
+      const b = $("win-close"), cfg = window.QP && QP.store && QP.store.config;
+      const t = cfg && cfg.close_to_tray === false ? "Quit queuePop" : "Close to the tray";
+      if (b) { b.title = t; b.setAttribute("aria-label", t); }
+    };
+    $("win-close") && ["mouseenter", "focus"].forEach((ev) => $("win-close").addEventListener(ev, closeLabel));
     $("win-max") && ($("win-max").onclick = toggleMaximize);
     // Double-clicking the draggable header areas toggles maximize, like a
     // native title bar.
