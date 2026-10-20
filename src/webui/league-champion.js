@@ -9,7 +9,7 @@ function leagueChampionPage(id) {
   lgMount('champion', t => lgFillChampion(t, id));
   const c = lgChamp(id), key = Object.keys(champions).find(k => champions[k].cid === c.id);
   const art = `url('${statsApi.DD}/cdn/img/champion/splash/${lgEsc(c.alias || 'Ahri')}_0.jpg')`;
-  return `<div class="lg-page lg-champ-page">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p class="lg-verdict" id="lg-verdict"></p><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
+  return `<div class="lg-page lg-champ-page${lg.queue ? ' lg-aram' : ''}">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p class="lg-verdict" id="lg-verdict"></p><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
     <div class="lg-champ-side">${lgSearch()}<dl class="lg-strip" id="lg-champ-strip"></dl></div>`, ' lg-champ-band')}
     ${lgFilters(false, '<nav class="lg-roles lg-croles" id="lg-champ-roles" aria-label="Role"></nav>')}<div id="lg-champ"><p class="lg-wait">Loading ${lgEsc(c.name)}…</p></div></div>`;
 }

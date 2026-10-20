@@ -5,9 +5,9 @@
 const LG_ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 const LG_ROLE = { top: 'Top', jungle: 'Jungle', middle: 'Mid', bottom: 'Bot', utility: 'Support' };
 const LG_KEY = 'queuepop-league-stats-v1';
-const lg = { patch: '', region: 'all', bracket: 'all', days: '', role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
-try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'days', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
-const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, days: lg.days, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
+const lg = { patch: '', region: 'all', bracket: 'all', days: '', queue: '', aramOk: false, role: 'all', sort: 'score', dir: -1, msort: 'games', mdir: -1, q: '', token: 0, page: '', names: {}, ddv: '' };
+try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'days', 'queue', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
+const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, days: lg.days, queue: lg.queue, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
 
 const lgPct = x => x == null ? '–' : (x * 100).toFixed(1) + '%';
 const lgN = n => Number(n || 0).toLocaleString();
@@ -35,7 +35,7 @@ const lgRoleIcon = r => LG_ROLE[r] ? `<img class="lg-role-ico" src="assets/posit
 async function lgNames(patch) {
   try { const { v, d } = await statsApi.ddChampions(patch); lg.ddv = v; for (const c of Object.values(d.data || {})) lg.names[Number(c.key)] = { name: c.name, alias: c.id, title: c.title }; } catch {}
 }
-const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, role });
+const lgParams = (role = lg.role) => ({ patch: lg.patch, region: lg.region, bracket: lg.bracket, days: lg.days, ...(lg.queue ? { queue: '450', role: '' } : { role }) });
 const lgOffline = what => `<p class="lg-offline">Stats offline · ${what} Check its address in <a href="#/settings#crawler">Settings ↗</a>. The rest of the League world still works.</p>`;
 
 // --- Search: champions jump to their page, a Riot ID opens your account page or anyone's summoner page (league-players.js) ---
@@ -114,18 +114,24 @@ function lgSpark(daily) {
 const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+'], ['grandmaster', 'Grandmaster+'], ['challenger', 'Challenger']];
 // Regions come from the crawler (/lol/tiers regions[], remembered between sessions); the current pick always stays listed.
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
+// DONI-565: Ranked (solo/duo) or ARAM. ARAM has no lanes, so the page drops lane tabs and the lane column (.lg-aram).
+const lgQueueTabs = () => lg.aramOk ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Queue">${[['', 'Ranked'], ['aram', 'ARAM']].map(([v, t]) => `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}">${t}</button>`).join('')}</div>` : '';
 function lgFilters(withRole = true, lead = '', nums = withRole) {
   const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank', days: 'Window' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
-  return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
+  return `<div class="lg-filters"><span id="lg-queues">${lgQueueTabs()}</span>${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
     ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}${sel('days', LG_WINDOWS)}
     ${nums ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
   try {
-    const p = await statsApi.patches();
+    const p = await statsApi.patches(), def = p.default?.lol || (p.lol || [])[0];
     const sel = token === lg.token && document.querySelector('[data-lg-filter=patch]');
-    if (sel) sel.innerHTML = (p.lol || []).map(v => `<option value="${v}" ${(lg.patch || p.lol[0]) === v ? 'selected' : ''}>Patch ${v}</option>`).join('');
+    if (sel) sel.innerHTML = (p.lol || []).map(v => `<option value="${v}" ${(lg.patch || def) === v ? 'selected' : ''}>Patch ${v}</option>`).join('');
+    // DONI-565: the ARAM tab shows once the patch has ~1,000 ARAM games (or while you are on it, so you can leave).
+    lg.aramOk = Object.values(p.counts?.aram || {}).some(n => n >= 1000) || !!lg.queue;
+    const q = token === lg.token && document.getElementById('lg-queues');
+    if (q) q.innerHTML = lgQueueTabs();
   } catch {}
 }
 // [sort key, header, title]; keys starting "best." read r.best.*
@@ -232,7 +238,7 @@ function lgMount(page, fill) {
 function leagueRift() {
   lgMount('', t => { lgFillTiers(t); if (leagueLive.summoner) lgFillForm(t); });
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
-  return `<div class="lg-page">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Tier list</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>${lgYou()}`)}
+  return `<div class="lg-page${lg.queue ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>Tier list</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>${lgYou()}`)}
     ${lgFilters()}<div id="lg-tiers"><p class="lg-wait">Loading the tier list…</p></div>${lgTierRule}</div>`;
 }
 
@@ -293,6 +299,8 @@ document.addEventListener('click', e => {
   if (t.closest('#lg-results a')) { lg.q = ''; return; }
   const ext = t.closest('[data-lg-ext]');
   if (ext) { const a = window.pywebview?.api; a?.open_external ? a.open_external(ext.dataset.lgExt) : window.open(ext.dataset.lgExt, '_blank', 'noopener'); return; }
+  const queue = t.closest('[data-lg-queue]');
+  if (queue) { lg.queue = queue.dataset.lgQueue; lgSave(); document.querySelectorAll('[data-lg-queue]').forEach(b => b.setAttribute('aria-pressed', String(b === queue))); document.querySelector('.lg-page')?.classList.toggle('lg-aram', !!lg.queue); lgRefill(); return; }
   const role = t.closest('[data-lg-role]');
   if (role) { lg.role = role.dataset.lgRole; lgSave(); document.querySelectorAll('[data-lg-role]').forEach(b => b.setAttribute('aria-pressed', String(b === role))); lgRefill(); return; }
   const sort = t.closest('[data-lg-sort]');
