@@ -53,7 +53,7 @@
           <button class="st-btn" data-do="preview-sound">Preview</button><button class="st-btn" data-do="pick-sound">Choose file…</button><span class="st-msg" id="st-sound-file"></span><span class="st-msg" data-msg="pick-sound" data-msg-alias="preview-sound"></span></span></div>
         <div class="st-comp"><img id="st-qr" alt="Scan to open on your phone" hidden>
           <div><p id="st-comp-note" class="st-val"></p><p class="st-hint">Scan with your phone camera, tap Enable Alerts and keep the tab open. Same Wi-Fi only.</p>
-          <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`) +
+          <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`) +
       card('crawler', 'Stats crawler', `
         <label class="st-row"><span class="st-lbl">Address<small>Where League and TFT stats come from. Leave empty for the default.</small></span><input class="st-in st-wide" data-k="crawler_url" data-url placeholder="${DEFAULT_CRAWLER}"></label>
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
@@ -177,6 +177,7 @@
       else if (d === 'check-update') { say(d, 'Checking…', true); const s = await a.check_for_update(); renderUpdate(s); say(d, s && s.error ? 'Couldn’t reach the update server' : s && s.available ? 'Update available' : 'Up to date', !(s && s.error)); }
       else if (d === 'refresh-assets') { say(d, 'Refreshing…', true); const p = a.refresh_assets(); loadAssets(); const r = await p; loadAssets(); say(d, r && r.ok === false ? r.error || 'Failed' : 'Done', !(r && r.ok === false)); }
       else if (d === 'crawler-refresh') { await loadCrawler(); }
+      else if (d === 'new-link') { const r = await a.new_companion_link(); say('test-companion', r && r.ok ? 'New link made. Scan the new code on your phone' : 'Couldn’t make a new link', r && r.ok); loadCompanion(); }
       else if (d === 'test-alert') { const r = await a.test_alert(); const c = (r && r.channels) || []; say(d, c.length ? 'Sent to ' + (c.length > 1 ? c.slice(0, -1).join(', ') + ' and ' + c[c.length - 1] : c[0]) : 'Nothing is on yet: turn on Windows notifications, Discord or the phone companion', c.length > 0); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
       else if (d === 'reset-setup') { window.homeSetup?.reset(); say(d, 'They’ll show on home', true); }
@@ -195,7 +196,7 @@
     let i = {}; try { i = (await bridge().get_companion_info()) || {}; } catch (err) { root.querySelector('#st-comp-note').textContent = 'Couldn’t read the companion: ' + (err.message || err); return; }
     compUrl = i.url || '';
     const qr = root.querySelector('#st-qr'); qr.hidden = !i.qr; if (i.qr) qr.src = i.qr;
-    root.querySelector('#st-comp-note').textContent = !i.enabled ? 'Off. Turn it on above.' : i.running ? `Running at ${i.url}` : `Couldn’t start on port ${i.port}. Another program may be using it; try another port.`;
+    root.querySelector('#st-comp-note').textContent = i.no_lan ? 'This PC doesn’t seem to be on a network your phone can reach (no Wi-Fi or LAN address found).' : !i.enabled ? 'Off. Turn it on above.' : i.running ? `Running at ${i.url}` : `Couldn’t start on port ${i.port}. Another program may be using it; try another port.`;
   }
   const ago = t => { if (!t) return 'never'; const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 90 ? s + 's ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : Math.round(s / 3600) + ' h ago'; };
   const mb = n => n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : (n / 1e6).toFixed(0) + ' MB';

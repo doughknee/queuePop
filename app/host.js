@@ -20,7 +20,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -80,6 +80,12 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   lcu.on("disconnect", () => notifier.alert("disconnect", "🔌 Client disconnected", "The League client closed or lost its connection.", "Client disconnected"));
 
   const cfgComp = () => loadConfig().companion || {};
+  // DONI-328: one random token per install (kept in config.json), in every QR link; a new one cuts off every phone.
+  const newToken = () => {
+    try { const cfg = config.get(); cfg.companion = { ...(cfg.companion || {}), token: require("crypto").randomBytes(16).toString("hex") }; config.save(cfg); return true; }
+    catch (e) { log("companion token:", e.message); return false; }
+  };
+  if (!/^[0-9a-f]{16,64}$/.test(String(cfgComp().token || ""))) newToken();
   const mine = {
     get_status: () => {
       const cfg = loadConfig();
@@ -108,6 +114,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       return r;
     },
     test_companion: () => { push("Test phone alert", "danger", "queue_pop"); return { ok: true, running: companion.isRunning() }; },
+    new_companion_link: () => ({ ok: newToken() }),
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];
@@ -120,7 +127,9 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     get_companion_info: async () => {
       const port = companion.boundPort() || Number(cfgComp().port) || DEFAULT_PORT;
       const ip = await lanIp();
-      const url = `http://${ip}:${port}`;
+      // A phone can't reach 127.0.0.1: no link and no QR rather than one that can never work (DONI-328).
+      if (/^127\./.test(ip)) return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url: "", no_lan: true, running: companion.isRunning(), qr: "" };
+      const url = `http://${ip}:${port}/?t=${cfgComp().token || ""}`;
       return { enabled: !!cfgComp().enabled, port, lan_ip: ip, url, running: companion.isRunning(), qr: await require("qrcode").toDataURL(url).catch(() => "") }; // qrcode loads on first use, ~35 ms off startup (DONI-539)
     },
     get_update_status: () => updater.status(),
