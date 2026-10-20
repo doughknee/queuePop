@@ -221,5 +221,14 @@
     if (section) requestAnimationFrame(() => document.getElementById('st-' + section)?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);
   }
-  window.settingsView = { show, sections: SECTIONS, row: () => SECTIONS.map(([id, l]) => `<a href="#/settings#${id}">${l}</a>`).join('') };
+  // Every control as {label, hint, id, section, key} for the global search (palette.js); builds the page if it isn't yet.
+  function index() {
+    if (!built) build();
+    return [...root.querySelectorAll('.st-row, .st-chip')].map(r => {
+      const lbl = r.querySelector('.st-lbl'), ctl = r.querySelector('[data-k], [data-do], input, select'), card = r.closest('.st-card');
+      const label = lbl ? (lbl.firstChild?.textContent || '').trim() : r.textContent.trim();
+      return { label, hint: lbl?.querySelector('small')?.textContent.trim() || '', id: card.id.slice(3), section: card.querySelector('h2').textContent, key: ctl?.dataset.k || '' };
+    }).filter(x => x.label && x.key);
+  }
+  window.settingsView = { show, index, sections: SECTIONS, row: () => SECTIONS.map(([id, l]) => `<a href="#/settings#${id}">${l}</a>`).join('') };
 })();
