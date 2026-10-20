@@ -4,8 +4,8 @@ const path = require("path");
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
-const host = require("./host");
-const { UI_SCALES } = require("./champ-config"); // tray, alerts, companion, updater, account (DONI-442)
+const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
+const { UI_SCALES } = require("./champ-config");
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
