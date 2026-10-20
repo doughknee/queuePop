@@ -9,6 +9,7 @@
     "start": "node src/main.js",
     "aggregate": "node src/main.js aggregate",
     "backfill-patch": "node src/main.js backfill-patch",
+    "backfill-comps": "node src/main.js backfill-comps",
     "backfill-players": "node src/main.js backfill-players",
     "vacuum": "node src/main.js vacuum",
     "mock": "node src/mock.js",
