@@ -129,3 +129,6 @@
 .dossier-lede .hn-strip{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;row-gap:8px}
 .dossier-lede .hn-strip>div:nth-child(3n+1){padding-left:0;border-left:0}
 @media (max-width:1150px){:host-context(:root:not(.sb-collapsed)) .city-nav.city-nav.city-nav a:not(.nav-current){display:none}}
+/* Mockup filler retired (the app footer carries the Valve line; the companion here is a demo): the bar keeps the real overlay status + launch */
+.page-colophon,.companion-bar .companion-label,.companion-bar #queue-status,.companion-bar [data-open=companion]{display:none}
+.companion-bar:not(:has(.overlay-launch:not([hidden]))){justify-content:flex-start}
