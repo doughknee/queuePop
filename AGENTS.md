@@ -236,6 +236,22 @@
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.
 
+## Recorder (DONI-523, phase 1, 2026-10-20; off by default)
+- Sources: League = Riot's live client data API on `https://127.0.0.1:2999/liveclientdata/` (read-only, Riot-sanctioned, self-signed):
+  `eventdata` every 2 s while gameflow is InProgress, `activeplayername`/`activeplayer` once, `gamestats` once for a (wall clock, game
+  time) pair. TFT = gameflow start/end + `/lol-end-of-game/v1/tft-eog-stats` placement. No memory reads, no injection.
+- `app/recorder.js`: `mapLiveEvents` (pure) → markers {id, t (game seconds), type kill|death|assist|multikill|objective|end, label};
+  one file per game `<recordings folder>/<matchId>.json` (matchId `NA1_<gameId>`, same as the crawler's and the match pages');
+  bridge `list_recordings`, `get_recording(matchId)`, `delete_recording`, `open_recordings_folder`, `recorder_status`.
+- `app/recorder-video.js` (Settings > Recorder (beta) > Record video, off): only an ffmpeg already on PATH (`where ffmpeg`; never
+  downloaded). `ddagrab` (Desktop Duplication) of the primary display → hwdownload/scale → h264_nvenc | h264_amf | h264_qsv | libx264
+  ultrafast, mkv; at game end clips around each marker with stream copy (`clipWindows`, `clipArgs`), size cap oldest-first
+  (`chooseDeletions`). Pure builders tested in `app/test-recorder-video.js`; no capture runs in tests.
+- UI: `src/webui/recordings.js` (`#/recordings`, sidebar icon next to Settings; `window.recStrip(rec)` / `recStripMarkers` draw the
+  event strip, also for the League/TFT match pages, which are track W's). Config `recorder {enabled, video, preset, folder, cap_gb}`.
+- Not done (phase 2+): audio tracks, manual clip hotkey, trim/favourite/share, thumbnails, a clip player in the app, per-game
+  on/off, Deadlock events from the overlay app's GEP feed, a rolling buffer instead of whole-game files.
+
 ## Settings
 - `#/settings[#section]` (DONI-489) is the one app-level Settings page: `src/webui/settings.{js,css}` into `#settings-view`, reached from the
   sidebar gear; sections (account, league, alerts, companion, crawler, about) are cards with jump links in the page row

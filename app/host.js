@@ -12,6 +12,8 @@ const { attachTimeline } = require("./timeline");
 const { createAway } = require("./stepping-away");
 const { attachGamePlan } = require("./game-plan");
 const { attachRecap } = require("./recap");
+const { attachRecorder } = require("./recorder");
+const { createVideo } = require("./recorder-video");
 const config = require("./config");
 
 app.setAppUserModelId("com.doughknee.queuepop"); // matches the electron-builder appId so toasts carry our name/icon
@@ -24,7 +26,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -48,6 +50,13 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const away = createAway(state, push); // DONI-424
   const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log, isPaused: () => state.paused }); // DONI-347
   const champName = (id) => ((impl.get_champion_catalog && impl.get_champion_catalog()) || []).find((c) => Number(c.id) === Number(id))?.name || `champion ${id}`;
+  // DONI-523: the recorder writes one file per game under the recordings folder (Settings > Recorder (beta)).
+  const recDir = () => (loadConfig().recorder || {}).folder || path.join(app.getPath("userData"), "recordings");
+  let video = null;
+  const recorder = attachRecorder({ lcu, getConfig: loadConfig, get dir() { return recDir(); }, push, log,
+    platform: async () => ((await account.getSummoner().catch(() => null)) || {}).platform || "",
+    onGame: (rec, phase) => { (phase === "start" ? video.start(rec) : video.stop(rec)).catch((e) => log("recorder video:", e.message)); } });
+  video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder }); // Q21: only when Record video is on and ffmpeg is on PATH
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
@@ -153,6 +162,11 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     get_game_plan: () => plan.get(),
     test_ntfy: () => notifier.ntfy("test", "queuePop test", "ntfy is working. You'll get a push like this when your queue pops.", "Test message"),
     get_draft_recaps: () => recap.list(),
+    list_recordings: () => recorder.list(),
+    get_recording: (id) => recorder.get(String(id)),
+    delete_recording: (id) => recorder.remove(String(id)),
+    recorder_status: async () => ({ ffmpeg: await video.probe(true), folder: recDir(), recording: recorder.live() ? recorder.live().matchId : null }),
+    open_recordings_folder: async () => { fs.mkdirSync(recDir(), { recursive: true }); const err = await shell.openPath(recDir()); return err ? { ok: false, error: err } : { ok: true }; },
     // One button, the real path (DONI-544): what a queue pop sends, through every channel that is on. -> {ok, channels}
     test_alert: async () => {
       const cfg = loadConfig(), channels = [];
