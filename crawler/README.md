@@ -28,10 +28,11 @@ restart resumes. Regions are the parallelism: each region runs a ladder loop on 
 | `BACKUP_DIR` | `/backups` (image) | nightly `VACUUM INTO` target (compose mounts `./backups`, inside appdata so the server backup copies it); empty = off. `npm run -s backup` runs one now |
 | `BACKUP_KEEP` | 3 | newest `crawler-YYYYMMDD-HHMM.db` files kept; only files with that name are ever deleted |
 | `BACKUP_HOUR_UTC` | 10 | hour of the nightly backup (03:00 PT); waits while an aggregation pass runs; `/status` `backup` = `{ at, file, bytes, ms, removed }` |
+| `ARAM_SHARE` | 0.1 | ARAM (queue 450, in the default `QUEUES` since D13) discovery runs only while ARAM is under this share of the region's League matches fetched in the last hour (plus ARAM ids still waiting), so ranked keeps ~90% of the quota |
 | `ADMIN_TOKEN` | none | bearer token for `POST /admin/key` and the status page form. Unset: the endpoint returns 503 |
 | `REGIONS` | `na1,kr` | platform ids; add `euw1,eun1` if quota allows |
 | `MIN_TIER` | `EMERALD` | lowest ladder tier seeded |
-| `QUEUES` | `420,440,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
+| `QUEUES` | `420,440,450,1100` | drop 1100 to skip TFT, drop 420/440 to skip League |
 | `DB_PATH` | `data/crawler.db` | `/data/crawler.db` in the image |
 | `PORT` | `47900` | |
 | `TIMELINE_SAMPLE` | `0.1` | share of League matches that also fetch a timeline (skill order, starting/early items, build order); each costs one more request |
@@ -89,6 +90,10 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `meta.keyBad = { hash, reason, since }`, logs once, and every loop idles (one check per 10 s, no Riot calls) while the
   current key still has that hash. `/status` `key.valid` is false with `reason` ("403 Forbidden") and `since`; the status
   page shows it in red. Posting a new key changes the hash, so the crawl resumes by itself on the next loop.
+- ARAM (D13): ARAM matches are stored under patch `"<patch>-aram"`, so every per-patch aggregate serves them apart from ranked.
+  `?queue=450` (or `aram`) on any League stats endpoint (`/lol/tiers`, `/lol/champion/{id}`, items/runes/spells, draft, plan, ...) reads them;
+  the response echoes `queue: 450` and `patch: "16.20-aram"`. Roles are empty in ARAM (role `""`, no matchups). `/patches.aram` lists the
+  patches with ARAM data and `counts.aram` their matches; ARAM never becomes the League default patch. `?queue=420|440|ranked` = default.
 - `GET /patches` → `{ lol: ["16.21", "16.20", ...], tft: [...], counts: { lol: { patch: matches }, tft: { patch: matches } }, minMatches: { lol: 2000, tft: 1000 },
   default: { lol, tft } }`, newest first. `default` is what every endpoint uses without `?patch` (D11): the newest patch with at least
   `minMatches` matches (TFT matches = boards / 8), else the patch with the most. So on patch day the app stays on the old patch until

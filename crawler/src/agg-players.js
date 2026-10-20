@@ -18,7 +18,8 @@ function migrate(db) {
   db.exec(SCHEMA);
   // DONI-508/512: ladder wins/losses for the leaderboards
   const cols = db.prepare("PRAGMA table_info(players)").all().map((c) => c.name);
-  for (const c of ["wins", "losses"]) if (!cols.includes(c)) db.exec(`ALTER TABLE players ADD COLUMN ${c} INT`);
+  for (const c of ["wins", "losses", "aram_at"]) if (!cols.includes(c)) db.exec(`ALTER TABLE players ADD COLUMN ${c} INT`); // aram_at: D13
+  db.exec("CREATE INDEX IF NOT EXISTS players_aram ON players (game, region, aram_at, tier_n DESC)");
 }
 
 const riotId = (p) => p.riotIdGameName ? `${p.riotIdGameName}#${p.riotIdTagline || ""}` : null;

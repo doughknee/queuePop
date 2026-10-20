@@ -26,9 +26,12 @@ const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATC
 function patches(db) {
   const counts = (t, col, per) => Object.fromEntries(db.prepare(`SELECT patch, sum(${col}) n FROM ${t} GROUP BY patch`).all()
     .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
-  const c = { lol: counts("stats_lol_matches", "matches", 1), tft: counts("stats_tft_boards", "boards", 8) };
-  const lol = Object.keys(c.lol).sort(byVersion), tft = Object.keys(c.tft).sort(byVersion);
-  return { lol, tft, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lol, c.lol), tft: pickPatch("tft", tft, c.tft) } };
+  const all = counts("stats_lol_matches", "matches", 1);
+  // ARAM rows live under "<patch>-aram" (D13): listed apart as aram, counted per plain patch
+  const aramC = Object.fromEntries(Object.entries(all).filter(([p]) => /-aram$/.test(p)).map(([p, n]) => [p.replace(/-aram$/, ""), n]));
+  const c = { lol: Object.fromEntries(Object.entries(all).filter(([p]) => !/-aram$/.test(p))), tft: counts("stats_tft_boards", "boards", 8), aram: aramC };
+  const lol = Object.keys(c.lol).sort(byVersion), tft = Object.keys(c.tft).sort(byVersion), aram = Object.keys(aramC).sort(byVersion);
+  return { lol, tft, aram, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lol, c.lol), tft: pickPatch("tft", tft, c.tft) } };
 }
 
 // WHERE clause for ?patch&region&bracket. bracket = minimum tier ("emerald" = Emerald and above).
@@ -50,11 +53,15 @@ function where(q, patch) {
 function head(db, q, game) {
   const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
   const ps = patches(db);
-  const patch = q.patch || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
+  // ?queue=450|aram (League): the same patch's ARAM rows, stored under "<patch>-aram"; patch in the response keeps the suffix
+  const aram = game === "lol" && ["450", "aram"].includes(String(q.queue || "").toLowerCase());
+  if (game === "lol" && q.queue && !aram && !["420", "440", "ranked"].includes(String(q.queue).toLowerCase())) throw bad("queue must be ranked (420/440) or aram (450)");
+  const base = (q.patch || "").replace(/-aram$/, "") || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
+  const patch = aram && base ? base + "-aram" : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
   const days = win.days(q);
-  return { patch, ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
+  return { patch, ...(aram && { queue: 450 }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
