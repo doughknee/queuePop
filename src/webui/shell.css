@@ -291,7 +291,7 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .rec-empty .st-btn{margin-left:12px}
 /* DONI-595: a game's pages slide in when you switch games (sidebar block and the page row), staggered; Settings sits apart
    with a cog. Reduced motion just shows them. */
-@keyframes sbIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@keyframes sbIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
 @keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .sb-block.sb-in>a{animation:sbIn .26s cubic-bezier(.2,.7,.2,1) both}
 #world-nav.sb-in>a{animation:rowIn .22s cubic-bezier(.2,.7,.2,1) both}
@@ -331,3 +331,26 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .qp-play-caret{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.8;display:none}
 .qp-play[data-mode=queue] .qp-play-caret{display:block}
 .qp-play.menu-open .qp-play-caret{transform:rotate(180deg)}
+/* Bookmarks bar (DONI-612): the title bar across the content, above the game's page row. It drags the window; its
+   bookmarks and the window buttons don't. The page row sits under it; both stay put while you scroll. */
+:root{--marks-h:34px}
+#qp-marks{position:sticky;top:0;z-index:31;display:flex;align-items:center;gap:2px;height:var(--marks-h);padding:0 140px 0 10px;box-sizing:border-box;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;-webkit-app-region:drag}
+#qp-marks>*{-webkit-app-region:no-drag;flex:none}
+.qb-star{width:26px;height:24px;border:0;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
+.qb-star:hover,.qb-star[aria-pressed=true]{color:var(--accent)}
+.qb-mark{position:relative;display:flex;align-items:center;gap:6px;height:24px;max-width:200px;padding:0 22px 0 8px;color:var(--muted);font:12px/1 var(--mono);text-decoration:none;white-space:nowrap;border:1px solid transparent}
+.qb-mark span{overflow:hidden;text-overflow:ellipsis}
+.qb-mark img,.qb-mark svg{width:15px;height:15px;flex:none;object-fit:contain}
+.qb-mark svg{fill:none;stroke:currentColor;stroke-width:1.8}
+.qb-mark:hover,.qb-mark:focus-visible{color:var(--fg);border-color:var(--line);outline:none}
+.qb-mark[aria-current]{color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
+.qb-mark i{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--muted);opacity:0;padding:0 2px}
+.qb-mark:hover i,.qb-mark:focus-visible i{opacity:1}.qb-mark i:hover{color:var(--neg)}
+.qb-hint{color:var(--dim);font:12px var(--mono);white-space:nowrap}
+.win-controls{height:var(--marks-h)!important;top:0}
+#world-nav{top:var(--marks-h)}
+#world-nav#world-nav{height:48px;min-height:0;box-sizing:content-box;padding-right:16px} /* the same height on every page, Home included (the PLAY plate stays put) */
+/* Short pages (Home) keep the footer at the bottom of the window. */
+#main{min-height:calc(100vh - var(--marks-h) - 49px - 67px)}
+/* Switching games: the old page list fades out quickly before the new one slides in. */
+.sb-block.sb-out>a,#world-nav.sb-out>a{opacity:0;transform:translateX(4px);transition:opacity .1s ease-in,transform .1s ease-in}
