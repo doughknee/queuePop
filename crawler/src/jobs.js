@@ -307,6 +307,7 @@ function backfillPatch(db) {
 // Rebuilds stats_* from the normalised rows, only for patches that got matches since the last pass
 // (every patch with force, or when nothing was aggregated yet). A patch's rows are deleted and recomputed whole.
 function aggregate(db, now = Date.now, force = false) {
+  const cut = now(); // DONI-568: stamped as aggregatedAt, so a match committed after the dirty query is dirty next pass
   const last = getMeta(db, "aggregatedAt");
   const all = force || last == null;
   const dirty = db.prepare(all ? "SELECT DISTINCT patch FROM matches WHERE status = 'done'"
@@ -350,7 +351,7 @@ function aggregate(db, now = Date.now, force = false) {
       require("./agg-players").aggregatePatch(db, patch);
       log.patches[patch] = { at: now(), ms: Date.now() - t1 };
     }
-    setMeta(db, "aggregatedAt", now());
+    setMeta(db, "aggregatedAt", cut);
     setMeta(db, "aggregates", { ...log, at: now(), ms: Date.now() - t0, dirty });
   });
   return dirty.length;
