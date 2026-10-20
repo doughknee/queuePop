@@ -179,7 +179,7 @@ window.stCovers = g => Object.keys(window.ST_FOR).filter(id => window.ST_FOR[id]
       c.querySelectorAll('.st-g').forEach(s => { const o = !on.includes(s.dataset.g); s.classList.toggle('is-off', o); s.title = o ? 'Switched off in Games' : ''; });
       const f = c.querySelector('.st-fold'), names = gs.map(g => GN[g]).join(' and ');
       f.hidden = !off;
-      if (off) f.innerHTML = `${names} ${gs.length > 1 ? 'are' : 'is'} switched off in <a href="#/settings#games">Games</a>, so this does nothing right now.${peek ? '' : ' <button class="st-btn" data-do="peek">Show anyway</button>'}`;
+      if (off) f.innerHTML = `<span>${names} ${gs.length > 1 ? 'are' : 'is'} switched off in <a href="#/settings#games">Games</a>, so this does nothing right now.</span>${peek ? '' : '<button class="st-btn" data-do="peek">Show anyway</button>'}`;
     });
     root.querySelectorAll('[data-only]').forEach(el => { el.hidden = !on.includes(el.dataset.only); });
     root.querySelectorAll('.st-game').forEach(t => t.classList.toggle('is-off', !on.includes(t.dataset.g)));
