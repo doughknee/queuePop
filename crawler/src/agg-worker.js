@@ -10,6 +10,7 @@ if (workerData.task === "retain") {
   parentPort.postMessage(require("./backup").backup(db, workerData.dir, workerData.keep));
 } else {
   const n = require("./jobs").aggregate(db);
+  setMeta(db, "health", require("./server").health(db));
   setMeta(db, "rawStats", { ...db.prepare("SELECT coalesce(sum(length(raw)), 0) bytes, count(raw) n FROM matches").get(), at: Date.now() });
   parentPort.postMessage(n);
 }

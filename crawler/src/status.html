@@ -43,6 +43,7 @@ async function load() {
 ${["lol", "tft"].filter((g) => s.health && s.health[g]).map((g) => { const h = s.health[g]; return `<h2>${g === "lol" ? "League" : "TFT"} data · patch ${esc(h.patch || "—")}</h2>
 <div>${h.last24h.toLocaleString()} matches in 24 h · ${h.rows} ${g === "lol" ? "champion-roles" : "comps"}, ${h.lowSampleShare == null ? "—" : Math.round(h.lowSampleShare * 100) + "%"} under 200 games</div>
 ${Object.entries(h.hourly).sort().map(([r, a]) => `<div class="spark"><span>${esc(r)}</span>${spark(a)}<small>${a.reduce((x, y) => x + y, 0)}</small></div>`).join("")}`; }).join("")}
+${s.health ? `<small>data health as of ${ago(s.health.at)}</small>` : ""}
 <div>Backup: ${s.backup ? esc(s.backup.file) + " · " + mb(s.backup.bytes) + " · " + ago(s.backup.at) : "none yet"}</div>
 <h2>Endpoints</h2><table>${(s.endpoints || []).map((e) => `<tr><td>${e.path}</td><td>${e.patch || ""}</td><td>${e.live ? "live" : ago(e.updatedAt)}</td></tr>`).join("")}</table>
 <h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;

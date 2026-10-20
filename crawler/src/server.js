@@ -174,16 +174,15 @@ function status(db, limiter, { envKey, dbPath, aggregateEveryMin = 60, retention
     aggregates: getMeta(db, "aggregates"),
     backup: getMeta(db, "backup"), // { at, file, bytes, ms, removed } of the last nightly backup
     endpoints: endpoints(db),
-    health: health(db),
+    health: getMeta(db, "health"), // written by the aggregation worker (agg-worker.js)
   };
 }
 
 // Data health (D16, the status page's per-game section): matches fetched per region per hour over the last 24 h (oldest
-// first, 24 numbers), and the share of the default patch's tier/comp rows under 200 games. Cached 5 min (~0.2 s of SQL).
-let healthCache = { at: 0, v: null };
-function health(db) {
-  if (Date.now() - healthCache.at < 300000) return healthCache.v;
-  const now = Date.now(), from = now - 24 * 3600000, out = {};
+// first, 24 numbers), and the share of the default patch's tier/comp rows under 200 games. ~4 s of SQL on the live DB, so the
+// aggregation worker computes it after each pass into meta.health; /status only reads it.
+function health(db, now = Date.now()) {
+  const from = now - 24 * 3600000, out = {};
   for (const game of ["lol", "tft"]) {
     const hourly = {};
     for (const r of db.prepare("SELECT region, CAST((fetched_at - ?) / 3600000 AS INT) h, count(*) n FROM matches WHERE fetched_at > ? AND game = ? AND status = 'done' GROUP BY 1, 2").all(from, from, game)) {
@@ -196,8 +195,7 @@ function health(db) {
     out[game] = { patch, hourly, rows: rows.length, lowSampleShare: rows.length ? r4(rows.filter((r) => r.g < 200).length / rows.length) : null,
       last24h: Object.values(hourly).flat().reduce((s, n) => s + n, 0) };
   }
-  healthCache = { at: now, v: out };
-  return out;
+  return { ...out, at: now };
 }
 
 // What each route serves and how fresh it is (D7): stats routes read the newest patch's last aggregation; leaderboards the
@@ -308,4 +306,4 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
   });
 }
 
-module.exports = { createServer, lolTiers, lolChampion, tftComps, tftComp, patches };
+module.exports = { health, createServer, lolTiers, lolChampion, tftComps, tftComp, patches };
