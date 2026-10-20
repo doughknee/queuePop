@@ -23,6 +23,7 @@
   }
   apply();
   toggle.addEventListener('click', () => { s.collapsed = !s.collapsed; apply(); save(); });
+  window.qpSidebarWidth = w => { s.w = w; apply(); save(); }; // keys.js: the grip by keyboard
   grip.addEventListener('pointerdown', e => { grip.setPointerCapture(e.pointerId); root.classList.add('sb-dragging'); });
   grip.addEventListener('pointermove', e => { if (grip.hasPointerCapture(e.pointerId)) { s.w = e.clientX; apply(); } });
   grip.addEventListener('lostpointercapture', () => { root.classList.remove('sb-dragging'); save(); });
