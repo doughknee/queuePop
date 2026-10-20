@@ -37,18 +37,28 @@
     return memo.get(url);
   }
 
-  // Community Dragon set data: one map apiName → {name, icon, cost, range, traits} over every set (newest wins).
-  // ponytail: the JSON is ~24 MB, fetched once per session; trim it in the crawler if that ever hurts.
-  let dragon = null, names = new Map();
+  // Names and icons (DONI-550): the crawler's /tft/meta (current set, ~250 KB, cached daily) first; Community Dragon's
+  // ~24 MB en_us.json (every set, plus attack range for the comp board) only as the fallback or when loadFull() is asked.
+  let dragon = null, full = null, names = new Map();
   const png = (p) => p && p !== 'None' ? CDRAGON + 'game/' + p.toLowerCase().replace(/\.(tex|dds)$/, '.png') : '';
   function loadDragon() {
-    return dragon || (dragon = fetch(CDRAGON + 'cdragon/tft/en_us.json').then((r) => r.json()).then((j) => {
+    return dragon || (dragon = get('/tft/meta', 10000).then((m) => {
+      const map = new Map(names), tn = (t) => (m.traits && m.traits[t] && m.traits[t].name) || t;
+      for (const [k, u] of Object.entries(m.units || {})) map.set(k, { ...(names.get(k) || {}), name: u.name, icon: u.icon, cost: u.cost, traits: (u.traits || []).map(tn) });
+      for (const [k, t] of Object.entries(m.traits || {})) map.set(k, { name: t.name, icon: t.icon, breakpoints: t.breakpoints });
+      for (const [k, i] of Object.entries(m.items || {})) map.set(k, { name: i.name, icon: i.icon });
+      return (names = map);
+    }).catch(() => loadFull()));
+  }
+  function loadFull() {
+    return full || (full = fetch(CDRAGON + 'cdragon/tft/en_us.json').then((r) => r.json()).then((j) => {
       const map = new Map();
       for (const s of Object.keys(j.sets || {}).sort((a, b) => a - b).map((k) => j.sets[k])) {
         for (const c of s.champions || []) map.set(c.apiName, { name: c.name, icon: png(c.tileIcon || c.squareIcon), cost: c.cost, range: c.stats && c.stats.range, traits: c.traits || [] });
         for (const t of s.traits || []) map.set(t.apiName, { name: t.name, icon: png(t.icon) });
       }
       for (const i of j.items || []) if (!map.has(i.apiName)) map.set(i.apiName, { name: i.name, icon: png(i.icon) });
+      for (const [k, v] of names) map.set(k, { ...(map.get(k) || {}), ...v, range: (map.get(k) || {}).range }); // meta wins, CDragon adds range
       return (names = map);
     }).catch(() => names));
   }
@@ -62,5 +72,5 @@
   const regions = () => get('/status').then((s) => (s.seed || []).filter((k) => k.startsWith('tft:')).map((k) => k.slice(4)).sort())
     .catch(() => ['kr', 'na1']);
 
-  window.tftStats = { compTier, compRows, get, crawler, loadDragon, info, bare, regions, regionLabel };
+  window.tftStats = { compTier, compRows, get, crawler, loadDragon, loadFull, info, bare, regions, regionLabel };
 })();
