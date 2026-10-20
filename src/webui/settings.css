@@ -103,7 +103,7 @@ a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 .st-tip:hover::after,.st-tip:focus-visible::after{opacity:1}
 .st-desc{margin:0 0 6px;color:var(--muted)}
 .st-desc a{color:var(--gc)}
-#settings-view.st-searching [data-when][hidden]{display:flex}
-#settings-view.st-searching .st-comp[data-when][hidden]{display:flex}
+#settings-view.st-searching .st-row[data-when][hidden]:not(.st-off){display:flex!important}
+#settings-view.st-searching .st-comp[data-when][hidden]:not(.st-off){display:flex!important}
 .st-comp[hidden]{display:none}
 .st-chip span{font-size:13px}

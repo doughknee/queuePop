@@ -402,7 +402,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
     if (!QP.store.config) { try { await QP.store.load(); } catch (err) { console.error('settings: config load', err); } }
     // Without a config every edit would be dropped, so say so instead of looking editable.
     const lead = root.querySelector('.st-head p');
-    lead.textContent = QP.store.config ? 'Everything queuePop can be told, in one place. Changes apply as you make them.' : 'Couldn’t read your settings, so changes won’t save right now. Reopen Settings to try again.';
+    lead.textContent = QP.store.config ? 'Changes apply as you make them.' : 'Couldn’t read your settings, so changes won’t save right now. Reopen Settings to try again.';
     lead.classList.toggle('bad', !QP.store.config);
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
