@@ -141,7 +141,8 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `matches.duration`, `to: null` = 45 min and longer) and `depth: { players, gamesPerPlayer }`; `/lol/tiers` rows add `players` and
   `gamesPerPlayer` (distinct puuids per champion+role; with bracket=all a player seen in two brackets counts twice). Matches stored
   before the column existed get `duration` from `npm run -s backfill-length` (raw retention window only), then `aggregate`.
-- `GET /lol/draft?role=MIDDLE&allies=7,64&enemies=9,8:TOP&bans=1,2&patch&region&bracket&limit` (D8, champ select) →
+- `GET /lol/draft?role=MIDDLE&allies=7,64&enemies=9,8:TOP&bans=1,2&pool=103,99&patch&region&bracket&limit` (D8, champ select;
+  `pool` optional: only those champions, any sample) →
   `{ patch, region, bracket, role, lane, allies, enemies, bans, candidates: [{ champion, score, games, winRate, lowSample, components: {
   base: { value, games }, lane: { champion, value, games } | null, enemies: [{ champion, value, games }], allies: [{ champion, value, games }] } }] }`,
   best first (default 30, max 100). Ids may carry `:ROLE`. `score` is in win-rate points: `base` (role win rate − 0.5, shrunk by
