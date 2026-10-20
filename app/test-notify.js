@@ -35,6 +35,8 @@ const TOKEN = "0123456789abcdef0123456789abcdef";
   assert.ok(String(landing.headers["set-cookie"]).includes("qp_t=" + TOKEN));
   assert.strictEqual((await get("/api/status", { cookie: "qp_t=" + TOKEN })).statusCode, 200);
   assert.strictEqual((await get("/manifest.json")).statusCode, 200);
+  const mf = await new Promise((r) => http.get({ port, path: "/manifest.json?t=" + TOKEN }, (res) => { let t = ""; res.on("data", (c) => (t += c)); res.on("end", () => r(JSON.parse(t))); }));
+  assert.strictEqual(mf.start_url, "./companion.html?t=" + TOKEN); // home-screen installs open signed in
   // DONI-337: Decline is POST-only and token-gated.
   const post = (p) => new Promise((r) => { const q = http.request({ port, path: p, method: "POST" }, (res) => { let t = ""; res.on("data", (c) => (t += c)); res.on("end", () => r([res.statusCode, t])); }); q.end(); });
   assert.strictEqual((await post("/api/decline"))[0], 403);

@@ -50,7 +50,7 @@ lcu.on("event", (e) => {
 
 async function readyCheck(data) {
   if (state.paused || !data) return;
-  if (data.state !== "InProgress") { state.accepting = false; return; }
+  if (data.state !== "InProgress") { state.accepting = false; state.popPushed = false; return; }
   if (data.playerResponse !== "None" || state.accepting) return;
   state.accepting = true;
   const lobby = await lcu.request("get", "/lol-lobby/v2/lobby").catch(() => null);
@@ -62,7 +62,8 @@ async function readyCheck(data) {
     state.accepting = false;
     return;
   }
-  push(`Queue popped (queue ${queueId}), accepting…`, "danger", "queue_pop");
+  if (!state.popPushed) push(`Queue popped (queue ${queueId}), accepting…`, "danger", "queue_pop"); // once per pop, not per retry
+  state.popPushed = true;
   log(`Ready check popped queue=${queueId}`);
   const delay = Math.min(10, Math.max(0, Number(loadConfig().accept_delay_seconds) || 0));
   if (delay) {
@@ -79,7 +80,12 @@ async function readyCheck(data) {
   }
   const r = await lcu.request("post", "/lol-matchmaking/v1/ready-check/accept").catch((err) => ({ status: err.message }));
   // A failed accept frees the latch, so the next ready-check event for this pop tries again (DONI-529).
-  if (!(r.status >= 200 && r.status < 300)) state.accepting = false;
+  if (!(r.status >= 200 && r.status < 300)) {
+    state.accepting = false;
+    log(`READY CHECK accept failed queue=${queueId} status=${r.status}`);
+    push(`Couldn't accept yet (${r.status}), trying again`, "warning", "match");
+    return;
+  }
   log(`READY CHECK ACCEPTED queue=${queueId} status=${r.status}`);
   push(`Match accepted (queue ${queueId})`, "success", "match");
 }
@@ -160,13 +166,21 @@ app.whenReady().then(() => {
     win.show();
   });
   // If the first paint never comes (a renderer that crashed on load), show the window anyway after 5 s.
-  setTimeout(() => { if (!win.isVisible() && !loadConfig().start_minimized) { log("startup: no paint after 5 s, showing anyway"); win.show(); } }, 5000).unref?.();
+  let shownOnce = false;
+  win.once("show", () => { shownOnce = true; if (ws.maximized() && !win.isMaximized()) win.maximize(); }); // also a first show from the tray
+  setTimeout(() => { if (!shownOnce && !loadConfig().start_minimized) { log("startup: no paint after 5 s, showing anyway"); win.show(); } }, 5000).unref?.();
   win.webContents.once("did-finish-load", () => {
     log("startup: page loaded at", since());
     win.webContents.executeJavaScript("JSON.stringify(performance.getEntriesByType('paint').map(e => e.name + ' ' + Math.round(e.startTime) + 'ms'))")
       .then((p) => log("startup: renderer", p)).catch(() => {});
   });
   ws.track(win);
+  const setDl = impl.set_deadlock_account;
+  impl.set_deadlock_account = (id) => {
+    const r = setDl(id), v = JSON.stringify(require("./deadlock-api").get_deadlock_account());
+    win.webContents.executeJavaScript(`window.QP && QP.store.config && (QP.store.config.deadlock_account_id = ${v}, QP.bus.emit("config:changed", { path: "deadlock_account_id" }))`).catch(() => {});
+    return r;
+  };
   win.loadFile(WEBUI);
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   assets.check(); // never awaited: icons fill in as they land

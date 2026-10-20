@@ -65,6 +65,14 @@ function createCompanion(ctx) {
     if (url.searchParams.get("t") && authorised(req, url) && (p === "/" || p.endsWith(".html"))) {
       res.setHeader("Set-Cookie", `qp_t=${cfgComp().token}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Strict`);
     }
+    if (p === "/manifest.json" && authorised(req, url)) { // start_url carries the token, so a home-screen app opens signed in
+      try {
+        const m = JSON.parse(fs.readFileSync(path.join(ctx.webRoot, "manifest.json"), "utf8"));
+        m.start_url = `./companion.html?t=${cfgComp().token}`;
+        res.writeHead(200, { "Content-Type": "application/manifest+json", "Cache-Control": "no-store" });
+        return res.end(JSON.stringify(m));
+      } catch { /* fall through to the static file */ }
+    }
     if (p === "/api/stream") return stream(req, res);
     if (p === "/api/champ" && ctx.champ) {
       return Promise.resolve(ctx.champ()).catch(() => ({ active: false }))

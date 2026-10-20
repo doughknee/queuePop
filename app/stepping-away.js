@@ -16,7 +16,7 @@ function createAway(state, push) {
     if (on === !!state.away) return status();
     state.away = on;
     if (on) { wasPaused = !!state.paused; state.paused = false; since = Date.now(); }
-    else { state.paused = wasPaused; since = 0; }
+    else { if (!state.paused) state.paused = wasPaused; since = 0; } // a pause you chose while away stays
     push(on ? "Stepping away: auto-accept, auto pick and ban on, locking in with 3 s left" : "Back: your own settings again", on ? "warning" : "success", "away");
     return status();
   }
