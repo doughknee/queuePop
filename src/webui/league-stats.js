@@ -11,7 +11,7 @@ const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ regio
 
 // DONI-516: row density (compact / comfortable), remembered; an attribute on <html> so every League table follows it.
 const LG_DKEY = 'queuepop-league-density-v1';
-try { document.documentElement.dataset.lgDensity = localStorage.getItem(LG_DKEY) === 'comfortable' ? 'comfortable' : 'compact'; } catch { document.documentElement.dataset.lgDensity = 'compact'; }
+try { document.documentElement.dataset.lgDensity = localStorage.getItem(LG_DKEY) === 'compact' ? 'compact' : 'comfortable'; } catch { document.documentElement.dataset.lgDensity = 'comfortable'; }
 const lgDensity = () => `<div class="lg-roles lg-density" role="group" aria-label="Row density">${['compact', 'comfortable'].map(d => `<button data-lg-density="${d}" aria-pressed="${document.documentElement.dataset.lgDensity === d}"><span>${d[0].toUpperCase() + d.slice(1)}</span></button>`).join('')}</div>`;
 
 const lgPct = x => x == null ? '–' : (x * 100).toFixed(1) + '%';

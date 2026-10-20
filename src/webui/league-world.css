@@ -155,11 +155,15 @@
 .lg-page .lg-table td{padding:5px 8px;font-size:15px;line-height:18px}
 .lg-page .lg-table .lg-name a{font-size:16px;line-height:18px}
 .lg-page .lg-table .lg-tier{display:flex}.lg-page .lg-table .lg-tier-none,.lg-page .lg-table .lg-role-ico{vertical-align:middle}
-.lg-page .lg-table .lg-icon{width:20px;height:20px}
+.lg-page .lg-table .lg-icon{width:32px;height:32px}
+.lg-page .lg-table .lg-ico,.lg-page .lg-pick .lg-ico{width:30px;height:30px}
+.lg-page .lg-syn .lg-icon,.lg-page .lg-best .lg-icon{width:32px;height:32px}
 .lg-page .lg-table small{font-size:12px}
 .lg-page .lg-table.lg-tiers td:first-child{font-size:13px}
 [data-lg-density=comfortable] .lg-page .lg-table td{padding:4px 8px;line-height:20px}
-[data-lg-density=comfortable] .lg-page .lg-table .lg-icon{width:28px;height:28px}
+.lg-page .lg-table .lg-name{white-space:nowrap}
+[data-lg-density=comfortable] .lg-page .lg-table .lg-icon,[data-lg-density=comfortable] .lg-page .lg-syn .lg-icon{width:40px;height:40px}
+[data-lg-density=comfortable] .lg-page .lg-table .lg-ico,[data-lg-density=comfortable] .lg-page .lg-pick .lg-ico{width:36px;height:36px}
 .lg-page .lg-table th button,.lg-page .lg-table th.num,.lg-champ-page .lg-table th.num{font-size:11px}
 .lg-page .lg-table thead{position:sticky;top:56px;z-index:3}
 .lg-page .lg-table thead th{background:#08141c;box-shadow:inset 0 -1px var(--lg-line)}
