@@ -161,6 +161,17 @@
   counters (delta 1/2) · synergies · best players (DONI-506's `/lol/champion/{id}/players`, "coming soon" when absent).
   Crawler side: `crawler/src/timeline.js` (purchase/skill parse) + `crawler/src/agg-champion.js` (tables, aggregate, the extra
   `/lol/champion/{id}` fields). Timeline blocks come from the TIMELINE_SAMPLE share of games and fill forward from deploy.
+- Scanability (DONI-516): `lgHeat` (league-stats.js) tints win rate, Δ, PBI and counter/synergy/objective numbers from ivory toward
+  spell light / lifted defeat by distance from the list average (or 0), 1 = the column's 90th-percentile distance over full-sample
+  rows, times a sample weight (20 games 0.15, 2,000 full); a `.lg-legend` line sits under each table. Density compact/comfortable is
+  `<html data-lg-density>` (localStorage `queuepop-league-density-v1`; select its buttons as `button[data-lg-density]`). Table
+  `thead`s are sticky at `top:56px` (League page row height). Styles at the end of `league-world.css`.
+
+## Text size
+- Settings > Display (DONI-516): config `ui_scale` (0.9/1/1.1/1.25/1.5, default 1.1, kept by `normalizeConfig`). `app/main.js`
+  applies it on every load and via bridge `set_ui_scale` (`webContents.setZoomFactor`); Ctrl+= / Ctrl+- / Ctrl+0 are caught in
+  `before-input-event` and call the renderer's `qpStepScale` (settings.js), which saves and applies. `shell.css` caps the sidebar at
+  30vw and lets `#world-nav` scroll sideways so 150% does not widen the page.
 
 ## Home
 - Before opening a PR, run every check under `tests/` (`for t in tests/test_*.py; do py "$t"; done`),

@@ -9,6 +9,11 @@ const lg = { patch: '', region: 'all', bracket: 'all', role: 'all', sort: 'score
 try { const s = JSON.parse(localStorage.getItem(LG_KEY) || '{}'); for (const k of ['region', 'bracket', 'role', 'sort', 'msort']) if (typeof s[k] === 'string') lg[k] = s[k]; for (const k of ['dir', 'mdir']) if (s[k] === 1 || s[k] === -1) lg[k] = s[k]; } catch {}
 const lgSave = () => { try { localStorage.setItem(LG_KEY, JSON.stringify({ region: lg.region, bracket: lg.bracket, role: lg.role, sort: lg.sort, dir: lg.dir, msort: lg.msort, mdir: lg.mdir })); } catch {} };
 
+// DONI-516: row density (compact / comfortable), remembered; an attribute on <html> so every League table follows it.
+const LG_DKEY = 'queuepop-league-density-v1';
+try { document.documentElement.dataset.lgDensity = localStorage.getItem(LG_DKEY) === 'comfortable' ? 'comfortable' : 'compact'; } catch { document.documentElement.dataset.lgDensity = 'compact'; }
+const lgDensity = () => `<div class="lg-roles lg-density" role="group" aria-label="Row density">${['compact', 'comfortable'].map(d => `<button data-lg-density="${d}" aria-pressed="${document.documentElement.dataset.lgDensity === d}"><span>${d[0].toUpperCase() + d.slice(1)}</span></button>`).join('')}</div>`;
+
 const lgPct = x => x == null ? '–' : (x * 100).toFixed(1) + '%';
 const lgN = n => Number(n || 0).toLocaleString();
 const lgEsc = s => escapeHtml(s == null ? '' : s);
@@ -113,7 +118,7 @@ function lgFilters(withRole = true) {
   const num = (key, label, step, max) => `<label class="lg-num"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}"></label>`;
   return `<div class="lg-filters">${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}">${r === 'all' ? '' : lgRoleIcon(r)}<span>${LG_ROLE[r] || 'All'}</span></button>`).join('')}</div>` : ''}
     ${sel('patch', [[lg.patch, lg.patch || 'Newest']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}
-    ${withRole ? `${num('minLane', 'Min lane %', 1, 100)}${num('minGames', 'Min games', 50, 100000)}${num('minPick', 'Min pick %', 0.1, 100)}` : ''}<span class="lg-meta" id="lg-meta"></span></div>`;
+    ${withRole ? `${num('minLane', 'Min lane %', 1, 100)}${num('minGames', 'Min games', 50, 100000)}${num('minPick', 'Min pick %', 0.1, 100)}` : ''}${lgDensity()}<span class="lg-meta" id="lg-meta"></span></div>`;
 }
 async function lgFillPatches(token) {
   try {
@@ -145,25 +150,36 @@ function lgTierSort(rows) {
 const LG_TIER_SHORT = ['I', 'B', 'S', 'G', 'P', 'E', 'D', 'M', 'GM', 'C'];
 // best.avgTier is a tier index (Iron 0 .. Challenger 9) plus the division (IV 0, III .25, II .5, I .75): 6.5 -> D2.
 const lgRankLabel = n => n == null ? '–' : n >= 7 ? LG_TIER_SHORT[Math.min(9, Math.floor(n))] : `${LG_TIER_SHORT[Math.floor(n)]}${4 - Math.floor((n % 1) * 4 + 1e-9)}`;
-const lgBar = wr => `<i class="lg-bar ${wr >= 0.5 ? 'up' : 'down'}" style="--v:${Math.max(0.04, Math.min(1, Math.abs(wr - 0.5) / 0.1))}"></i>`;
-const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
-const lgSigned = (x, d = 1) => x == null ? '–' : `<span class="${x > 0 ? 'up' : x < 0 ? 'down' : ''}">${x > 0 ? '+' : ''}${x.toFixed(d)}</span>`;
+// DONI-516: value color. A number is tinted toward spell light (above the centre) or defeat (below) by how far it sits from the
+// centre, 1 = the column's 90th-percentile distance over full-sample rows, times its sample weight: 20 games 0.15, 2,000 games 1 (log scale).
+const lgSpread = (rows, get, c) => { const d = rows.filter(r => !r.lowSample).map(get).filter(x => x != null).map(x => Math.abs(x - c)).sort((a, b) => a - b); return d[Math.floor(d.length * 0.9)] || 1; };
+const lgMean = (rows, k) => { let n = 0, s = 0; for (const r of rows) if (r[k] != null) { n += r.games; s += r[k] * r.games; } return n ? s / n : null; };
+function lgHeat(x, c, spread, games, text) {
+  if (x == null) return '–';
+  const w = 0.15 + 0.85 * Math.min(1, Math.max(0, Math.log(games / 20) / Math.log(100))), k = c == null ? 0 : Math.sqrt(Math.min(1, Math.abs(x - c) / spread)) * w; // sqrt: half the spread already reads as colored
+  return `<span class="lg-v ${x >= c ? 'vg' : 'vb'}" style="--k:${k.toFixed(2)}">${text}</span>`;
+}
+const lgLegend = what => `<p class="lg-legend"><i aria-hidden="true"></i>Colour: below, at and above ${what}; fainter on smaller samples (20 games faint, 2,000 full).</p>`;
+const lgTier = (t, low) => t ? `<b class="lg-tier t-${t[0]}" title="Tier ${t}">${t[0]}${t.length > 1 ? `<sup>${t.slice(1)}</sup>` : ''}</b>` : `<span class="lg-tier-none" title="${low ? 'Low sample: not tiered' : 'No tier'}">–</span>`;
+const lgSign = (x, d = 1) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x).toFixed(d)}`;
 function lgTierTable(data) {
   const banded = leagueTierRows(data.champions);
   const shown = banded.filter(r => (r.laneShare == null || r.laneShare * 100 >= lgt.minLane) && r.pickRate * 100 >= lgt.minPick);
   const rows = lgTierSort(shown), hidden = banded.length - shown.length;
   const note = hidden ? `<p class="lg-wait">${hidden} rows under min lane % / min pick % are filtered out.</p>` : '';
   if (!rows.length) return note || '<p class="lg-wait">No games for these filters yet.</p>';
+  const avg = data.avgWinRate || lgMean(rows, 'winRate'), sp = k => lgSpread(rows, r => lgVal(r, k), k === 'delta' || k === 'pbi' ? 0 : avg);
+  const S = { win: sp('winRate'), delta: sp('delta'), pbi: sp('pbi'), best: sp('best.winRate') };
   const th = ([k, t, title], i) => `<th class="${i > 1 ? 'num' : ''}${i === 9 ? ' lg-best-first' : ''}" aria-sort="${lg.sort === k ? (lg.dir < 0 ? 'descending' : 'ascending') : 'none'}"${title ? ` title="${lgEsc(title)}"` : ''}><button data-lg-sort="${k}">${t}${lg.sort === k ? (lg.dir < 0 ? ' ▾' : ' ▴') : ''}</button></th>`;
   return `<table class="lg-table lg-tiers lg-tiers2"><thead><tr class="lg-group"><th colspan="10"></th><th colspan="3" class="lg-best-first" title="Players with 20+ games on the champion this patch, any lane">Best on champion</th></tr>
     <tr><th class="num">#</th>${LG_COLS.map(th).join('')}</tr></thead><tbody>${rows.map((r, i) => {
     const c = lgChamp(r.champion), role = lgRoleOf(r.role), href = `#/league/champion/${r.champion}/${role}`, b = r.best;
     return `<tr class="${r.lowSample ? 'low' : ''}" data-lg-go="${href}"><td class="num">${i + 1}</td><td>${lgTier(r.tier, r.lowSample)}</td>
       <td class="lg-name"><a href="${href}">${lgIcon(r.champion)}<span>${lgEsc(c.name)}</span>${lg.role === 'all' ? lgRoleIcon(role) : ''}</a></td>
-      <td class="num">${r.laneShare == null ? '–' : lgPct(r.laneShare)}</td><td class="num">${lgBar(r.winRate)}${lgPct(r.winRate)}</td><td class="num">${r.delta == null ? '–' : lgSigned(r.delta * 100)}</td>
-      <td class="num">${lgPct(r.pickRate)}</td><td class="num">${lgPct(r.banRate)}</td><td class="num">${r.pbi == null ? '–' : lgSigned(r.pbi, 2)}</td><td class="num">${lgN(r.games)}</td>
-      <td class="num lg-best-first">${b ? lgPct(b.winRate) : '–'}</td><td class="num">${b ? `${lgN(b.games)}<small> · ${b.players}p</small>` : '–'}</td><td class="num" title="${b?.avgTier ?? ''}">${b ? lgRankLabel(b.avgTier) : '–'}</td></tr>`;
-  }).join('')}</tbody></table>${note}`;
+      <td class="num">${r.laneShare == null ? '–' : lgPct(r.laneShare)}</td><td class="num">${lgHeat(r.winRate, avg, S.win, r.games, lgPct(r.winRate))}</td><td class="num">${lgHeat(r.delta, 0, S.delta, r.games, lgSign(r.delta * 100))}</td>
+      <td class="num">${lgPct(r.pickRate)}</td><td class="num">${lgPct(r.banRate)}</td><td class="num">${lgHeat(r.pbi, 0, S.pbi, r.games, r.pbi == null ? '' : lgSign(r.pbi, 2))}</td><td class="num">${lgN(r.games)}</td>
+      <td class="num lg-best-first">${b ? lgHeat(b.winRate, avg, S.best, b.games, lgPct(b.winRate)) : '–'}</td><td class="num">${b ? `${lgN(b.games)}<small> · ${b.players}p</small>` : '–'}</td><td class="num" title="${b?.avgTier ?? ''}">${b ? lgRankLabel(b.avgTier) : '–'}</td></tr>`;
+  }).join('')}</tbody></table>${lgLegend('the list average win rate (Win, best Win) or zero (Δ, PBI)')}${note}`;
 }
 let lgTierData = null;
 async function lgFillTiers(token) {
@@ -268,6 +284,8 @@ document.addEventListener('click', e => {
   if (t.closest('#lg-results a')) { lg.q = ''; return; }
   const ext = t.closest('[data-lg-ext]');
   if (ext) { const a = window.pywebview?.api; a?.open_external ? a.open_external(ext.dataset.lgExt) : window.open(ext.dataset.lgExt, '_blank', 'noopener'); return; }
+  const dens = t.closest('button[data-lg-density]');
+  if (dens) { const d = dens.dataset.lgDensity; document.documentElement.dataset.lgDensity = d; try { localStorage.setItem(LG_DKEY, d); } catch {} document.querySelectorAll('button[data-lg-density]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lgDensity === d))); return; }
   const role = t.closest('[data-lg-role]');
   if (role) { lg.role = role.dataset.lgRole; lgSave(); document.querySelectorAll('[data-lg-role]').forEach(b => b.setAttribute('aria-pressed', String(b === role))); lgRefill(); return; }
   const sort = t.closest('[data-lg-sort]');

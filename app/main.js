@@ -5,6 +5,7 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const { LCU } = require("./lcu");
 const { METHODS } = require("./methods");
 const host = require("./host"); // tray, alerts, companion, updater, account (DONI-442)
+const { UI_SCALES } = require("./champ-config");
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
@@ -93,6 +94,8 @@ const impl = {
   minimize_window: () => win.minimize(),
   toggle_maximize_window: () => { win.isMaximized() ? win.unmaximize() : win.maximize(); return win.isMaximized(); },
   hide_window: () => win.close(), // ponytail: no tray yet, so close quits
+  // DONI-516: Settings > Display > Text size. The renderer saves config ui_scale; this applies it.
+  set_ui_scale: (f) => { f = Number(f); if (!UI_SCALES.includes(f)) return false; win.webContents.setZoomFactor(f); return true; },
 };
 Object.assign(impl, require("./champ-select").attach(lcu, impl, push, state)); // DONI-441
 Object.assign(impl, require("./overlay")); // DONI-446: Deadlock overlay probe + launch
@@ -114,8 +117,17 @@ app.whenReady().then(() => {
     webPreferences: { preload: path.join(__dirname, "preload.js"), additionalArguments: ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)] },
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
-  win.webContents.on("did-finish-load", () => win.webContents.insertCSS(
-    ".pywebview-drag-region{-webkit-app-region:drag}.appbar>:not(.pywebview-drag-region){-webkit-app-region:no-drag}"));
+  win.webContents.on("did-finish-load", () => {
+    win.webContents.insertCSS(".pywebview-drag-region{-webkit-app-region:drag}.appbar>:not(.pywebview-drag-region){-webkit-app-region:no-drag}");
+    impl.set_ui_scale(loadConfig().ui_scale) || win.webContents.setZoomFactor(1.1);
+  });
+  // Ctrl+= / Ctrl+- / Ctrl+0 step the Text size (settings.js qpStepScale saves it); preventDefault also stops Chromium's own zoom keys.
+  win.webContents.on("before-input-event", (e, i) => {
+    const dir = { "=": 1, "+": 1, "-": -1, "0": 0 }[i.key];
+    if (i.type !== "keyDown" || !i.control || i.alt || dir === undefined) return;
+    e.preventDefault();
+    win.webContents.executeJavaScript(`window.qpStepScale && qpStepScale(${dir})`).catch(() => {});
+  });
   win.webContents.on("console-message", (e) => {
     if (e.level === "error" || e.level === "warning") log(`renderer ${e.level}:`, e.message);
   });

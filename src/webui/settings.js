@@ -3,8 +3,9 @@
    Settings/Alerts pages used. The stats crawler card talks to the crawler straight from the renderer. */
 (function () {
   const DEFAULT_CRAWLER = 'http://10.205.0.81:47900';
-  const SECTIONS = [['account', 'Account'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['about', 'Updates & about']];
+  const SECTIONS = [['account', 'Account'], ['league', 'League'], ['alerts', 'Alerts'], ['companion', 'Phone companion'], ['crawler', 'Stats crawler'], ['display', 'Display'], ['about', 'Updates & about']];
   const EVENTS = [['queue_pop', 'Queue pops'], ['champ_select', 'Champ select starts'], ['locked_pick', 'Locked pick'], ['game_start', 'Game starts'], ['disconnect', 'Client disconnects']];
+  const UI_SCALES = [0.9, 1, 1.1, 1.25, 1.5], UI_DEFAULT = 1.1; // DONI-516: Text size = Electron zoom factor, config ui_scale
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const bridge = () => window.pywebview && window.pywebview.api;
   const root = document.getElementById('settings-view');
@@ -56,6 +57,8 @@
         <label class="st-row"><span class="st-lbl">New key<small>Starts with RGAPI-</small></span><input class="st-in st-wide" id="st-cr-key" type="password" autocomplete="off" placeholder="RGAPI-…"></label>
         <label class="st-row"><span class="st-lbl">Admin token<small>The crawler's ADMIN_TOKEN. Used once, never stored.</small></span><input class="st-in st-wide" id="st-cr-token" type="password" autocomplete="off"></label>
         <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div>`) +
+      card('display', 'Display', `
+        <label class="st-row"><span class="st-lbl">Text size<small>Scales the whole app. Ctrl + and Ctrl − step through these; Ctrl 0 goes back to 110%.</small></span><select class="st-in" data-k="ui_scale" data-scale>${UI_SCALES.map(v => `<option value="${v}">${Math.round(v * 100)}%</option>`).join('')}</select></label>`) +
       card('about', 'Updates &amp; about', `
         <div class="st-row"><span class="st-lbl">Version<small id="st-upd-msg"></small></span><span class="st-act"><span id="st-ver" class="st-val"></span><button class="st-btn" data-do="check-update">Check for updates</button></span></div>
         <div class="st-row"><span class="st-lbl">Icon packs<small id="st-assets-msg"></small></span><span class="st-act"><button class="st-btn" data-do="refresh-assets">Refresh assets</button></span></div>
@@ -74,6 +77,7 @@
       let v = QP.store.get(el.dataset.k);
       if (el.dataset.k === 'champ_select.instant_lock') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
+      if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
       if (el.type === 'checkbox') el.checked = !!v; else if (document.activeElement !== el) el.value = v ?? '';
     });
     const ids = c.allowed_queue_ids || [];
@@ -89,6 +93,7 @@
     if (!k || !QP.store.config) return;
     let v = el.type === 'checkbox' ? el.checked : el.value;
     if (el.dataset.num !== undefined) { if (v === '') return; v = Math.min(+el.max, Math.max(+el.min, Math.round(+v) || 0)); }
+    if (el.dataset.scale !== undefined) return setScale(Number(v));
     if (el.dataset.digits !== undefined) v = String(v).replace(/\D/g, '');
     if (el.dataset.url !== undefined) { v = String(v).trim().replace(/\/+$/, ''); if (v && !/^https?:\/\//i.test(v)) return; }
     if (k === 'companion.port' && e.type === 'input') return;   // commit on blur/enter, not per keystroke
@@ -98,6 +103,17 @@
     hydrate();
   }
 
+  function setScale(v) {
+    if (!UI_SCALES.includes(v) || !QP.store.config) return;
+    QP.store.set('ui_scale', v);
+    bridge()?.set_ui_scale?.(v);
+    if (built) hydrate();
+  }
+  // Ctrl+= / Ctrl+- / Ctrl+0 arrive from the host's before-input-event (app/main.js): dir 1, -1, or 0 for the default.
+  window.qpStepScale = dir => {
+    const i = UI_SCALES.indexOf(Number(QP.store.get('ui_scale'))), at = i < 0 ? UI_SCALES.indexOf(UI_DEFAULT) : i;
+    setScale(dir ? UI_SCALES[Math.min(UI_SCALES.length - 1, Math.max(0, at + dir))] : UI_DEFAULT);
+  };
   const say = (name, text, ok) => { const s = root.querySelector(`[data-msg="${name}"]`); if (!s) return; s.textContent = text; s.className = 'st-msg ' + (ok ? 'ok' : 'bad'); clearTimeout(s._t); s._t = setTimeout(() => (s.textContent = ''), 5000); };
   const base = () => (QP.store.get('crawler_url') || DEFAULT_CRAWLER).replace(/\/+$/, '');
   let compUrl = '';
