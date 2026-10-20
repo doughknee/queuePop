@@ -102,9 +102,10 @@ function createNotifier(ctx) {
   }
 
   // Fan an event to the enabled + subscribed channels. Queue pop defaults on, the rest off.
+  // opts.test skips the per-event filter (Settings' "Test a queue pop" sends through every channel that is on).
   async function alert(key, title, body, what, opts = {}) {
     const cfg = ctx.getConfig();
-    if (!((cfg.alert_events || {})[key] ?? key === "queue_pop")) return;
+    if (!opts.test && !((cfg.alert_events || {})[key] ?? key === "queue_pop")) return;
     if (cfg.desktop_notifications) desktop(title, body, what);
     if (cfg.discord_enabled ?? true) await discord(key, body, opts, what);
   }

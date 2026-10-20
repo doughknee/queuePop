@@ -36,6 +36,7 @@
         ${num('champ_select.aram.bench_delay', 'Bench grab delay', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3)}
         ${sw('champ_select.auto_runes', 'Auto runes', 'Applies the recommended rune page when you lock in.')}`) +
       card('alerts', 'Alerts', `
+        <div class="st-row"><span class="st-lbl">Test a queue pop<small>Sends exactly what a real queue pop sends, through every channel that is on. Nothing is accepted.</small></span><span class="st-act"><button class="st-btn st-gold" data-do="test-alert">Test a queue pop</button><span class="st-msg" data-msg="test-alert"></span></span></div>
         <div class="st-sub">Tell me when</div>
         <div class="st-events">${EVENTS.map(([k, l]) => `<label class="st-chip"><input type="checkbox" data-k="alert_events.${k}"><span>${l}</span></label>`).join('')}</div>
         ${sw('desktop_notifications', 'Windows notifications', 'A Windows notification for the events ticked above.')}
@@ -63,7 +64,9 @@
         <div class="st-row"><span class="st-lbl"></span><span class="st-act"><button class="st-btn st-gold" data-do="crawler-key">Update key</button><span class="st-msg" data-msg="crawler-key"></span></span></div></details>`) +
       card('display', 'App &amp; display', `
         <label class="st-row"><span class="st-lbl">Text size<small>Scales the whole app. Ctrl + and Ctrl − step through these; Ctrl 0 goes back to 110%.</small></span><select class="st-in" data-k="ui_scale" data-scale>${UI_SCALES.map(v => `<option value="${v}">${Math.round(v * 100)}%</option>`).join('')}</select></label>
+        ${sw('launch_at_login', 'Launch at login', 'Starts queuePop when you sign in to Windows.')}
         ${sw('start_minimized', 'Start in the tray', 'Opens to the tray icon instead of the window.')}
+        ${sw('close_to_tray', 'Close to the tray', 'The window’s ✕ keeps queuePop running in the tray. When off, ✕ quits.')}
         <div class="st-row"><span class="st-lbl">Keyboard shortcuts<small>Press ? anywhere to see them all.</small></span><span class="st-act"><button class="st-btn" data-do="show-keys">Show shortcuts</button></span></div>
         <div class="st-row"><span class="st-lbl">Set-up tips on home<small>Bring back the set-up strip you hid.</small></span><span class="st-act"><button class="st-btn" data-do="reset-setup">Show them again</button><span class="st-msg" data-msg="reset-setup"></span></span></div>`) +
       card('about', 'Updates &amp; about', `
@@ -103,7 +106,7 @@
     const c = QP.store.config || {};
     root.querySelectorAll('[data-k]').forEach(el => {
       let v = QP.store.get(el.dataset.k);
-      if (el.dataset.k === 'champ_select.instant_lock') v = v ?? true;
+      if (el.dataset.k === 'champ_select.instant_lock' || el.dataset.k === 'close_to_tray') v = v ?? true;
       if (el.dataset.k === 'crawler_url') v = v || '';
       if (el.dataset.k === 'companion.sound') v = v || 'chime';
       if (el.dataset.k === 'ui_scale') v = UI_SCALES.includes(v) ? v : UI_DEFAULT;
@@ -173,6 +176,7 @@
       else if (d === 'check-update') { say(d, 'Checking…', true); const s = await a.check_for_update(); renderUpdate(s); say(d, s && s.error ? 'Couldn’t reach the update server' : s && s.available ? 'Update available' : 'Up to date', !(s && s.error)); }
       else if (d === 'refresh-assets') { say(d, 'Refreshing…', true); const p = a.refresh_assets(); loadAssets(); const r = await p; loadAssets(); say(d, r && r.ok === false ? r.error || 'Failed' : 'Done', !(r && r.ok === false)); }
       else if (d === 'crawler-refresh') { await loadCrawler(); }
+      else if (d === 'test-alert') { const r = await a.test_alert(); const c = (r && r.channels) || []; say(d, c.length ? 'Sent to ' + (c.length > 1 ? c.slice(0, -1).join(', ') + ' and ' + c[c.length - 1] : c[0]) : 'Nothing is on yet: turn on Windows notifications, Discord or the phone companion', c.length > 0); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
       else if (d === 'reset-setup') { window.homeSetup?.reset(); say(d, 'They’ll show on home', true); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }

@@ -194,6 +194,10 @@
   footer are gone. Settings: a "Find a setting" box (Ctrl+F) filters rows by every typed word (a card title keeps its card);
   crawler URL lives in the Stats crawler card, Start in the tray in "App & display", alarm sound in Phone companion; the Riot-key
   form is folded (opens itself when the key is rejected or missing); the companion restarts on save (host.js wraps `save_config`).
+- Tray + window (DONI-544): `app/tray.js` `trayItems` (pure, `app/test-tray.js`) builds the menu on each right click: Open, enabled
+  worlds, Queue again / Start a queue (League + TFT ids, needs the client), Auto-accept paused, Quit. Config `launch_at_login`
+  (`app.setLoginItemSettings`, applied at start and on save) and `close_to_tray` (default on; off makes ✕ quit; `hide_window` now
+  calls `win.close()` and the close handler decides). Bridge `test_alert` sends a test queue pop through every channel that is on.
 - Host hardening (DONI-529): the window loads only `file:` pages (`will-navigate` / `setWindowOpenHandler` send http(s) to the
   browser); the `api` IPC accepts only the window's top frame and own method names; `config.get()` keeps a corrupt file as
   `config.json.corrupt` and throws on unreadable files (writers must not catch-and-write); `mergeForSave` keeps file-only keys.

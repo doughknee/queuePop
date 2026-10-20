@@ -202,6 +202,8 @@ function normalizeConfig(data) {
     last_queue_id: coerceQueueId(data.last_queue_id),
     show_last_queue: T(getd(data, "show_last_queue", true)),
     start_minimized: T(getd(data, "start_minimized", false)),
+    launch_at_login: T(getd(data, "launch_at_login", false)), // DONI-544
+    close_to_tray: T(getd(data, "close_to_tray", true)), // DONI-544: the window's ✕ hides to the tray (off: it quits)
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.
     deadlock_account_id: /^\d+$/.test(String(data.deadlock_account_id || "")) ? String(data.deadlock_account_id) : "",
     crawler_url: String(data.crawler_url || "").trim().replace(/\/+$/, ""),

@@ -44,7 +44,9 @@
     for (const a of bar.querySelectorAll('.sb-pages a')) {
       const href = norm(a.getAttribute('href'));
       a.removeAttribute('aria-current');
-      if ((hash === href || (href !== '#' && hash.startsWith(href + '/'))) && (!best || href.length > norm(best.getAttribute('href')).length)) best = a;
+      // A world's root link (#/league = Tier list) marks only its own page, not every page under it (#/league/play).
+      const root = /^#\/[^\/#]+$/.test(href);
+      if ((hash === href || (href !== '#' && !root && hash.startsWith(href + '/'))) && (!best || href.length > norm(best.getAttribute('href')).length)) best = a;
     }
     best?.setAttribute('aria-current', 'page');
     bar.querySelector('.sb-gear').toggleAttribute('aria-current', game === 'settings');
