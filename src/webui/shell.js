@@ -76,7 +76,7 @@ window.qpLastNext = function (last, hash) {
   if (!/^#\/./.test(hash || '') && hash !== '#/') return last;
   const champ = /^#\/league\/champion\/(\d+)/.exec(hash);
   const next = { ...last, route: hash };
-  if (m && m[1] !== 'settings') next.worlds = { ...(last.worlds || {}), [m[1]]: hash };
+  if (m && m[1] !== 'settings') { next.worlds = { ...(last.worlds || {}), [m[1]]: hash }; next.recent = [m[1], ...(last.recent || []).filter(g => g !== m[1])]; }
   if (champ) next.champion = champ[1];
   return JSON.stringify(next) === JSON.stringify(last) ? last : next;
 };
@@ -131,6 +131,52 @@ window.homeSetup = (() => {
     if (a && a.dataset.setupFocus) setTimeout(() => window.qpSearch && qpSearch.focusSetting(a.dataset.setupFocus), 120);
   });
   return { html: () => { check(); return html(); }, refresh, recheck: () => { checkedAt = 0; check(); }, reset: () => { dismissed = []; try { localStorage.removeItem(KEY); } catch {} refresh(); } };
+})();
+
+// Home's "Pick up where you left off" (Q7): one tile per world you've been in, most recent first, opening the exact page you
+// left (champion, comp, hero), plus your last League champion when the League tile is elsewhere. pages = the sidebar links
+// [{href, label, game}]. Pure; app/test-home.js checks it.
+window.resumeTiles = function (last, games, pages) {
+  last = last || {};
+  const worlds = last.worlds || {}, order = [...(last.recent || []), ...Object.keys(worlds)].filter((g, i, a) => a.indexOf(g) === i && games.includes(g) && worlds[g]);
+  const norm = h => h.replace(/\/+$/, '');
+  const tiles = order.map(g => {
+    const href = worlds[g], page = pages.filter(p => p.game === g && (norm(href) === norm(p.href) || norm(href).startsWith(norm(p.href) + '/')))
+      .sort((a, b) => b.href.length - a.href.length)[0];
+    const t = { game: g, href, page: page ? page.label : 'Overview' };
+    let m;
+    if ((m = /^#\/league\/champion\/(\d+)/.exec(href))) { t.page = 'Champion'; t.champion = m[1]; }
+    else if ((m = /^#\/deadlock\/heroes\/([\w-]+)/.exec(href))) t.detail = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    else if ((m = /^#\/tft\/comp\/(.+)$/.exec(href))) { t.page = 'Comp'; t.comp = decodeURIComponent(m[1]); }
+    return t;
+  });
+  const lol = tiles.find(t => t.game === 'league');
+  if (last.champion && games.includes('league') && !(lol && lol.champion === last.champion)) tiles.push({ game: 'league', href: '#/league/champion/' + last.champion, page: 'Last champion', champion: last.champion });
+  return tiles;
+};
+window.homeContinue = (() => {
+  const E = s => String(s).replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+  const NAME = { league: 'League', tft: 'TFT', deadlock: 'Deadlock' };
+  const LOGO = { league: 'assets/logos/league.svg', tft: 'assets/logos/tft.png', deadlock: 'assets/logos/deadlock.png' };
+  const pages = () => [...document.querySelectorAll('#qp-sidebar .sb-group[data-game] .sb-pages a')].map(a => ({ href: a.getAttribute('href'), label: a.textContent.trim(), game: a.closest('[data-game]').dataset.game }));
+  // Names the address can't carry: champion name + icon from Data Dragon, comp from the TFT names. Filled in after render.
+  async function fill() {
+    const box = document.getElementById('home-continue'); if (!box) return;
+    const champs = box.querySelectorAll('[data-champ]');
+    if (champs.length && window.statsApi) try {
+      const { v, d } = await statsApi.ddChampions(), byKey = Object.fromEntries(Object.values(d.data || {}).map(c => [c.key, c]));
+      champs.forEach(el => { const c = byKey[el.dataset.champ]; if (!c) return; el.querySelector('b').textContent = c.name; const img = el.querySelector('img'); img.src = `${statsApi.DD}/cdn/${v}/img/champion/${c.id}.png`; img.classList.add('hc-champ'); });
+    } catch (err) { console.warn('home: champion names', err && err.message || err); }
+    box.querySelectorAll('[data-comp]').forEach(el => { if (window.tftStats) el.querySelector('b').textContent = el.dataset.comp.split(',').map(k => tftStats.info(k).name).join(' · '); });
+  }
+  function html() {
+    const tiles = resumeTiles(window.qpLast ? qpLast() : {}, window.qpGames ? qpGames() : [], pages()).slice(0, 4);
+    setTimeout(fill);
+    if (!tiles.length) return '<p class="eyebrow hc-first">Pick a game to start</p>';
+    return `<section class="hc" id="home-continue" aria-label="Pick up where you left off"><p class="eyebrow">Pick up where you left off</p><div class="hc-row">${tiles.map(t =>
+      `<a class="hc-tile" href="${E(t.href)}" data-game="${t.game}"${t.champion ? ` data-champ="${E(t.champion)}"` : ''}${t.comp ? ` data-comp="${E(t.comp)}"` : ''}><img src="${LOGO[t.game]}" alt=""><span><small>${E(NAME[t.game])}${t.detail || t.champion || t.comp ? ' · ' + E(t.page) : ''}</small><b>${E(t.detail || (t.champion ? 'Champion ' + t.champion : t.comp ? 'Comp' : t.page))}</b></span><i aria-hidden="true">↗</i></a>`).join('')}</div></section>`;
+  }
+  return { html };
 })();
 
 /* Home's paged bar (DONI-527) on scrollr's Pages model (myscrollr docs/CHIP_SPEC.md §P): a 192 px band with the game's

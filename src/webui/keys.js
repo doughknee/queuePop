@@ -10,7 +10,7 @@
     ['Alt ←', 'Back', { run: 'back' }], ['Alt →', 'Forward', { run: 'forward' }],
     ['Ctrl B', 'Collapse or expand the sidebar', { run: 'sidebar' }],
     ['Ctrl +', 'Bigger text', {}], ['Ctrl −', 'Smaller text', {}], ['Ctrl 0', 'Text size back to 110%', {}],
-    ['?', 'This list', { run: 'help', bare: true }], ['Esc', 'Close a sheet', {}],
+    ['Ctrl F', 'Find a setting (on Settings)', {}], ['?', 'This list', { run: 'help', bare: true }], ['Esc', 'Close a sheet', {}],
   ];
   // KeyboardEvent → the shortcut's key label ("Ctrl 1", "Alt ←", "?"), or '' for anything else. Pure; app/test-keys.js checks it.
   function keyLabel(e) {
