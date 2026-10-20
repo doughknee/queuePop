@@ -13,7 +13,7 @@ const err = (status, msg, extra) => Object.assign(new Error(msg), { status, ...e
 // Ladder: highest tier, division, LP first. Rows the ladder no longer confirms are left out (DONI-568): Master+ rows older than an
 // hour (the apex ladders are re-read every 30 min, so a demoted or banned player drops off), other tiers older than two days. TFT rows also carry what we crawled for that player (all stored boards).
 function leaderboard(db, game, q = {}) {
-  const limit = Math.min(500, Math.max(1, Number(q.limit) || 100));
+  const limit = Math.min(500, Math.max(1, Math.trunc(Number(q.limit)) || 100));
   const region = q.region && q.region !== "all" ? q.region : null;
   // Top N straight off the players_ladder(_region) index, names joined after the LIMIT (joining first sorted ~1M rows: 33 s).
   const rows = db.prepare(`SELECT p.*, n.riot_id riotId FROM (SELECT puuid, region, tier, tier_n, division, lp, wins, losses, seeded_at FROM players
@@ -35,7 +35,9 @@ function leaderboard(db, game, q = {}) {
 
 // "Name#TAG" (or "Name-TAG", URL-encoded either way).
 function parseRiotId(s) {
-  const v = decodeURIComponent(s).trim(), i = Math.max(v.lastIndexOf("#"), v.lastIndexOf("-"));
+  let v;
+  try { v = decodeURIComponent(s).trim(); } catch { throw err(400, "malformed percent-encoding in the riot id"); }
+  const i = Math.max(v.lastIndexOf("#"), v.lastIndexOf("-"));
   if (i <= 0 || i === v.length - 1) throw err(400, "riot id must look like Name#TAG");
   return { name: v.slice(0, i), tag: v.slice(i + 1) };
 }

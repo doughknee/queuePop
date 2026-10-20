@@ -203,7 +203,8 @@ function createAccount(ctx) {
     const list = [...byId.values()].sort((a, b) => b.ts - a.ts).slice(0, 50);
     if (puuid && games.length) {
       all[puuid] = list;
-      try { fs.writeFileSync(historyFile(), JSON.stringify(all)); } catch {}
+      // tmp + rename: a crash mid-write must not leave a torn file that parses as {} and drops every other account (DONI-568)
+      try { fs.writeFileSync(historyFile() + ".tmp", JSON.stringify(all)); fs.renameSync(historyFile() + ".tmp", historyFile()); } catch {}
     }
     return list;
   }

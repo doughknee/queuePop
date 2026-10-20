@@ -96,6 +96,9 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   `?queue=450` (or `aram`) on any League stats endpoint (`/lol/tiers`, `/lol/champion/{id}`, items/runes/spells, draft, plan, ...) reads them;
   the response echoes `queue: 450` and `patch: "16.20-aram"`. Roles are empty in ARAM (role `""`, no matchups). `/patches.aram` lists the
   patches with ARAM data and `counts.aram` their matches; ARAM never becomes the League default patch. `?queue=420|440|ranked` = default.
+- Input hardening (DONI-568): malformed %-encoding in a path answers 400; `limit` is truncated to an integer; draft ids accept only
+  `:TOP|JUNGLE|MIDDLE|BOTTOM|UTILITY` tags (400 otherwise); `?days` is echoed only by routes that apply it (tiers, champion strip, comps);
+  a `-aram` suffix on `?patch` means ARAM; `/status` is LAN-only like `/`, and any request carrying `x-forwarded-for` counts as not LAN.
 - `GET /patches` → `{ lol: ["16.21", "16.20", ...], tft: [...], counts: { lol: { patch: matches }, tft: { patch: matches } }, minMatches: { lol: 2000, tft: 1000 },
   default: { lol, tft } }`, newest first. `default` is what every endpoint uses without `?patch` (D11): the newest patch with at least
   `minMatches` matches (TFT matches = boards / 8), else the patch with the most. So on patch day the app stays on the old patch until
@@ -190,7 +193,7 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   this to back-fill a short League history (DONI-524).
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, carry, units, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
-  (`units` = the comp's 8 most-fielded unit keys)
+  (`units` = up to 9 units on at least 30% of the comp's boards, most frequent first)
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units`, `augments` and `activeTraits` (key `"<trait>:<tier_current>"`):
   `[{ key, games, frequency, avgPlacement, top4Rate, lowSample }]`; 404 when unknown
 - `GET /tft/meta[?set=18]` → `{ set, mutator, fetchedAt, units: { apiName: { name, cost, traits: [traitApiName], icon } },

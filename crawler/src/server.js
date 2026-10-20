@@ -17,6 +17,7 @@ const lan = (a = "") => /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.tes
 const r4 = (x) => Math.round(x * 10000) / 10000;
 const byVersion = (a, b) => { const [x, y] = [a, b].map((v) => v.split(".").map(Number)); return y[0] - x[0] || y[1] - x[1]; };
 const bad = (msg) => Object.assign(new Error(msg), { status: 400 });
+const dec = (s) => { try { return decodeURIComponent(s); } catch { throw bad("malformed percent-encoding in the path"); } };
 
 // Patch rollover (D11): a request without ?patch gets the newest patch with at least MIN_MATCHES matches (League ~2 h of crawl
 // at ~1,000 matches/h; TFT matches = boards / 8), else the patch with the most matches, so a new patch doesn't take over the app
@@ -50,22 +51,23 @@ function where(q, patch) {
 // Rows under min_games (default 200) stay in the response, flagged lowSample so the UI can grey them.
 // ?set (TFT set number) picks the newest patch that has matches of that set; it doesn't filter within a patch
 // (ponytail: stats_* aren't keyed by set; a patch spanning two sets is rare, add a column if it ever matters).
-function head(db, q, game) {
+// windowed: the caller applies ?days (tiers, champion strip, comps); other routes neither echo nor honour it (DONI-568).
+function head(db, q, game, windowed = false) {
   const bySet = q.set !== undefined && game === "tft" ? new Set(db.prepare('SELECT DISTINCT patch FROM matches WHERE game = ? AND "set" = ?').all(game, Number(q.set)).map((r) => r.patch)) : null;
   const ps = patches(db);
   // ?queue=450|aram (League): the same patch's ARAM rows, stored under "<patch>-aram"; patch in the response keeps the suffix
-  const aram = game === "lol" && ["450", "aram"].includes(String(q.queue || "").toLowerCase());
+  const aram = game === "lol" && (["450", "aram"].includes(String(q.queue || "").toLowerCase()) || /-aram$/.test(q.patch || ""));
   if (game === "lol" && q.queue && !aram && !["420", "440", "ranked"].includes(String(q.queue).toLowerCase())) throw bad("queue must be ranked (420/440) or aram (450)");
   const base = (q.patch || "").replace(/-aram$/, "") || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
   const patch = aram && base ? base + "-aram" : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
-  const days = win.days(q);
+  const days = windowed ? win.days(q) : null;
   return { patch, ...(aram && { queue: 450 }), ...(bySet && { set: Number(q.set) }), ...(days && { days, since: win.cutoff(days) }), region: q.region || "all", bracket: q.bracket || "all", minGames };
 }
 
 function lolTiers(db, q = {}) {
-  const h = head(db, q, "lol");
+  const h = head(db, q, "lol", true);
   const [w, a] = where(q, h.patch);
   const M = win.src(q, "lol_matches"), B = win.src(q, "lol_bans"), C = win.src(q, "lol_champ");
   const matches = db.prepare(`SELECT sum(matches) n FROM ${M.t} WHERE ${w}${M.d}`).get(...a, ...M.da).n || 0;
@@ -85,7 +87,7 @@ function lolTiers(db, q = {}) {
 }
 
 function lolChampion(db, champion, q = {}) {
-  const h = head(db, q, "lol");
+  const h = head(db, q, "lol", true);
   const [w, a] = where(q, h.patch);
   // ?days windows the strip and roles; builds, matchups and the depth blocks stay per patch.
   const M = win.src(q, "lol_matches"), C = win.src(q, "lol_champ"), B = win.src(q, "lol_bans");
@@ -120,25 +122,27 @@ const comp = (r, boards, minGames) => ({ id: r.comp, ...compKey(r.comp), games: 
   avgPlacement: r4(r.ps / r.games), top4Rate: r4(r.top4 / r.games), winRate: r4(r.wins / r.games), pickRate: r4(r.games / boards), lowSample: r.games < minGames });
 
 function tftComps(db, q = {}) {
-  const h = head(db, q, "tft");
+  const h = head(db, q, "tft", true);
   const [w, a] = where(q, h.patch);
   const Bd = win.src(q, "tft_boards"), C = win.src(q, "tft_comp");
   const boards = db.prepare(`SELECT sum(boards) n FROM ${Bd.t} WHERE ${w}${Bd.d}`).get(...a, ...Bd.da).n || 0;
   const rows = db.prepare(`SELECT comp, sum(games) games, sum(placement_sum) ps, sum(top4) top4, sum(wins) wins FROM ${C.t} WHERE ${w}${C.d}
     GROUP BY comp ORDER BY games DESC LIMIT 200`).all(...a, ...C.da);
   const series = q.trend ? win.daily(db, w, a, q, "tft_comp", "comp", "sum(games) games, sum(placement_sum) ps") : null;
-  // units: the comp's 8 most-fielded units (keys), so a list or search needs no /tft/comp/{id} per row
+  // units: up to 9 units fielded on >= 30% of the comp's boards, most frequent first (the app's comp-board rule), so a list or
+  // search needs no /tft/comp/{id} per row. Shares are out of the comp's patch-wide games.
+  const compGames = new Map(db.prepare(`SELECT comp, sum(games) g FROM stats_tft_comp WHERE ${w} GROUP BY comp`).all(...a).map((r) => [r.comp, r.g]));
   const units = new Map();
   for (const u of db.prepare(`SELECT comp, key, sum(games) g FROM stats_tft_part WHERE ${w} AND kind = 'unit' GROUP BY comp, key ORDER BY g DESC`).all(...a)) {
     const l = units.get(u.comp) || units.set(u.comp, []).get(u.comp);
-    if (l.length < 8) l.push(u.key);
+    if (l.length < 9 && u.g >= 0.3 * (compGames.get(u.comp) || Infinity)) l.push(u.key);
   }
   return { ...h, boards, comps: rows.map((r) => ({ ...comp(r, boards, h.minGames), units: units.get(r.comp) || [],
     ...(series && { daily: (series.get(r.comp) || []).map((d) => ({ day: d.day, games: d.games, avgPlacement: r4(d.ps / d.games) })) }) })) };
 }
 
 function tftComp(db, id, q = {}) {
-  const h = head(db, q, "tft");
+  const h = head(db, q, "tft", true);
   const [w, a] = where(q, h.patch);
   // ?days windows the comp row; units, augments and traits stay per patch.
   const Bd = win.src(q, "tft_boards"), C = win.src(q, "tft_comp");
@@ -230,7 +234,10 @@ function memoizer(db) {
   return (key, fn) => {
     const now = getMeta(db, "aggregatedAt");
     if (now !== at) { at = now; cache = new Map(); }
-    if (!cache.has(key)) cache.set(key, fn());
+    if (!cache.has(key)) {
+      cache.set(key, fn());
+      if (cache.size > 2000) cache.delete(cache.keys().next().value); // DONI-568: bound the memo
+    }
     return cache.get(key);
   };
 }
@@ -247,7 +254,8 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
     const u = new URL(req.url, "http://x");
     const q = Object.fromEntries(u.searchParams);
     const p = u.pathname.replace(/\/+$/, "");
-    if ((p === "" || p.startsWith("/admin")) && !lan(req.socket.remoteAddress)) return send(403, { error: "LAN only" });
+    // DONI-568: /status too; and a request forwarded by a reverse proxy (x-forwarded-for) is never LAN, whatever the peer IP.
+    if ((p === "" || p === "/status" || p.startsWith("/admin")) && (!lan(req.socket.remoteAddress) || req.headers["x-forwarded-for"])) return send(403, { error: "LAN only" });
     if (req.method === "POST" && p === "/admin/key") {
       if (!adminToken) return send(503, { error: "ADMIN_TOKEN is not set" });
       const given = /^Bearer (.+)$/.exec(req.headers.authorization || "")?.[1] || "";
@@ -287,7 +295,7 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
       if (p === "/tft/comps") return send(200, memo(req.url, () => tftComps(db, q)));
       if ((m = /^\/tft\/(units|items|augments|traits)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-tft")[m[1]](db, head, where, q)));
       if ((m = /^\/tft\/unit\/([^/]+)$/.exec(p))) {
-        const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, decodeURIComponent(m[1]), q));
+        const r = memo(req.url, () => require("./agg-tft").unit(db, head, where, dec(m[1]), q));
         return r ? send(200, r) : send(404, { error: "no such unit on this patch/filter" });
       }
       if ((m = /^\/(lol|tft)\/leaderboard$/.exec(p))) {
@@ -302,14 +310,14 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
         });
       }
       if ((m = /^\/(lol|tft)\/match\/([^/]+)$/.exec(p))) {
-        return require("./match").matchDetail(db, lookup, m[1], decodeURIComponent(m[2])).then((r) => send(200, r), (e) => {
+        return require("./match").matchDetail(db, lookup, m[1], dec(m[2])).then((r) => send(200, r), (e) => {
           if (e.retryAfter) res.setHeader("retry-after", String(e.retryAfter));
           send(e.status || 502, { error: e.message });
         });
       }
       if (p === "/tft/meta") return require("./tft-meta").tftMeta(db, q.set === undefined ? undefined : Number(q.set)).then((m) => send(200, m), (e) => send(e.status || 500, { error: e.message }));
       if ((m = /^\/tft\/comp\/([^/]+)$/.exec(p))) {
-        const c = memo(req.url, () => tftComp(db, decodeURIComponent(m[1]), q));
+        const c = memo(req.url, () => tftComp(db, dec(m[1]), q));
         return c ? send(200, c) : send(404, { error: "no such comp on this patch/filter" });
       }
       send(404, { error: "not found" });

@@ -13,6 +13,7 @@ const r4 = (x) => Math.round(x * 10000) / 10000;
 const SCHEMA = "CREATE TABLE IF NOT EXISTS stats_lol_vs (patch TEXT, region TEXT, bracket TEXT, role TEXT, champion INT, opponent INT, games INT, wins INT);";
 const TABLES = ["lol_vs"];
 const MIN_GAMES = 50;
+const ROLES = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 const shrink = (x, n, k) => (x == null || !n ? 0 : x * n / (n + k));
 
 const inserts = (M, K) => [
@@ -22,14 +23,14 @@ const inserts = (M, K) => [
 
 // "1,2:TOP, 3" -> [{ id: 1, role: null }, { id: 2, role: "TOP" }, { id: 3, role: null }]
 const ids = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean).map((x) => {
-  const [id, role] = x.split(":");
-  if (!/^\d+$/.test(id)) throw Object.assign(new Error(`bad champion id ${x}`), { status: 400 });
+  const [id, role, extra] = x.split(":");
+  if (!/^\d+$/.test(id) || extra !== undefined || (role && !ROLES.includes(role.toUpperCase()))) throw Object.assign(new Error(`bad champion id ${x} (id or id:TOP|JUNGLE|MIDDLE|BOTTOM|UTILITY)`), { status: 400 });
   return { id: Number(id), role: role ? role.toUpperCase() : null };
 });
 
 function draft(db, head, where, q = {}) {
   const role = String(q.role || "").toUpperCase();
-  if (!["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"].includes(role)) throw Object.assign(new Error("role must be TOP, JUNGLE, MIDDLE, BOTTOM or UTILITY"), { status: 400 });
+  if (!ROLES.includes(role)) throw Object.assign(new Error("role must be TOP, JUNGLE, MIDDLE, BOTTOM or UTILITY"), { status: 400 });
   const h = head(db, q, "lol");
   const [w, a] = where(q, h.patch);
   const allies = ids(q.allies), enemies = ids(q.enemies), bans = ids(q.bans);
@@ -73,7 +74,7 @@ function draft(db, head, where, q = {}) {
       components: { base: strip(base), lane: strip(laneC), enemies: vs.map(strip), allies: syn.map(strip) } };
   }).sort((x, y) => y.score - x.score);
   return { ...h, role, lane: lane ? lane.id : null, allies: allies.map((x) => x.id), enemies: enemies.map((x) => x.id), bans: bans.map((x) => x.id),
-    candidates: candidates.slice(0, Math.min(100, Number(q.limit) || 30)) };
+    candidates: candidates.slice(0, Math.max(1, Math.min(100, Math.trunc(Number(q.limit)) || 30))) };
 }
 
 // Game plan for a locked champion: the facts the champion page already computes, narrowed to what matters in this draft.
@@ -83,7 +84,9 @@ function plan(champion, page, db, w, a, enemies) {
   const own = page.strip.games ? page.strip.wins / page.strip.games : 0;
   const vs = en.length ? db.prepare(`SELECT opponent, sum(games) g, sum(wins) w FROM stats_lol_vs WHERE ${w} AND champion = ? AND role = ? AND opponent IN (${en.map(() => "?").join(",")}) GROUP BY opponent`)
     .all(...a, champion, role ?? "", ...en.map((e) => e.id)) : [];
-  const threats = vs.map((r) => ({ champion: r.opponent, games: r.g, winRate: r4(r.w / r.g), delta: r4(r.w / r.g - own) })).sort((x, y) => x.delta - y.delta).slice(0, 2);
+  // worst first by the sample-shrunk delta (n/(n+100), as in /lol/draft), so 2 games at 0% don't outrank 3,000 at 44%
+  const threats = vs.map((r) => ({ champion: r.opponent, games: r.g, winRate: r4(r.w / r.g), delta: r4(r.w / r.g - own), s: shrink(r.w / r.g - own, r.g, 100) }))
+    .sort((x, y) => x.s - y.s).slice(0, 2).map(({ s: _, ...t }) => t);
   const first = (l) => (l && l[0]) || null;
   return { patch: page.patch, region: page.region, bracket: page.bracket, champion, role, games: page.strip.games, winRate: page.strip.winRate,
     core: first(page.buildOrder?.core), starting: first(page.starting), skillOrder: first(page.builds.skills), skills15: first(page.skills?.[15]),
