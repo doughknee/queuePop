@@ -62,25 +62,35 @@ body.theme-settings{background:var(--bg)}
 .st-more summary::marker{color:var(--accent)}
 a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 .st-in::placeholder{color:var(--muted)}
-/* DONI-590: grouped by game. Game chips under each card title, folded cards for games switched off, game tiles in Games. */
-.st-group{font:400 clamp(22px,2.4vw,30px)/1 var(--display);text-transform:uppercase;letter-spacing:.02em;color:var(--fg);margin:30px 0 12px}
-.st-group:first-of-type{margin-top:6px}
-.st-for{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 8px;font-size:12px}
-.st-for small{flex-basis:100%;color:var(--muted)}
-.st-g{padding:2px 8px;border:1px solid var(--accent);color:var(--accent);font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
-.st-g.is-off{border-color:var(--edge);color:var(--muted);text-decoration:line-through}
-.st-fold{margin:4px 0 6px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.st-fold a{color:var(--accent)}
-#settings-view:not(.st-searching) .st-folded .st-body,#settings-view:not(.st-searching) .st-folded .st-for small{display:none}
-#settings-view.st-searching .st-fold{display:none}
-.st-folded h2{color:var(--muted)}
-.st-games{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
-.st-game{border:1px solid var(--line);padding:12px 14px;display:grid;grid-template-columns:40px 1fr;column-gap:12px;align-items:center;min-width:0}
-.st-game>img{width:40px;height:40px;object-fit:contain}
-.st-game>.st-row{border-top:0;padding:0}
-.st-game .st-lbl{font:400 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
-.st-game>p{grid-column:1/-1;margin:8px 0 0;font-size:12px}
-.st-who{color:var(--fg);overflow-wrap:anywhere}
-.st-does{display:flex;flex-wrap:wrap;gap:4px 12px}.st-does a{color:var(--accent);text-decoration:none}.st-does a:hover{text-decoration:underline}
-.st-game.is-off{opacity:.55}.st-game.is-off .st-does{display:none}
+/* DONI-591: game tabs. Each game has its own color (theme data colors); lime stays the control color.
+   The tiles are the tabs, a card the tab doesn't use is hidden unless you're searching. */
+#settings-view{--gc:var(--accent)}
+.st-game[data-tab=league],.st-g[data-g=league],#settings-view[data-tab=league]{--gc:var(--blue)}
+.st-game[data-tab=tft],.st-g[data-g=tft],#settings-view[data-tab=tft]{--gc:var(--purple)}
+.st-game[data-tab=deadlock],.st-g[data-g=deadlock],#settings-view[data-tab=deadlock]{--gc:var(--amber)}
+.st-games{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:4px 0 10px}
+.st-game{position:relative;border:1px solid var(--line);padding:12px;display:grid;grid-template-columns:32px minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:center;cursor:pointer;min-width:0}
+.st-game:hover{border-color:var(--edge)}
+.st-game:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.st-game.is-sel{border-color:var(--gc);box-shadow:inset 0 -3px 0 var(--gc)}
+.st-game>img,.st-gear{width:32px;height:32px;object-fit:contain}
+.st-gear{fill:none;stroke:var(--muted);stroke-width:1.6}.st-game.is-sel .st-gear{stroke:var(--gc)}
+.st-gname{font:400 18px/1.05 var(--display);text-transform:uppercase;letter-spacing:.02em;color:var(--fg);min-width:0}
+.st-game .st-who{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted);overflow-wrap:anywhere;min-height:2.6em}
+.st-game.is-off .st-gname,.st-game.is-off>img{opacity:.45}
+.st-tabhint{margin:0 0 14px}
+.st-offnote{margin:0 0 14px;padding:10px 14px;border:1px solid var(--edge);border-left:3px solid var(--gc);color:var(--fg)}
+#settings-view:not(.st-searching) .st-card.st-other{display:none}
+.st-card h2{font:400 24px/1.1 var(--display);letter-spacing:.02em;color:var(--fg);margin:16px 0 4px}
+.st-card h2:before{content:none}
+.st-for{display:flex;gap:6px;margin:0 0 6px}
+.st-g{padding:1px 7px;border:1px solid var(--gc);color:var(--gc);font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+#settings-view[data-tab=league] .st-g[data-g=league],#settings-view[data-tab=tft] .st-g[data-g=tft],#settings-view[data-tab=deadlock] .st-g[data-g=deadlock]{background:var(--gc);color:var(--bg)}
+.st-sub{color:var(--fg)}
+.st-notfor{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);font-size:12px}
+.st-notfor:empty{display:none}
+.st-notfor b{display:block;color:var(--fg);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.st-notfor p{margin:2px 0;color:var(--muted)}.st-notfor span{color:var(--fg);margin-right:8px}
+#settings-view.st-searching .st-notfor,#settings-view.st-searching .st-offnote,#settings-view.st-searching .st-tabhint{display:none}
+@media(max-width:760px){.st-games{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .st-bk-full{color:var(--fg)}

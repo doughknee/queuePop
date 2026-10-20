@@ -21,12 +21,16 @@ assert.strictEqual(L(null, true), "Couldn’t check.");
 assert.ok(L({ found: false }, true).startsWith("ffmpeg not found"));
 assert.strictEqual(L({ found: true, version: "9.0.1", encoder: "h264_nvenc" }, true), "Found ffmpeg 9.0.1, encoding with your NVIDIA card.");
 assert.ok(L({ found: true, encoder: "libx264" }, false).endsWith("Turn on Record game events to record video."));
-// DONI-590: which games each card serves, and when it folds.
-const F = ctx.window.ST_FOR, off = ctx.window.stCardOff, cov = (g) => [...ctx.window.stCovers(g)];
+// DONI-590/591: which games each card serves, and which tab a link lands on.
+const cov = (g) => [...ctx.window.stCovers(g)], tabOf = ctx.window.stTabOf, cards = (t) => [...ctx.window.stTabCards(t)];
 assert.deepStrictEqual(cov("deadlock"), ["deadlock"]);
 assert.ok(cov("tft").includes("queue") && !cov("tft").includes("champselect")); // TFT queues through the League client; no champ select
-assert.ok(cov("league").includes("champselect"));
-assert.strictEqual(off(F.champselect, ["tft", "deadlock"]), true); // League off: champ select folds
-assert.strictEqual(off(F.queue, ["tft"]), false); // League off, TFT on: queue still matters
-assert.strictEqual(off(undefined, []), false); // app-wide cards never fold
+assert.deepStrictEqual(cards("app"), ["display", "about"]);
+assert.strictEqual(tabOf("tft", "league"), "tft"); // a tab is itself
+assert.strictEqual(tabOf("alerts", "tft"), "tft"); // a shared card stays on the current tab
+assert.strictEqual(tabOf("alerts", "deadlock"), "league"); // else its first game
+assert.strictEqual(tabOf("champselect", "tft"), "league");
+assert.strictEqual(tabOf("about", "league"), "app");
+assert.strictEqual(tabOf("account", "league"), "deadlock"); // pre-591 link
+assert.strictEqual(tabOf("games", "tft"), null); // unknown: keep the current tab
 console.log("test-settings ok");
