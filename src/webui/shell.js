@@ -122,8 +122,8 @@ if (window.QP && QP.bus) { QP.bus.on('config:loaded', applyGames); QP.bus.on('co
 // dismissed (per item, or the whole strip). Pure; app/test-home.js checks it.
 window.homeSetupItems = function ({ games, dlId, crawler, dismissed = [] }) {
   const items = [];
-  if (games.includes('deadlock') && dlId === '') items.push({ id: 'deadlock', text: 'Add your Deadlock account to see your own matches.', action: 'Add it', href: '#/settings#account', focus: 'deadlock_account_id' });
-  if (games.length === QP_GAMES.length) items.push({ id: 'games', text: 'Only play some of these? Hide the others.', action: 'Choose games', href: '#/settings#games', focus: 'games_enabled.league' });
+  if (games.includes('deadlock') && dlId === '') items.push({ id: 'deadlock', text: 'Add your Deadlock account to see your own matches.', action: 'Add it', short: 'Add your Deadlock account', href: '#/settings#account', focus: 'deadlock_account_id' });
+  if (games.length === QP_GAMES.length) items.push({ id: 'games', text: 'Only play some of these? Hide the others.', action: 'Choose games', short: 'Choose your games', href: '#/settings#games', focus: 'games_enabled.league' });
   return items.filter(i => !dismissed.includes(i.id));
 };
 window.homeSetup = (() => {
@@ -135,7 +135,7 @@ window.homeSetup = (() => {
     const items = dismissed.includes('all') ? [] : homeSetupItems(facts());
     if (!items.length) return '<div id="home-setup" hidden></div>';
     return `<div id="home-setup" class="qp-setup" role="region" aria-label="Set up"><b class="su-kicker">Set up · ${items.length} left</b>
-      <div class="su-items">${items.map(i => `<span class="su-item"><span>${E(i.text)}</span><a href="${i.href}" data-setup-focus="${E(i.focus)}">${E(i.action)} ↗</a><button type="button" class="su-x" data-setup-dismiss="${i.id}" aria-label="Dismiss: ${E(i.text)}" title="Dismiss">✕</button></span>`).join('')}</div>
+      <div class="su-items">${items.map(i => `<span class="su-item"><a href="${i.href}" data-setup-focus="${E(i.focus)}" title="${E(i.text)}">${E(i.short || i.action)} ↗</a><button type="button" class="su-x" data-setup-dismiss="${i.id}" aria-label="Dismiss: ${E(i.text)}" title="Dismiss">✕</button></span>`).join('<span class="su-dot" aria-hidden="true">·</span>')}</div>
       <button type="button" class="su-hide" data-setup-dismiss="all">Hide set-up</button></div>`;
   }
   function refresh() { const el = document.getElementById('home-setup'); if (el) el.outerHTML = html(); }
@@ -250,7 +250,8 @@ window.homeTicker = (() => {
   return {
     rerender: () => { const b = el(); if (b) { cur = 0; b.outerHTML = window.homeTicker.html(); } },
     reload: () => { at = 0; data.dl = undefined; window.homeTicker.load(); },
-    html: () => { const pages = shownPages(); return `<div class="qp-pages" id="home-pages" role="region" aria-label="Your games"><div class="hp-band">${band(pages)}</div><div class="hp-block">${page(pages[cur])}</div></div>`; },
+    // Every visit to home starts on the first game you play (W12).
+    html: () => { cur = 0; const pages = shownPages(); return `<div class="qp-pages" id="home-pages" role="region" aria-label="Your games"><div class="hp-band">${band(pages)}</div><div class="hp-block">${page(pages[cur])}</div></div>`; },
     async load() {
       const a = window.pywebview && window.pywebview.api; if (!a || Date.now() - at < 60000) return; at = Date.now();
       const [info, lol, tft, id] = await Promise.all([a.get_summoner().catch(() => null), a.get_match_history(10).catch(() => null), a.get_tft_match_history(10).catch(() => null), Promise.resolve(a.get_deadlock_account && a.get_deadlock_account()).catch(() => '')]);
