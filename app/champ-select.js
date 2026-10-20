@@ -43,13 +43,13 @@ function fallbackRole(cs) {
 const SWAP_KINDS = {
   pick: {
     kind: "pick", sessionKey: "pickOrderSwaps", endpoint: "pick-order-swaps", eventKind: "pick_swap", log: "pick swap",
-    acceptEvent: "Accepted pick-order swap — now picking {label}", acceptFail: "Pick-order swap accept failed",
+    acceptEvent: "Swapped pick order: you now pick {label}", acceptFail: "Pick-order swap accept failed",
     received: "Pick-order swap requested by a teammate", cancel: "Cancelled pick-order swap request",
     requestEvent: "Requesting a pick-order swap for the {label} pick", requestFail: "Pick-order swap request failed",
   },
   pos: {
     kind: "pos", sessionKey: "positionSwaps", endpoint: "position-swaps", eventKind: "role_swap", log: "position swap",
-    acceptEvent: "Accepted role swap — now playing {label}", acceptFail: "Role swap accept failed",
+    acceptEvent: "Swapped roles: you now play {label}", acceptFail: "Role swap accept failed",
     received: "Role swap requested by a teammate", cancel: "Cancelled role swap request",
     requestEvent: "Requesting a role swap for {label}", requestFail: "Role swap request failed",
   },
@@ -430,7 +430,7 @@ class ChampSelect {
           log(`rune POST -> HTTP ${r.status} ${JSON.stringify(r.data)}`);
           if (!this.runeCapWarned) {
             this.runeCapWarned = true;
-            this.push("Rune pages are full, choose a page for queuePop in Settings → Recommended Runes to enable auto runes.", "warning", "runes_full");
+            this.push("Your rune pages are full. On the Champ select page, pick one queuePop may overwrite for auto runes.", "warning", "runes_full");
           }
           return true;
         }
