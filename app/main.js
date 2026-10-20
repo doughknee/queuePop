@@ -76,6 +76,8 @@ async function readyCheck(data) {
     }
   }
   const r = await lcu.request("post", "/lol-matchmaking/v1/ready-check/accept").catch((err) => ({ status: err.message }));
+  // A failed accept frees the latch, so the next ready-check event for this pop tries again (DONI-529).
+  if (!(r.status >= 200 && r.status < 300)) state.accepting = false;
   log(`READY CHECK ACCEPTED queue=${queueId} status=${r.status}`);
   push(`Match accepted (queue ${queueId})`, "success", "match");
 }
@@ -94,7 +96,6 @@ const impl = {
   set_paused: (p) => { state.paused = !!p; return state.paused; },
   minimize_window: () => win.minimize(),
   toggle_maximize_window: () => { win.isMaximized() ? win.unmaximize() : win.maximize(); return win.isMaximized(); },
-  hide_window: () => win.close(), // ponytail: no tray yet, so close quits
   // DONI-516: Settings > Display > Text size. The renderer saves config ui_scale; this applies it.
   set_ui_scale: (f) => { f = Number(f); if (!UI_SCALES.includes(f)) return false; win.webContents.setZoomFactor(f); return true; },
 };

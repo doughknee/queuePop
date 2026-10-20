@@ -54,7 +54,7 @@ function createCompanion(ctx) {
     }
     if (p === "/api/sound") {
       const c = cfgComp();
-      if (c.sound === "custom" && c.sound_file && fs.existsSync(c.sound_file)) return fs.createReadStream(c.sound_file).pipe(res);
+      if (c.sound === "custom" && /\.(mp3|ogg|wav|m4a)$/i.test(c.sound_file || "") && fs.existsSync(c.sound_file)) return fs.createReadStream(c.sound_file).pipe(res);
       res.writeHead(404); return res.end();
     }
     const file = path.join(ctx.webRoot, p === "/" ? "companion.html" : p);

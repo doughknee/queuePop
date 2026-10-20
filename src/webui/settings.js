@@ -140,7 +140,7 @@
   // --- live bits -------------------------------------------------------------
   async function loadAccount() {
     const el = root.querySelector('#st-summoner'); let i = {};
-    try { i = (await bridge().get_summoner()) || {}; } catch {}
+    try { i = (await bridge().get_summoner()) || {}; } catch (err) { el.textContent = 'Could not ask the League client: ' + (err.message || err); return; }
     el.textContent = i.connected && i.name ? (i.tag ? `${i.name} #${i.tag}` : i.name) : 'Offline (open the League client)';
   }
   async function loadCompanion() {
@@ -155,20 +155,20 @@
     const url = base(), st = root.querySelector('#st-cr-state'), grid = root.querySelector('#st-cr-grid');
     root.querySelector('#st-cr-url').textContent = url;
     try {
-      const r = await fetch(url + '/status', { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const r = await fetch(url + '/status', { cache: 'no-store', signal: AbortSignal.timeout(8000) }); if (!r.ok) throw new Error('HTTP ' + r.status);
       const d = await r.json(), m = d.matches || {}, p = d.players || {}, k = d.key || {}, dk = d.disk || {};
       const sum = o => Object.values(o || {}).reduce((x, y) => x + y, 0);
       const cell = (l, v) => `<div><b>${E(v)}</b><span>${l}</span></div>`;
-      const buckets = Object.entries(d.rateLimits || {}).map(([n, v]) => { const l = (v.limits || [])[0] || {}, pct = l.limit ? Math.min(100, Math.round(100 * l.used / l.limit)) : 0; return `<div class="st-bk"><span>${E(n)}</span><i><u style="width:${pct}%"></u></i><em>${l.used ?? 0}/${l.limit ?? '?'} per ${l.windowSec ?? '?'}s</em></div>`; }).join('');
+      const buckets = Object.entries(d.rateLimits || {}).map(([n, v]) => { const l = (v.limits || [])[0] || {}, pct = l.limit ? Math.min(100, Math.round(100 * l.used / l.limit)) || 0 : 0; return `<div class="st-bk"><span>${E(n)}</span><i><u style="width:${pct}%"></u></i><em>${E(l.used ?? 0)}/${E(l.limit ?? '?')} per ${E(l.windowSec ?? '?')}s</em></div>`; }).join('');
       st.textContent = 'Online'; st.className = 'st-val ok';
       grid.innerHTML = cell('Players', `${(p.lol || 0).toLocaleString()} LoL · ${(p.tft || 0).toLocaleString()} TFT`) +
-        cell('Matches done', `${(sum(Object.values(m).map(x => x.done))).toLocaleString()} (${(m.lol?.done || 0).toLocaleString()} LoL · ${(m.tft?.done || 0).toLocaleString()} TFT)`) +
+        cell('Matches done', `${(sum(Object.values(m).map(x => (x && x.done) || 0))).toLocaleString()} (${(m.lol?.done || 0).toLocaleString()} LoL · ${(m.tft?.done || 0).toLocaleString()} TFT)`) +
         cell('Last fetch', ago(d.lastFetch)) + cell('Aggregated', ago(d.aggregatedAt)) +
         cell('Disk', `${mb((dk.dbBytes || 0) + (dk.walBytes || 0) + (dk.rawBytes || 0))} (${mb(dk.dbBytes || 0)} db)`) +
         cell('Riot key', k.source === 'none' ? 'none set' : `${k.source}${k.set_at ? ' · set ' + ago(k.set_at) : ''}`) +
         `<div class="st-buckets">${buckets}</div>`;
     } catch (err) {
-      st.textContent = 'Unreachable: ' + (err.message || err); st.className = 'st-val bad'; grid.innerHTML = '';
+      st.textContent = err.name === 'TimeoutError' ? 'Unreachable: no answer in 8 s' : err instanceof SyntaxError ? 'Online, but its status did not parse' : 'Unreachable: ' + (err.message || err); st.className = 'st-val bad'; grid.innerHTML = '';
     }
   }
   async function postKey() {
@@ -177,7 +177,7 @@
     if (!tok) return say('crawler-key', 'Admin token required', false);
     say('crawler-key', 'Sending…', true);
     try {
-      const r = await fetch(base() + '/admin/key', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key }) });
+      const r = await fetch(base() + '/admin/key', { signal: AbortSignal.timeout(10000), method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ key }) });
       const msg = { 401: 'Wrong admin token', 400: 'The crawler rejected that key', 503: 'No ADMIN_TOKEN set on the crawler', 403: 'Crawler only accepts LAN requests' }[r.status];
       if (r.ok) { root.querySelector('#st-cr-key').value = root.querySelector('#st-cr-token').value = ''; say('crawler-key', 'Key updated', true); loadCrawler(); }
       else say('crawler-key', msg || 'HTTP ' + r.status, false);
@@ -194,7 +194,7 @@
       const s = await bridge().get_asset_status(), n = (k) => `${s[k].have}/${s[k].want}`;
       el.textContent = (s.busy ? 'Downloading: ' : '') + `champions ${n('champions')}, spells ${n('spells')}, positions ${n('positions')}` + (s.lastError ? `. Last error: ${s.lastError}` : '');
       if (s.busy) setTimeout(loadAssets, 1500);
-    } catch {}
+    } catch (err) { el.textContent = 'Could not read the icon packs: ' + (err.message || err); }
   }
   async function loadAbout() {
     loadAssets();
