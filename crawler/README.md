@@ -101,6 +101,12 @@ Champion ids are Riot numeric keys (Data Dragon `key`); build keys are strings.
   - `matchups[]` also carry `pickRate` (share of your games against them), `delta1` = win rate vs them − your average,
     `delta2` = win rate vs them − (your average − their average in that role + 0.5), null when they have no games in that role.
     Synergy `delta2` = win rate together − (your average + their average − 0.5).
+- `GET /lol/items?patch&region&bracket&role&min_games` (DONI-509) → `{ patch, region, bracket, role, minGames, players, winRate,
+  items: [{ key, games, wins, winRate, delta, pickRate, lowSample, champions: [{ champion, games, winRate }] }] }`, every finished item
+  by games. `players` = champion-games in scope (10 per match, or the role's games) and is the `pickRate` base; `delta` = winRate −
+  the scope's `winRate`; `champions` = the top 5 champions finishing with it. `/lol/runes` → same head plus `keystones`, `runes`
+  (every rune incl. keystones) and `shards` (stat-mod triples); `/lol/spells` → `spells` (keys `"4,14"`). Rolled up at read time
+  from `stats_lol_build` / `stats_lol_shards` and memoised until the next aggregation pass.
 - `GET /tft/comps?patch&region&bracket` →
   `{ patch, region, bracket, minGames, boards, comps: [{ id, traits, carry, games, avgPlacement, top4Rate, winRate, pickRate, lowSample }] }`, top 200 by games
 - `GET /tft/comp/{id}` (id URL-encoded) → the comp row plus `units`, `augments` and `activeTraits` (key `"<trait>:<tier_current>"`):
