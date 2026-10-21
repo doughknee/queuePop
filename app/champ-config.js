@@ -256,7 +256,7 @@ function normalizeConfig(data) {
     launch_at_login: T(getd(data, "launch_at_login", false)), // DONI-544
     recorder: normalizeRecorder(data.recorder), // DONI-523: off by default
     // docs/ads.md: supporters see no ad and keep the collapsible sidebar. A stand-in until Overwolf's subscription check.
-    ads: { premium: T(getd(data.ads || {}, "premium", false)) },
+    ads: { premium: T(getd(data.ads || {}, "premium", false)), live: T(getd(data.ads || {}, "live", false)) },
     float_window: T(getd(data, "float_window", true)), // DONI-346: suggestions float over League in champ select
     close_to_tray: T(getd(data, "close_to_tray", true)), // DONI-544: the window's ✕ hides to the tray (off: it quits)
     // App-level keys (Settings page, DONI-489): without them every save_config would drop them.

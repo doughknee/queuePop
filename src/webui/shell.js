@@ -27,6 +27,15 @@
   }
   apply();
   window.qpSidebarApply = apply; // ads.js
+  // The page zoom is the Text size (config ui_scale, applied by main.js). On ow-electron it was seen dropping back to
+  // 100% mid-session (2026-10-21, trigger not pinned down); whenever the zoom changes, put the saved Text size back.
+  // Same factor again changes nothing, so this can't loop; a monitor with another scaling just re-applies the same factor.
+  const watchZoom = () => matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener('change', () => {
+    const f = window.QP && QP.store.config && QP.store.config.ui_scale;
+    if (f) Promise.resolve(window.pywebview?.api?.set_ui_scale?.(f)).catch(() => {});
+    watchZoom();
+  }, { once: true });
+  watchZoom();
   const locked = () => root.classList.contains('ads-on');
   toggle.addEventListener('click', () => { if (locked()) return; s.collapsed = !s.collapsed; apply(); save(); });
   window.qpSidebarWidth = w => { if (locked()) return; s.w = w; apply(); save(); }; // keys.js: the grip by keyboard

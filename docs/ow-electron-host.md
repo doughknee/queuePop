@@ -81,8 +81,9 @@ Nothing on ow-electron ships publicly until all of these are done. docs/ads.md h
    production credentials. A packaged build without them doesn't load the packages. Overwolf also has to enable the
    app uid for ads (test it with `--test-ad` first).
 2. **The promised desktop ad slot.** One 300x250 `<owadview>` at the bottom of the sidebar, built in #226. On
-   ow-electron it switches on by itself (`get_status().overwolf`) unless `config.ads.premium` is set. That means this
-   personal build already shows the box, with its placeholder, and the sidebar is fixed at 316 px. Before release:
+   ow-electron it switches on by itself (`get_status().overwolf`) unless `config.ads.premium` is set. The personal build
+   shows the box with its placeholder only. Real ads need `--test-ad` or `config.ads.live` (docs/ads.md), and the
+   sidebar is fixed at 316 px. Before release:
    - a consent screen for the EU and other strict regions
    - `config.ads.premium` replaced by Overwolf's subscription check
 3. **Overwolf's ad rules** (checked in their docs on 2026-10-21). docs/ads.md has the placement rules we follow. Two

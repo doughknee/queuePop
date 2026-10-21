@@ -147,6 +147,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         champions_loaded: 0, companion_enabled: !!cfgComp().enabled, companion_running: companion.isRunning(),
         companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version, stepping_away: away.status(),
         overwolf: !!app.overwolf, // running on ow-electron: the sidebar ad can serve (docs/ads.md)
+        // Real ads only when asked for: --test-ad, or config ads.live once the release gate is cleared (docs/ads.md).
+        ads_live: process.argv.includes("--test-ad") || !!(cfg.ads || {}).live,
       };
     },
     get_stats: () => {
