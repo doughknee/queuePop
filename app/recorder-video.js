@@ -71,10 +71,15 @@ function ownVideos(names) {
 
 // --- runtime -----------------------------------------------------------------------------------------------------------
 const run = (bin, args) => new Promise((resolve) => execFile(bin, args, { windowsHide: true, timeout: 120000 }, (err, out) => resolve(err ? null : String(out))));
-let probed = null;
-// { found, path, version, encoder } — cached; "where ffmpeg" finds it on PATH, nothing is ever downloaded.
-async function probe(force) {
-  if (probed && !force) return probed;
+let probed = null, probedAt = 0, probing = null;
+// { found, path, version, encoder } — cached; "where ffmpeg" finds it on PATH, nothing is ever downloaded. One probe is up to
+// six child processes, so callers share a running one and a forced re-probe reuses a result under 10 s old (Recordings and
+// Settings ask on every render).
+function probe(force) {
+  if (probed && (!force || Date.now() - probedAt < 10000)) return Promise.resolve(probed);
+  return probing || (probing = probeNow().then((p) => { probedAt = Date.now(); return p; }).finally(() => { probing = null; }));
+}
+async function probeNow() {
   const where = await run("where", ["ffmpeg"]);
   const bin = where && where.split(/\r?\n/).find(Boolean);
   if (!bin) return (probed = { found: false });
