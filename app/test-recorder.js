@@ -137,3 +137,57 @@ assert.strictEqual(F({ game: "tft", queueId: 1160, placement: 1, result: "win" }
   assert.deepStrictEqual(ids({ type: "assist" }), []);
 }
 console.log("test-recorder highlights ok");
+
+// Smart clips (app/clip-score.js): score and label from the game's own data.
+{
+  const { matchContext, scoreClip, scoreClips } = require("./clip-score");
+  const S = (evs, extra = {}) => { const events = evs.map((e, i) => ({ id: i + 1, ...e })); return scoreClip({ ids: events.filter((e) => e.type !== "end" && !e.out).map((e) => e.id), ...extra.clip }, { events, ...extra.rec }); };
+  const triple = S([{ t: 900, type: "kill", label: "Killed Zed" }, { t: 902, type: "kill", label: "Killed Lux" }, { t: 903, type: "multikill", label: "Triple kill" },
+    { t: 920, type: "objective", objective: "dragon", label: "Fire dragon (Thresh)", ally: true, out: true }]);
+  assert.deepStrictEqual(triple, { score: 98, label: "Triple kill at Dragon" }); // 80 + two more kills + the dragon fight
+  const kill = S([{ t: 300, type: "kill", label: "Killed Zed" }]), death = S([{ t: 400, type: "death", label: "Killed by Zed", champ: "Zed", level: 6 }]);
+  assert.deepStrictEqual(kill, { score: 40, label: "Killed Zed" });
+  assert.deepStrictEqual(death, { score: 10, label: "Died to Zed's level 6" });
+  assert.strictEqual(S([{ t: 400, type: "death", label: "Killed by Zed", champ: "Zed", level: 8 }]).label, "Died to Zed"); // only ult levels are named
+  const shut = S([{ t: 500, type: "kill", label: "Killed Hide on bush", champ: "Zed", streak: 4, gold: 700 }]);
+  assert.deepStrictEqual(shut, { score: 60, label: "Shut down Zed (+700g)" });
+  const steal = S([{ t: 1500, type: "objective", objective: "baron", label: "Baron (You)", stolen: true }]), baron = S([{ t: 1500, type: "objective", objective: "baron", label: "Baron (Thresh)", ally: true }]);
+  assert.deepStrictEqual(steal, { score: 90, label: "Stole Baron" });
+  assert.deepStrictEqual(baron, { score: 50, label: "Took Baron" });
+  assert.deepStrictEqual(S([{ t: 1500, type: "objective", objective: "baron", label: "Baron (Zed)", ally: false }]), { score: 8, label: "Enemy took Baron" });
+  assert.strictEqual(S([{ t: 1500, type: "objective", objective: "turret", label: "Turret (You)" }]).label, "Took a turret");
+  assert.ok(triple.score > shut.score && shut.score > kill.score && steal.score > baron.score && baron.score > death.score); // the ranking
+  // No context: the live label as it is, nothing made up.
+  assert.deepStrictEqual(S([{ t: 61, type: "kill", label: "Killed Sivir Bot (first blood)" }]), { score: 45, label: "Killed Sivir Bot (first blood)" });
+  // Gold toward you across the clip (per minute, from the minute before to the minute after) adds to the score and the label.
+  const swung = scoreClip({ ids: [1], start: 300, end: 315 }, { events: [{ id: 1, t: 302, type: "kill", label: "Killed Zed" }], video: { offset: 0 }, gold: [0, 0, 0, 0, 0, -200, 1300] });
+  assert.deepStrictEqual(swung, { score: 55, label: "Killed Zed · +1.5k gold swing" });
+  // A manual clip has no ids: the events inside its span name it (replay-buffer stamp + the live clock).
+  const man = scoreClip({ types: ["manual"], mine: true, ids: [], at: 61000, ms: 20000 }, { events: [{ id: 1, t: 70, type: "kill", label: "Killed Zed" }], clock: { wall: 1000, gameTime: 0 } });
+  assert.deepStrictEqual(man, { score: 45, label: "Killed Zed" });
+  assert.deepStrictEqual(scoreClip({ types: ["manual"], mine: true, ids: [] }, { events: [] }), { score: 30, label: "Your clip" });
+  // scoreClips writes score and label next to the clip's own fields and says when it changed something.
+  const rec = { events: [{ id: 1, t: 300, type: "kill", label: "Killed Zed" }], clips: [{ file: "a.mp4", start: 1, end: 2, types: ["kill"], ids: [1], name: "mine" }] };
+  assert.strictEqual(scoreClips(rec), true); assert.strictEqual(scoreClips(rec), false);
+  assert.deepStrictEqual(rec.clips[0], { file: "a.mp4", start: 1, end: 2, types: ["kill"], ids: [1], name: "mine", score: 40, label: "Killed Zed" });
+
+  // The client's game + timeline: champions, the victim's streak, the killer's level (both minute frames agree), teams, gold.
+  const game = { participantIdentities: [{ participantId: 1, player: { gameName: "Doni" } }, { participantId: 6, player: { gameName: "Faker" } }],
+    participants: [{ participantId: 1, championId: 81, teamId: 100 }, { participantId: 6, championId: 238, teamId: 200 }] };
+  const pf = (g1, g6, l6) => ({ 1: { participantId: 1, totalGold: g1, level: 5 }, 6: { participantId: 6, totalGold: g6, level: l6 } });
+  const K = (ms, killerId, victimId) => ({ type: "CHAMPION_KILL", timestamp: ms, killerId, victimId, assistingParticipantIds: [] });
+  const tl = { frames: [{ participantFrames: pf(500, 500, 1), events: [] }, { participantFrames: pf(1500, 2000, 6), events: [K(70000, 6, 1), K(100000, 6, 1), K(110000, 6, 1)] },
+    { participantFrames: pf(2500, 2600, 6), events: [K(130000, 1, 6), { type: "ELITE_MONSTER_KILL", timestamp: 150000, killerId: 6, monsterType: "DRAGON" }] }, { participantFrames: pf(3800, 3000, 7), events: [] }] };
+  const names = { 81: "Ezreal", 238: "Zed" };
+  const ctxd = matchContext({ player: "doni#4444", events: [{ id: 1, t: 110.5, type: "death", label: "Killed by Faker" }, { id: 2, t: 129.2, type: "kill", label: "Killed Faker" },
+    { id: 3, t: 150, type: "objective", objective: "dragon", label: "Fire dragon (Faker)" }] }, game, tl, (id) => names[id]);
+  assert.deepStrictEqual(ctxd.gold, [0, -500, -100, 800]);
+  assert.deepStrictEqual(ctxd.events.map((e) => [e.champ, e.streak, e.level, e.ally]), [["Zed", undefined, 6, undefined], ["Zed", 3, undefined, undefined], [undefined, undefined, undefined, false]]);
+  assert.strictEqual(scoreClip({ ids: [2] }, { events: ctxd.events }).label, "Shut down Zed at Dragon"); // the dragon fell 21 s later
+  assert.strictEqual(matchContext({ player: "Someone", events: [] }, game, tl), null); // not in this game
+
+  // Highlights' Best order: score first.
+  const items = [{ r: { startedAt: 2 }, c: { score: 40, start: 0, end: 1 } }, { r: { startedAt: 1 }, c: { score: 98, start: 0, end: 1 } }, { r: { startedAt: 3 }, c: { start: 0, end: 1, favorite: true } }];
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(ctx.window.recFilterClips(items, { sort: "best" }))).map((x) => x.c.score ?? 0), [98, 40, 0]);
+}
+console.log("test-recorder smart clips ok");

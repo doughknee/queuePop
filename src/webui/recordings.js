@@ -24,13 +24,15 @@
   }
   window.recFacts = recFacts;
   // Highlights' filter and order (deck-out round 3). items: [{ r: recording summary, c: clip, i }]; f: { type: all | kill |
-  // multikill | death | objective | assist | mine, champ, star, sort: star | new | long }. Pure; app/test-recorder.js checks it.
+  // multikill | death | objective | assist | mine, champ, star, sort: best | star | new | long }. best (the default) is the
+  // clip's score from app/clip-score.js, high first. Pure; app/test-recorder.js checks it.
   window.recFilterClips = (items, f = {}) => {
     const type = f.type || 'all', mine = c => !!c.mine || (c.types || []).includes('manual');
     const out = items.filter(({ r, c }) => (type === 'all' || (type === 'mine' ? mine(c) : (c.types || []).includes(type)))
       && (!f.champ || r.champion === f.champ) && (!f.star || !!c.favorite));
     const dur = x => (x.c.end || 0) - (x.c.start || 0), newest = (a, b) => (b.r.startedAt || 0) - (a.r.startedAt || 0) || (a.c.start || 0) - (b.c.start || 0);
-    const by = { new: newest, long: (a, b) => dur(b) - dur(a) || newest(a, b), star: (a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || newest(a, b) }[f.sort] || ((a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || newest(a, b));
+    const fav = (a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0);
+    const by = { new: newest, long: (a, b) => dur(b) - dur(a) || newest(a, b), star: (a, b) => fav(a, b) || newest(a, b) }[f.sort] || ((a, b) => (b.c.score || 0) - (a.c.score || 0) || fav(a, b) || newest(a, b));
     return [...out].sort(by);
   };
   window.recStrip = rec => `<div class="rec-strip" role="img" aria-label="${E(stripMarkers(rec).length)} moments">${stripMarkers(rec).map(m =>
@@ -41,10 +43,10 @@
   const when = ms => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
   // file path -> a URL the page can play (the page itself is file://, so local videos load directly)
   const fileUrl = f => encodeURI('file:///' + String(f).replace(/\\/g, '/')).replace(/#/g, '%23').replace(/\?/g, '%3F');
-  const clipName = c => c.name ? c.name : c.mine ? 'Your clip' : [...new Set((c.types || []).map(t => KIND[t] || t))].join(' + ') || 'Clip';
+  const clipName = c => c.name ? c.name : c.label ? c.label : c.mine ? 'Your clip' : [...new Set((c.types || []).map(t => KIND[t] || t))].join(' + ') || 'Clip';
   const star = (on, attrs, what) => `<button type="button" class="rec-star${on ? ' on' : ''}" ${attrs} aria-pressed="${!!on}" aria-label="${on ? 'Unfavourite' : 'Favourite'} ${E(what)}" title="${on ? 'Favourite: kept when the folder is over its size cap' : 'Favourite: keep it when the folder is over its size cap'}">${on ? '★' : '☆'}</button>`;
   let tab = 'all'; // Library's filter: all | favorites
-  const hf = { type: 'all', champ: '', star: false, sort: 'star' }; // Highlights' filter (window.recFilterClips)
+  const hf = { type: 'all', champ: '', star: false, sort: 'best' }; // Highlights' filter (window.recFilterClips)
   // Studio's routes (2026-10-21): #/studio = Library, /highlights, /capture (studio.js), /game/<matchId>[/<clip>] = the player.
   const route = () => { const m = /^#\/studio(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/(\d+))?/.exec(location.hash) || []; return { page: m[1] || '', id: m[2], clip: m[3] }; };
   const gameHref = (id, clip) => `#/studio/game/${encodeURIComponent(id)}${clip != null ? '/' + clip : ''}`;
@@ -86,7 +88,7 @@
       const bar = clips.length ? `<div class="sd-hlbar"><div class="sd-seg" role="radiogroup" aria-label="Moments">${types.map(([k, l]) => `<button type="button" role="radio" aria-checked="${hf.type === k}" data-hf="type" data-v="${k}">${l}</button>`).join('')}</div>
         ${champs.length > 1 ? `<label class="rp-pick">Champion <select data-hf-sel="champ"><option value="">All</option>${champs.map(n => `<option${hf.champ === n ? ' selected' : ''}>${E(n)}</option>`).join('')}</select></label>` : ''}
         <label class="sd-tog"><input type="checkbox" data-hf-star${hf.star ? ' checked' : ''}><span>Starred only</span></label>
-        <label class="rp-pick">Order <select data-hf-sel="sort">${[['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="rp-pick">Order <select data-hf-sel="sort">${[['best', 'Best'], ['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         <span class="sd-hlcount">${shown.length === clips.length ? `${clips.length} clip${clips.length === 1 ? '' : 's'}` : `${shown.length} of ${clips.length} clips`}</span></div>` : '';
       host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${bar}${!clips.length ? '' : !shown.length ? '<div class="rec-empty">No clips match. Clear a filter to see more.</div>' : ''}${shown.length ? `<div class="rec-hls">${shown.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : clips.length ? '' : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
       lazyVideos(host);
@@ -111,9 +113,11 @@
   // A champion's splash art (Data Dragon, the same art as its champion page), found by the name the recorder stored.
   const artFor = name => { const n = String(name || '').toLowerCase(), c = typeof lg !== 'undefined' && Object.values(lg.names || {}).find(x => x.name.toLowerCase() === n);
     return c && window.statsApi ? `url('${statsApi.DD}/cdn/img/champion/splash/${encodeURIComponent(c.alias)}_0.jpg')` : ''; };
-  // What a game previews: its first starred clip, else its first clip, else a moment of the full video; null without video.
+  // A game's best clip: the highest score (app/clip-score.js), a starred one on a tie, else the first.
+  const bestClip = cs => [...(cs || [])].sort((a, b) => (b.score || 0) - (a.score || 0) || (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0))[0];
+  // What a game previews: its best clip, else a moment of the full video; null without video.
   function preview(rec) {
-    const cs = rec.clips || [], c = cs.find(x => x.favorite) || cs[0];
+    const c = bestClip(rec.clips);
     if (c && c.file) return { src: fileUrl(c.file), at: 0.5, clip: true };
     if (rec.video && rec.video.file) return { src: fileUrl(rec.video.file), at: Math.min(60, Math.max(5, (rec.video.length || 120) / 3)) };
     return null;
@@ -128,6 +132,7 @@
       <a class="sd-hero-media" href="${gameHref(r.matchId)}" aria-label="Watch ${E(f.title)}">${media}${rec.video ? `<span class="sd-len">${len(rec.video.length)}</span>` : cs.length ? '<span class="sd-len">clips only</span>' : ''}</a>
       <div class="sd-hero-meta"><p class="eyebrow">Latest game · ${E(when(r.startedAt))}</p><h2>${E(f.title)}</h2>
         <p>${[f.result, f.facts].filter(Boolean).map(E).join(' · ')}</p>
+        ${cs.length ? `<p class="sd-hero-best">Best moment: <a href="${gameHref(r.matchId, cs.indexOf(bestClip(cs)))}">${E(clipName(bestClip(cs)))}</a></p>` : ''}
         <div class="sd-hero-acts">${p ? `<a class="st-btn st-gold" href="${gameHref(r.matchId)}">Watch</a>` : ''}${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, f.title)}${rec.video ? `<button type="button" class="rec-del rec-open" data-rec-show="${E(r.matchId)}">Show file</button>` : ''}</div>
         ${cs.length ? `<small class="sd-hero-n">${cs.length} clip${cs.length > 1 ? 's' : ''}</small>` : ''}</div>
       ${film}</section>`;
