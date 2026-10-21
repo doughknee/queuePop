@@ -1,12 +1,15 @@
 // node test-recorder-video.js — ffmpeg command builders, clip windows and the size cap (app/recorder-video.js, DONI-523 Q21).
 // Never runs a capture.
 const assert = require("assert");
-const { captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, ownVideos } = require("./recorder-video");
+const { captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, ownVideos } = require("./recorder-video");
 
 assert.strictEqual(pickEncoder(" V....D h264_amf  AMD AMF H.264\n V....D h264_nvenc NVIDIA NVENC H.264"), "h264_nvenc");
 assert.strictEqual(pickEncoder(" V....D h264_qsv  H.264 (Intel Quick Sync)"), "h264_qsv");
 assert.strictEqual(pickEncoder(" V....D libx264"), "libx264");
 assert.strictEqual(pickEncoder(""), "libx264");
+// what probe() test-encodes, in order (a full build lists NVENC on AMD cards too), always ending at libx264
+assert.deepStrictEqual(listedEncoders(" V....D h264_amf\n V....D h264_nvenc\n V....D h264_qsv"), ["h264_nvenc", "h264_amf", "h264_qsv", "libx264"]);
+assert.deepStrictEqual(listedEncoders(""), ["libx264"]);
 
 const a = captureArgs({ encoder: "h264_nvenc", preset: "1080p60", out: "C:\\rec\\NA1_1.mkv" });
 const fi = a.indexOf("-filter_complex");

@@ -12,10 +12,13 @@ const PRESETS = { "720p30": { h: 720, fps: 30 }, "1080p30": { h: 1080, fps: 30 }
 const ENCODERS = ["h264_nvenc", "h264_amf", "h264_qsv", "libx264"]; // best first
 const CLIP = { kill: [10, 5], multikill: [15, 6], death: [10, 3], objective: [10, 6], assist: [8, 4] }; // seconds before, after
 
-// `ffmpeg -encoders` text → the best H.264 encoder it has. Pure.
-function pickEncoder(encodersText) {
-  return ENCODERS.find((e) => new RegExp(`\\b${e}\\b`).test(encodersText || "")) || "libx264";
+// `ffmpeg -encoders` text → the H.264 encoders to try, best first, always ending at libx264. Pure. A full build lists
+// every encoder it was built with (NVENC on an AMD card too), so probe() test-encodes a frame with each and keeps the first that works.
+function listedEncoders(encodersText) {
+  const has = ENCODERS.filter((e) => new RegExp(`\\b${e}\\b`).test(encodersText || ""));
+  return has.includes("libx264") ? has : [...has, "libx264"];
 }
+function pickEncoder(encodersText) { return listedEncoders(encodersText)[0]; }
 // ffmpeg arguments for one capture. Pure; app/test-recorder-video.js checks it.
 function captureArgs({ encoder, preset, out }) {
   const p = PRESETS[preset] || PRESETS["1080p60"];
@@ -76,7 +79,11 @@ async function probe(force) {
   const bin = where && where.split(/\r?\n/).find(Boolean);
   if (!bin) return (probed = { found: false });
   const [ver, enc] = await Promise.all([run(bin, ["-hide_banner", "-version"]), run(bin, ["-hide_banner", "-encoders"])]);
-  return (probed = { found: !!ver, path: bin.trim(), version: ((ver || "").match(/ffmpeg version (\S+)/) || [])[1] || "", encoder: pickEncoder(enc) });
+  let encoder = "libx264";
+  for (const e of listedEncoders(enc)) {
+    if (await run(bin.trim(), ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=black:s=256x256:d=0.1", "-frames:v", "1", "-c:v", e, "-f", "null", "-"]) !== null) { encoder = e; break; }
+  }
+  return (probed = { found: !!ver, path: bin.trim(), version: ((ver || "").match(/ffmpeg version (\S+)/) || [])[1] || "", encoder });
 }
 
 // ctx: { getConfig, dir: () => folder, log, push, recorder: { update } }
@@ -122,4 +129,4 @@ function createVideo(ctx) {
   return { start, stop, probe };
 }
 
-module.exports = { ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, probe, PRESETS };
+module.exports = { ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, probe, PRESETS };
