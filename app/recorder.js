@@ -9,6 +9,7 @@ const path = require("path");
 const https = require("https");
 
 const { TFT_QUEUES, forGame } = require("./champ-config");
+const { matchContext, scoreClips } = require("./clip-score");
 const OBJECTIVES = { DragonKill: "dragon", BaronKill: "baron", HeraldKill: "herald", HordeKill: "voidgrubs", TurretKilled: "turret", InhibKilled: "inhibitor" };
 
 // Riot live events → our markers for the active player `me`. Pure; app/test-recorder.js checks it.
@@ -56,7 +57,7 @@ function liveGet(p, timeout = 1500) {
 // ctx: { lcu, getConfig, dir, push, log, platform: () => Promise<string>, onGame?: (rec, phase) => void, onEvents?: (rec, fresh) => void, live?: liveGet }
 function attachRecorder(ctx) {
   const live = ctx.live || liveGet;
-  let rec = null, timer = null, seen = new Set(), me = null, detached = false, misses = 0;
+  let rec = null, timer = null, seen = new Set(), me = null, detached = false, misses = 0, lastGold = null;
   const enabled = () => { const c = ctx.getConfig(); return forGame(c, "league").record || forGame(c, "tft").record; }; // DONI-594: each game has its own switch
   const file = (id) => path.join(ctx.dir, `${String(id).replace(/[^\w-]/g, "_")}.json`);
   const save = () => { if (!rec) return; try { fs.mkdirSync(ctx.dir, { recursive: true }); fs.writeFileSync(file(rec.matchId), JSON.stringify(rec)); } catch (e) { ctx.log("recorder: save", e.message); } };
@@ -80,7 +81,23 @@ function attachRecorder(ctx) {
       try { fs.writeFileSync(file(r.matchId), JSON.stringify(r)); } catch (e) { ctx.log("recorder: board", e.message); }
     }
   }
-  ctx.lcu.on("connect", () => setTimeout(() => fillFromHistory(), 20000).unref?.());
+  ctx.lcu.on("connect", () => setTimeout(() => { fillFromHistory(); fillContext(); }, 20000).unref?.());
+
+  // Smart clips (clip-score.js): once the client has the game in its match history, each event learns the champions,
+  // streaks, levels and teams around it, the recording keeps its team gold per minute, and its clips are rescored.
+  // After each League game and once when the client connects (the last 20 games that never got it; one try each).
+  async function fillContext(ids) {
+    const want = (ids || list().filter((r) => r.game === "league" && r.endedAt).slice(0, 20).map((r) => r.matchId)).map(read)
+      .filter((r) => r && r.game === "league" && r.gameId && r.player && !r.context);
+    for (const r of want) {
+      const [g, t] = await Promise.all([`/lol-match-history/v1/games/${r.gameId}`, `/lol-match-history/v1/game-timelines/${r.gameId}`]
+        .map((p) => ctx.lcu.request("get", p).then((x) => (x.status === 200 ? x.data : null), () => null)));
+      if (!g || !t) { if (!ids) { r.context = "none"; write(r); } continue; } // not in the client's history (practice tool, custom); a fresh game retries
+      const m = matchContext(r, g, t, ctx.champName);
+      Object.assign(r, m ? { events: m.events, gold: m.gold, context: "client" } : { context: "none" });
+      write(r);
+    }
+  }
 
   async function start() {
     if (rec || !enabled()) return;
@@ -92,7 +109,7 @@ function attachRecorder(ctx) {
     if (!forGame(ctx.getConfig(), game).record) return; // this game's recording is off
     rec = { matchId: platform ? `${String(platform).toUpperCase()}_${gameId}` : String(gameId), gameId, queueId: queueId || null,
       game, startedAt: Date.now(), endedAt: null, champion: null, result: null, events: [] };
-    seen = new Set(); me = null; detached = false; misses = 0;
+    seen = new Set(); me = null; detached = false; misses = 0; lastGold = null;
     ctx.log(`recorder: recording ${rec.game} ${rec.matchId}`);
     ctx.onGame && ctx.onGame(rec, "start");
     if (rec.game === "league") { poll(); timer = setInterval(poll, 2000); }
@@ -110,6 +127,11 @@ function attachRecorder(ctx) {
     if (!rec) return;
     const fresh = mapLiveEvents((d.Events || []).filter((e) => !seen.has(e.EventID)), me);
     for (const e of d.Events || []) seen.add(e.EventID);
+    // Your gold on every poll: a kill's "+700g" (smart clips) is what you gained between the poll before it and this one.
+    const ap = await live("/liveclientdata/activeplayer"), gold = ap && Number.isFinite(ap.currentGold) ? ap.currentGold : null;
+    const kills = fresh.filter((e) => e.type === "kill");
+    if (kills.length === 1 && gold != null && lastGold != null && gold > lastGold) kills[0].gold = Math.round(gold - lastGold);
+    lastGold = gold;
     if (!rec.champion) { const ps = await live("/liveclientdata/playerlist"); const mine = (ps || []).find((p) => p.riotIdGameName === me || p.summonerName === me || p.riotId === me); if (mine) rec.champion = mine.championName; }
     if (fresh.length) {
       rec.events.push(...fresh);
@@ -137,6 +159,7 @@ function attachRecorder(ctx) {
     rec.endedAt = Date.now();
     save();
     if (rec.game === "tft") { const done = rec; for (const wait of [45000, 180000]) setTimeout(() => fillFromHistory([done.matchId]), wait).unref?.(); } // the board, and the placement if the screen had none
+    if (rec.game === "league") { const done = rec; for (const wait of [30000, 150000]) setTimeout(() => fillContext([done.matchId]), wait).unref?.(); } // smart clips' match context
     ctx.onGame && ctx.onGame(rec, "end");
     ctx.push(`Recorded ${rec.game === "tft" ? "TFT" : rec.champion || "League"}: ${rec.events.filter((e) => e.type !== "end").length} moments`, "info", "recorder");
     rec = null;
@@ -154,7 +177,9 @@ function attachRecorder(ctx) {
   });
   ctx.lcu.on("disconnect", () => queue(() => { if (rec && rec.game === "league" && timer) { detached = true; misses = 0; return; } return stop(); }));
 
-  const readOne = (id) => { try { return JSON.parse(fs.readFileSync(file(id), "utf8")); } catch { return null; } };
+  // Every write rescores the clips; a recording read with clips scored by an older scorer (or none) is rescored and saved.
+  const write = (r, id = r.matchId) => { scoreClips(r); try { fs.writeFileSync(file(id), JSON.stringify(r)); } catch (e) { ctx.log("recorder: write", e.message); } };
+  const readOne = (id) => { try { const r = JSON.parse(fs.readFileSync(file(id), "utf8")); if (r && (r.clips || []).length && scoreClips(r)) write(r, id); return r; } catch { return null; } };
   // "NA1_123" and "123" name the same game: a recording made while the platform was unknown is stored under the bare id.
   const read = (id) => { id = String(id); const bare = id.replace(/^[A-Za-z]+\d*_/, ""); return readOne(id) || (bare !== id ? readOne(bare) : null)
     || (() => { try { const f = fs.readdirSync(ctx.dir).find((n) => n.endsWith(`_${bare}.json`)); return f ? readOne(f.slice(0, -5)) : null; } catch { return null; } })(); };
@@ -167,7 +192,7 @@ function attachRecorder(ctx) {
       counts: r.events.reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}) }));
   }
   return {
-    list, get: read, live: () => rec, fill: fillFromHistory,
+    list, get: read, live: () => rec, fill: fillFromHistory, fillContext,
     remove(id) {
       const r = read(id); try { fs.unlinkSync(file(r ? r.matchId : id)); } catch { return { ok: false }; }
       // Its video and clips too, but only files inside the recordings folder (a moved or hand-edited file is left alone).
@@ -175,7 +200,7 @@ function attachRecorder(ctx) {
       for (const f of [r && r.video && r.video.file, ...((r && r.clips) || []).map((c) => c.file)]) if (inside(f)) try { fs.unlinkSync(f); } catch {}
       return { ok: true, video: r && r.video };
     },
-    update(id, patch) { const r = read(id); if (!r) return null; Object.assign(r, patch); fs.writeFileSync(file(id), JSON.stringify(r)); return r; },
+    update(id, patch) { const r = read(id); if (!r) return null; Object.assign(r, patch); scoreClips(r); fs.writeFileSync(file(id), JSON.stringify(r)); return r; },
   };
 }
 
