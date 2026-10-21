@@ -227,7 +227,7 @@ async function lgFillTiers(token, retried = false) {
     }
     box().innerHTML = lgTierTable(data);
     const low = data.champions.filter(c => c.lowSample).length;
-    document.getElementById('lg-meta').innerHTML = `${lg.queue ? lgMode()[1] : LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · ${low} of ${data.champions.length} under ${lgN(data.minGames)} games greyed` : ''}`;
+    document.getElementById('lg-meta').innerHTML = `${lg.queue ? lgMode()[1] : LG_ROLE[lg.role] || 'All lanes'} · ${lgN(data.matches)} matches${data.avgWinRate ? ` · average ${lgPct(data.avgWinRate)}` : ''}${low ? ` · under ${lgN(data.minGames)} games greyed` : ''}`;
   } catch (e) {
     console.error('tier list render failed', e);
     if (box()) box().innerHTML = '<p class="lg-offline">The tier list could not be drawn from this answer. Change a filter to try again.</p>';

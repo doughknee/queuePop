@@ -31,7 +31,9 @@ async function refreshSummoner() {
     if (hi) {
       lvlEl.textContent = "";
       if (rankEl) {
-        rankEl.textContent = rankLabel(hi, false);
+        // the highest of four queues can be a TFT one; say so, or "Master" reads as League (2026-10-20)
+        const game = hi === info.ranked.tft ? "TFT · " : hi === info.ranked.double_up ? "Double Up · " : "";
+        rankEl.textContent = game + rankLabel(hi, false);
         rankEl.style.color = tierColor(hi.tier);
       }
     } else {
