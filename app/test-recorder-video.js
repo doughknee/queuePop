@@ -33,6 +33,8 @@ assert.deepStrictEqual(clipArgs("in.mkv", 110, 129, "out.mp4"), ["-hide_banner",
 const GB = 1024 ** 3;
 assert.deepStrictEqual(chooseDeletions([{ path: "new", size: 3 * GB, mtime: 3 }, { path: "old", size: 2 * GB, mtime: 1 }, { path: "mid", size: 2 * GB, mtime: 2 }], 4 * GB), ["old", "mid"]);
 assert.deepStrictEqual(chooseDeletions([{ path: "a", size: GB, mtime: 1 }], 4 * GB), []);
+// favourites are skipped: the next oldest goes instead
+assert.deepStrictEqual(chooseDeletions([{ path: "new", size: 3 * GB, mtime: 3 }, { path: "old", size: 2 * GB, mtime: 1 }, { path: "mid", size: 2 * GB, mtime: 2 }], 4 * GB, new Set(["old"])), ["mid", "new"]);
 // The size cap only sees the recorder's own videos (the folder may be your Videos folder).
 assert.deepStrictEqual(ownVideos(["NA1_1.json", "NA1_1.mkv", "NA1_1-clip2.mp4", "obs 2024.mkv", "NA1_2.mkv", "x.json", "x.mp4", "555.json", "555.mkv"]),
   ["NA1_1.mkv", "NA1_1-clip2.mp4", "555.mkv"]);
