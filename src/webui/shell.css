@@ -164,9 +164,15 @@ body.theme-home{background:var(--bg);color:var(--fg);font-family:var(--mono)}
 .qk-list dt{flex:none;width:96px;display:flex;gap:4px}
 .qk-list dd{margin:0;color:var(--fg)}
 /* Global search sheet (DONI-537, palette.js): anchored under the page row, over the page, never a modal. */
-.sb-search{width:100%;border:0;background:none;font:inherit;cursor:pointer;margin-bottom:4px}
-.sb-search kbd{margin-left:auto;padding:2px 6px;border:1px solid var(--edge);color:var(--muted);font:12px var(--mono);letter-spacing:0;text-transform:none}
-.sb-collapsed .sb-search span,.sb-collapsed .sb-search kbd{display:none}
+.sb-search{display:flex;align-items:center;gap:8px;height:30px;margin-left:auto;padding:0 7px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer}
+.sb-search svg{width:16px;height:16px;flex-shrink:0}
+.sb-search kbd{font:11px var(--mono);letter-spacing:0;color:var(--muted)}
+.sb-search:hover,.sb-search:focus-visible{border-color:var(--accent);color:var(--accent)}
+.sb-search:hover kbd{color:var(--fg)}
+/* With the collapse button showing (no ad) the row is tight at the default width: the magnifier alone. */
+:root:not(.ads-on) .sb-search kbd{display:none}
+:root:not(.ads-on) .sb-search{border-color:transparent}
+.sb-collapsed .sb-search{margin:0}
 .qp-search{position:fixed;z-index:60;box-sizing:border-box;display:flex;flex-direction:column;max-height:min(70vh,640px);background:var(--bg);color:var(--fg);border:1px solid var(--accent);box-shadow:0 24px 64px rgba(0,0,0,.7);font:14px/1.35 var(--mono)}
 .qp-search[hidden]{display:none}
 .qs-box{display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}

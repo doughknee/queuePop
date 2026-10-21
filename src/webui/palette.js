@@ -180,11 +180,12 @@
     else if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey && !typing(e.composedPath()[0]) && sheet.hidden) { e.preventDefault(); open(); }
   });
 
-  // A Search entry at the top of the sidebar, so the sheet is findable without the shortcut.
+  // Search sits in the sidebar's top row next to the logo (2026-10-21: it had its own nav row, which the sidebar ad needs).
   const btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'sb-item sb-search'; btn.dataset.qsOpen = ''; btn.title = 'Search (Ctrl+K)';
-  btn.innerHTML = '<svg class="sb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span>Search</span><kbd>Ctrl K</kbd>';
+  btn.type = 'button'; btn.className = 'sb-search'; btn.dataset.qsOpen = ''; btn.title = 'Search (Ctrl+K)'; btn.setAttribute('aria-label', 'Search');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><kbd>Ctrl K</kbd>';
   btn.addEventListener('click', () => sheet.hidden ? open() : close());
-  document.querySelector('#qp-sidebar .sb-scroll').prepend(btn);
+  const top = document.querySelector('#qp-sidebar .sb-top');
+  top.insertBefore(btn, top.querySelector('.sb-toggle'));
   window.qpSearch = { open, close, focusSetting };
 })();
