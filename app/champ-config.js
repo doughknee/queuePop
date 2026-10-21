@@ -224,7 +224,7 @@ function forGame(cfg, game) {
 }
 
 // Bookmarks bar: up to 30 in-app pages (#/…), each {href, label, game}.
-const MARK_GAMES = ["league", "tft", "deadlock", "settings", "recordings", "home"];
+const MARK_GAMES = ["league", "tft", "deadlock", "settings", "studio", "recordings", "home"];
 function cleanBookmarks(v) {
   const seen = new Set();
   return (Array.isArray(v) ? v : []).filter((b) => b && /^#\//.test(String(b.href || "")) && !seen.has(b.href) && seen.add(b.href))

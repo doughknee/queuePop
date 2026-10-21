@@ -167,6 +167,12 @@
   utilities overridden at its end). Dropped: the armory, chronicle and battle-report interiors (unreachable), league-armory.css,
   league-interiors.css, league-home.css. Do not bring back gold, arches, torn-paper clip-paths or italics in League.
 
+## Studio (2026-10-21; decided: the recorder is its own world, not a Settings card)
+- Studio is a sidebar world under the games (index.html `.sb-studio`): Library `#/studio`, Highlights `#/studio/highlights`,
+  Capture `#/studio/capture` (studio.js), player `#/studio/game/<matchId>[/<clip>]` (recordings.js). Old `#/recordings` links
+  redirect (worlds.js). Every recorder option is `src/webui/js/recorder-options.js` (shared by host and pages, test-studio.js);
+  Settings keeps one Recording card that links into Studio. Which games record stays `recorder.enabled` (League) / `tft.record`.
+
 ## Ads (2026-10-21; decided, don't move the slot)
 - One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at
   316 px with no collapse or drag. Supporters (`config.ads.premium`, standing in for Overwolf's subscription check) get no ad and

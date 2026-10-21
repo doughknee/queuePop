@@ -10,7 +10,7 @@ assert.strictEqual(d.mode, "full");
 assert.deepStrictEqual([d.audio.game.on, d.audio.mic.on, d.audio.desktop.on, d.audio.mic.device], [true, true, false, "default"]);
 assert.strictEqual(d.clips.assist.on, false);
 assert.deepStrictEqual(d.clips.kill, { on: true, before: 10, after: 5 });
-assert.deepStrictEqual(d.hotkey, { on: true, keys: "Ctrl+Shift+C", seconds: 30 });
+assert.deepStrictEqual(d.hotkey, { on: true, keys: "Alt+F8", seconds: 30 });
 
 // Old configs keep what they meant.
 assert.strictEqual(o.normalize({ preset: "720p30" }).quality, "saver");
@@ -27,8 +27,8 @@ assert.strictEqual(o.normalize({ quality: "custom", height: 1234 }).height, 1080
 const b = o.normalize({ buffer_s: 15, clips: { kill: { before: 40, after: 99 } }, audio: { mic: { volume: 999 } }, hotkey: { keys: "C", seconds: 60 } });
 assert.deepStrictEqual(b.clips.kill, { on: true, before: 14, after: 30 });
 assert.strictEqual(b.audio.mic.volume, 200);
-assert.deepStrictEqual([b.hotkey.keys, b.hotkey.seconds], ["Ctrl+Shift+C", 15]);
-assert.strictEqual(o.normalize({ hotkey: { keys: "Alt+F9" } }).hotkey.keys, "Alt+F9");
+assert.deepStrictEqual([b.hotkey.keys, b.hotkey.seconds], ["Alt+F8", 15]);
+assert.strictEqual(o.normalize({ hotkey: { keys: "Ctrl+Shift+C" } }).hotkey.keys, "Ctrl+Shift+C");
 
 // Tracks and size: Balanced with game + mic = 3 tracks, about 3.8 GB an hour; desktop sound adds a track.
 assert.strictEqual(o.tracks(d), 1 | 2 | 4);

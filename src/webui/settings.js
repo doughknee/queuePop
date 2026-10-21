@@ -93,14 +93,9 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
           <div><p id="st-comp-note" class="st-val"></p><p class="st-hint">Scan with your phone camera, tap Enable Alerts and keep the tab open. Same Wi-Fi only.</p>
           <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`,
         'Your phone rings for League and TFT queue pops.') +
-      card('recorder', 'Recording (beta)', `
-        ${act('Recording', 'Turn it on per game, in that game’s tab.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/recordings">Open Recordings</a>')}
-        ${sw('recorder.video', 'Record video', 'Records a recorded game on your graphics card and keeps a clip of each moment. With the QueuePop companion: the game itself, its audio and your mic. Without it: your main screen through ffmpeg, no audio.')}
-        <div class="st-row"><span class="st-lbl">Engine<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
-        <label class="st-row" data-when="recorder.video"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.quality"><option value="saver">Saver: 720p, 30 fps, about 2 GB an hour</option><option value="balanced">Balanced: 1080p, 60 fps, about 3.8 GB an hour</option><option value="high">High: 1440p, 60 fps, about 7.4 GB an hour</option><option value="custom">Custom (set in Studio)</option></select></label>
-        ${text('recorder.folder', 'Folder', 'Leave empty for queuePop’s own folder.', 'placeholder="queuePop’s recordings folder"')}
-        ${num('recorder.cap_gb', 'Size limit (GB)', 'When videos pass this, the oldest are deleted first.', 1, 2000)}
-        ${act('Files', '', btn('rec-folder', 'Open folder'))}`) +
+      card('recorder', 'Recording', `
+        ${act('Studio', 'Quality, sound, clips, the save-last-moments shortcut and storage all live in Studio now.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/studio">Open Studio</a><a class="st-btn" href="#/studio/capture">Capture settings</a>')}
+        <div class="st-row"><span class="st-lbl">Engine<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>`) +
       card('crawler', 'Stats crawler', `
         ${text('crawler_url', 'Address', 'Where League and TFT stats come from. Leave empty for the default.', `data-url placeholder="${DEFAULT_CRAWLER}"`)}
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
@@ -410,7 +405,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
     const e = s && s.engine, any = !!(e && e.engine);
     const events = !!(QP.store.get('recorder.enabled') || QP.store.get('tft.record'));
     el.textContent = stEngineLine(e, events);
-    sw.disabled = !any || !events; sw.closest('.st-row').title = !any ? 'Start the QueuePop companion or install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : '';
+    if (sw) { sw.disabled = !any || !events; sw.closest('.st-row').title = !any ? 'Start the QueuePop companion or install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : ''; } // the switch moved to Studio
   }
   async function loadAbout() {
     loadAssets();

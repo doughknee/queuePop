@@ -31,7 +31,7 @@
     for (const [key, u] of Object.entries((m && m.units) || {})) if (u.cost >= 1 && u.cost <= 5 && (u.traits || []).length && !seen.has(u.name)) { seen.add(u.name); out.push({ kind: 'unit', label: u.name, sub: `${u.cost} cost · ${u.traits.map(t => (m.traits && m.traits[t] && m.traits[t].name) || t).join(', ')}`, href: '#/tft/unit/' + encodeURIComponent(key), icon: u.icon }); }
     return out.sort((a, b) => a.label.localeCompare(b.label)); };
   window.qpRecordingItems = (list, facts, when) => (list || []).map(r => { const f = facts(r);
-    return { kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: '#/recordings' }; });
+    return { kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: `#/studio/game/${encodeURIComponent(r.matchId)}` }; });
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return; // app/test-palette.js
 
   const KEY = 'queuepop-palette-recent-v1';
@@ -58,7 +58,8 @@
     }
     for (const [id, l] of (window.settingsView?.sections || [])) out.push({ kind: 'page', label: l, sub: 'Settings', href: '#/settings#' + id });
     for (const s of (window.settingsView?.index?.() || [])) out.push({ kind: 'setting', label: s.label, sub: s.section + (s.hint ? ' · ' + s.hint : ''), href: '#/settings#' + s.id, focus: s.key });
-    out.push({ kind: 'page', label: 'Recordings', sub: 'Recorder (beta)', href: '#/recordings' });
+    out.push({ kind: 'page', label: 'Studio', sub: 'Your recorded games', href: '#/studio' }, { kind: 'page', label: 'Highlights', sub: 'Studio', href: '#/studio/highlights' },
+      { kind: 'page', label: 'Capture settings', sub: 'Studio: quality, sound, clips, hotkey, storage', href: '#/studio/capture' });
     out.push({ kind: 'action', label: 'Collapse or expand the sidebar', sub: 'Ctrl+B', act: 'sidebar' },
       { kind: 'action', label: 'Bigger text', sub: 'Ctrl +', act: 'bigger' }, { kind: 'action', label: 'Smaller text', sub: 'Ctrl −', act: 'smaller' },
       { kind: 'action', label: 'Reset text size', sub: 'Ctrl 0', act: 'reset' });

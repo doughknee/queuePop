@@ -76,7 +76,6 @@
     bar.querySelector('.sb-gear:not(.sb-rec)').toggleAttribute('aria-current', game === 'settings');
     // 2026-10-21: no Home row any more; the logo is Home, and it shows when you're there.
     if (game === 'home') bar.querySelector('.sb-brand').setAttribute('aria-current', 'page'); else bar.querySelector('.sb-brand').removeAttribute('aria-current');
-    bar.querySelector('.sb-rec')?.toggleAttribute('aria-current', game === 'recordings');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     const src = bar.querySelector(`[data-game="${game}"] .sb-pages`), html = src ? src.innerHTML : '';
     // DONI-595: a new game's pages slide in (the label above them was the game's name again, so it's gone).
@@ -114,7 +113,7 @@
   // Clicks only matter when they moved the address (Deadlock/TFT pushState); everything else would redo the same work (DONI-535).
   addEventListener('click', () => setTimeout(() => { if (location.hash !== synced) window.syncSidebar(); }));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
-  for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js', 'ads.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
+  for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js', 'studio.js', 'ads.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
   // The skip link is the first Tab stop (it sat after the window buttons), and it lands on Settings too (worlds.js focuses it).
   const skip = document.querySelector('a.skip'); if (skip && document.body.firstElementChild !== skip) document.body.prepend(skip);
   document.getElementById('settings-view')?.setAttribute('tabindex', '-1');

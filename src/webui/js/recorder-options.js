@@ -55,7 +55,7 @@
       buffer_s,
       audio: { game: src('game', { on: true }), mic: { ...mic, device: typeof obj(a.mic).device === 'string' && obj(a.mic).device.length < 300 ? obj(a.mic).device : 'default' }, desktop: src('desktop', { on: false }) },
       clips,
-      hotkey: { on: bool(h.on, true), keys: KEYS.test(h.keys || '') ? h.keys : 'Ctrl+Shift+C', seconds: num(h.seconds, 5, buffer_s, Math.min(30, buffer_s)) },
+      hotkey: { on: bool(h.on, true), keys: KEYS.test(h.keys || '') ? h.keys : 'Alt+F8', seconds: num(h.seconds, 5, buffer_s, Math.min(30, buffer_s)) },
     }; // which games record stays where it was: recorder.enabled (League) and tft.record
   }
 
