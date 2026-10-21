@@ -417,3 +417,17 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .rp-cplay{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;padding:2px 0}
 .rp-cplay b{font:16px/1 var(--display);text-transform:uppercase}.rp-cplay small{color:var(--muted);font-size:12px}.rp-cplay:hover b{color:var(--accent)}
 @media(min-width:1100px){.rec-player{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0 24px;align-items:start}.rec-player>.rec-back,.rec-player>.rp-head{grid-column:1/-1}.rec-player .rp-clips{margin-top:0}.rp-c{grid-template-columns:28px auto auto minmax(0,1fr);row-gap:0}.rp-cplay{grid-column:2/-1}.rp-c .rec-del{justify-self:start;padding:2px 12px 2px 0}.rp-c [data-rp-cshow]{grid-column:2}}
+
+/* The sidebar ad (docs/ads.md, ads.js): 300x250 under the nav, the sidebar fixed at 316 px, no collapse or drag, the nav
+   tightened so the games and the current game's pages fit above it at the default window. */
+:root.ads-on{--sb-w:316px}
+:root.ads-on .sb-resize{display:none}
+:root.ads-on .sb-group{margin-top:2px}
+:root.ads-on .sb-item{height:32px}
+:root.ads-on .sb-block{margin-top:8px;padding-top:6px}
+:root.ads-on .sb-block a{padding:4px 8px}
+.sb-ad{flex:none;padding:6px 8px 8px;border-top:1px solid var(--line)}
+.sb-ad-label{display:flex;justify-content:space-between;margin-bottom:4px;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sb-ad-box{position:relative;width:300px;height:250px;min-width:300px;min-height:250px;background:var(--wash) url(assets/queuepop.svg) center/48px no-repeat}
+.sb-ad-box owadview{display:block;width:300px;height:250px;background:transparent}
+.sb-ad[data-mode=preview] .sb-ad-box::after{content:'300 × 250 ad preview';position:absolute;left:0;right:0;bottom:16px;text-align:center;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}

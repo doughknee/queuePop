@@ -165,8 +165,8 @@ app.whenReady().then(() => {
   const bridgeArgs = ["--qp-methods=" + Object.keys({ ...METHODS, ...impl }).concat(host.NAMES)];
   float = createFloat({ preload: path.join(__dirname, "preload.js"), args: bridgeArgs, getConfig: loadConfig, userData: app.getPath("userData"), log });
   win = new BrowserWindow({
-    width: 1280, height: 860, ...ws.options(screen), minWidth: 1280, minHeight: 720, frame: false, backgroundColor: "#0A0A0A", show: false,
-    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: bridgeArgs },
+    width: 1280, height: 860, ...ws.options(screen), minWidth: 1280, minHeight: 760, frame: false, backgroundColor: "#0A0A0A", show: false,
+    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: bridgeArgs, webviewTag: true }, // Overwolf's <owadview> is a webview (docs/ads.md)
   });
   // The window only ever shows src/webui. Links that leave it open in the browser; nothing else may load here,
   // because any page in this window would get the bridge (DONI-529).
