@@ -255,3 +255,13 @@
 .qp-skel{display:grid;gap:4px;margin-top:8px}.qp-skel i{display:block;height:22px;background:var(--line);opacity:.5;animation:qp-skel 1.2s ease-in-out infinite alternate}.qp-skel i:nth-child(odd){opacity:.35}
 @keyframes qp-skel{to{opacity:.15}}@media (prefers-reduced-motion:reduce){.qp-skel i{animation:none}}
 .lg-queues-tabs button small{margin-left:6px;color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0}
+.lg-filters select.lg-mode{color:var(--accent);border-color:var(--accent)}
+/* The rarely-changed minimums (lane %, pick %, games) fold into one "Thresholds" dropdown so the filters fit one row. */
+.lg-thresh{position:relative}
+.lg-thresh summary{display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:1px solid var(--edge);color:var(--muted);font:12px var(--mono);cursor:pointer;list-style:none;white-space:nowrap}
+.lg-thresh summary::-webkit-details-marker{display:none}
+.lg-thresh summary::after{content:'▾';font-size:10px}
+.lg-thresh[open] summary,.lg-thresh summary:hover{color:var(--fg);border-color:var(--accent)}
+.lg-thresh-panel{position:absolute;z-index:20;top:calc(100% + 4px);right:0;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--bg);border:1px solid var(--edge)}
+/* Champion page: the role tabs (with their shares) take their own row above the filters. */
+.lg-filters .lg-croles{order:-1;flex-basis:100%}

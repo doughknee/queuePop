@@ -123,16 +123,21 @@ const LG_BRACKETS = [['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 
 const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regions, ...(lg.region !== 'all' ? [lg.region] : [])])].map(r => [r, r.replace(/\d+$/, '').toUpperCase()])];
 // DONI-565/596: Ranked Solo, Flex, ARAM, Normal, Swiftplay. ARAM has no lanes, so the page drops lane tabs and the lane column (.lg-aram).
 // DONI-595: a mode's tab shows whenever it has data (or is picked); a thin sample (< 1,000 games) says so on the tab instead of hiding it.
+// Game mode: one dropdown (the tabs took a third of the filter row and wrapped it). A thin mode says its game count.
 const lgQueueTabs = () => {
-  const tabs = LG_MODES.filter(([v]) => !v || lg.modeN[v] > 0 || lg.queue === v);
-  return tabs.length > 1 ? `<div class="lg-roles lg-queues-tabs" role="group" aria-label="Game mode">${tabs.map(([v, t]) => { const n = lg.modeN[v] || 0, thin = v && n < 1000; return `<button data-lg-queue="${v}" aria-pressed="${lg.queue === v}"${thin ? ` title="Only ${lgN(n)} ${t} games this patch so far: read these as a rough guide"` : ''}>${t}${thin ? ` <small>${lgN(n)}</small>` : ''}</button>`; }).join('')}</div>` : '';
+  const modes = LG_MODES.filter(([v]) => !v || lg.modeN[v] > 0 || lg.queue === v);
+  return modes.length > 1 ? `<select class="lg-mode" data-lg-mode aria-label="Game mode" title="Game mode">${modes.map(([v, t]) => { const n = lg.modeN[v] || 0, thin = v && n < 1000; return `<option value="${v}"${lg.queue === v ? ' selected' : ''}>${t}${thin ? ` · ${lgN(n)}` : ''}</option>`; }).join('')}</select>` : '';
 };
+document.addEventListener('change', e => {
+  const m = e.target.closest?.('[data-lg-mode]'); if (!m) return;
+  lg.queue = m.value; lgSave(); document.querySelector('.lg-page')?.classList.toggle('lg-aram', lg.queue === 'aram'); lgRefill();
+});
 function lgFilters(withRole = true, lead = '', nums = withRole) {
   const sel = (key, opts) => `<select data-lg-filter="${key}" aria-label="${{ patch: 'Patch', region: 'Region', bracket: 'Rank', days: 'Window' }[key]}">${opts.map(([v, t]) => `<option value="${v}" ${lg[key] === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
   return `<div class="lg-filters"><span id="lg-queues">${lgQueueTabs()}</span>${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
     ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}${sel('days', LG_WINDOWS)}
-    ${nums ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
+    ${nums ? `<details class="lg-thresh"><summary title="Lane ${lgt.minLane}% · pick ${lgt.minPick}% · ${lgN(lgt.minGames)} games">Thresholds</summary><div class="lg-thresh-panel">${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}</div></details>` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
   try {
@@ -332,8 +337,6 @@ document.addEventListener('click', e => {
   if (t.closest('#lg-results a')) { lg.q = ''; return; }
   const ext = t.closest('[data-lg-ext]');
   if (ext) { const a = window.pywebview?.api; a?.open_external ? a.open_external(ext.dataset.lgExt) : window.open(ext.dataset.lgExt, '_blank', 'noopener'); return; }
-  const queue = t.closest('[data-lg-queue]');
-  if (queue) { lg.queue = queue.dataset.lgQueue; lgSave(); document.querySelectorAll('[data-lg-queue]').forEach(b => b.setAttribute('aria-pressed', String(b === queue))); document.querySelector('.lg-page')?.classList.toggle('lg-aram', lg.queue === 'aram'); lgRefill(); return; }
   const role = t.closest('[data-lg-role]');
   if (role) { lg.role = role.dataset.lgRole; lgSave(); document.querySelectorAll('[data-lg-role]').forEach(b => b.setAttribute('aria-pressed', String(b === role))); lgRefill(); return; }
   const sort = t.closest('[data-lg-sort]');
