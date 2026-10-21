@@ -36,11 +36,16 @@
     let list = [];
     const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
+    // Video needs ffmpeg on PATH (recorder-video.js probe); without it the switch would do nothing, so say why instead.
+    let ff = null; try { ff = ((await api().recorder_status()) || {}).ffmpeg; } catch {}
+    const noFf = ff && !ff.found, ffHelp = `<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">Get ffmpeg ↗</a>`;
+    const vidLine = !on ? '' : noFf ? `<span>${video ? 'Video is on, but ffmpeg isn’t installed, so games keep their timeline only.' : 'Video needs ffmpeg, which isn’t installed.'} ${ffHelp}, add it to PATH, then restart queuePop.</span>`
+      : !video ? `<span>Video is off, so a game keeps its timeline only. <button type="button" class="st-btn st-gold" data-rec-video>Record video too</button></span>` : '';
     if (!here()) return;
     const head = `<header class="rec-head"><p class="eyebrow">Recorder (beta)</p><h1>Recordings</h1>
       <p>${on ? 'Every League and TFT game is recorded while queuePop runs: your kills, deaths, assists, multikills, objectives and the result, with their game time.' : 'The recorder is off. Turn it on in Settings to keep a timeline of every game.'}
       <a href="#/settings#recorder" data-rec-settings>Recorder settings ↗</a></p>
-      <p class="rec-files"><button type="button" class="st-btn" data-rec-folder>Open the recordings folder</button>${on && !video ? `<span>Video is off, so a game keeps its timeline only. <button type="button" class="st-btn st-gold" data-rec-video>Record video too</button></span>` : ''}</p></header>`;
+      <p class="rec-files"><button type="button" class="st-btn" data-rec-folder>Open the recordings folder</button>${vidLine}</p></header>`;
     // Off: the fix is one click away, right here (it applies at once, like every Settings control).
     if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
