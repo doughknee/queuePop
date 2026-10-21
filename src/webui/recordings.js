@@ -84,6 +84,7 @@
   const resTag = r => r.game === 'tft' ? (r.placement ? `<span class="sd-res ${r.placement <= 4 ? 'win' : 'loss'}">${r.placement}${['th', 'st', 'nd', 'rd'][r.placement] || 'th'}</span>` : '')
     : r.result ? `<span class="sd-res ${r.result}">${r.result === 'win' ? 'Win' : 'Loss'}</span>` : '';
   let tab = 'all'; // Library's filter: all | favorites
+  let more = 30; // games read in full (Library and Highlights); Show older games adds 30
   const hf = { type: 'all', champ: '', star: false, sort: 'best' }; // Highlights' filter (window.recFilterClips)
   // Studio's routes (2026-10-21): #/studio = Library, /highlights, /capture (studio.js), /game/<matchId>[/<clip>] = the player.
   const route = () => { const m = /^#\/studio(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/(\d+))?/.exec(location.hash) || []; return { page: m[1] || '', id: m[2], clip: m[3] }; };
@@ -142,7 +143,7 @@
     let list = [];
     const here = () => location.hash.startsWith('#/studio') && route().page === rt.page; // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
-    const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
+    const full = await Promise.all(list.slice(0, more).map(r => api().get_recording(r.matchId).catch(() => null)));
     // Champion names (splash art) and TFT unit icons (boards). The TFT data is 24 MB the first time, so the page waits at most
     // 0.6 s for them and draws again once they're in.
     const extras = Promise.all([list.some(r => r.game === 'tft') && window.tftStats ? tftStats.loadDragon().catch(() => {}) : 0, window.lgNames ? lgNames().catch(() => {}) : 0]);
@@ -163,11 +164,12 @@
     const video = !!(QP.store.config && (QP.store.config.recorder || {}).video);
     const [chip, eng] = await Promise.all([window.studioSummary ? studioSummary().catch(() => '') : '', api().recorder_status().then(s => (s || {}).engine).catch(() => null)]);
     const slot = host.querySelector('#sd-status'), note = host.querySelector('#sd-note'); if (!slot || !note) return;
-    slot.innerHTML = chip;
+    // The fix sits beside the status: turn the recorder on, or video on (Library only). A missing engine needs a sentence.
+    const none = eng && !eng.engine;
+    slot.innerHTML = chip + (!on ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>'
+      : !video && !none && page === 'library' ? '<button type="button" class="sd-btn primary" data-rec-video title="Games keep their timeline only while video is off">Record video too</button>' : '');
     const ff = '<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">get ffmpeg ↗</a>';
-    note.innerHTML = !on ? `<p class="sd-note"><span>The recorder is off, so new games aren’t kept.</span><button type="button" class="sd-btn primary" data-rec-on>Record my games</button></p>`
-      : eng && !eng.engine ? `<p class="sd-note warn"><span>${video ? 'Video is on, but nothing can record it, so games keep their timeline only.' : 'Video needs a recorder.'} Start the QueuePop companion (the Overwolf app), or ${ff} and add it to PATH.</span></p>`
-      : !video && page === 'library' ? `<p class="sd-note"><span>Video is off, so games keep their timeline only.</span><button type="button" class="sd-btn primary" data-rec-video>Record video too</button></p>` : '';
+    note.innerHTML = on && none ? `<p class="sd-note warn"><span>${video ? 'Video is on, but nothing can record it, so games keep their timeline only.' : 'Video needs a recorder.'} Start the QueuePop companion (the Overwolf app), or ${ff} and add it to PATH.</span></p>` : '';
   }
 
   // --- Library -------------------------------------------------------------------------------------------------------------
@@ -188,7 +190,7 @@
 
   function libraryHtml(list, full, clips) {
     if (!list.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('play')}</span><h2>Your games will show up here</h2><p>Play a League or TFT game with the recorder on. Every game keeps its timeline; with video on, your kills, multikills and objectives are cut into clips as you play.</p><a class="sd-btn" href="#/studio/capture">Capture settings</a></div>`;
-    const games = list.slice(0, 30).map((r, i) => ({ r, rec: full[i] || r }));
+    const games = list.slice(0, more).map((r, i) => ({ r, rec: full[i] || r }));
     const shown = games.filter(({ r }) => tab !== 'favorites' || r.favorite), favN = games.filter(({ r }) => r.favorite).length;
     const stage = tab === 'all' && games[0] ? stageHtml(games[0].r, games[0].rec) : '';
     const rest = tab === 'all' ? shown.slice(1) : shown;
@@ -198,7 +200,8 @@
     const days = window.recGroupDays(rest.map(x => x.r)).map(d => `<section class="sd-day"><header><h3>${E(d.label)}</h3><small>${plural(d.games.length, 'game')}${d.wins + d.losses ? ` · <b class="w">${d.wins} W</b> <b class="l">${d.losses} L</b>` : ''}</small></header>
       <ol class="sd-games">${d.games.map(r => cardHtml(r, recs.get(r.matchId))).join('')}</ol></section>`).join('');
     const none = !rest.length && tab === 'favorites' ? '<div class="sd-empty small"><h2>Nothing starred yet</h2><p>Star a game and it stays, video and clips, when the folder goes over its size cap.</p></div>' : '';
-    return `${stage}${bar}${none}${days}`;
+    const older = list.length > more ? `<div class="sd-more"><button type="button" class="sd-btn" data-rec-more>Show older games <small>${list.length - more} more</small></button></div>` : '';
+    return `${stage}${bar}${none}${days}${older}`;
   }
   // The latest game on the big screen: its best clips play back to back, its clips as a reel underneath.
   function stageHtml(r, rec) {
@@ -428,10 +431,12 @@
     if (k && !(k === 'toggle' && e.key === ' ' && e.target.closest('button'))) { e.preventDefault(); rpAction(k); }
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); document.querySelector('.sd-pacts [data-rec-fav]')?.click(); }
   });
+  const what = b => (b.getAttribute('aria-label') || '').replace(/^(Un)?star /i, ''); // a star's name, kept when it redraws
   document.addEventListener('click', async e => {
-    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],[data-hf-clear],.rp-tl [data-t],.sd-moments [data-t]');
+    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-more],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],[data-hf-clear],.rp-tl [data-t],.sd-moments [data-t]');
     if (!t) return;
     if (t.dataset.recTab) { tab = t.dataset.recTab; render(document.getElementById('main')); return; }
+    if (t.hasAttribute('data-rec-more')) { more += 30; t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main')); window.scrollTo(0, y); return; }
     if (t.hasAttribute('data-hf-clear')) { Object.assign(hf, { type: 'all', champ: '', star: false }); reHL(); return; }
     if (t.dataset.recFav) {
       e.preventDefault();
@@ -439,14 +444,14 @@
       await api().set_recording_favorite(id, on).catch(() => null);
       if (P.rec && P.rec.matchId === id) P.rec.favorite = on;
       if (tab === 'favorites' && !location.hash.startsWith('#/studio/game/')) { render(document.getElementById('main')); return; }
-      t.outerHTML = star(on, `data-rec-fav="${E(id)}"`, '', label); return;
+      t.outerHTML = star(on, `data-rec-fav="${E(id)}"`, what(t), label); return;
     }
     if (t.dataset.recCfav) {
       e.preventDefault();
       const id = t.dataset.recCfav, i = +t.dataset.i, on = t.getAttribute('aria-pressed') !== 'true';
       await api().set_clip_favorite(id, i, on).catch(() => null);
       if (P.rec && P.rec.matchId === id && P.rec.clips[i]) P.rec.clips[i].favorite = on;
-      t.outerHTML = star(on, `data-rec-cfav="${E(id)}" data-i="${i}"`, ''); return;
+      t.outerHTML = star(on, `data-rec-cfav="${E(id)}" data-i="${i}"`, what(t)); return;
     }
     if (t.dataset.rp) { rpAction(t.dataset.rp); return; }
     if (t.dataset.rpClip != null) { playClip(+t.dataset.rpClip); return; }

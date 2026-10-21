@@ -135,14 +135,14 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
         ${num('champ_select.aram.bench_delay', 'Bench grab delay (s)', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3, 'champ_select.aram.enabled')}
         ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer.')}`) +
-      card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them under Recordings. Video and storage are in App › Recording.')) +
+      card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them in Studio. Video, sound and storage are in Studio > Capture.')) +
       // ---- TFT ----
       card('tft-queue', 'Queue', `
         ${sw('tft.auto_accept', 'Auto-accept queue pops', 'Accepts TFT matches for you, separately from League.')}
         ${num('tft.accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'tft.auto_accept')}
         ${queues}`) +
       card('tft-alerts', 'Alerts', chips(TFT_EVENTS, 'tft.alert_events.'), 'Tell me when… <a href="#/settings#notify">Where alerts go</a>') +
-      card('tft-record', 'Recording', sw('tft.record', 'Record TFT games', 'Keeps a timeline of each game and your placement. See them under Recordings. Video and storage are in App › Recording.')) +
+      card('tft-record', 'Recording', sw('tft.record', 'Record TFT games', 'Keeps a timeline of each game and your placement. See them in Studio. Video, sound and storage are in Studio > Capture.')) +
       // ---- Deadlock ----
       card('deadlock-account', 'Account and overlay', `
         <label class="st-row"><span class="st-lbl">Deadlock account ID${tip('Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.')}</span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="123456789"></label>

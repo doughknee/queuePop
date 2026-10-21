@@ -58,7 +58,7 @@
     }
     for (const [id, l] of (window.settingsView?.sections || [])) out.push({ kind: 'page', label: l, sub: 'Settings', href: '#/settings#' + id });
     for (const s of (window.settingsView?.index?.() || [])) out.push({ kind: 'setting', label: s.label, sub: s.section + (s.hint ? ' · ' + s.hint : ''), href: '#/settings#' + s.id, focus: s.key });
-    out.push({ kind: 'page', label: 'Studio', sub: 'Your recorded games', href: '#/studio' }, { kind: 'page', label: 'Highlights', sub: 'Studio', href: '#/studio/highlights' },
+    out.push({ kind: 'page', label: 'Studio', sub: 'Your recorded games', href: '#/studio' }, { kind: 'page', label: 'Highlights', sub: 'Studio: your clips, best first', href: '#/studio/highlights' },
       { kind: 'page', label: 'Capture settings', sub: 'Studio: quality, sound, clips, hotkey, storage', href: '#/studio/capture' });
     out.push({ kind: 'action', label: 'Collapse or expand the sidebar', sub: 'Ctrl+B', act: 'sidebar' },
       { kind: 'action', label: 'Bigger text', sub: 'Ctrl +', act: 'bigger' }, { kind: 'action', label: 'Smaller text', sub: 'Ctrl −', act: 'smaller' },
