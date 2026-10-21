@@ -15,10 +15,10 @@ function accountFromVdf(text) {
 }
 function steamDir() {
   try {
-    const out = execFileSync("reg", ["query", "HKCU\Software\Valve\Steam", "/v", "SteamPath"], { encoding: "utf8", windowsHide: true, timeout: 3000 });
+    const out = execFileSync("reg", ["query", String.raw`HKCU\Software\Valve\Steam`, "/v", "SteamPath"], { encoding: "utf8", windowsHide: true, timeout: 3000 });
     const m = /SteamPath\s+REG_SZ\s+(.+)/.exec(out); if (m) return m[1].trim();
   } catch {}
-  return "C:\Program Files (x86)\Steam";
+  return "C:/Program Files (x86)/Steam";
 }
 function detectDeadlockAccount() {
   if (process.platform !== "win32") return "";
