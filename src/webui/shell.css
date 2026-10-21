@@ -371,3 +371,8 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .hq-link.hq-play[data-mode=cancel],.hq-link.hq-play[data-mode=live]{background:var(--bg);color:var(--accent);border-color:var(--accent)}
 .hq-link.hq-play[data-mode=cancel] small,.hq-link.hq-play[data-mode=cancel] i,.hq-link.hq-play[data-mode=live] small{color:var(--muted)}
 .hq-link.hq-play:disabled{opacity:.6;cursor:default}
+/* Five quick links in a row: labels stay on one line. */
+.hq-link{gap:12px;padding:12px 14px;min-width:0}
+.hq-link b{font-size:24px;white-space:nowrap}
+.hq-link small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hq-link img,.hq-link>svg,.hq-link.hq-play .qp-play-logo{width:36px;height:36px}
