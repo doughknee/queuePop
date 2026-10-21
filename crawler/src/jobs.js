@@ -79,7 +79,8 @@ async function refreshApex(ctx, game, region) {
 // League modes (D13 ARAM, DONI-596): every queue but solo/duo is stored under "<patch><suffix>" ("16.20-flex", "16.20-aram"),
 // so every per-patch aggregate and endpoint serves a mode unchanged (?queue= picks it) and modes never mix.
 const MODES = { 420: "", 440: "-flex", 450: "-aram", 400: "-normal", 480: "-swift", 490: "-swift" };
-const MODE_RE = /-(flex|aram|normal|swift)$/;
+const TFT_MODES = { 1100: "", 1160: "-doubleup" }; // DONI-615: Double Up was fetched and skipped (6% of TFT fetches); now a mode
+const MODE_RE = /-(flex|aram|normal|swift|doubleup)$/;
 const basePatch = (patch) => (patch || "").replace(MODE_RE, "");
 const ARAM = 450;
 // Capped discovery: ranked ids() never returns these queues, so capped() asks for them. Ranked players rarely play them (live,
@@ -348,7 +349,7 @@ function store(ctx, game, id, m) {
   const ok = queues.includes(queue) && (game !== "lol" || info.gameDuration >= 300);
   tx(db, () => {
     db.prepare(`UPDATE matches SET status = ?, queue = ?, patch = ?, "set" = ?, started_at = ?, fetched_at = ?, raw = ?, duration = ? WHERE id = ?`).run(
-      ok ? "done" : "skip", queue, game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info) + (game === "lol" ? MODES[queue] ?? "" : ""), game === "lol" ? null : setOf(info),
+      ok ? "done" : "skip", queue, (game === "tft" && patchOf(info) === "?" ? tftPatch(info, windowsFor(db, now)) : patchOf(info)) + ((game === "lol" ? MODES : TFT_MODES)[queue] ?? ""), game === "lol" ? null : setOf(info),
       game === "lol" ? info.gameStartTimestamp : info.game_datetime, now(), ok ? zlib.gzipSync(JSON.stringify(m)) : null, win.durationOf(info), id);
     if (!ok) return;
     if (game === "lol") {
@@ -424,7 +425,7 @@ function backfillModes(db) {
 // Write lock (2026-10-20, DONI-596): each patch is computed into same-named TEMP stats_* tables, which shadow main's on this
 // connection, so the minutes of GROUP BYs only read main and the crawl keeps writing. Only the writes to main (raw ingest, each
 // patch's swap from temp, the meta stamps) run inside locked(fn); the worker passes one that pauses the crawl loops around them.
-const SWAP_ROWS = 250000;
+const SWAP_ROWS = 150000; // ~2 s of lock each (16.20: 3M rows in ~40 s)
 function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
   const cut = now(); // DONI-568: stamped as aggregatedAt, so a match committed after the dirty query is dirty next pass
   const last = getMeta(db, "aggregatedAt");
@@ -515,4 +516,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { retirePuuids, retireBatch, repairCarries, tierOrder, ARAM, MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { retirePuuids, retireBatch, repairCarries, tierOrder, ARAM, MODES, TFT_MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };

@@ -24,7 +24,7 @@ const cfg = {
   dbPath: env.DB_PATH || "data/crawler.db",
   port: Number(env.PORT) || 47900,
   // 450 ARAM (D13), 400 normal draft, 480/490 swiftplay (DONI-596): capped by ARAM_SHARE / NORMAL_SHARE / SWIFT_SHARE
-  queues: (env.QUEUES || "420,440,450,400,480,490,1100").split(",").map(Number),
+  queues: (env.QUEUES || "420,440,450,400,480,490,1100,1160").split(",").map(Number), // 1160 TFT Double Up (DONI-615)
   shares: { 450: Number(env.ARAM_SHARE ?? 0.1), 400: Number(env.NORMAL_SHARE ?? 0.05), 480: Number(env.SWIFT_SHARE ?? 0.05) },
   aggregateEveryMin: Number(env.AGGREGATE_EVERY_MIN ?? 60),
   retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
@@ -169,8 +169,10 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
         .on("message", async (m) => {
           if (m?.lock === true) {
             aggregating = true; since = Date.now(); locks++;
-            // let in-flight steps finish their writes first (each would otherwise stall the API busy_timeout and then fail), max 2 min
-            for (let i = 0; i < 240 && (inflight > 0 || backingUp); i++) await sleep(500);
+            // let in-flight steps finish their writes first, at most 3 s: a step waiting on Riot (a 429's retry-after is 20-30 s)
+            // held every swap for that long (the 23:41Z pass paused the crawl 284 s over 16 swaps; most was this wait). A step that
+            // writes during the swap waits it out (busy_timeout) or fails and retries. The nightly backup only reads: no wait.
+            for (let i = 0; i < 60 && inflight > 0; i++) await sleep(50);
             Atomics.store(lock, 0, 1); Atomics.notify(lock, 0);
           } else if (m?.lock === false) { aggregating = false; pausedMs += Date.now() - since; }
           else {

@@ -114,20 +114,22 @@ window.createTftView = function (host) {
   const mag = (x, p90, text) => `<span class="ts-v vn" style="--k:${Math.sqrt(Math.min(1, x / (p90 || 1))).toFixed(2)}">${text}</span>`;
   const games = (n) => `<span class="ts-games">${n.toLocaleString()} games</span>`;
 
-  const filters = { patch: '', region: 'all', bracket: 'all', days: '' };
+  const filters = { patch: '', region: 'all', bracket: 'all', days: '', mode: '' }; // mode: '' ranked, 'doubleup' (DONI-615)
   // Region, rank and window are remembered between sessions like League's (patch always starts on the newest).
   const FKEY = 'queuepop-tft-filters-v1', saveFilters = () => { try { localStorage.setItem(FKEY, JSON.stringify({ region: filters.region, bracket: filters.bracket, days: filters.days })); } catch (_) {} };
   try { const s = JSON.parse(localStorage.getItem(FKEY) || '{}'); for (const k of ['region', 'bracket', 'days']) if (typeof s[k] === 'string') filters[k] = s[k]; } catch (_) {}
-  let defaultPatch = '', augmentNote = '', rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
-  const qs = () => `patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
+  let doubleup = [], defaultPatch = '', augmentNote = '', rows = [], shown = 30, open = null, query = '', patches = null, offline = false, dragonAsked = false, regions = ['kr', 'na1'];
+  // Double Up lives under "<patch>-doubleup" on the crawler; a suffixed patch selects it on every TFT route
+  const P = () => filters.patch + (filters.mode ? '-' + filters.mode : '');
+  const qs = () => `patch=${enc(P())}&region=${filters.region}&bracket=${filters.bracket}${filters.days ? '&days=' + filters.days : ''}`;
   // DONI-570: units, augments and traits are whole-patch tables, so the detail never sends the window (Played stays <= 100 %).
-  const detail = (id) => S.get(`/tft/comp/${enc(id)}?patch=${enc(filters.patch)}&region=${filters.region}&bracket=${filters.bracket}`);
+  const detail = (id) => S.get(`/tft/comp/${enc(id)}?patch=${enc(P())}&region=${filters.region}&bracket=${filters.bracket}`);
   const known = new Map(); // comp id → its loaded unit keys (search matches unit names through these)
 
   async function loadComps() {
     offline = false;
     try {
-      if (!patches) [patches, regions] = await Promise.all([S.get('/patches').then((p) => { defaultPatch = p.default?.tft || ''; return p.tft || []; }), S.regions()]);
+      if (!patches) [patches, regions] = await Promise.all([S.get('/patches').then((p) => { defaultPatch = p.default?.tft || ''; doubleup = p.doubleup || []; return p.tft || []; }), S.regions()]);
       S.get('/tft/augments').then((a) => { augmentNote = a.note || ''; }).catch(() => {}); // D15: Riot's own reason when there are none
       if (!filters.patch) filters.patch = defaultPatch || patches[0] || ''; // D15: the crawler's default waits on patch day
       rows = filters.patch ? S.compRows(await S.get(`/tft/comps?${qs()}&trend=1`)) : [];
@@ -184,6 +186,7 @@ window.createTftView = function (host) {
   function filterStrip() {
     const opt = (v, l, cur) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${l}</option>`;
     return `<div class="ts-filters"><label>Patch <select data-f="patch">${(patches || []).map((p) => opt(p, p, filters.patch)).join('') || `<option value="">${offline ? 'Offline' : 'None yet'}</option>`}</select></label>
+      ${doubleup.length || filters.mode ? `<label>Mode <select data-f="mode">${opt('', 'Ranked', filters.mode)}${opt('doubleup', 'Double Up', filters.mode)}</select></label>` : ''}
       <div class="ts-seg" role="group" aria-label="Region">${[['all', 'All regions'], ...regions.map((r) => [r, S.regionLabel(r)])].map(([v, l]) => `<button data-region="${v}" aria-pressed="${filters.region === v}">${l}</button>`).join('')}</div>
       <label${LISTS[parse().p] || parse().p !== '' ? ' hidden' : ''}>Window <select data-f="days">${[['', 'Whole patch'], ['7', 'Last 7 days'], ['3', 'Last 3 days'], ['1', 'Today']].map(([v, l]) => opt(v, l, filters.days)).join('')}</select></label>
       <label>Rank <select data-f="bracket">${[['all', 'All ranks'], ['emerald', 'Emerald+'], ['diamond', 'Diamond+'], ['master', 'Master+']].map(([v, l]) => opt(v, l, filters.bracket)).join('')}</select></label></div>`;

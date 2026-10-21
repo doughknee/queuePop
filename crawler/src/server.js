@@ -4,7 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
-const { TIERS, nextAggregation, MODES, MODE_RE, basePatch } = require("./jobs");
+const { TIERS, nextAggregation, MODES, TFT_MODES, MODE_RE, basePatch } = require("./jobs");
 const { getMeta, setMeta, riotKey, setKey, keyHealth, GAMES } = require("./db");
 const champ = require("./agg-champion");
 const win = require("./agg-window");
@@ -24,11 +24,12 @@ const dec = (s) => { try { return decodeURIComponent(s); } catch { throw bad("ma
 // with a handful of games. /patches lists every patch newest first plus counts, minMatches and that default.
 // Each League mode rolls over on its own (DONI-596 follow-up): when solo reaches 2,000 on a new patch, ARAM there may have 30
 // games, so a mode keeps its old patch until the new one has 1,000 (the app's "thin sample" line) or more games than the old.
-const MIN_MATCHES = { lol: 2000, tft: 1000, flex: 1000, aram: 1000, normal: 1000, swift: 1000 };
+const MIN_MATCHES = { lol: 2000, tft: 1000, flex: 1000, aram: 1000, normal: 1000, swift: 1000, doubleup: 1000 };
 const MODE_NAMES = ["flex", "aram", "normal", "swift"];
 // ?queue= on League stats: queue id or name -> patch suffix; solo/duo (420, "ranked") is the plain patch
 const QUEUE_SFX = { ...MODES, ranked: "", solo: "", ...Object.fromEntries(MODE_NAMES.map((m) => [m, "-" + m])) };
-const SFX_QUEUE = { "-flex": 440, "-aram": 450, "-normal": 400, "-swift": 480 };
+const SFX_QUEUE = { "-flex": 440, "-aram": 450, "-normal": 400, "-swift": 480, "-doubleup": 1160 };
+const TFT_QUEUE_SFX = { ...TFT_MODES, ranked: "", doubleup: "-doubleup" }; // ?queue= on TFT stats (DONI-615)
 const pickPatch = (game, list, counts) => list.find((p) => counts[p] >= MIN_MATCHES[game]) || [...list].sort((x, y) => counts[y] - counts[x])[0] || null;
 // Cached until stats_lol_matches or stats_tft_boards change (max rowid, count, sum: a few hundred rows): every stats request calls it,
 // and its two GROUP BYs took seconds while a retirement and a pass were writing (2026-10-20 22:00Z).
@@ -46,8 +47,9 @@ function patchesUncached(db) {
     .filter((r) => r.patch !== "?").map((r) => [r.patch, Math.round(r.n / per)]));
   // League modes live under "<patch>-<mode>" (D13, DONI-596): lol is solo/duo; flex, aram, normal and swift are listed apart,
   // counted per plain patch
-  const c = { lol: {}, tft: counts("stats_tft_boards", "boards", 8), ...Object.fromEntries(MODE_NAMES.map((m) => [m, {}])) };
+  const c = { lol: {}, tft: {}, ...Object.fromEntries([...MODE_NAMES, "doubleup"].map((m) => [m, {}])) };
   for (const [p, n] of Object.entries(counts("stats_lol_matches", "matches", 1))) (c[MODE_RE.exec(p)?.[1] || "lol"][basePatch(p)] = n);
+  for (const [p, n] of Object.entries(counts("stats_tft_boards", "boards", 8))) (c[MODE_RE.exec(p)?.[1] || "tft"][basePatch(p)] = n);
   const lists = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Object.keys(v).sort(byVersion)]));
   return { ...lists, counts: c, minMatches: MIN_MATCHES, default: Object.fromEntries(Object.keys(c).map((k) => [k, pickPatch(k, lists[k], c[k])])) };
 }
@@ -74,13 +76,11 @@ function head(db, q, game, windowed = false) {
   const ps = patches(db);
   // ?queue= (League): 420 solo (default), 440 flex, 450 ARAM, 400 normal, 480/490 swiftplay, or a name; that mode's rows live
   // under "<patch>-<mode>" and patch in the response keeps the suffix. A suffixed ?patch picks its mode too.
-  let sfx = "";
-  if (game === "lol") {
-    const k = String(q.queue || "").toLowerCase();
-    if (k && !Object.hasOwn(QUEUE_SFX, k)) throw bad("queue must be 420 (solo), 440 (flex), 450 (aram), 400 (normal) or 480/490 (swift)");
-    sfx = k ? QUEUE_SFX[k] : (MODE_RE.exec(q.patch || "") || [""])[0];
-  }
-  const mode = game === "lol" && sfx ? sfx.slice(1) : game; // a mode's own default patch (never one it has no games on)
+  // TFT: ?queue=1100|ranked (default) or 1160|doubleup, or a "-doubleup" ?patch (DONI-615)
+  const k = String(q.queue || "").toLowerCase(), qmap = game === "lol" ? QUEUE_SFX : TFT_QUEUE_SFX;
+  if (k && !Object.hasOwn(qmap, k)) throw bad(game === "lol" ? "queue must be 420 (solo), 440 (flex), 450 (aram), 400 (normal) or 480/490 (swift)" : "queue must be 1100 (ranked) or 1160 (doubleup)");
+  const sfx = k ? qmap[k] : (MODE_RE.exec(q.patch || "") || [""])[0];
+  const mode = sfx ? sfx.slice(1) : game; // a mode's own default patch (never one it has no games on)
   const base = basePatch(q.patch) || pickPatch(mode, ps[mode].filter((p) => !bySet || bySet.has(p)), ps.counts[mode]);
   const patch = sfx && base ? base + sfx : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
