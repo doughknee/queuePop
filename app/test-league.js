@@ -43,4 +43,11 @@ const alts = ctx.window.leagueSlotAlternatives({ core: [opt("3020,3078,6672", 50
   [opt("3078", 9), opt("3053", 8), opt("3071", 7), opt("6333", 6)], [opt("3053", 5)], []] });
 assert.strictEqual(JSON.stringify(alts.map((s) => s.map((o) => o.key))), JSON.stringify([["3053", "3071", "6333"], ["3053"], []]));
 assert.strictEqual(JSON.stringify(ctx.window.leagueSlotAlternatives(undefined)), "[[],[],[]]");
+// Match history champion split: most played first, ties by wins; win rate and KDA per champion.
+const split = JSON.parse(JSON.stringify(ctx.window.lgChampSplit([
+  { championId: 81, win: true, kills: 10, deaths: 2, assists: 4, position: "bottom" }, { championId: 81, win: false, kills: 2, deaths: 6, assists: 2 },
+  { championId: 157, win: true, kills: 5, deaths: 0, assists: 1 }])));
+assert.deepStrictEqual(split.map((r) => [r.championId, r.games, r.winRate]), [[81, 2, 0.5], [157, 1, 1]]);
+assert.strictEqual(split[0].kda, 2.25); // (12 + 6) / 8
+assert.strictEqual(split[1].kda, 6); // no deaths counts as 1
 console.log("ok test-league");
