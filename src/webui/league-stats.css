@@ -179,7 +179,12 @@
 .lg-sum-items .lg-ico{width:22px;height:22px}
 .lg-ago small{display:block}
 .lg-ladder .lg-name a{display:flex;gap:4px;align-items:baseline}
-.lg-ladder tbody tr{cursor:default}
+.lg-ladder tbody tr[data-lg-go]{cursor:pointer}
+.lg-ladder td.num small{color:var(--muted);font-size:11px;margin-right:12px}
+.lg-ladder-tier th{text-align:left;padding:14px 8px 6px;font:12px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--accent);background:var(--bg)}
+.lg-ladder-tier small{margin-left:10px;color:var(--muted);letter-spacing:0;text-transform:none}
+.lg-ladder-find{display:block;width:min(320px,100%);height:30px;margin:0 0 8px;padding:0 10px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font:12px var(--mono)}
+.lg-ladder-find:focus{outline:none;border-color:var(--accent)}
 
 /* DONI-513: trend sparkline in the tier list, game-length columns on the champion page */
 .lg-spark{flex:none;margin-left:auto;fill:none;stroke-width:1.5}
