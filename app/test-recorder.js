@@ -192,13 +192,23 @@ console.log("test-recorder highlights ok");
 }
 console.log("test-recorder smart clips ok");
 
-// Champion page clips (recPickChampionClips): that champion only, best score first, then starred, then newest; capped.
+// Champion page top clips (recPickChampionClips): that champion only; your picks (starred, saved yourself) first whatever their
+// score, then plays scoring 35+ (deaths and plain assists stay out), best score first, then newest; capped.
 {
   const it = (champion, startedAt, c) => ({ r: { champion, startedAt }, c: { file: "x.mp4", ...c }, i: 0 });
-  const items = [it("Ezreal", 1, { score: 40 }), it("Ezreal", 2, { score: 90 }), it("ezreal", 3, { score: 40, favorite: true }), it("Ahri", 4, { score: 99 }), it("Ezreal", 5, { score: 70, file: "" })];
-  const got = JSON.parse(JSON.stringify(ctx.window.recPickChampionClips(items, "Ezreal"))).map((x) => x.r.startedAt);
-  assert.deepStrictEqual(got, [2, 3, 1]); // no Ahri, no clip without a file, case-insensitive name
-  assert.strictEqual(ctx.window.recPickChampionClips(items, "Ezreal", 1).length, 1);
+  const items = [
+    it("Ezreal", 1, { score: 40, types: ["kill"] }),
+    it("Ezreal", 2, { score: 90, types: ["multikill"] }),
+    it("ezreal", 3, { score: 10, types: ["death"], favorite: true }), // starred death: your pick, so it leads
+    it("Ezreal", 4, { score: 10, types: ["death"] }), // plain death: out
+    it("Ezreal", 5, { score: 20, types: ["assist"] }), // plain assist: out
+    it("Ezreal", 6, { score: 5, types: ["manual"], mine: true }), // saved with the hotkey: a pick
+    it("Ahri", 7, { score: 99 }),
+    it("Ezreal", 8, { score: 70, file: "" }), // no file: out
+  ];
+  const got = (n) => JSON.parse(JSON.stringify(ctx.window.recPickChampionClips(items, "Ezreal", n))).map((x) => x.r.startedAt);
+  assert.deepStrictEqual(got(), [3, 6, 2, 1]);
+  assert.deepStrictEqual(got(2), [3, 6]);
   assert.deepStrictEqual(ctx.window.recPickChampionClips(items, "").length, 0);
 }
 console.log("test-recorder champion clips ok");

@@ -23,12 +23,15 @@
     return { title: r.champion || 'League', result: r.result ? (r.result === 'win' ? 'Win' : 'Loss') : '', facts: facts.join(' · ') };
   }
   window.recFacts = recFacts;
-  // A champion page's "Your <champion> clips": that champion's clips across your recordings, best first (score, then starred,
-  // then newest), at most n. items: [{ r: recording summary, c: clip, i }]. Pure; app/test-recorder.js checks it.
-  window.recPickChampionClips = (items, name, n = 8) => {
-    const want = String(name || '').toLowerCase();
-    return items.filter(({ r, c }) => want && String(r.champion || '').toLowerCase() === want && c && c.file)
-      .sort((a, b) => (b.c.score || 0) - (a.c.score || 0) || (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || (b.r.startedAt || 0) - (a.r.startedAt || 0))
+  // A champion page's "Your top <champion> clips" (2026-10-21). Top = your picks first (clips you starred, or saved yourself with
+  // the hotkey or in the player), then your best plays: score 35 or more on the smart-clip scale (kills, multikills, shutdowns,
+  // steals, your team's objectives), so deaths, plain assists and enemy objectives stay in Studio. Best score first within each,
+  // then newest; at most n. items: [{ r: recording summary, c: clip, i }]. Pure; app/test-recorder.js checks it.
+  window.REC_TOP_SCORE = 35;
+  window.recPickChampionClips = (items, name, n = 6) => {
+    const want = String(name || '').toLowerCase(), pick = c => !!c.favorite || !!c.mine || (c.types || []).includes('manual');
+    return items.filter(({ r, c }) => want && String(r.champion || '').toLowerCase() === want && c && c.file && (pick(c) || (c.score || 0) >= window.REC_TOP_SCORE))
+      .sort((a, b) => (pick(b.c) ? 1 : 0) - (pick(a.c) ? 1 : 0) || (b.c.score || 0) - (a.c.score || 0) || (b.r.startedAt || 0) - (a.r.startedAt || 0))
       .slice(0, n);
   };
   // Highlights' filter and order (deck-out round 3). items: [{ r: recording summary, c: clip, i }]; f: { type: all | kill |
@@ -166,10 +169,10 @@
     if (!mine.length) return '';
     const full = await Promise.all(mine.slice(0, 40).map(r => a.get_recording(r.matchId).catch(() => null)));
     const items = []; full.forEach((rec, k) => (rec && rec.clips || []).forEach((c, i) => items.push({ r: mine[k], c, i })));
-    const top = window.recPickChampionClips(items, name, 8);
+    const top = window.recPickChampionClips(items, name, 6);
     if (!top.length) return '';
     const total = items.length;
-    return `<section class="lg-myclips" aria-label="Your ${E(name)} clips"><header><h2>Your ${E(name)} clips</h2><a href="#/studio/highlights" data-myclips-champ="${E(name)}">${total > top.length ? `All ${total} in Studio ↗` : 'Open Studio ↗'}</a></header>
+    return `<section class="lg-myclips" aria-label="Your top ${E(name)} clips"><header><h2>Your top ${E(name)} clips</h2><small>Your starred and saved clips first, then your best plays.</small><a href="#/studio/highlights" data-myclips-champ="${E(name)}">${total > top.length ? `All ${total} in Studio ↗` : 'Open Studio ↗'}</a></header>
       <ol class="sd-film">${top.map(({ r, c, i }) => `<li><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(when(r.startedAt))} · ${Math.round((c.end || 0) - (c.start || 0))} s${c.favorite ? ' · ★' : ''}</small></span></a></li>`).join('')}</ol></section>`;
   };
   window.recLazyVideos = root => lazyVideos(root);
