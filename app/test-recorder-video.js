@@ -85,5 +85,22 @@ assert.deepStrictEqual(placeClips([{ at: 15000, ms: 15000, file: "c" }], 5000), 
   assert.ok(Math.abs(saved.video.offset - (rec.clock.wall - 4000) / 1000) < 0.2); // video time at game time 0, from the first frame
   assert.deepStrictEqual(saved.clips.map((c) => [c.file, c.start, c.end, c.types.join("+"), c.ids.join("+")]),
     [["C:/rec/NA1_9-clip1.mp4", 56, 76, "kill+kill", "1+2"], ["C:/rec/NA1_9-clip2.mp4", 196, 209, "death", "4"]]);
+  // On ow-electron a ready in-process recorder (ow-recorder.js) takes the game; the companion is never asked.
+  const used = [], remote = [];
+  const ow = { status: () => ({ ready: true, encoder: "obs_x264" }),
+    start: async (b) => (used.push(["start", b.processName]), { ok: true, encoder: "obs_x264", startEpoch: 1000 }),
+    clip: async () => (used.push(["clip"]), { ok: true, file: "C:/rec/D_1-clip1.mp4", startTimeEpoch: 5000, duration: 15000 }),
+    stop: async () => (used.push(["stop"]), { ok: true, file: "C:/rec/D_1.mp4", duration: 60000, startTimeEpoch: 1000 }) };
+  const saved2 = {};
+  const v2 = createVideo({ getConfig: () => ({ recorder: { enabled: true, video: true } }), dir: () => "C:/rec", log() {}, push() {},
+    recorder: { update: (id, patch) => Object.assign(saved2, patch), list: () => [] }, ow, companion: async (p) => (remote.push(p), null), probe: async () => ({ found: false }) });
+  assert.strictEqual((await v2.engine()).inProcess, true);
+  const rec2 = { matchId: "D_1", game: "deadlock", events: [], clock: null };
+  await v2.start(rec2);
+  v2.onEvents(rec2, [{ id: 1, t: 0, type: "kill" }]);
+  await v2.stop(rec2);
+  assert.deepStrictEqual(used, [["start", "deadlock.exe"], ["clip"], ["stop"]]);
+  assert.deepStrictEqual(remote, []);
+  assert.deepStrictEqual([saved2.video.file, saved2.clips[0].start, saved2.clips[0].end], ["C:/rec/D_1.mp4", 4, 19]);
   console.log("test-recorder-video ok");
 })().catch((e) => { console.error(e); process.exit(1); });

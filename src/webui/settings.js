@@ -21,7 +21,7 @@ window.stEngineLine = (e, events) => {
   const c = e.companion || {};
   const hint = c.running ? `The QueuePop companion is running, but its recorder isn’t ready${c.error ? ' (' + c.error + ')' : ''}: restart it.`
     : 'For the game window, game audio and a mic track, start the QueuePop companion (the Overwolf app).';
-  if (e.engine === 'overwolf') return `Recording with Overwolf (${ST_OW_ENC[e.encoder] || e.encoder}), game audio + mic.${tail}`;
+  if (e.engine === 'overwolf') return `Recording with Overwolf (${e.inProcess ? 'built in, ' : ''}${ST_OW_ENC[e.encoder] || e.encoder}), game audio + mic.${tail}`;
   if (e.engine === 'ffmpeg') return `Recording with ffmpeg (${ST_FF_ENC[e.encoder] || e.encoder}), main screen, no audio. ${hint}${tail}`;
   return `Nothing to record video with. ${hint} Or install ffmpeg from ffmpeg.org (and add it to PATH).`;
 };
