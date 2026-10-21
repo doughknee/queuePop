@@ -16,15 +16,21 @@
   function apply() {
     s.w = Math.min(400, Math.max(200, Number(s.w) || 248));
     root.style.setProperty('--sb-open-w', s.w + 'px');
-    root.classList.toggle('sb-collapsed', !!s.collapsed);
+    // docs/ads.md: while the sidebar ad shows (html.ads-on, ads.js) the sidebar stays open at its fixed width; the saved
+    // collapse and width come back for supporters.
+    const ads = root.classList.contains('ads-on');
+    root.classList.toggle('sb-collapsed', !!s.collapsed && !ads);
+    toggle.hidden = ads;
     toggle.setAttribute('aria-expanded', String(!s.collapsed));
     toggle.setAttribute('aria-label', s.collapsed ? 'Expand sidebar' : 'Collapse sidebar');
     toggle.title = toggle.getAttribute('aria-label');
   }
   apply();
-  toggle.addEventListener('click', () => { s.collapsed = !s.collapsed; apply(); save(); });
-  window.qpSidebarWidth = w => { s.w = w; apply(); save(); }; // keys.js: the grip by keyboard
-  grip.addEventListener('pointerdown', e => { grip.setPointerCapture(e.pointerId); root.classList.add('sb-dragging'); });
+  window.qpSidebarApply = apply; // ads.js
+  const locked = () => root.classList.contains('ads-on');
+  toggle.addEventListener('click', () => { if (locked()) return; s.collapsed = !s.collapsed; apply(); save(); });
+  window.qpSidebarWidth = w => { if (locked()) return; s.w = w; apply(); save(); }; // keys.js: the grip by keyboard
+  grip.addEventListener('pointerdown', e => { if (locked()) return; grip.setPointerCapture(e.pointerId); root.classList.add('sb-dragging'); });
   grip.addEventListener('pointermove', e => { if (grip.hasPointerCapture(e.pointerId)) { s.w = e.clientX; apply(); } });
   grip.addEventListener('lostpointercapture', () => { root.classList.remove('sb-dragging'); save(); });
 
@@ -97,7 +103,7 @@
   // Clicks only matter when they moved the address (Deadlock/TFT pushState); everything else would redo the same work (DONI-535).
   addEventListener('click', () => setTimeout(() => { if (location.hash !== synced) window.syncSidebar(); }));
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
-  for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
+  for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js', 'ads.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
   // The skip link is the first Tab stop (it sat after the window buttons), and it lands on Settings too (worlds.js focuses it).
   const skip = document.querySelector('a.skip'); if (skip && document.body.firstElementChild !== skip) document.body.prepend(skip);
   document.getElementById('settings-view')?.setAttribute('tabindex', '-1');

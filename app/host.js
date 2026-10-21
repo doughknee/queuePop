@@ -142,6 +142,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         champ_select_enabled: !!(cfg.champ_select || {}).enabled, allowed_queue_count: (cfg.allowed_queue_ids || []).length,
         champions_loaded: 0, companion_enabled: !!cfgComp().enabled, companion_running: companion.isRunning(),
         companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version, stepping_away: away.status(),
+        overwolf: !!app.overwolf, // running on ow-electron: the sidebar ad can serve (docs/ads.md)
       };
     },
     get_stats: () => {
