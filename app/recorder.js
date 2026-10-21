@@ -53,7 +53,7 @@ function liveGet(p, timeout = 1500) {
   });
 }
 
-// ctx: { lcu, getConfig, dir, push, log, platform: () => Promise<string>, onGame?: (rec, phase) => void, live?: liveGet }
+// ctx: { lcu, getConfig, dir, push, log, platform: () => Promise<string>, onGame?: (rec, phase) => void, onEvents?: (rec, fresh) => void, live?: liveGet }
 function attachRecorder(ctx) {
   const live = ctx.live || liveGet;
   let rec = null, timer = null, seen = new Set(), me = null, detached = false, misses = 0;
@@ -113,6 +113,7 @@ function attachRecorder(ctx) {
     if (!rec.champion) { const ps = await live("/liveclientdata/playerlist"); const mine = (ps || []).find((p) => p.riotIdGameName === me || p.summonerName === me || p.riotId === me); if (mine) rec.champion = mine.championName; }
     if (fresh.length) {
       rec.events.push(...fresh);
+      ctx.onEvents && ctx.onEvents(rec, fresh); // video: the Overwolf engine clips these live
       const end = fresh.find((e) => e.type === "end");
       if (end) rec.result = end.result === "Win" ? "win" : end.result === "Lose" ? "loss" : null;
       save();

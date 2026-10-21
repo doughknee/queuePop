@@ -9,8 +9,22 @@ window.stBusyBuckets = rl => {
   return { busy, idle: all.length - busy.length };
 };
 // Settings > Recorder (beta) > ffmpeg: what was found, and why Record video is greyed out (said in the line, not only a hover title).
+const ST_FF_ENC = { h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' };
 window.stFfmpegLine = (f, events) => !f ? 'Couldn’t check.' : !f.found ? 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.'
-  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${{ h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' }[f.encoder] || f.encoder}.${events ? '' : ' Turn on recording in a game’s tab to record video.'}`;
+  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${ST_FF_ENC[f.encoder] || f.encoder}.${events ? '' : ' Turn on recording in a game’s tab to record video.'}`;
+// Settings > Recording > Engine: what records the next game (recorder_status().engine). The QueuePop companion's Overwolf
+// recorder first (game audio + mic, live clips), else ffmpeg (main screen, no audio), and what to do when neither is there.
+const ST_OW_ENC = { h264_texture_amf: 'AMD AMF', obs_nvenc_h264_tex: 'NVIDIA NVENC', obs_qsv11_v2: 'Intel Quick Sync', obs_x264: 'the CPU' };
+window.stEngineLine = (e, events) => {
+  if (!e) return 'Couldn’t check.';
+  const tail = events ? '' : ' Turn on recording in a game’s tab to record video.';
+  const c = e.companion || {};
+  const hint = c.running ? `The QueuePop companion is running, but its recorder isn’t ready${c.error ? ' (' + c.error + ')' : ''}: restart it.`
+    : 'For the game window, game audio and a mic track, start the QueuePop companion (the Overwolf app).';
+  if (e.engine === 'overwolf') return `Recording with Overwolf (${ST_OW_ENC[e.encoder] || e.encoder}), game audio + mic.${tail}`;
+  if (e.engine === 'ffmpeg') return `Recording with ffmpeg (${ST_FF_ENC[e.encoder] || e.encoder}), main screen, no audio. ${hint}${tail}`;
+  return `Nothing to record video with. ${hint} Or install ffmpeg from ffmpeg.org (and add it to PATH).`;
+};
 // DONI-594: Settings has an App tab (where alerts go, the phone, recording storage, stats, display) and one tab per
 // game (that game's queue, alerts, champ select, recording). Every card lives on exactly one tab. Pure; test-settings.js checks it.
 window.ST_TABS = ['app', 'league', 'tft', 'deadlock'];
@@ -81,8 +95,8 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         'Your phone rings for League and TFT queue pops.') +
       card('recorder', 'Recording (beta)', `
         ${act('Recording', 'Turn it on per game, in that game’s tab.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/recordings">Open Recordings</a>')}
-        ${sw('recorder.video', 'Record video', 'Records your main screen during a recorded game and cuts a clip around each moment. Uses your graphics card when it can.')}
-        <div class="st-row"><span class="st-lbl">ffmpeg<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
+        ${sw('recorder.video', 'Record video', 'Records a recorded game on your graphics card and keeps a clip of each moment. With the QueuePop companion: the game itself, its audio and your mic. Without it: your main screen through ffmpeg, no audio.')}
+        <div class="st-row"><span class="st-lbl">Engine<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
         <label class="st-row" data-when="recorder.video"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.preset"><option value="720p30">720p, 30 fps</option><option value="1080p30">1080p, 30 fps</option><option value="1080p60">1080p, 60 fps</option></select></label>
         ${text('recorder.folder', 'Folder', 'Leave empty for queuePop’s own folder.', 'placeholder="queuePop’s recordings folder"')}
         ${num('recorder.cap_gb', 'Size limit (GB)', 'When videos pass this, the oldest are deleted first.', 1, 2000)}
@@ -389,14 +403,14 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       if (s.busy && !root.hidden) assetsTimer = setTimeout(loadAssets, 1500); // one poll chain, and only while Settings shows
     } catch (err) { el.textContent = 'Could not read the icon packs: ' + (err.message || err); }
   }
-  // Q21: video needs ffmpeg on PATH; say so and keep the switch off when it isn't there.
+  // Q21: video needs the companion or ffmpeg; say which records, and keep the switch off when neither is there.
   async function loadRecorder() {
     const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
     let s = null; try { s = await bridge().recorder_status(); } catch {}
-    const f = s && s.ffmpeg;
+    const e = s && s.engine, any = !!(e && e.engine);
     const events = !!(QP.store.get('recorder.enabled') || QP.store.get('tft.record'));
-    el.textContent = stFfmpegLine(f, events);
-    sw.disabled = !(f && f.found) || !events; sw.closest('.st-row').title = !(f && f.found) ? 'Install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : '';
+    el.textContent = stEngineLine(e, events);
+    sw.disabled = !any || !events; sw.closest('.st-row').title = !any ? 'Start the QueuePop companion or install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : '';
   }
   async function loadAbout() {
     loadAssets();

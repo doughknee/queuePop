@@ -57,8 +57,9 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const recorder = attachRecorder({ lcu, getConfig: loadConfig, get dir() { return recDir(); }, push, log, tftHistory: (n) => account.getTftMatchHistory(n),
     live: process.env.QP_FAKE_CS ? require("./fake-lcu").live : undefined, // dev: the fake client's in-game feed
     platform: async () => ((await account.getSummoner().catch(() => null)) || {}).platform || "",
-    onGame: (rec, phase) => { (phase === "start" ? video.start(rec) : video.stop(rec)).catch((e) => log("recorder video:", e.message)); } });
-  video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder }); // Q21: only when Record video is on and ffmpeg is on PATH
+    onGame: (rec, phase) => { (phase === "start" ? video.start(rec) : video.stop(rec)).catch((e) => log("recorder video:", e.message)); },
+    onEvents: (rec, fresh) => video.onEvents(rec, fresh) });
+  video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder }); // Q21: when Record video is on; the Overwolf companion, else ffmpeg
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
@@ -168,7 +169,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     list_recordings: () => recorder.list(),
     get_recording: (id) => recorder.get(String(id)),
     delete_recording: (id) => recorder.remove(String(id)),
-    recorder_status: async () => ({ ffmpeg: await video.probe(true), folder: recDir(), recording: recorder.live() ? recorder.live().matchId : null }),
+    recorder_status: async () => { const e = await video.engine(); return { ffmpeg: e.ffmpeg, engine: e, folder: recDir(), recording: recorder.live() ? recorder.live().matchId : null }; },
     // A game's video: play it (reveal false) or select it in Explorer, where its clips sit beside it (reveal true).
     open_recording: async (id, reveal, clip) => {
       const r = recorder.get(String(id)), f = clip == null ? r?.video?.file : r?.clips?.[clip]?.file;

@@ -11,6 +11,8 @@ Test PC:
 
 Software: ow-electron 42.11.4, recorder package 0.32.59, ffmpeg 9.0.1 (gyan full build).
 
+**Status (2026-10-21): option 1 is built.** The Overwolf recorder is queuePop's main engine. It runs in the QueuePop companion (`.code/deadlock`, `recorder.js`, loopback `127.0.0.1:47821`), and the host prefers it whenever `/health` reports the recorder ready (`app/recorder-video.js`). Kills, multikills, deaths and objectives are clipped live from the replay buffer. ffmpeg is the fallback when the companion isn't running. Not yet verified in a real game; see the PR.
+
 ## What was measured
 
 Both engines captured the **primary desktop** for 60 s at **2580×1080, 60 fps**, encoding H.264 on the 7900 XTX's AMF encoder. No game was running. CPU is the engine's own processes: the `TotalProcessorTime` delta over 40 s, where 100 % is one logical core.
