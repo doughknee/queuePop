@@ -103,6 +103,16 @@ assert.deepStrictEqual(F({ game: "tft", placement: 7, result: "loss" }), { title
   await new Promise((res) => setTimeout(res, 4300)); // the 2 s poll sees GameEnd
   assert.strictEqual(r3.live(), null);
   assert.strictEqual(r3.get("NA1_888").result, "win");
-  for (const d of [dir, dir2, dir3]) fs.rmSync(d, { recursive: true });
+  // A TFT game that ended without a placement (Double Up's screen had none) gets it, and the board, from match history.
+  const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), "qp-rec-"));
+  fs.writeFileSync(path.join(dir4, "NA1_5663876381.json"), JSON.stringify({ matchId: "NA1_5663876381", gameId: 5663876381, queueId: 1160, game: "tft", startedAt: 1, endedAt: 2, champion: null, result: null, events: [] }));
+  const r4 = attachRecorder({ lcu: new EventEmitter(), getConfig: () => cfg, dir: dir4, push: () => {}, log: () => {}, live,
+    tftHistory: async () => [{ id: "NA1_5663876381", placement: 3, level: 8, units: [{ key: "TFT_Ahri", stars: 2, items: [] }], traits: [], augments: [], length: 1800 }] });
+  await r4.fill();
+  const got = r4.get("NA1_5663876381");
+  assert.strictEqual(got.placement, 3); assert.strictEqual(got.result, "win"); assert.strictEqual(got.board.units[0].key, "TFT_Ahri");
+  assert.strictEqual(got.events.filter((e) => e.type === "end").length, 1);
+  await r4.fill(); assert.strictEqual(r4.get("NA1_5663876381").events.filter((e) => e.type === "end").length, 1); // filling twice adds nothing
+  for (const d of [dir, dir2, dir3, dir4]) fs.rmSync(d, { recursive: true });
   console.log("test-recorder ok");
 })().catch((e) => { console.error(e); process.exit(1); });
