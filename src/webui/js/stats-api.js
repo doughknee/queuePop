@@ -85,6 +85,15 @@
 
   window.leagueTierRows = leagueTierRows;
   // League match history: your champions over these games, most played first (games, win rate, KDA). test-league.js checks it.
+  // Which shelf a Data Dragon item sits on in the Items page: boots, starters (Doran's, Dark Seal, Cull, potions, wards),
+  // finished (nothing builds out of it, 900+ gold) or components. ponytail: tag and gold heuristic, revisit if Riot adds a field.
+  window.lgItemGroup = it => {
+    const tags = it?.tags || [], into = it?.into || [], gold = it?.gold?.total ?? 0;
+    if (tags.includes('Boots')) return 'boots';
+    if (tags.some(t => t === 'Consumable' || t === 'Trinket') || (gold <= 500 && into.length <= 1 && tags.some(t => t === 'Lane' || t === 'Jungle'))) return 'starters';
+    if (!into.length && gold >= 900) return 'finished';
+    return 'components';
+  };
   window.lgChampSplit = games => {
     const by = new Map();
     for (const g of games) { const r = by.get(g.championId) || { championId: g.championId, games: 0, wins: 0, k: 0, d: 0, a: 0, position: g.position }; r.games++; r.wins += g.win ? 1 : 0; r.k += g.kills; r.d += g.deaths; r.a += g.assists; by.set(g.championId, r); }

@@ -44,6 +44,16 @@ const alts = ctx.window.leagueSlotAlternatives({ core: [opt("3020,3078,6672", 50
 assert.strictEqual(JSON.stringify(alts.map((s) => s.map((o) => o.key))), JSON.stringify([["3053", "3071", "6333"], ["3053"], []]));
 assert.strictEqual(JSON.stringify(ctx.window.leagueSlotAlternatives(undefined)), "[[],[],[]]");
 // Match history champion split: most played first, ties by wins; win rate and KDA per champion.
+// Items page shelves
+const grp = ctx.window.lgItemGroup;
+assert.strictEqual(grp({ tags: ['Health', 'Lane'], gold: { total: 450 } }), 'starters'); // Doran's Blade
+assert.strictEqual(grp({ tags: ['Lane'], into: ['3041'], gold: { total: 350 } }), 'starters'); // Dark Seal
+assert.strictEqual(grp({ tags: ['Consumable', 'Vision'], gold: { total: 75 } }), 'starters'); // Control Ward
+assert.strictEqual(grp({ tags: ['Damage', 'Lane'], into: ['1053', '4003', '6701'], gold: { total: 350 } }), 'components'); // Long Sword
+assert.strictEqual(grp({ tags: ['Mana'], into: ['3003', '3004'], gold: { total: 400 } }), 'components'); // Tear
+assert.strictEqual(grp({ tags: ['CriticalStrike'], from: ['1038'], gold: { total: 3500 } }), 'finished'); // Infinity Edge
+assert.strictEqual(grp({ tags: ['Armor', 'Boots'], into: ['3174'], gold: { total: 1200 } }), 'boots'); // Plated Steelcaps
+assert.strictEqual(grp(undefined), 'components');
 const split = JSON.parse(JSON.stringify(ctx.window.lgChampSplit([
   { championId: 81, win: true, kills: 10, deaths: 2, assists: 4, position: "bottom" }, { championId: 81, win: false, kills: 2, deaths: 6, assists: 2 },
   { championId: 157, win: true, kills: 5, deaths: 0, assists: 1 }])));
