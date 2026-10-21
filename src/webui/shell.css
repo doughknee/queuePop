@@ -376,3 +376,4 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .hq-link b{font-size:24px;white-space:nowrap}
 .hq-link small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hq-link img,.hq-link>svg,.hq-link.hq-play .qp-play-logo{width:36px;height:36px}
+.hq-link.hq-play small{text-transform:none;letter-spacing:0}
