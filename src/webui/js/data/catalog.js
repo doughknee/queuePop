@@ -94,6 +94,18 @@ function highestRank(ranked) {
   return cands.reduce((a, b) => (rankScore(b) > rankScore(a) ? b : a));
 }
 
+// The sidebar's one rank follows the world you're in (2026-10-20): League shows solo (else flex), TFT shows TFT (else
+// Double Up), anywhere else the highest of the four, named when it isn't League solo. null = unranked there, show the level.
+function sidebarRank(ranked, world) {
+  ranked = ranked || {};
+  const pick = (...qs) => { for (const [q, prefix] of qs) if (ranked[q]?.tier) return { r: ranked[q], prefix }; return null; };
+  if (world === "league") return pick(["solo", ""], ["flex", "Flex · "]);
+  if (world === "tft") return pick(["tft", ""], ["double_up", "Double Up · "]);
+  const hi = highestRank(ranked);
+  if (!hi) return null;
+  return { r: hi, prefix: hi === ranked.tft ? "TFT · " : hi === ranked.double_up ? "Double Up · " : hi === ranked.flex ? "Flex · " : "" };
+}
+
 // --- Mastery helpers ----------------------------------------------------
 function masteryOf(id) { return masteryById[Number(id)]; }
 // Compact "time since" for the Recent sort (epoch ms -> "today"/"3d"/"2w"/…).
