@@ -23,6 +23,16 @@
     return { title: r.champion || 'League', result: r.result ? (r.result === 'win' ? 'Win' : 'Loss') : '', facts: facts.join(' · ') };
   }
   window.recFacts = recFacts;
+  // Highlights' filter and order (deck-out round 3). items: [{ r: recording summary, c: clip, i }]; f: { type: all | kill |
+  // multikill | death | objective | assist | mine, champ, star, sort: star | new | long }. Pure; app/test-recorder.js checks it.
+  window.recFilterClips = (items, f = {}) => {
+    const type = f.type || 'all', mine = c => !!c.mine || (c.types || []).includes('manual');
+    const out = items.filter(({ r, c }) => (type === 'all' || (type === 'mine' ? mine(c) : (c.types || []).includes(type)))
+      && (!f.champ || r.champion === f.champ) && (!f.star || !!c.favorite));
+    const dur = x => (x.c.end || 0) - (x.c.start || 0), newest = (a, b) => (b.r.startedAt || 0) - (a.r.startedAt || 0) || (a.c.start || 0) - (b.c.start || 0);
+    const by = { new: newest, long: (a, b) => dur(b) - dur(a) || newest(a, b), star: (a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || newest(a, b) }[f.sort] || ((a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || newest(a, b));
+    return [...out].sort(by);
+  };
   window.recStrip = rec => `<div class="rec-strip" role="img" aria-label="${E(stripMarkers(rec).length)} moments">${stripMarkers(rec).map(m =>
     `<i class="rec-m rec-${m.type}" style="left:${m.left}%" title="${E(m.label)}"></i>`).join('')}</div>`;
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return;
@@ -34,6 +44,7 @@
   const clipName = c => c.name ? c.name : c.mine ? 'Your clip' : [...new Set((c.types || []).map(t => KIND[t] || t))].join(' + ') || 'Clip';
   const star = (on, attrs, what) => `<button type="button" class="rec-star${on ? ' on' : ''}" ${attrs} aria-pressed="${!!on}" aria-label="${on ? 'Unfavourite' : 'Favourite'} ${E(what)}" title="${on ? 'Favourite: kept when the folder is over its size cap' : 'Favourite: keep it when the folder is over its size cap'}">${on ? '★' : '☆'}</button>`;
   let tab = 'all'; // Library's filter: all | favorites
+  const hf = { type: 'all', champ: '', star: false, sort: 'star' }; // Highlights' filter (window.recFilterClips)
   // Studio's routes (2026-10-21): #/studio = Library, /highlights, /capture (studio.js), /game/<matchId>[/<clip>] = the player.
   const route = () => { const m = /^#\/studio(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/(\d+))?/.exec(location.hash) || []; return { page: m[1] || '', id: m[2], clip: m[3] }; };
   const gameHref = (id, clip) => `#/studio/game/${encodeURIComponent(id)}${clip != null ? '/' + clip : ''}`;
@@ -68,9 +79,16 @@
     if (!here()) return;
     const clips = [];
     full.forEach((rec, gi) => (rec && rec.clips || []).forEach((c, i) => clips.push({ r: list[gi], c, i })));
-    clips.sort((a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || b.r.startedAt - a.r.startedAt);
     if (page === 'highlights') {
-      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${clips.length ? `<div class="rec-hls">${clips.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
+      const shown = window.recFilterClips(clips, hf), has = t => clips.some(({ c }) => t === 'mine' ? (c.mine || (c.types || []).includes('manual')) : (c.types || []).includes(t));
+      const types = [['all', 'All'], ['kill', 'Kills'], ['multikill', 'Multikills'], ['death', 'Deaths'], ['objective', 'Objectives'], ['assist', 'Assists'], ['mine', 'Your clips']].filter(([k]) => k === 'all' || has(k));
+      const champs = [...new Set(clips.map(({ r }) => r.champion).filter(Boolean))].sort();
+      const bar = clips.length ? `<div class="sd-hlbar"><div class="sd-seg" role="radiogroup" aria-label="Moments">${types.map(([k, l]) => `<button type="button" role="radio" aria-checked="${hf.type === k}" data-hf="type" data-v="${k}">${l}</button>`).join('')}</div>
+        ${champs.length > 1 ? `<label class="rp-pick">Champion <select data-hf-sel="champ"><option value="">All</option>${champs.map(n => `<option${hf.champ === n ? ' selected' : ''}>${E(n)}</option>`).join('')}</select></label>` : ''}
+        <label class="sd-tog"><input type="checkbox" data-hf-star${hf.star ? ' checked' : ''}><span>Starred only</span></label>
+        <label class="rp-pick">Order <select data-hf-sel="sort">${[['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <span class="sd-hlcount">${shown.length === clips.length ? `${clips.length} clip${clips.length === 1 ? '' : 's'}` : `${shown.length} of ${clips.length} clips`}</span></div>` : '';
+      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${bar}${!clips.length ? '' : !shown.length ? '<div class="rec-empty">No clips match. Clear a filter to see more.</div>' : ''}${shown.length ? `<div class="rec-hls">${shown.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : clips.length ? '' : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
       lazyVideos(host);
       return;
     }
@@ -275,6 +293,14 @@
       if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Delete for good?'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Delete'; } }, 4000); return; }
       const i = +t.dataset.rpCdel; await api().delete_clip(P.rec.matchId, i).catch(() => null); P.rec.clips.splice(i, 1); drawTimeline(); drawClips();
     }
+  });
+  // Highlights' filters apply at once.
+  const reHL = () => { const m = document.getElementById('main'); if (m && location.hash.startsWith('#/studio/highlights')) render(m); };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-hf]'); if (b) { hf[b.dataset.hf] = b.dataset.v; reHL(); } });
+  document.addEventListener('change', e => {
+    if (!e.target.matches) return;
+    if (e.target.matches('[data-hf-sel]')) { hf[e.target.dataset.hfSel] = e.target.value; reHL(); }
+    else if (e.target.matches('[data-hf-star]')) { hf.star = e.target.checked; reHL(); }
   });
   // Speed and which sound you hear apply at once and stay while you move between clips.
   document.addEventListener('change', e => {
