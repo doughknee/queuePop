@@ -67,6 +67,9 @@ or pin both.
 - The in-process recorder reports ready on `h264_texture_amf`. A 14 s screen recording (`display: true`) came out as a
   2580x1080 h264 mp4 with three AAC tracks, and a 7.9 s clip from the replay buffer came out of the same run.
 - `npm test` is green. It covers a stub game on the in-process engine (the companion is never called) and the Settings line.
+- With `--test-ad`, Overwolf's "TEST AD 300X250" serves in the sidebar box (`queuepop_300x250_sb`), and the sidebar
+  locks at 316 px. It took a fix: `owadview` needs `display:flex`. With `display:block`, which #226 shipped, Electron's
+  webview kept its inner frame at the default 300x150, so the SDK never filled the box.
 - **Not tested in a real League game**: the game-capture hook, game-only audio and the FPS cost are still unmeasured,
   the same as #225.
 
@@ -82,7 +85,38 @@ Nothing on ow-electron ships publicly until all of these are done. docs/ads.md h
    personal build already shows the box, with its placeholder, and the sidebar is fixed at 316 px. Before release:
    - a consent screen for the EU and other strict regions
    - `config.ads.premium` replaced by Overwolf's subscription check
-3. **Open questions for Overwolf DevRel:**
+3. **Overwolf's ad rules** (checked in their docs on 2026-10-21). docs/ads.md has the placement rules we follow. Two
+   rules decide whether we can ship at all:
+   - **Ads come with approval.** "Overwolf will only approve apps that integrate and use Overwolf ads." A monetized
+     app may show only Overwolf ads, so no third-party ad iframes.
+   - **Supported containers only.** Set them with CSS min-width/min-height, using one size from this list:
+     - 400x300 (video + banner)
+     - 300x250 (banner only)
+     - 400x600, 160x600, 728x90, 970x90 or 400x60
+
+     An unsupported size can stop every ad from serving.
+
+   Rules for the window and the container:
+   - The ad sits in a window with real content and looks like part of it, never on a login, error or empty screen.
+   - It stays put when you switch views. To pause it, set `display:none`; to move it, shut it down and create a new one.
+   - At most one video ad per page.
+   - The window can't be resized below the container. Overwolf recommends a 1300x840 default.
+
+   Setup and testing:
+   - Every container needs a unique `cid` of up to 20 characters.
+   - The app uid must be enabled on Overwolf's backend before ads serve. `--test-ad` shows test ads before that.
+   - Players in the EU and other strict regions must give CMP consent.
+
+   Riot's in-game rules:
+   - An overlay with ads needs the player's explicit opt-in and must never appear by itself.
+   - A large overlay needs a dimmed background and a hotkey to get back to the game.
+   - No floating ads.
+   - No subscription or upgrade pitches inside an in-game overlay.
+
+   The plan from that session: a 300x250 box at the bottom of the sidebar (`queuepop_300x250_sb`). When the sidebar is
+   collapsed, that box shuts down and a 400x300 box (`queuepop_400x300_home`) opens on Home. #226 shipped only the
+   sidebar box. While the ad shows, the sidebar can't collapse, so the 400x300 fallback isn't built.
+4. **Open questions for Overwolf DevRel:**
    - Are ads mandatory for an app that uses the recorder and/or GEP packages?
    - Is 300x250 supported in a desktop window? docs/ads.md reads Overwolf's docs as yes, banner-only. Confirm it
      counts as meeting any ad requirement that comes with the recorder or GEP.
