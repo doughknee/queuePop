@@ -54,18 +54,33 @@ function leagueLeaderboardPage() {
   const regions = [...new Set([...lgt.regions, region])];
   return `<div class="lg-page">${lgBand(art, 'center 20%', `<div class="lg-band-row"><h1>Leaderboard</h1><span class="lg-meta" id="lg-meta">Solo / duo ladder · ${region.toUpperCase()}</span>${lgSearch()}</div>`)}
     <nav class="lg-roles lg-kinds" aria-label="Region">${regions.map(r => `<a href="#/league/leaderboard/${r}" aria-pressed="${r === region}">${r.replace(/\d+$/, '').toUpperCase()}</a>`).join('')}</nav>
+    <input type="search" class="lg-ladder-find" id="lg-ladder-find" placeholder="Find a player on this ladder" aria-label="Find a player on this ladder" autocomplete="off">
     <div id="lg-ladder"><p class="lg-wait">Loading the ladder…</p></div>
     <p class="lg-rule">The crawler's ladder: Master and above refresh every 30 minutes, the rest daily. Click a player for their ranks and last 20 matches. Champion leaderboards are on each champion page (Best players).</p></div>`;
 }
 
-async function lgFillLeaderboard(token, region) {
+function lgLadderFind() {
+  const q = (document.getElementById('lg-ladder-find')?.value || '').trim().toLowerCase();
+  document.querySelectorAll('.lg-ladder tbody tr').forEach(tr => { tr.hidden = !!q && (tr.classList.contains('lg-ladder-tier') || !tr.dataset.find.includes(q)); });
+}
+document.addEventListener('input', e => { if (e.target.id === 'lg-ladder-find') lgLadderFind(); });
+
+async function lgFillLeaderboard(token, region, retried = false) {
   const box = () => token === lg.token && document.getElementById('lg-ladder');
   let d;
-  try { d = await statsApi.leaderboard('lol', region, 200); } catch (_) { if (box()) box().innerHTML = lgOffline('the stats crawler did not answer.'); return; }
+  try { d = await statsApi.leaderboard('lol', region, 200); } catch (_) {
+    if (!retried) { await new Promise(r => setTimeout(r, 2000)); return lgFillLeaderboard(token, region, true); } // a busy crawler can miss one 20 s window
+    if (box()) box().innerHTML = lgOffline('the stats crawler did not answer.'); return;
+  }
   if (!box()) return;
-  const ps = d.players || [];
-  box().innerHTML = !ps.length ? '<p class="lg-wait">No ladder for this region yet.</p>' : `<table class="lg-table lg-ladder"><thead><tr><th class="num">#</th><th>Player</th><th>Rank</th><th class="num">LP</th><th class="num">Win</th><th class="num">W</th><th class="num">L</th><th class="num">Games</th></tr></thead><tbody>
-    ${ps.map(p => `<tr><td class="num">${p.rank}</td><td class="lg-name">${p.riotId ? `<a href="#/league/summoner/${lgRiotSlug(p.riotId)}/${p.region}"><span>${lgEsc(p.riotId.split('#')[0])}</span><small>#${lgEsc(p.riotId.split('#')[1] || '')}</small></a>` : '<span class="lg-wait">Name not crawled yet</span>'}</td>
-      <td>${lgTierWord(p.tier)}${p.division ? ' ' + p.division : ''}</td><td class="num">${lgN(p.lp)}</td><td class="num">${lgHeat(p.winRate, 0.5, 0.1, p.games, lgPct(p.winRate))}</td><td class="num">${p.wins}</td><td class="num">${p.losses}</td><td class="num">${lgN(p.games)}</td></tr>`).join('')}
-  </tbody></table>`;
+  const ps = d.players || [], newest = Math.max(0, ...ps.map(p => p.updatedAt || 0));
+  if (newest) document.getElementById('lg-meta').textContent = `Solo / duo ladder · ${region.toUpperCase()} · updated ${lgAgoMs(newest)}`;
+  // The tier is a divider where it changes (a top 200 is mostly one tier), not a column repeating it on every row.
+  const floor = {}; ps.forEach(p => { const k = p.tier + (p.division || ''); floor[k] = Math.min(floor[k] ?? Infinity, p.lp); });
+  const rows = ps.map((p, i) => { const tier = `${lgTierWord(p.tier)}${p.division ? ' ' + p.division : ''}`, prev = ps[i - 1], href = p.riotId ? `#/league/summoner/${lgRiotSlug(p.riotId)}/${p.region}` : '';
+    return (!prev || prev.tier !== p.tier || prev.division !== p.division ? `<tr class="lg-ladder-tier"><th colspan="5">${tier}<small>lowest here ${lgN(floor[p.tier + (p.division || '')])} LP</small></th></tr>` : '')
+      + `<tr data-find="${lgEsc((p.riotId || '').toLowerCase())}"${href ? ` data-lg-go="${href}"` : ''}><td class="num">${p.rank}</td><td class="lg-name">${href ? `<a href="${href}"><span>${lgEsc(p.riotId.split('#')[0])}</span><small>#${lgEsc(p.riotId.split('#')[1] || '')}</small></a>` : '<span class="lg-wait">Name not crawled yet</span>'}</td>
+      <td class="num">${lgN(p.lp)} LP</td><td class="num">${lgHeat(p.winRate, 0.5, 0.1, p.games, lgPct(p.winRate))}</td><td class="num"><small>${p.wins}W ${p.losses}L</small>${lgN(p.games)}</td></tr>`; });
+  box().innerHTML = !ps.length ? '<p class="lg-wait">No ladder for this region yet.</p>' : `<table class="lg-table lg-ladder"><thead><tr><th class="num">#</th><th>Player</th><th class="num">LP</th><th class="num">Win</th><th class="num">Games</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  lgLadderFind();
 }
