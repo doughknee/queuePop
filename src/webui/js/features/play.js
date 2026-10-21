@@ -52,7 +52,22 @@ function updatePlay(s) {
   btn.disabled = disabled;
   btn.dataset.mode = mode;
   btn.title = { queue: "Choose a queue", launch: "Open the League client", cancel: "Leave the queue", live: "Back to champ select", deadlock: "Launch Deadlock" }[mode] || text;
+  window.qpPlayTile();
 }
+// Home's PLAY tile (DONI-598 follow-up): the same state and menu as the page-row button, as the first quick link.
+window.qpPlayTile = () => {
+  const t = document.querySelector("[data-play-tile]"); if (!t) return;
+  const st = qpPlayState(playLast, "home"), last = qmLast != null ? qmQueueById(qmLast) : null;
+  t.dataset.mode = st.mode; t.dataset.game = st.game; t.disabled = st.disabled;
+  t.querySelector("b").textContent = st.text === "PLAY" ? "Play" : st.text;
+  t.querySelector("small").textContent = st.mode === "queue" ? (last ? "Last: " + qmStripPrefix(last.name, "Teamfight Tactics").replace(/^/, last.group === "tft" ? "TFT " : "") : "League and TFT")
+    : st.mode === "launch" ? "Opens the League client" : st.mode === "cancel" ? "Click to leave the queue" : st.game === "tft" ? "TFT" : "League";
+};
+document.addEventListener("click", (e) => {
+  const t = e.target.closest && e.target.closest("[data-play-tile]"); if (!t) return;
+  if (t.dataset.mode === "queue") { const m = $("queue-menu"); if (m && !m.classList.contains("hidden")) closeQueueMenu(); else openQueueMenu(t); }
+  else $("play-btn")?.click(); // launch, cancel, live: exactly what the page-row PLAY does
+});
 
 QP.bus.on("status", (s) => {
   updatePlay(s);
@@ -326,9 +341,9 @@ function onQueueMenuClick(e) {
   const row = e.target.closest(".qm-row");
   if (row) startQuickQueue(row.dataset.qid);
 }
-function openQueueMenu() {
+function openQueueMenu(anchor) {
   const menu = $("queue-menu");
-  const btn = $("play-btn");
+  const btn = anchor || $("play-btn");
   if (!menu || !btn) return;
   renderQueueMenu(); // the list depends on which game's PLAY opened it
   // DONI-598: the same list is the Play page's inline queue list, so it lives inside the (often hidden) Play page.
@@ -363,6 +378,7 @@ document.addEventListener("click", (e) => {
   if (!menu || menu.classList.contains("hidden")) return;
   if (menu.contains(e.target)) return;
   if (btn && btn.contains(e.target)) return;
+  if (e.target.closest && e.target.closest("[data-play-tile]")) return; // Home's PLAY tile toggles it itself
   closeQueueMenu();
 });
 

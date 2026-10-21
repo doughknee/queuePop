@@ -304,7 +304,7 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .sb-cog{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7}
 #world-nav#world-nav a.sb-set{display:none} /* Settings lives in the sidebar; the row is the game's pages */
 /* DONI-595: Home quick links: the tier list of each game you play, and Settings. Game color on hover. */
-.theme-home .hq{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:28px 5% 0}
+.theme-home .hq{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:28px 5% 0}
 .hq-link{--gc:var(--accent);display:flex;align-items:center;gap:14px;min-height:84px;padding:14px 18px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;transition:border-color .15s,transform .15s}
 .hq-link[data-game=league]{--gc:var(--blue)}.hq-link[data-game=tft]{--gc:var(--purple)}.hq-link[data-game=deadlock]{--gc:var(--amber)}
 .hq-link:hover,.hq-link:focus-visible{border-color:var(--gc);transform:translateY(-2px)}
@@ -360,3 +360,14 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .rec-unit img{width:100%;height:100%;object-fit:cover}
 .rec-unit.s2{border-color:var(--blue)}.rec-unit.s3{border-color:var(--amber)}
 .rec-board small{margin-left:8px;color:var(--muted);font-size:12px}
+/* Home and Recordings have no page row: PLAY is Home's first quick link, a lime tile with the same state and menu. */
+.theme-home #world-nav#world-nav,.theme-recordings #world-nav#world-nav{display:none}
+.theme-home #main,.theme-recordings #main{min-height:calc(100vh - var(--marks-h) - 67px)}
+.hq-link.hq-play{background:var(--accent);border-color:var(--accent);color:var(--bg);cursor:pointer;font:inherit;text-align:left}
+.hq-link.hq-play small{color:var(--bg);opacity:.75}
+.hq-link.hq-play i{color:var(--bg)}
+.hq-link.hq-play .qp-play-logo{width:40px;height:40px;color:var(--bg)}
+.hq-link.hq-play:hover:not(:disabled){background:var(--fg);border-color:var(--fg)}
+.hq-link.hq-play[data-mode=cancel],.hq-link.hq-play[data-mode=live]{background:var(--bg);color:var(--accent);border-color:var(--accent)}
+.hq-link.hq-play[data-mode=cancel] small,.hq-link.hq-play[data-mode=cancel] i,.hq-link.hq-play[data-mode=live] small{color:var(--muted)}
+.hq-link.hq-play:disabled{opacity:.6;cursor:default}
