@@ -6,7 +6,8 @@
 // Overwolf engine (preferred, docs/recorder-engine.md): when the QueuePop companion (the ow-electron app, loopback port
 // 47821) says its recorder is ready, it records instead: game capture + game audio + mic on their own tracks, and each kill,
 // multikill, death or objective is clipped live from its replay buffer (10 s before, 5 after) instead of cut after the game.
-// ffmpeg is the fallback when the companion isn't running.
+// ffmpeg is the fallback when the companion isn't running. On ow-electron (`npm run start:ow`) the same recorder runs
+// in-process (ow-recorder.js, ctx.ow) and is preferred over the companion: in-process, then companion, then ffmpeg.
 const fs = require("fs");
 const { forGame } = require("./champ-config");
 const path = require("path");
@@ -134,9 +135,19 @@ function companion(pathname, body, timeout = 1000) {
   });
 }
 
-// ctx: { getConfig, dir: () => folder, log, push, recorder: { update }, companion?, probe? (tests stub the loopback and ffmpeg) }
+// The in-process recorder (ow-recorder.js) behind the companion's loopback API, so both engines share one code path. Pure routing.
+const ROUTES = { "/recorder/start": "start", "/recorder/clip": "clip", "/recorder/stop": "stop" };
+function inProcess(rec) {
+  return (pathname, body) => pathname === "/health" ? Promise.resolve({ app: "queuepop", inProcess: true, recorder: rec.status() })
+    : Promise.resolve().then(() => rec[ROUTES[pathname]](body || {})).catch((e) => ({ ok: false, error: String((e && e.message) || e) }));
+}
+
+// ctx: { getConfig, dir: () => folder, log, push, recorder: { update }, ow? (in-process recorder), companion?, probe? (tests stub the loopback and ffmpeg) }
 function createVideo(ctx) {
-  const call = ctx.companion || companion, find = ctx.probe || probe;
+  const remote = ctx.companion || companion, find = ctx.probe || probe, local = ctx.ow && inProcess(ctx.ow);
+  // In-process when its recorder is ready, else the companion. A session keeps the engine it started on.
+  let pinned = null;
+  const call = (p, b, t) => (pinned || (local && ctx.ow.status().ready ? local : remote))(p, b, t);
   let proc = null, startedAt = 0, file = null, starting = false;
   let ow = null; // the Overwolf session: { matchId, encoder, startEpoch, pending: Set<Promise> }
   // What records the next game, for Settings and Recordings: { engine, encoder, companion: {running, ready, error}, ffmpeg }.
@@ -144,13 +155,14 @@ function createVideo(ctx) {
     const [health, ff] = await Promise.all([call("/health", null, 800), find(true)]);
     const r = (health && health.recorder) || null, name = chooseBackend(health, ff);
     return { engine: name, encoder: name === "overwolf" ? r.encoder : name === "ffmpeg" ? ff.encoder : null,
-      companion: { running: !!health, ready: !!(r && r.ready), error: (r && r.error) || null, recording: (r && r.recording) || null }, ffmpeg: ff };
+      inProcess: !!(health && health.inProcess), companion: { running: !!health, ready: !!(r && r.ready), error: (r && r.error) || null, recording: (r && r.recording) || null }, ffmpeg: ff };
   }
   async function startOverwolf(rec, cfg) {
     const p = PRESETS[cfg.preset] || PRESETS["1080p60"];
     const r = await call("/recorder/start", { matchId: rec.matchId.replace(/[^\w-]/g, "_"), processName: PROCESS[rec.game] || PROCESS.league,
       folder: path.resolve(ctx.dir()), height: p.h, fps: p.fps, display: !!process.env.QP_REC_DISPLAY }, 20000); // dev: QP_REC_DISPLAY=1 records the screen (no game needed)
-    if (!r || !r.ok) { ctx.log("recorder video: companion start failed:", (r && r.error) || "no answer"); return false; }
+    if (!r || !r.ok) { ctx.log("recorder video: Overwolf start failed:", (r && r.error) || "no answer"); return false; }
+    pinned = local && ctx.ow.status().ready ? local : remote;
     ow = { matchId: rec.matchId, encoder: r.encoder, startEpoch: r.startEpoch || Date.now(), pending: new Set() };
     rec.video = { file: null, engine: "overwolf", encoder: r.encoder, preset: cfg.preset, startedAt: ow.startEpoch };
     rec.clips = [];
@@ -178,7 +190,8 @@ function createVideo(ctx) {
     const s = ow; ow = null;
     await Promise.race([Promise.allSettled([...s.pending]), new Promise((r) => setTimeout(r, 70000).unref())]); // clips still running
     const r = (await call("/recorder/stop", {}, 100000)) || {};
-    if (!r.ok) ctx.log("recorder video: companion stop:", r.error || "no answer");
+    pinned = null;
+    if (!r.ok) ctx.log("recorder video: Overwolf stop:", r.error || "no answer");
     // The recording's first frame (it starts when the game is hooked), so markers and clips line up with the video.
     const videoEpoch = r.startTimeEpoch || s.startEpoch, len = (r.duration || 0) / 1000;
     const offset = rec.clock ? (rec.clock.wall - videoEpoch) / 1000 - rec.clock.gameTime : 0;
@@ -253,4 +266,4 @@ function createVideo(ctx) {
   return { start, stop, onEvents, engine, probe, makeClip };
 }
 
-module.exports = { chooseBackend, clipRequest, placeClips, ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, probe, PRESETS };
+module.exports = { inProcess, chooseBackend, clipRequest, placeClips, ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, probe, PRESETS };

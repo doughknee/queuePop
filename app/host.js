@@ -14,6 +14,7 @@ const { attachGamePlan } = require("./game-plan");
 const { attachRecap } = require("./recap");
 const { attachRecorder } = require("./recorder");
 const { createVideo } = require("./recorder-video");
+const { createRecorder } = require("./ow-recorder");
 const config = require("./config");
 const { gameOfQueue, forGame } = require("./champ-config");
 
@@ -59,7 +60,10 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     platform: async () => ((await account.getSummoner().catch(() => null)) || {}).platform || "",
     onGame: (rec, phase) => { (phase === "start" ? video.start(rec) : video.stop(rec)).catch((e) => log("recorder video:", e.message)); },
     onEvents: (rec, fresh) => video.onEvents(rec, fresh) });
-  video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder }); // Q21: when Record video is on; the Overwolf companion, else ffmpeg
+  // On ow-electron (npm run start:ow) Overwolf's recorder package loads in-process once the dev key checks out; plain Electron has no app.overwolf.
+  const ow = createRecorder(log);
+  if (app.overwolf && app.overwolf.packages) app.overwolf.packages.on("ready", (_e, name) => { if (name === "recorder") ow.attach(app.overwolf.packages.recorder); });
+  video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder, ow }); // Q21: when Record video is on; in-process Overwolf, else the companion, else ffmpeg
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,

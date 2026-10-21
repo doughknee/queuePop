@@ -34,6 +34,7 @@ assert.ok(Object.values(CT).every((t) => ctx.window.ST_TABS.includes(t)));
 // Engine line: which engine records, and what to do when the companion isn't there.
 const EL = ctx.window.stEngineLine;
 assert.strictEqual(EL({ engine: "overwolf", encoder: "h264_texture_amf", companion: { running: true, ready: true } }, true), "Recording with Overwolf (AMD AMF), game audio + mic.");
+assert.strictEqual(EL({ engine: "overwolf", inProcess: true, encoder: "h264_texture_amf", companion: { running: true, ready: true } }, true), "Recording with Overwolf (built in, AMD AMF), game audio + mic.");
 assert.ok(EL({ engine: "ffmpeg", encoder: "h264_amf", ffmpeg: { found: true }, companion: { running: false } }, true).startsWith("Recording with ffmpeg (your AMD card), main screen, no audio. For the game window, game audio and a mic track, start the QueuePop companion"));
 assert.ok(EL({ engine: "ffmpeg", encoder: "h264_amf", companion: { running: true, error: "boom" } }, true).includes("isn’t ready (boom): restart it."));
 assert.ok(EL({ engine: null, companion: {} }, true).startsWith("Nothing to record video with."));
