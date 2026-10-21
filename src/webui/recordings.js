@@ -41,11 +41,12 @@
     // Off: the fix is one click away, right here (it applies at once, like every Settings control).
     if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
+    if (list.some(r => r.game === 'tft') && window.tftStats) await tftStats.loadDragon().catch(() => {}); // unit names and icons for the boards
     if (!here()) return;
     host.innerHTML = `<section class="rec-page">${head}<ol class="rec-list">${list.slice(0, 30).map((r, i) => {
       const rec = full[i] || r, f = recFacts(r), title = f.title, facts = f.facts;
       // TFT: the final board (from match history), units with their stars, instead of a timeline.
-      const unit = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).replace(/^.*_/, '').slice(0, 3))}</span>`; };
+      const unit = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).slice(0, 3))}</span>`; };
       const board = r.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unit).join('')}<small>Level ${E(rec.board.level)}</small></span>` : '';
       const strip = stripMarkers(rec).length ? window.recStrip(rec) : board || `<span class="rec-nostrip">${r.game === 'tft' ? 'Board arrives a minute after the game' : 'No moments recorded'}</span>`;
       return `<li class="rec-row ${r.result || ''}"><div class="rec-meta"><b>${E(title)}</b><small>${E(when(r.startedAt))}${f.result ? ` · ${f.result}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
