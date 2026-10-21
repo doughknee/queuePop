@@ -178,6 +178,18 @@
   the League/TFT match page's "Your moments" ("Watch in Studio") and the "Saved N clips" card. The player has clip, seek,
   frame, speed and sound-track tools (main.js turns on Chromium's AudioVideoTracks); clips can be renamed (clip.name).
   Highlights filters with window.recFilterClips (test-recorder.js).
+- Studio cinema deck-out (2026-10-21; decided, don't bring back the spec strip, native video controls or black tiles):
+  styles live in `src/webui/studio.css` (loaded after shell.css), not shell.css. Every clip is one tile (`clipTile` in
+  recordings.js: poster, kind badge coloured by `window.recClipKind`, length, star) in the Library reel, Highlights, the player's
+  clip list and both champion-page shelves (`.sd-shelf`: "Your top <champion> clips" and Featured, max 4 each). Posters are one
+  frame per file grabbed by a hidden <video> and kept in IndexedDB `qp-posters` (never pruned, ~15 KB each); the video loads
+  only on hover. Library = status line (REC dot, quality, storage; opens Capture; the fix button beside it) → stage (latest
+  game's best clips back to back over its splash art, clips as a reel) → games by day (`recGroupDays`, Today/Yesterday/weekday,
+  the day's W-L) → Show older games (30 at a time). The list never waits for the engine check or the 24 MB TFT data. Player:
+  one control row (no native controls), the timeline is the drag scrubber, clips + moments beside the video when the page is
+  wider than 1120 px (container query), under it otherwise; `#/studio/game/...` keeps Library lit in the sidebar (shell.js).
+  Capture: sticky rail (preset, GB an hour, games that fit, engine) with jump links that follow the scroll. Home has a Studio
+  quick link.
 
 ## Ads (2026-10-21; decided, don't move the slot)
 - One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at
