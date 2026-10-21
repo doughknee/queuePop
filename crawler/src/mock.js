@@ -51,6 +51,7 @@ function startMock(port = 0, { fail429Once = false, rejectKey = null, accountGam
       const hit = Object.entries(matches).filter(([id]) => id.startsWith(accountGame === "lol" ? "NA1_52" : "NA1_53")).flatMap(([, x]) => x.info.participants).find((x) => x.riotIdGameName?.toLowerCase() === name && x.riotIdTagline?.toLowerCase() === tag);
       return hit ? send(200, { puuid: hit.puuid, gameName: hit.riotIdGameName, tagLine: hit.riotIdTagline }) : send(404, { status: { message: "Data not found", status_code: 404 } });
     }
+    if ((m = /^\/riot\/account\/v1\/accounts\/by-puuid\/([^/]+)$/.exec(p))) return send(200, { puuid: m[1], gameName: "Name " + m[1].slice(-6), tagLine: "NA1" });
     if (/^\/lol\/summoner\/v4\/summoners\/by-puuid\//.test(p)) return send(200, { summonerLevel: 321, profileIconId: 29 });
     if (/^\/(lol\/league\/v4\/entries|tft\/league\/v1)\/by-puuid\//.test(p)) {
       return send(200, [{ queueType: p.startsWith("/lol") ? "RANKED_SOLO_5x5" : "RANKED_TFT", tier: "DIAMOND", rank: "II", leaguePoints: 42, wins: 30, losses: 20 }]);

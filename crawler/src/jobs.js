@@ -176,6 +176,25 @@ function retireBatch(db, game, n = 500) {
 // ids()/capped(): during a retirement only players seeded after its epoch (0: everyone)
 const freshFrom = (db, game) => getMeta(db, `retiring:${game}`)?.epoch ?? 0;
 
+// Leaderboard names (2026-10-21): Riot ids live in lol_names by puuid and came only from crawled matches, so after a key change
+// retired the old puuids every leaderboard row read "Name not crawled yet". names() asks account-v1 for the highest-ranked
+// Master+ player of the game and region with no name (ladder order: Challenger, then GM, then Master), one call per region and
+// game per NAME_EVERY (5 s, ~720/h of a 3,000/h lane), and only while such players exist; the ladder refresh adds new ones.
+const NAME_EVERY = 5000, nameLast = new Map();
+async function names(ctx, game, region) {
+  const { db, riot, now = Date.now } = ctx;
+  if (now() - (nameLast.get(`${game}:${region}`) || 0) < (ctx.nameEvery ?? NAME_EVERY)) return false;
+  nameLast.set(`${game}:${region}`, now());
+  const p = db.prepare(`SELECT p.puuid FROM players p INDEXED BY players_ladder_region WHERE p.game = ? AND p.region = ? AND p.tier_n >= 7
+    AND NOT EXISTS (SELECT 1 FROM lol_names n WHERE n.puuid = p.puuid) ORDER BY p.tier_n DESC, p.division, p.lp DESC LIMIT 1`).get(game, region);
+  if (!p) return false;
+  const host = ROUTING[region] === "sea" ? "asia" : ROUTING[region]; // account-v1 has no sea host
+  const a = await riot.get(host, `/riot/account/v1/accounts/by-puuid/${p.puuid}`, `${game} account`);
+  db.prepare("INSERT INTO lol_names VALUES (?, ?, ?) ON CONFLICT (puuid) DO UPDATE SET riot_id = excluded.riot_id, region = excluded.region")
+    .run(p.puuid, a?.gameName ? `${a.gameName}#${a.tagLine || ""}` : "", region); // "" = no Riot id (asked, don't ask again)
+  return true;
+}
+
 // Tier-balanced sampling (D14 accuracy audit, 2026-10-20): asking the oldest-asked player first, highest tier among equals,
 // spent the first two days on Master+ (95% of matches), so "Emerald+" stats were really Master+. Each ids() call now picks
 // the tier furthest below its target share of the region's last-24 h matches; target = the tier's share of seeded players,
@@ -516,4 +535,4 @@ function retain(db, days, now = Date.now) {
 // When the next periodic aggregation is due (now if overdue or never run).
 const nextAggregation = (db, everyMin, now = Date.now) => Math.max(now(), (getMeta(db, "aggregatedAt") ?? 0) + everyMin * 60000);
 
-module.exports = { retirePuuids, retireBatch, repairCarries, tierOrder, ARAM, MODES, TFT_MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
+module.exports = { names, retirePuuids, retireBatch, repairCarries, tierOrder, ARAM, MODES, TFT_MODES, MODE_RE, basePatch, capped, backfillModes, backfillDuration, backfillComps, backfillPatch, setOf, TIERS, ladderSteps, seed, ids, fetchOne, store, aggregate, retain, nextAggregation, compOf, patchOf, skillOrder };
