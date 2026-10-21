@@ -11,6 +11,17 @@ QP.bus.on("status", (s) => {
   }
 });
 
+let lastInfo = null;
+const worldOf = () => (/^#\/(league|tft)(?=[\/#]|$)/.exec(location.hash) || [])[1] || "";
+function paintRank() {
+  const info = lastInfo, lvlEl = $("summoner-level"), rankEl = $("summoner-rank");
+  if (!info?.connected || !info.name || !lvlEl) return;
+  const pick = sidebarRank(info.ranked, worldOf());
+  lvlEl.textContent = pick ? "" : info.level ? `Level ${info.level}` : "";
+  if (rankEl) { rankEl.textContent = pick ? pick.prefix + rankLabel(pick.r, false) : ""; if (pick) rankEl.style.color = tierColor(pick.r.tier); }
+}
+addEventListener("hashchange", paintRank);
+
 async function refreshSummoner() {
   const btn = $("summoner-btn");
   if (!btn) return;
@@ -25,21 +36,9 @@ async function refreshSummoner() {
     btn.classList.remove("offline");
     nameEl.textContent = info.name;
     btn.title = info.tag ? `${info.name} #${info.tag}` : info.name;
-    // Ranked players get their highest current rank in place of the level;
-    // unranked players keep the level. (:empty CSS collapses the unused line.)
-    const hi = highestRank(info.ranked);
-    if (hi) {
-      lvlEl.textContent = "";
-      if (rankEl) {
-        // the highest of four queues can be a TFT one; say so, or "Master" reads as League (2026-10-20)
-        const game = hi === info.ranked.tft ? "TFT · " : hi === info.ranked.double_up ? "Double Up · " : "";
-        rankEl.textContent = game + rankLabel(hi, false);
-        rankEl.style.color = tierColor(hi.tier);
-      }
-    } else {
-      lvlEl.textContent = info.level ? `Level ${info.level}` : "";
-      if (rankEl) rankEl.textContent = "";
-    }
+    // The rank for the world you're in replaces the level (sidebarRank, catalog.js); unranked there keeps the level.
+    lastInfo = info;
+    paintRank();
     if (info.icon) {
       img.src = info.icon; img.classList.remove("hidden"); ph.classList.add("hidden");
     } else {
