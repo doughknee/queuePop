@@ -157,9 +157,11 @@
 
 /* DONI-509: items, runes and spells pages (league-builds.js) */
 .lg-kinds{margin:0 0 6px;width:max-content;max-width:100%;flex-wrap:wrap}
-.lg-kinds a{min-width:32px;height:28px;display:flex;align-items:center;padding:0 10px;background:var(--bg);border-right:1px solid var(--line);color:var(--muted);font:12px var(--mono);text-decoration:none}
-.lg-kinds a:last-child{border-right:0}
-.lg-kinds a[aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
+.lg-kinds a,.lg-kinds button{min-width:32px;height:28px;display:flex;align-items:center;padding:0 10px;background:var(--bg);border-right:1px solid var(--line);color:var(--muted);font:12px var(--mono);text-decoration:none}
+.lg-kinds a:last-child,.lg-kinds button:last-child{border-right:0}
+.lg-kinds button{border:0;border-right:1px solid var(--line);cursor:pointer}
+.lg-igroups{margin-top:-2px}
+.lg-kinds [aria-pressed=true]{background:var(--wash);color:var(--fg);box-shadow:inset 0 -2px var(--accent)}
 .lg-bname{white-space:nowrap}
 .lg-bname,.lg-bname>span{display:flex;align-items:center;gap:6px}
 .lg-bname>span:last-child{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis} /* block, not flex: the ellipsis only works on inline text */

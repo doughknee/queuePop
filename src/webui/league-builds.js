@@ -2,7 +2,13 @@
 // /lol/spells. Route #/league/items[/{kind}] (kind: items, keystones, runes, shards, spells). Same band, lane tabs, filters and
 // heat cells as the tier list (league-stats.js); names and icons from Data Dragon through lgLookups (league-champion.js).
 const LG_KINDS = { items: 'Items', keystones: 'Keystones', runes: 'Runes', shards: 'Stat mods', spells: 'Summoner spells' };
-const lgb = { sort: 'games', dir: -1, data: null, L: null, kind: 'items' };
+const lgb = { sort: 'games', dir: -1, data: null, L: null, kind: 'items', group: 'finished' };
+// Items split by shelf (window.lgItemGroup, js/stats-api.js) so a Long Sword's win rate doesn't sit between finished items.
+const LG_IGROUPS = { finished: 'Finished', boots: 'Boots', starters: 'Starters', components: 'Components', all: 'All' };
+const lgbRows = kind => { const all = lgb.data?.[kind] || []; return kind !== 'items' || lgb.group === 'all' ? all : all.filter(r => lgItemGroup(lgb.L?.it[r.key]) === lgb.group); };
+const lgbMeta = () => { const d = lgb.data, kind = lgb.kind, rows = lgbRows(kind), what = kind === 'items' && lgb.group !== 'all' ? `${LG_IGROUPS[lgb.group].toLowerCase()} items` : LG_KINDS[kind].toLowerCase();
+  document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lgRoleOf(d.role)] || 'All lanes'} · ${lgN(d.players)} champion-games · ${rows.length} ${what}${rows.some(r => r.lowSample) ? ` · under ${lgN(d.minGames)} games greyed` : ''}`; };
+const lgbGroups = () => `<nav class="lg-roles lg-kinds lg-igroups" aria-label="Which items">${Object.entries(LG_IGROUPS).map(([k, l]) => `<button type="button" data-lgb-group="${k}" aria-pressed="${k === lgb.group}">${l}</button>`).join('')}</nav>`;
 const lgKindOf = () => { const k = location.hash.split('/')[3]; return LG_KINDS[k] ? k : 'items'; };
 
 function leagueBuildsPage() {
@@ -11,7 +17,7 @@ function leagueBuildsPage() {
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;
   const tabs = `<nav class="lg-roles lg-kinds" aria-label="What to list">${Object.entries(LG_KINDS).map(([k, l]) => `<a href="#/league/items/${k}" aria-pressed="${k === kind}">${l}</a>`).join('')}</nav>`;
   return `<div class="lg-page${lg.queue === 'aram' ? ' lg-aram' : ''}">${lgBand(art, championWorlds[top]?.position || 'center 20%', `<div class="lg-band-row"><h1>${LG_KINDS[kind]}</h1><span class="lg-meta" id="lg-meta"></span>${lgSearch()}</div>`)}
-    ${lgFilters(true, '', false)}${tabs}<div id="lg-builds"><p class="lg-wait">Loading ${LG_KINDS[kind].toLowerCase()}…</p></div>
+    ${lgFilters(true, '', false)}${tabs}${kind === 'items' ? lgbGroups() : ''}<div id="lg-builds"><p class="lg-wait">Loading ${LG_KINDS[kind].toLowerCase()}…</p></div>
     <p class="lg-rule">Win and Δ tint red below and green above everyone's average in this lane, fainter on smaller samples; pick tints purple by size. Pick = share of champion-games in this lane that ${kind === 'items' ? 'finished the item' : kind === 'spells' ? 'took the pair' : 'took it'}. Top champions = the five that use it most; click one for its page.</p></div>`;
 }
 
@@ -30,8 +36,7 @@ async function lgFillBuilds(token, retried = false) {
   }
   if (!box()) return;
   lgb.data = data; lgb.L = lgLookups(items?.d, runes?.d, spells?.d);
-  const rows = data[kind] || [];
-  document.getElementById('lg-meta').innerHTML = `${LG_ROLE[lgRoleOf(data.role)] || 'All lanes'} · ${lgN(data.players)} champion-games · ${rows.length} ${LG_KINDS[kind].toLowerCase()}${rows.some(r => r.lowSample) ? ` · under ${lgN(data.minGames)} games greyed` : ''}`;
+  lgbMeta();
   box().innerHTML = lgBuildsTable(data, kind);
 }
 
@@ -46,7 +51,7 @@ function lgBuildName(kind, key, L) {
 }
 
 function lgBuildsTable(data, kind) {
-  const all = data[kind] || [], L = lgb.L, role = LG_ROLES.includes(lgRoleOf(data.role)) ? '/' + lgRoleOf(data.role) : '';
+  const all = lgbRows(kind), L = lgb.L, role = LG_ROLES.includes(lgRoleOf(data.role)) ? '/' + lgRoleOf(data.role) : '';
   if (!all.length) return `<p class="lg-wait">No ${LG_KINDS[kind].toLowerCase()} recorded for these filters yet.</p>`;
   const S = { win: lgSpread(all, r => r.winRate, data.winRate), delta: lgSpread(all, r => r.delta, 0), pick: lgSpread(all, r => r.pickRate, 0) };
   const v = { win: r => r.winRate, delta: r => r.delta, pick: r => r.pickRate, games: r => r.games }[lgb.sort] || (r => r.games);
@@ -61,6 +66,8 @@ function lgBuildsTable(data, kind) {
 }
 
 document.addEventListener('click', e => {
+  const g = e.target.closest('[data-lgb-group]');
+  if (g && lgb.data) { lgb.group = g.dataset.lgbGroup; document.querySelectorAll('[data-lgb-group]').forEach(x => x.setAttribute('aria-pressed', String(x === g))); lgbMeta(); document.getElementById('lg-builds').innerHTML = lgBuildsTable(lgb.data, lgb.kind); return; }
   const b = e.target.closest('[data-lgb-sort]');
   if (!b || !lgb.data) return;
   const k = b.dataset.lgbSort;
