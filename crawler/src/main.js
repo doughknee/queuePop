@@ -30,6 +30,8 @@ const cfg = {
   retentionDays: Number(env.RAW_RETENTION_DAYS ?? 7),
   timelineSample: Number(env.TIMELINE_SAMPLE ?? 0.1),
   adminToken: env.ADMIN_TOKEN || "",
+  // Published clips (docs/clip-publishing.md): CLIPS_STORE local (a folder, served at /clips) or r2 (later); empty dir = off.
+  clips: { kind: env.CLIPS_STORE || "local", dir: env.CLIPS_DIR || "", publicBase: env.CLIPS_PUBLIC_BASE || "" },
   backupDir: env.BACKUP_DIR || "", // empty: no nightly backup
   backupKeep: Number(env.BACKUP_KEEP ?? 3),
   backupHourUtc: Number(env.BACKUP_HOUR_UTC ?? 10),
@@ -95,7 +97,8 @@ const ctx = { db, riot: createClient({ key: (game) => db_.riotKey(db, cfg.key, g
 const games = [cfg.queues.some((q) => q === 420 || q === 440) && "lol", cfg.queues.includes(1100) && "tft"].filter(Boolean);
 
 const lookup = require("./lookup").createLookup({ db, riot: ctx.riot, keyOk: (game) => db_.keyHealth(db, cfg.key, game).valid, perMin: Number(env.LOOKUPS_PER_MIN ?? 3) });
-createServer({ db, limiter, version, lookup, defaultRegion: cfg.regions[0], adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
+const clipsCfg = cfg.clips.dir ? { store: require("./clips").createStore(cfg.clips), transcode: require("./clips").ffmpegTranscode } : null;
+createServer({ db, limiter, version, lookup, clips: clipsCfg, defaultRegion: cfg.regions[0], adminToken: cfg.adminToken, envKey: cfg.key, dbPath: cfg.dbPath, aggregateEveryMin: cfg.aggregateEveryMin, retentionDays: cfg.retentionDays }).listen(cfg.port, "0.0.0.0", () => log(`API on :${cfg.port}`));
 
 // Ladders live on the platform host, matches on the regional host: separate rate buckets, separate loops; and one loop per
 // game, so League and TFT each spend their own key's allowance once they have their own keys.

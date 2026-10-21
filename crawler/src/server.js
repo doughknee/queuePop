@@ -1,9 +1,12 @@
 // Read-only JSON API over the stats_* tables. No auth, CORS open: meant for loopback/LAN.
-// The one write is POST /admin/key (Bearer ADMIN_TOKEN); it and the status page at / answer loopback/private-LAN only.
+// The writes are POST /admin/key and the published-clip routes POST/DELETE /admin/clips (Bearer ADMIN_TOKEN); they and the
+// status page at / answer loopback/private-LAN only. GET /clips/<file> is the one route meant to be reached through a proxy.
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const crypto = require("crypto");
+const os = require("os");
+const clipsLib = require("./clips");
 const { TIERS, nextAggregation, MODES, TFT_MODES, MODE_RE, basePatch } = require("./jobs");
 const { getMeta, setMeta, riotKey, setKey, keyHealth, GAMES } = require("./db");
 const champ = require("./agg-champion");
@@ -315,7 +318,8 @@ function memoizer(db) {
 }
 
 // lookup: src/lookup.js createLookup() (absent in tests that don't need Riot); defaultRegion for lookups without ?region.
-function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays, lookup = null, defaultRegion = "na1" }) {
+// clips: { store, transcode } from clips.js (absent: the clip routes answer 503).
+function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPath, aggregateEveryMin, retentionDays, lookup = null, defaultRegion = "na1", clips = null }) {
   const memo = memoizer(db);
   return http.createServer((req, res) => {
     const send = (code, body) => {
@@ -326,8 +330,39 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
     const u = new URL(req.url, "http://x");
     const q = Object.fromEntries(u.searchParams);
     const p = u.pathname.replace(/\/+$/, "");
+    let m0;
     // DONI-568: /status too; and a request forwarded by a reverse proxy (x-forwarded-for) is never LAN, whatever the peer IP.
     if ((p === "" || p === "/status" || p.startsWith("/admin")) && (!lan(req.socket.remoteAddress) || req.headers["x-forwarded-for"])) return send(403, { error: "LAN only" });
+    const authed = () => {
+      if (!adminToken) { send(503, { error: "ADMIN_TOKEN is not set" }); return false; }
+      const given = /^Bearer (.+)$/.exec(req.headers.authorization || "")?.[1] || "";
+      if (!crypto.timingSafeEqual(sha(given), sha(adminToken))) { send(401, { error: "bad token" }); return false; }
+      return true;
+    };
+    // Publish a clip: the body is the clip file (up to 300 MB), the query its details. -> { ok, clip: { id, url, poster, … } }
+    if (req.method === "POST" && p === "/admin/clips") {
+      if (!clips) return send(503, { error: "clips aren't set up on this crawler (CLIPS_DIR)" });
+      if (!authed()) return;
+      const meta = clipsLib.cleanMeta(q);
+      if (!meta) return send(400, { error: "champion must be a League champion id" });
+      if (Number(req.headers["content-length"] || 0) > 300 * 1024 * 1024) return send(413, { error: "clip is over 300 MB" });
+      const tmp = path.join(os.tmpdir(), "qpclip-" + crypto.randomBytes(6).toString("hex"));
+      const out = fs.createWriteStream(tmp);
+      const drop = () => { try { fs.unlinkSync(tmp); } catch {} };
+      req.on("error", () => { out.destroy(); drop(); });
+      req.pipe(out);
+      return out.on("finish", async () => {
+        try {
+          if (!fs.statSync(tmp).size) return send(400, { error: "empty body: send the clip file" });
+          send(200, { ok: true, clip: await clipsLib.publish(db, clips.store, clips.transcode, meta, tmp) });
+        } catch (e) { send(/busy|locked/i.test(e.message) ? 503 : 500, { error: e.message }); } finally { drop(); }
+      });
+    }
+    if (req.method === "DELETE" && (m0 = /^\/admin\/clips\/([a-f0-9]{12})$/.exec(p))) {
+      if (!clips) return send(503, { error: "clips aren't set up on this crawler (CLIPS_DIR)" });
+      if (!authed()) return;
+      try { return send(200, { ok: true, removed: clipsLib.unpublish(db, clips.store, m0[1]) }); } catch (e) { return send(503, { error: e.message }); }
+    }
     if (req.method === "POST" && p === "/admin/key") {
       if (!adminToken) return send(503, { error: "ADMIN_TOKEN is not set" });
       const given = /^Bearer (.+)$/.exec(req.headers.authorization || "")?.[1] || "";
@@ -348,13 +383,15 @@ function createServer({ db, limiter, version, adminToken = "", envKey = "", dbPa
         send(200, { ok: true, source: game ? `meta:${game}` : "meta", set_at });
       });
     }
-    if (req.method !== "GET") return send(405, { error: "read-only" });
+    if (req.method !== "GET" && req.method !== "HEAD") return send(405, { error: "read-only" });
+    if ((m0 = /^\/clips\/([^/]+)$/.exec(p))) return clips ? clipsLib.serveFile(clips.store, m0[1], req, res) : send(404, { error: "no clips here" });
     if (p === "") { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); return res.end(PAGE); }
     let m;
     try {
       if (p === "/health") return send(200, { ok: true, version });
       if (p === "/status") return send(200, status(db, limiter, { envKey, dbPath, aggregateEveryMin, retentionDays }));
       if (p === "/patches") return send(200, patches(db));
+      if ((m = /^\/(lol|tft)\/clips$/.exec(p))) return clips ? send(200, clipsLib.list(db, clips.store, m[1], q)) : send(200, { clips: [], total: 0, bytes: 0 });
       if (p === "/lol/tiers") return send(200, memo(req.url, () => require("./agg-players").tiersPlus(db, lolTiers(db, q), where, q)));
       if ((m = /^\/lol\/(items|runes|spells)$/.exec(p))) return send(200, memo(req.url, () => require("./agg-rollups").lolRollup(db, head, where, m[1], q)));
       if (p === "/lol/draft") return send(200, memo(req.url, () => require("./draft").draft(db, head, where, q)));

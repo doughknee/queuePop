@@ -18,6 +18,13 @@
     try { info = (await api().recorder_info()) || {}; infoAt = Date.now(); } catch { info = info || {}; }
     return info;
   }
+  // Publishing (app/clip-publish.js): whether the admin token is saved, and what the crawler holds. Asked at most every 30 s.
+  let pub = null, pubAt = 0;
+  async function getPub(force) {
+    if (!force && pub && Date.now() - pubAt < 30000) return pub;
+    try { pub = (await api().publish_status()) || {}; pubAt = Date.now(); } catch { pub = pub || {}; }
+    return pub;
+  }
   const cfgRaw = () => (QP.store.config && QP.store.config.recorder) || {};
 
   // One line for the Library header: what records the next game, at what quality, with what sound, the hotkey, the storage.
@@ -92,8 +99,14 @@
        <div class="sd-row"><span class="sd-lbl">Folder</span><code class="sd-path">${E(i.folder || '')}</code><button type="button" class="st-btn" data-sd-folder>Change</button>${r.folder ? '<button type="button" class="st-btn" data-sd-folder-reset>Use queuePop’s folder</button>' : ''}<button type="button" class="st-btn" data-rec-folder>Open</button></div>
        <div class="sd-row">${slider('cap_gb', r.cap_gb, 5, 500, 5, ' GB', 'Size cap')}</div>`);
 
+    const ps = await getPub(), mb = b => Math.round((b || 0) / 1024 ** 2);
+    const publishing = card('publish', 'Publishing', 'Clips you publish show on that champion’s page for everyone, as a small 720p copy with the game sound only (never your mic). Publish from a clip in the player.',
+      `<div class="sd-row"><span class="sd-lbl">Admin token</span>${ps.hasToken ? '<small class="sd-hint ok">Saved, encrypted on this PC.</small><button type="button" class="st-btn" data-sd-tok-clear>Forget it</button>'
+        : '<input type="password" class="sd-tok" placeholder="The crawler’s ADMIN_TOKEN" autocomplete="off"><button type="button" class="st-btn" data-sd-tok>Save</button>'}</div>
+       <p class="sd-usetext">${ps.reachable ? `${ps.total} clip${ps.total === 1 ? '' : 's'} published · ${mb(ps.bytes)} MB on the server` : 'Can’t reach the crawler right now.'}</p>`);
+
     host.innerHTML = `<section class="rec-page sd-page"><header class="rec-head"><p class="eyebrow">Studio</p><h1>Capture</h1></header>${top}
-      <div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}</div></section>`;
+      <div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}${publishing}</div></section>`;
   }
 
   // One control changed: save it, then redraw (a slider only updates its number while it moves).
@@ -110,8 +123,15 @@
     else if (t.hasAttribute && t.hasAttribute('data-sd-tft')) { QP.store.set('tft.record', t.checked); redraw(); }
   });
   document.addEventListener('click', async e => {
-    const b = e.target.closest && e.target.closest('[data-sd-set],[data-sd-key],[data-sd-folder],[data-sd-folder-reset]');
+    const b = e.target.closest && e.target.closest('[data-sd-set],[data-sd-key],[data-sd-folder],[data-sd-folder-reset],[data-sd-tok],[data-sd-tok-clear]');
     if (!b) return;
+    if (b.hasAttribute('data-sd-tok') || b.hasAttribute('data-sd-tok-clear')) {
+      const inp = document.querySelector('.sd-tok'), t = b.hasAttribute('data-sd-tok') ? (inp && inp.value.trim()) : '';
+      if (b.hasAttribute('data-sd-tok') && !t) return;
+      const r = await api().set_publish_token(t).catch(e => ({ ok: false, error: e && e.message }));
+      if (r && !r.ok) { b.textContent = r.error || 'Couldn’t save it'; return; }
+      await getPub(true); redraw(); return;
+    }
     if (b.dataset.sdSet) {
       const v = b.dataset.v, path = b.dataset.sdSet, O = window.recOptions;
       if (path === 'quality' && v === 'custom' && O) { const r = O.normalize(cfgRaw()); set('height', r.height); set('fps', r.fps); set('mbps', r.mbps); } // custom starts from what you had

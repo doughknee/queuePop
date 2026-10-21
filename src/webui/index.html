@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0A0A0A" />
   <!-- DONI-533: no inline or remote script (image fallbacks are img-fallback.js data attributes); data and images from
        the crawler (any address in Settings), Data Dragon, Community Dragon and deadlock-api; the TFT field guide frame is local. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: http: https:; font-src 'self' file: data:; connect-src 'self' file: http: https:; frame-src 'self' file:; media-src 'self' file: data:; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: http: https:; font-src 'self' file: data:; connect-src 'self' file: http: https:; frame-src 'self' file:; media-src 'self' file: data: https://clips.olvyx.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <script src="img-fallback.js"></script>
   <!--
     Precompiled Tailwind (scripts/tailwind.config.js + tailwind.src.css → styles.css)

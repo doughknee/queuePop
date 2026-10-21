@@ -154,3 +154,4 @@
 .lg-myclips header a:hover{text-decoration:underline}
 .lg-myclips .sd-film{border-top:0}
 .lg-myclips header small{flex:1;color:var(--muted);font:11px var(--mono)}
+.lg-featured .sd-film li{flex-basis:280px;border:1px solid var(--line)}
