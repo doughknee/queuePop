@@ -7,9 +7,9 @@ const LG_SKILL_LEVELS = [6, 10, 15];
 lg.slv = 15; // skill order view: levels shown
 function leagueChampionPage(id) {
   lgMount('champion', t => lgFillChampion(t, id));
-  const c = lgChamp(id), key = Object.keys(champions).find(k => champions[k].cid === c.id);
+  const c = lgChamp(id);
   const art = `url('${statsApi.DD}/cdn/img/champion/splash/${lgEsc(c.alias || 'Ahri')}_0.jpg')`;
-  return `<div class="lg-page lg-champ-page${lg.queue === 'aram' ? ' lg-aram' : ''}">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p class="lg-verdict" id="lg-verdict"></p><p>${key ? `<a href="#/league/champions/${key}">Lore & abilities ↗</a>` : ''}<a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
+  return `<div class="lg-page lg-champ-page${lg.queue === 'aram' ? ' lg-aram' : ''}">${lgBand(art, 'center 22%', `<div class="lg-champ-id">${lgIcon(id, 'lg-portrait')}<div><span class="lg-kicker" id="lg-champ-title">${lgEsc(c.title) || 'Champion stats'}</span><h1 id="lg-champ-name">${lgEsc(c.name)}</h1><p class="lg-verdict" id="lg-verdict"></p><p><a href="#/league/champ">Plan in champ select ↗</a><a href="#/league">Tier list ↗</a></p></div></div>
     <div class="lg-champ-side">${lgSearch()}<dl class="lg-strip" id="lg-champ-strip"></dl></div>`, ' lg-champ-band')}
     ${lgFilters(false, '<nav class="lg-roles lg-croles" id="lg-champ-roles" aria-label="Role"></nav>')}<div id="lg-champ"><p class="lg-wait">Loading ${lgEsc(c.name)}…</p></div></div>`;
 }
@@ -27,7 +27,7 @@ function lgLength(buckets, cwr, lenMin = 20) { // lenMin: the crawler's min_game
   return `<div class="lg-length">${buckets.map(b => `<div class="lg-len${b.games < lenMin ? ' low' : ''}" title="${lgN(b.games)} games, ${lgPct(b.share)} of all">
     <span class="lg-len-bar" style="--h:${((b.share || 0) / max * 100).toFixed(0)}%"></span>${lgHeat(b.winRate, cwr, 0.06, b.games, lgPct(b.winRate))}<small>${b.from}${b.to == null ? '+' : '–' + b.to} min</small></div>`).join('')}</div>`;
 }
-const lgSection = (title, note, body) => `<section class="lg-section"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
+const lgSection = (title, note, body) => `<section class="lg-section" id="lg-${title.toLowerCase().replace(/[^a-z]+/g, '-')}"><header class="lg-head"><h2>${title}</h2>${note ? `<small>${note}</small>` : ''}</header>${body}</section>`;
 const lgTop = (arr, n, f) => (arr || []).slice(0, n).map(f).join('');
 
 // Data Dragon lookups for one render: items, rune tree positions, spells. Stat mods are not in runesReforged.json.
@@ -53,11 +53,13 @@ function lgSkillGrid(key) {
   const rows = 'QWER'.split('').map(s => `<div class="lg-sk-row"><kbd>${s}</kbd>${key.split('').map((k, i) => `<span class="${k === s ? 'on' : ''}">${k === s ? i + 1 : ''}</span>`).join('')}</div>`);
   return `<div class="lg-sk-grid" style="--n:${key.length}">${rows.join('')}</div>`;
 }
+// "QEWQQR..." as letters in level order, spaced in threes, ultimates marked.
+const lgSkillSeq = key => `<span class="lg-sk-seq">${key.split('').map((k, i) => `<b class="s-${k}"${i && i % 3 === 0 ? ' data-gap' : ''}>${k}</b>`).join('')}</span>`;
 function lgSkills(d) {
   const pri = d.builds?.skills || [], orders = d.skills?.[lg.slv] || [], top = orders[0];
   const priPick = e => lgPick(`<span class="lg-keys">${e.key.split('').map(k => `<kbd>${k}</kbd>`).join('<i>›</i>')}</span>`, '', e);
   const toggle = `<div class="lg-msort" role="group" aria-label="Levels shown">Levels ${LG_SKILL_LEVELS.map(n => `<button data-lg-slv="${n}" aria-pressed="${lg.slv === n}">${n}</button>`).join('')}</div>`;
-  const alt = e => lgPick(`<code class="lg-sk-key">${e.key}</code>`, '', e);
+  const alt = e => lgPick(lgSkillSeq(e.key), '', e);
   return `<div class="lg-sheet lg-sheet-skills"><div class="lg-stack-col">${lgBlock('Skill priority', 'order the basic skills reach rank 5', lgTop(pri, 3, priPick))}${lgBlock('Summoner spells', '', lgTop(d.builds?.spells, 4, e => lgSpellPick(e, lgChampL)))}</div>
     <article class="lg-block lg-skill-order${top?.lowSample ? ' low' : ''}"><header><h3>Skill order</h3><small>${top ? `most common first ${lg.slv} levels · ${lgPct(top.winRate)} win · ${lgN(top.games)} games` : ''}</small>${toggle}</header>
     ${top ? lgSkillGrid(top.key) + `<div class="lg-block-head" aria-hidden="true"><span></span><span></span><span>Win</span><span>Pick · games</span></div>${lgTop(orders.slice(1), 4, alt)}` : '<p class="lg-wait">No timeline-sampled games reach this level yet.</p>'}</article></div>`;
@@ -67,22 +69,58 @@ const lgSkillsSection = d => lgSection('Skills & spells', `skills from ${lgN(d.t
 
 // --- Runes, spells, stat mods ---
 const lgSpellPick = (e, L) => lgPick(e.key.split(',').map(k => lgImg(L.spellBy[k] ? lgDD(`spell/${L.spellBy[k].image.full}`) : `assets/spells/${k}.png`, L.spellBy[k]?.name || k)).join(''), lgEsc(e.key.split(',').map(k => L.spellBy[k]?.name || k).join(' + ')), e);
-function lgRunes(d, L) {
+function lgRunePage(d, L) {
   const b = d.builds || {};
   const runeEntry = e => L.where[e.key] && { ...e, ...L.where[e.key] };
   const keys = (b.keystone || []).map(runeEntry).filter(Boolean), all = (b.rune || []).map(runeEntry).filter(e => e && e.slot > 0);
   const primary = keys[0]?.tree, trees = {};
   for (const e of all) if (e.tree !== primary) trees[e.tree.id] = (trees[e.tree.id] || 0) + e.games;
   const secId = Number(Object.entries(trees).sort((x, y) => y[1] - x[1])[0]?.[0]), sec = secId && all.find(e => e.tree.id === secId)?.tree;
-  const runePick = e => lgPick(lgImg(`${statsApi.DD}/cdn/img/${e.r.icon}`, e.r.name), lgEsc(e.r.name), e);
   const prim = [1, 2, 3].map(s => all.filter(e => e.tree === primary && e.slot === s).sort((x, y) => y.games - x.games)[0]).filter(Boolean);
   const secRows = all.filter(e => e.tree.id === secId).sort((x, y) => y.games - x.games).slice(0, 2);
+  return { keys, prim, secRows, primary, sec, secId };
+}
+function lgRunes(d, L) {
+  const { keys, prim, secRows, primary, sec } = lgRunePage(d, L);
+  const runePick = e => lgPick(lgImg(`${statsApi.DD}/cdn/img/${e.r.icon}`, e.r.name), lgEsc(e.r.name), e);
   const shardPick = e => lgPick(e.key.split(',').map(k => lgImg(`${statsApi.DD}/cdn/img/perk-images/StatMods/${LG_SHARDS[k]?.[1] || ''}.png`, LG_SHARDS[k]?.[0] || k, 'lg-ico lg-shard')).join(''), lgEsc(e.key.split(',').map(k => LG_SHARDS[k]?.[2] || k).join(' · ')), e);
   return `<div class="lg-sheet lg-sheet3">
     ${lgBlock(`Primary${primary ? ` · ${lgEsc(primary.name)}` : ''}`, 'keystone, then the most-picked rune per row', lgTop(keys, 1, runePick) + prim.map(runePick).join('') + (keys.length > 1 ? `<div class="lg-sep"></div>${keys.slice(1, 3).map(runePick).join('')}` : ''))}
     ${lgBlock(`Secondary${sec ? ` · ${lgEsc(sec.name)}` : ''}`, 'two most-picked runes of the second tree', secRows.map(runePick).join(''))}
     ${lgBlock('Stat mods', 'offense · flex · defense', lgTop(d.shards, 4, shardPick))}
   </div>`;
+}
+
+// --- Recommended build (deck-out 2026-10-20): the most-played choice at each step on one card, first thing on the page,
+// so the build reads without assembling it from the blocks below. Each part says its own win rate and games.
+const lgShardIcons = key => key.split(',').map(k => lgImg(`${statsApi.DD}/cdn/img/perk-images/StatMods/${LG_SHARDS[k]?.[1] || ''}.png`, LG_SHARDS[k]?.[0] || k, 'lg-ico lg-shard')).join('');
+function lgRecommended(d, L) {
+  const rp = lgRunePage(d, L), b = d.builds || {}, ks = rp.keys[0], shard = (d.shards || [])[0];
+  const spells = (b.spells || [])[0], pri = (b.skills || [])[0], order = (d.skills?.[15] || d.skills?.[10] || [])[0];
+  const start = (d.starting || [])[0], core = (d.buildOrder?.core || [])[0], after = leagueSlotAlternatives(d.buildOrder).map(o => o[0]).filter(Boolean);
+  if (!ks && !core && !spells) return '';
+  const runeIco = e => lgImg(`${statsApi.DD}/cdn/img/${e.r.icon}`, e.r.name);
+  const stat = e => e ? `<span class="lg-rec-stat${e.lowSample ? ' low' : ''}">${lgHeat(e.winRate, lg.cwr, 0.05, e.games, lgPct(e.winRate))}<small>${lgN(e.games)} games</small></span>` : '';
+  const part = (label, body, e, area) => body ? `<div class="lg-rec-part" style="grid-area:${area}"><span class="lg-rec-label">${label}</span><div class="lg-rec-body">${body}</div>${stat(e)}</div>` : '';
+  const runes = ks ? `<div class="lg-rec-runes"><span class="lg-rec-key">${runeIco(ks)}</span><span class="lg-rec-row">${rp.prim.map(runeIco).join('')}</span><span class="lg-rec-row">${rp.secRows.map(runeIco).join('')}</span>${shard ? `<span class="lg-rec-row lg-rec-shards">${lgShardIcons(shard.key)}</span>` : ''}</div>
+    <p class="lg-rec-name">${lgEsc(ks.r.name)}<small>${lgEsc(rp.primary?.name || '')}${rp.sec ? ` + ${lgEsc(rp.sec.name)}` : ''}</small></p>` : '';
+  const spellBody = spells ? `<div class="lg-rec-row">${spells.key.split(',').map(k => lgImg(L.spellBy[k] ? lgDD(`spell/${L.spellBy[k].image.full}`) : `assets/spells/${k}.png`, L.spellBy[k]?.name || k)).join('')}</div><p class="lg-rec-name">${lgEsc(spells.key.split(',').map(k => L.spellBy[k]?.name || k).join(' + '))}</p>` : '';
+  const skills = pri || order ? `${pri ? `<span class="lg-keys">${pri.key.split('').map(k => `<kbd>${k}</kbd>`).join('<i>›</i>')}</span>` : ''}${order ? lgSkillGrid(order.key) : ''}` : '';
+  const step = (l, html) => `<div class="lg-rec-step"><span class="lg-rec-step-l">${l}</span><span class="lg-rec-row">${html}</span></div>`;
+  const items = [start && step('Start', lgItemSet(L, start.key)),
+    core && step(`Core${core.avgMinute != null ? ` <small>by ${core.avgMinute.toFixed(0)} min</small>` : ''}`, core.key.split(',').map((k, i) => (i ? '<i class="lg-arrow">›</i>' : '') + L.itemImg(k)).join('')),
+    after.length && step('Then', after.map((e, i) => (i ? '<i class="lg-arrow">›</i>' : '') + L.itemImg(e.key)).join(''))].filter(Boolean).join('');
+  return `<section class="lg-rec" aria-label="Recommended build"><header><h2>Recommended build</h2><small>the most-played pick at every step this patch</small></header>
+    <div class="lg-rec-grid">${part('Runes', runes, ks, 'runes')}${part('Spells', spellBody, spells, 'spells')}${part('Skills', skills, order || pri, 'skills')}${part('Items', items, core, 'items')}</div>
+    ${lgLaneSummary(d)}</section>`;
+}
+// Best and worst lane opponents (100+ games, not low sample) by Delta 1, five each; the full Counters table is further down.
+function lgLaneSummary(d) {
+  const role = lgRoleOf(d.role), mus = (d.matchups || []).filter(m => !m.lowSample && m.games >= 100 && m.delta1 != null).sort((a, b) => b.delta1 - a.delta1);
+  if (mus.length < 4) return '';
+  const row = m => `<a class="lg-rec-mu" href="#/league/champion/${m.opponent}/${role}">${lgIcon(m.opponent)}<span>${lgEsc(lgChamp(m.opponent).name)}</span>${lgHeat(m.winRate, lg.cwr, 0.05, m.games, lgPct(m.winRate))}<small>${lgN(m.games)}</small></a>`;
+  const half = Math.min(5, Math.floor(mus.length / 2));
+  return `<div class="lg-rec-lanes"><div><h3>Best into</h3>${mus.slice(0, half).map(row).join('')}</div><div><h3>Worst into</h3>${mus.slice(-half).reverse().map(row).join('')}</div><button class="lg-rec-all" type="button" data-lg-jump="lg-counters">All ${lgN((d.matchups || []).length)} matchups ↓</button></div>`;
 }
 
 // --- Items: starting sets, early items, core build with timing, items 4·5·6 as OR alternatives ---
@@ -195,7 +233,7 @@ async function lgFillChampion(token, id) {
       + cell('Ban', lgMag(s.banRate, lgSpread(banded, r => r.banRate, 0), lgPct(s.banRate)), lgEsc(d.patch))
       + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} timed`)
       + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} each`) : '');
-    box().innerHTML = `
+    box().innerHTML = `${lgRecommended(d, lgChampL)}
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
@@ -209,6 +247,8 @@ async function lgFillChampion(token, id) {
   }
 }
 document.addEventListener('click', e => {
+  const j = e.target.closest('[data-lg-jump]'); // in-page jump: the address bar is the app's router, so no #anchors
+  if (j) { document.getElementById(j.dataset.lgJump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   const b = e.target.closest('[data-lg-slv]');
   if (!b || !lgChampData) return;
   lg.slv = Number(b.dataset.lgSlv);
