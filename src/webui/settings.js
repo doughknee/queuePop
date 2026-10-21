@@ -137,6 +137,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       // ---- Deadlock ----
       card('deadlock-account', 'Account and overlay', `
         <label class="st-row"><span class="st-lbl">Deadlock account ID${tip('Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.')}</span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="123456789"></label>
+        ${act('From Steam', 'queuePop fills this in by itself from the account signed in to Steam on this PC. Use this if you switched Steam accounts.', btn('dl-steam', 'Use my Steam account'))}
         <div class="st-row"><span class="st-lbl">In-game overlay<small id="st-dl-ov">Checking…</small></span><span class="st-act"><a class="st-btn" href="#/deadlock">Deadlock page</a></span></div>`) +
       `<div class="st-notfor" id="st-notfor"></div></div>`;
     root.querySelector('#st-find').addEventListener('input', e => find(e.target.value));
@@ -297,6 +298,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       else if (d === 'test-ntfy') { say(d, 'Sending…', true); const r = await a.test_ntfy(); say(d, r && r.ok ? 'Sent, check your phone' : (r && r.error) || 'Failed', r && r.ok); }
       else if (d === 'rec-recheck') { loadRecorder(true); }
       else if (d === 'rec-folder') { const r = await a.open_recordings_folder(); if (r && r.ok === false) say(d, r.error || 'Couldn’t open it', false); }
+      else if (d === 'dl-steam') { const r = await a.detect_deadlock_account(); say(d, r && r.ok ? 'Filled in from Steam' : 'No Steam account found on this PC', !!(r && r.ok)); setTimeout(hydrate, 200); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
       else if (d === 'reset-setup') { window.homeSetup?.reset(); say(d, 'They’ll show on home', true); }
       else if (d === 'open-config') { const r = await a.open_config_folder(); say(d, r && r.ok === false ? r.error : '', false); }
