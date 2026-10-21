@@ -286,7 +286,7 @@ async function lgFillHistory(token) {
 function lgHistChamps(games) {
   const top = lgChampSplit(games).slice(0, 5);
   if (top.length < 2) return '';
-  return `<div class="lg-hist-champs" aria-label="Your champions">${top.map(r => `<a href="#/league/champion/${r.championId}${r.position ? '/' + r.position : ''}">${lgIcon(r.championId)}<span><b>${lgEsc(lgChamp(r.championId).name)}</b><small>${r.games} ${r.games === 1 ? 'game' : 'games'} · <em class="${r.winRate >= 0.5 ? 'up' : 'down'}">${lgPct(r.winRate)}</em> · ${r.kda.toFixed(1)} KDA</small></span></a>`).join('')}</div>`;
+  return `<div class="lg-hist-champs" aria-label="Your champions">${top.map(r => `<a href="#/league/champion/${r.championId}${r.position ? '/' + r.position : ''}">${lgIcon(r.championId)}<span><b>${lgEsc(lgChamp(r.championId).name)}</b><small>${r.games} ${r.games === 1 ? 'game' : 'games'} · <em class="${r.winRate >= 0.5 ? 'up' : 'down'}">${lgPct(r.winRate)}</em></small><small>${r.kda.toFixed(1)} KDA</small></span></a>`).join('')}</div>`;
 }
 // The history rows' middle: items, CS/min and length from the crawler's cached lookup of your own account (/lol/summoner,
 // 10 min cache, one of its few lookups a minute); rows it doesn't hold stay as they are.
