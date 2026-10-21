@@ -429,5 +429,5 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .sb-ad{flex:none;padding:6px 8px 8px;border-top:1px solid var(--line)}
 .sb-ad-label{display:flex;justify-content:space-between;margin-bottom:4px;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .sb-ad-box{position:relative;width:300px;height:250px;min-width:300px;min-height:250px;background:var(--wash) url(assets/queuepop.svg) center/48px no-repeat}
-.sb-ad-box owadview{display:block;width:300px;height:250px;background:transparent}
+.sb-ad-box owadview{display:flex;width:300px;height:250px;background:transparent}
 .sb-ad[data-mode=preview] .sb-ad-box::after{content:'300 × 250 ad preview';position:absolute;left:0;right:0;bottom:16px;text-align:center;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
