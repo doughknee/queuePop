@@ -41,3 +41,25 @@ test("backfill-modes moves old flex rows off the solo patch and the next pass re
   assert.strictEqual(lolTiers(db, { queue: "440" }).matches, 1);
   assert.strictEqual(aggregate(db), 0, "dirty list cleared");
 });
+
+test("TFT Double Up (1160) is stored as its own mode, not skipped (DONI-615)", () => {
+  const { tftComps } = require("../src/server");
+  const db = open(":memory:");
+  const ranked = require("../fixtures/tft-match-1.json");
+  const du = JSON.parse(JSON.stringify(ranked)); du.metadata.match_id = "NA1_DU"; du.info.queue_id = 1160;
+  const ctx = { db, queues: [1100, 1160] };
+  for (const [id, m] of [[ranked.metadata.match_id, ranked], ["NA1_DU", du]]) {
+    db.prepare("INSERT INTO matches (id, game, region, bracket) VALUES (?, 'tft', 'na1', 'DIAMOND')").run(id);
+    store(ctx, "tft", id, m);
+  }
+  const row = db.prepare("SELECT status, patch FROM matches WHERE id = 'NA1_DU'").get();
+  assert.ok(row.status === "done" && row.patch.endsWith("-doubleup"), "stored, under -doubleup");
+  aggregate(db);
+  const p = patches(db), base = p.tft[0];
+  assert.deepStrictEqual([p.tft, p.doubleup, p.counts.doubleup[base]], [[base], [base], 1]);
+  assert.strictEqual(tftComps(db, {}).boards, 8, "ranked comps have no Double Up boards");
+  const d = tftComps(db, { queue: "doubleup" });
+  assert.deepStrictEqual([d.patch, d.queue, d.boards], [base + "-doubleup", 1160, 8]);
+  assert.strictEqual(tftComps(db, { patch: base + "-doubleup" }).boards, 8, "the app's suffixed patch picks the mode");
+  assert.throws(() => tftComps(db, { queue: "420" }), (e) => e.status === 400);
+});
