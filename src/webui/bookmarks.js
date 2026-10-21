@@ -3,14 +3,14 @@
 // Pure; app/test-bookmarks.js checks it. Toggling adds the page at the end, or removes it when it's already there.
 window.qpMarksToggle = (list, page) => list.some(b => b.href === page.href) ? list.filter(b => b.href !== page.href) : [...list, page].slice(-30);
 window.qpMarksMove = (list, from, to) => { const l = list.slice(), [b] = l.splice(from, 1); if (b) l.splice(Math.max(0, Math.min(to, l.length)), 0, b); return l; };
-window.qpMarkGame = href => (/^#\/(league|tft|deadlock|settings|recordings)\b/.exec(href || '') || [])[1] || 'home';
+window.qpMarkGame = href => (/^#\/(league|tft|deadlock|settings|studio)\b/.exec(href || '') || [])[1] || 'home';
 (function () {
   const bar = document.getElementById('qp-marks'); if (!bar) return;
   const E = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const LOGO = { league: 'assets/logos/league.svg', tft: 'assets/logos/tft.png', deadlock: 'assets/logos/deadlock.png' };
   const SVG = {
     settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>',
-    recordings: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
+    studio: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9"/></svg>',
   };
   const icon = g => LOGO[g] ? `<img src="${LOGO[g]}" alt="">` : SVG[g] || SVG.home;

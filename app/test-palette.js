@@ -31,7 +31,7 @@ const units = J2(ctx.window.qpUnitItems({ traits: { DA_18_Emperor: { name: "Empe
 assert.deepStrictEqual(units.map((u) => [u.label, u.href]), [["Ahri", "#/tft/unit/TFT16_Ahri"], ["Azir", "#/tft/unit/DA_18_Azir"]]);
 assert.strictEqual(units[1].sub, "4 cost · Emperor, Invoker");
 assert.deepStrictEqual(J2(ctx.window.qpUnitItems(null)), []);
-const recs = J2(ctx.window.qpRecordingItems([{ startedAt: 1 }], () => ({ title: "Ahri", result: "Win", facts: "3 / 1 / 7" }), () => "Mon 9:00"));
-assert.deepStrictEqual(recs, [{ kind: "recording", label: "Ahri", sub: "Mon 9:00 · Win · 3 / 1 / 7", href: "#/recordings" }]);
+const recs = J2(ctx.window.qpRecordingItems([{ startedAt: 1, matchId: "NA1_5" }], () => ({ title: "Ahri", result: "Win", facts: "3 / 1 / 7" }), () => "Mon 9:00"));
+assert.deepStrictEqual(recs, [{ kind: "recording", label: "Ahri", sub: "Mon 9:00 · Win · 3 / 1 / 7", href: "#/studio/game/NA1_5" }]);
 assert.deepStrictEqual(qpRank(recs, "ahri").length, 1);
 console.log("test-palette sources ok");

@@ -28,7 +28,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip", "recorder_info", "save_last_seconds"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip", "recorder_info", "save_last_seconds", "choose_recordings_folder"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -191,7 +191,17 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     get_recording: (id) => recorder.get(String(id)),
     delete_recording: (id) => recorder.remove(String(id)),
     // Studio: what this PC can record with (encoders, mics, outputs, monitor) and the engine in use.
-    recorder_info: async () => ({ engine: await video.engine(), device: ow.status().ready ? await ow.info().catch((e) => ({ error: e.message })) : null, hotkey }),
+    recorder_info: async () => {
+      // Storage: the recorder's own videos and clips in the folder (never anything else there), for Studio's usage bar.
+      let used = 0, files = 0;
+      try { for (const f of require("./recorder-video").ownVideos(fs.readdirSync(recDir()))) { used += fs.statSync(path.join(recDir(), f)).size; files++; } } catch {}
+      return { engine: await video.engine(), device: ow.status().ready ? await ow.info().catch((e) => ({ error: e.message })) : null, hotkey, folder: recDir(), storage: { used, files } };
+    },
+    // Studio > Capture > Storage: pick the folder with Windows' own dialog. -> { ok, folder } (the renderer saves it).
+    choose_recordings_folder: async () => {
+      const r = await dialog.showOpenDialog({ title: "Where Studio saves recordings", defaultPath: recDir(), properties: ["openDirectory", "createDirectory"] });
+      return r.canceled || !r.filePaths[0] ? { ok: false } : { ok: true, folder: r.filePaths[0] };
+    },
     save_last_seconds: () => saveLast(),
     recorder_status: async () => { const e = await video.engine(); return { ffmpeg: e.ffmpeg, engine: e, folder: recDir(), recording: recorder.live() ? recorder.live().matchId : null }; },
     // A game's video: play it (reveal false) or select it in Explorer, where its clips sit beside it (reveal true).
