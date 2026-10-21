@@ -63,3 +63,25 @@ test("a key per game: League and TFT calls carry their own key and get their own
     assert.strictEqual(keyHealth(db, "RGAPI-env", "tft").valid, true, "a new TFT key is trusted");
   } finally { mock.server.close(); }
 });
+
+test("leaderboard names after a key change: account-v1 by-puuid in ladder order, Master+ only, gated", async () => {
+  const mock = await startMock(0);
+  const db = open(":memory:");
+  let t = Date.now(); // the leaderboard keeps apex rows seeded in the last hour (real clock)
+  const ctx = { db, riot: createClient({ key: "k", base: mock.url, limiter: new Limiter() }), minTier: "EMERALD", queues: [420], now: () => t };
+  try {
+    while (!getMeta(db, "seed:lol:na1")?.doneAt) await jobs.seed(ctx, "lol", "na1");
+    const before = leaderboard(db, "lol", { region: "na1", limit: 3 }).players;
+    assert.ok(before.length === 3 && before.every((p) => p.riotId === null), "no names yet");
+    assert.strictEqual(await jobs.names(ctx, "lol", "na1"), true);
+    assert.strictEqual(await jobs.names(ctx, "lol", "na1"), false, "one call per 5 s per region and game");
+    t += 5000; await jobs.names(ctx, "lol", "na1");
+    const top = leaderboard(db, "lol", { region: "na1", limit: 3 }).players;
+    assert.ok(top[0].riotId?.startsWith("Name "), "the top of the ladder first");
+    assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_names").get().n, 2);
+    const apex = db.prepare("SELECT count(*) n FROM players WHERE game = 'lol' AND tier_n >= 7").get().n;
+    for (let i = 0; i < apex + 2; i++) { t += 5000; await jobs.names(ctx, "lol", "na1"); }
+    t += 5000;
+    assert.strictEqual(await jobs.names(ctx, "lol", "na1"), false, "stops once every Master+ player has a name");
+  } finally { mock.server.close(); }
+});

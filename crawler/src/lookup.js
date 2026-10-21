@@ -27,7 +27,7 @@ function leaderboard(db, game, q = {}) {
   }
   return { game, region: region || "all", players: rows.map((r, i) => {
     const c = crawled.get(r.puuid), ladder = (r.wins ?? 0) + (r.losses ?? 0);
-    return { rank: i + 1, riotId: r.riotId, region: r.region, tier: r.tier, division: TIERS.indexOf(r.tier) >= 7 ? null : r.division, lp: r.lp,
+    return { rank: i + 1, riotId: r.riotId || null, region: r.region, tier: r.tier, division: TIERS.indexOf(r.tier) >= 7 ? null : r.division, lp: r.lp,
       wins: r.wins, losses: r.losses, games: ladder || null, winRate: ladder ? r4(r.wins / ladder) : null, updatedAt: r.seeded_at,
       ...(game === "tft" && { crawled: c ? { games: c.games, avgPlacement: r4(c.ps / c.games), top4Rate: r4(c.top4 / c.games) } : null }) };
   }) };
