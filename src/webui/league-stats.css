@@ -172,7 +172,13 @@
 .lg-builds tbody tr{cursor:default}
 
 /* DONI-508: summoner page and ladder (league-players.js) */
-.lg-sum-row{grid-template-columns:64px auto minmax(0,1fr) 26px 140px minmax(0,1.2fr) 80px;cursor:default}
+.lg-sum-row{grid-template-columns:64px auto 44px minmax(0,1fr) 26px 140px minmax(0,1.2fr) 80px;cursor:default}
+.lg-sum-load{display:flex;align-items:center;gap:2px}
+.lg-sum-load>span{display:flex;flex-direction:column;gap:2px}
+.lg-sum-load .lg-ico{width:18px;height:18px}
+.lg-sum-load .lg-sum-ks{width:22px;height:22px}
+.lg-sum-head{margin-top:18px}
+.lg-sum-icon{width:40px;height:40px;flex:none;align-self:center;border:1px solid var(--line)}
 .lg-sum-row a{color:inherit;text-decoration:none}
 .lg-sum-row .lg-match-name a:hover{color:var(--accent)}
 .lg-sum-items{display:flex;gap:2px}
