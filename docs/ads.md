@@ -21,9 +21,12 @@ collapsible sidebar. Nothing serves until queuePop runs on ow-electron with its 
 ## How it works in the app
 
 - `src/webui/ads.js` decides the mode on launch and whenever config or status changes:
-  - **ad**: the app runs on ow-electron (`get_status().overwolf`) and you're not a supporter (`config.ads.premium` is false).
-  - **off**: plain Electron (the dogfood build today), or a supporter.
-  - **preview**: `localStorage['queuepop-ads-preview'] = '1'` shows the box with a placeholder in plain Electron, for layout work.
+  - **ad**: the app runs on ow-electron (`get_status().overwolf`), ads are live (`get_status().ads_live`: launched with
+    `--test-ad`, or `config.ads.live` once the release gate is cleared), and you're not a supporter (`config.ads.premium`).
+  - **preview**: the placeholder box with no ad. It shows on ow-electron before ads are live, so the personal build never serves
+    real ads you could see or click. Overwolf counts those as invalid traffic. Without the gate, real ads did serve on the dev
+    key (2026-10-21). In plain Electron, `localStorage['queuepop-ads-preview'] = '1'` shows the same box for layout work.
+  - **off**: plain Electron (without the preview flag), or a supporter.
 - In **ad** mode the box holds `<owadview cid="queuepop_300x250_sb">` (Overwolf's tag, based on Electron's `<webview>`, so the
   window has `webviewTag: true`). Behind it sits a flat placeholder at exactly the box's size, seen only when no ad loads, as
   Overwolf recommends. The box has no other children.
@@ -52,6 +55,7 @@ collapsible sidebar. Nothing serves until queuePop runs on ow-electron with its 
 2. Overwolf registers the app and enables its uid for ads; check with `--test-ad` first.
 3. A consent screen for players in the EU and other strict regions, per Overwolf's CMP implementation guidelines.
 4. `config.ads.premium` replaced by Overwolf's subscription check, and a "Go ad-free" path that sells the tier.
-5. Answers from Overwolf DevRel on:
+5. Set `config.ads.live` (or make live the default in the release build) only once 1 to 4 are done.
+6. Answers from Overwolf DevRel on:
    - Are ads required for an app that uses the recorder or GEP?
    - Does the exclusivity clause allow our own ad-free subscription, or must it go through Overwolf?
