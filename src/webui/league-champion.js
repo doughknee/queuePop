@@ -233,7 +233,7 @@ async function lgFillChampion(token, id) {
       + cell('Ban', lgMag(s.banRate, lgSpread(banded, r => r.banRate, 0), lgPct(s.banRate)), lgEsc(d.patch))
       + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} timed`)
       + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} each`) : '');
-    box().innerHTML = `${lgRecommended(d, lgChampL)}
+    box().innerHTML = `${lgRecommended(d, lgChampL)}<div id="lg-myclips"></div>
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
@@ -241,6 +241,8 @@ async function lgFillChampion(token, id) {
       ${(d.length || []).some(b => b.games) ? lgSection('Game length', 'win rate by game length · share of games', lgLength(d.length, s.winRate, Math.max(20, Math.round((d.minGames || 200) / 10)))) : ''}
       <div class="lg-duo">${lgMatchups(d)}${lgSynergies(d)}</div>
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
+    // Your clips of this champion from Studio (recordings.js), when you have any; local files, nothing uploaded.
+    if (window.recChampionClips) recChampionClips(lgChamp(id).name).then(h => { const el = document.getElementById('lg-myclips'); if (el && h && token === lg.token) { el.innerHTML = h; window.recLazyVideos && recLazyVideos(el); } }).catch(() => {});
     lgFillPlayers(token, id);
   } catch (e) {
     if (box()) box().innerHTML = lgFail('champion page', e); // a render error must not read as "crawler offline" again

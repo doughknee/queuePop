@@ -191,3 +191,14 @@ console.log("test-recorder highlights ok");
   assert.deepStrictEqual(JSON.parse(JSON.stringify(ctx.window.recFilterClips(items, { sort: "best" }))).map((x) => x.c.score ?? 0), [98, 40, 0]);
 }
 console.log("test-recorder smart clips ok");
+
+// Champion page clips (recPickChampionClips): that champion only, best score first, then starred, then newest; capped.
+{
+  const it = (champion, startedAt, c) => ({ r: { champion, startedAt }, c: { file: "x.mp4", ...c }, i: 0 });
+  const items = [it("Ezreal", 1, { score: 40 }), it("Ezreal", 2, { score: 90 }), it("ezreal", 3, { score: 40, favorite: true }), it("Ahri", 4, { score: 99 }), it("Ezreal", 5, { score: 70, file: "" })];
+  const got = JSON.parse(JSON.stringify(ctx.window.recPickChampionClips(items, "Ezreal"))).map((x) => x.r.startedAt);
+  assert.deepStrictEqual(got, [2, 3, 1]); // no Ahri, no clip without a file, case-insensitive name
+  assert.strictEqual(ctx.window.recPickChampionClips(items, "Ezreal", 1).length, 1);
+  assert.deepStrictEqual(ctx.window.recPickChampionClips(items, "").length, 0);
+}
+console.log("test-recorder champion clips ok");

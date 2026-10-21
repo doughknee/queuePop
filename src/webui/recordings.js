@@ -23,6 +23,14 @@
     return { title: r.champion || 'League', result: r.result ? (r.result === 'win' ? 'Win' : 'Loss') : '', facts: facts.join(' · ') };
   }
   window.recFacts = recFacts;
+  // A champion page's "Your <champion> clips": that champion's clips across your recordings, best first (score, then starred,
+  // then newest), at most n. items: [{ r: recording summary, c: clip, i }]. Pure; app/test-recorder.js checks it.
+  window.recPickChampionClips = (items, name, n = 8) => {
+    const want = String(name || '').toLowerCase();
+    return items.filter(({ r, c }) => want && String(r.champion || '').toLowerCase() === want && c && c.file)
+      .sort((a, b) => (b.c.score || 0) - (a.c.score || 0) || (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || (b.r.startedAt || 0) - (a.r.startedAt || 0))
+      .slice(0, n);
+  };
   // Highlights' filter and order (deck-out round 3). items: [{ r: recording summary, c: clip, i }]; f: { type: all | kill |
   // multikill | death | objective | assist | mine, champ, star, sort: best | star | new | long }. best (the default) is the
   // clip's score from app/clip-score.js, high first. Pure; app/test-recorder.js checks it.
@@ -149,6 +157,24 @@
         <button type="button" class="rec-del sd-gdel" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(f.title)} recording from ${E(when(r.startedAt))}">Delete</button></div>
       <small class="sd-gfacts">${[when(r.startedAt), f.result, f.facts].filter(Boolean).map(E).join(' · ')}</small></li>`;
   }
+  // Champion pages (league-champion.js) ask for your clips of that champion: a filmstrip that opens each in Studio's player,
+  // or '' when you have none (the page then shows nothing). Local files only; nothing is uploaded.
+  window.recChampionClips = async function (name) {
+    const a = api(); if (!a || !a.list_recordings || !name) return '';
+    let list = []; try { list = (await a.list_recordings()) || []; } catch { return ''; }
+    const mine = list.filter(r => r.clips && String(r.champion || '').toLowerCase() === String(name).toLowerCase());
+    if (!mine.length) return '';
+    const full = await Promise.all(mine.slice(0, 40).map(r => a.get_recording(r.matchId).catch(() => null)));
+    const items = []; full.forEach((rec, k) => (rec && rec.clips || []).forEach((c, i) => items.push({ r: mine[k], c, i })));
+    const top = window.recPickChampionClips(items, name, 8);
+    if (!top.length) return '';
+    const total = items.length;
+    return `<section class="lg-myclips" aria-label="Your ${E(name)} clips"><header><h2>Your ${E(name)} clips</h2><a href="#/studio/highlights" data-myclips-champ="${E(name)}">${total > top.length ? `All ${total} in Studio ↗` : 'Open Studio ↗'}</a></header>
+      <ol class="sd-film">${top.map(({ r, c, i }) => `<li><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(when(r.startedAt))} · ${Math.round((c.end || 0) - (c.start || 0))} s${c.favorite ? ' · ★' : ''}</small></span></a></li>`).join('')}</ol></section>`;
+  };
+  window.recLazyVideos = root => lazyVideos(root);
+  // "All N in Studio" opens Highlights filtered to that champion.
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-myclips-champ]'); if (a) { hf.champ = a.dataset.myclipsChamp; hf.type = 'all'; hf.star = false; } });
   // Previews load when they come into view (a Library of 30 games opens 30 files otherwise).
   function lazyVideos(root) {
     const vids = [...root.querySelectorAll('video[data-sd-src]')];
