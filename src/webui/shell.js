@@ -74,6 +74,8 @@
     }
     best?.setAttribute('aria-current', 'page');
     bar.querySelector('.sb-gear:not(.sb-rec)').toggleAttribute('aria-current', game === 'settings');
+    // 2026-10-21: no Home row any more; the logo is Home, and it shows when you're there.
+    if (game === 'home') bar.querySelector('.sb-brand').setAttribute('aria-current', 'page'); else bar.querySelector('.sb-brand').removeAttribute('aria-current');
     bar.querySelector('.sb-rec')?.toggleAttribute('aria-current', game === 'recordings');
     for (const g of bar.querySelectorAll('[data-game]')) g.classList.toggle('open', g.dataset.game === game);
     const src = bar.querySelector(`[data-game="${game}"] .sb-pages`), html = src ? src.innerHTML : '';

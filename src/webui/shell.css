@@ -437,3 +437,8 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .sb-ad-box{position:relative;width:300px;height:250px;min-width:300px;min-height:250px;background:var(--wash) url(assets/queuepop.svg) center/48px no-repeat}
 .sb-ad-box owadview{display:flex;width:300px;height:250px;background:transparent}
 .sb-ad[data-mode=preview] .sb-ad-box::after{content:'300 × 250 ad preview';position:absolute;left:0;right:0;bottom:16px;text-align:center;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* The logo is Home (no Home row since 2026-10-21): on Home it gets a lime underline instead of the row highlight. */
+#qp-sidebar .sb-brand[aria-current="page"]{background:none;box-shadow:none}
+#qp-sidebar .sb-brand[aria-current="page"] span{text-decoration:underline 2px var(--accent);text-underline-offset:7px}
+:root.sb-collapsed .sb-brand[aria-current="page"] img{outline:2px solid var(--accent);outline-offset:4px}
