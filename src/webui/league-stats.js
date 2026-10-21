@@ -126,7 +126,7 @@ const lgRegionOpts = () => [['all', 'All regions'], ...[...new Set([...lgt.regio
 // Game mode: one dropdown (the tabs took a third of the filter row and wrapped it). A thin mode says its game count.
 const lgQueueTabs = () => {
   const modes = LG_MODES.filter(([v]) => !v || lg.modeN[v] > 0 || lg.queue === v);
-  return modes.length > 1 ? `<select class="lg-mode" data-lg-mode aria-label="Game mode" title="Game mode">${modes.map(([v, t]) => { const n = lg.modeN[v] || 0, thin = v && n < 1000; return `<option value="${v}"${lg.queue === v ? ' selected' : ''}>${t}${thin ? ` (${lgN(n)} games so far)` : ''}</option>`; }).join('')}</select>` : '';
+  return modes.length > 1 ? `<select class="lg-mode" data-lg-mode aria-label="Game mode" title="Game mode">${modes.map(([v, t]) => { const n = lg.modeN[v] || 0, thin = v && n < 1000; return `<option value="${v}"${lg.queue === v ? ' selected' : ''}>${t}${thin ? ` · ${lgN(n)}` : ''}</option>`; }).join('')}</select>` : '';
 };
 document.addEventListener('change', e => {
   const m = e.target.closest?.('[data-lg-mode]'); if (!m) return;
