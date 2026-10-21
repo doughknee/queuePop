@@ -1,4 +1,26 @@
-# Publishing clips to champion pages (plan, 2026-10-21)
+# Publishing clips to champion pages (2026-10-21)
+
+## Built: local store on Unraid (2026-10-21)
+
+The first version stores clips on the Unraid box, not R2. `CLIPS_STORE` is the one setting that picks where clips live.
+
+- **Publish** in Studio's player (two clicks; the first says names on screen go public and only the game sound uploads).
+  `app/clip-publish.js` streams the clip to the crawler's `POST /admin/clips` (LAN only, admin token). The token is
+  saved from Studio › Capture › Publishing, encrypted with Electron safeStorage in `userData/publish-token.bin`, never
+  in config.json. **Unpublish** calls `DELETE /admin/clips/<id>` and the files go.
+- The crawler (`crawler/src/clips.js`) makes the web copy with ffmpeg (720p30 H.264, first audio track only, faststart,
+  a 40 MB clip came out at 2.3 MB) plus a poster, stores both in `CLIPS_DIR`, and lists them at `GET /lol/clips`.
+- Public files: SWAG's `clips.subdomain.conf` passes only `/<12 hex>.mp4|jpg` to the crawler's `/clips/` route, so
+  `https://clips.olvyx.com` serves clips and nothing else. The admin routes refuse anything forwarded by a proxy.
+- Champion pages show **Featured clips** under **Your top clips**, from `statsApi.clips(id)` (not memoised).
+- Server: `.env` sets `CLIPS_STORE=local`, `CLIPS_DIR=/clips`, `CLIPS_PUBLIC_BASE=https://clips.olvyx.com`; the clips
+  folder is `/mnt/cache/appdata/queuepop-crawler/clips` (in the server-only compose override).
+
+**Moving to R2 later** (when queuePop goes public and home upload bandwidth matters): add an `r2` store to
+`createStore`, copy the folder up once, point `clips.olvyx.com` at the bucket. Clip URLs stay the same. The plan
+below still describes that setup.
+
+## The original R2 plan
 
 Today a champion page shows **Your <champion> clips**: your own Studio clips of that champion, played from your disk
 (`recChampionClips` in `src/webui/recordings.js`). Nothing leaves your PC.
