@@ -147,11 +147,3 @@
 .lg-sk-seq b.s-R{color:var(--amber)}
 .lg-champ-page .lg-section{scroll-margin-top:calc(var(--marks-h,0px) + 60px)}
 /* Your clips of this champion from Studio (2026-10-21): local only, shown when you have any. */
-.lg-myclips{margin:0 0 18px;border:1px solid var(--line);background:var(--bg)}
-.lg-myclips header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 14px 0}
-.lg-myclips h2{font:22px/1 var(--display);text-transform:uppercase;margin:0}
-.lg-myclips header a{color:var(--accent);font:700 12px var(--mono);text-decoration:none}
-.lg-myclips header a:hover{text-decoration:underline}
-.lg-myclips .sd-film{border-top:0}
-.lg-myclips header small{flex:1;color:var(--muted);font:11px var(--mono)}
-.lg-featured .sd-film li{flex-basis:280px;border:1px solid var(--line)}

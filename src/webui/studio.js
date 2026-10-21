@@ -27,16 +27,23 @@
   }
   const cfgRaw = () => (QP.store.config && QP.store.config.recorder) || {};
 
-  // One line for the Library header: what records the next game, at what quality, with what sound, the hotkey, the storage.
+  // What records the next game, one line for the Library header that opens Capture: on/off with a live dot, the quality and
+  // sound, and the storage used as a bar. Amber when the engine can't do everything (ffmpeg: no sound).
+  const recState = (r, eng) => {
+    const games = [r.enabled && 'League', !!((QP.store.config || {}).tft || {}).record && 'TFT'].filter(Boolean);
+    const O = window.recOptions, q = `${O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom'} · ${r.height}p${r.fps}`;
+    const sound = ['game', 'mic', 'desktop'].filter(k => r.audio[k].on).join(' + ') || 'no sound';
+    if (!games.length) return { cls: 'off', head: 'Recorder off', detail: 'New games aren’t kept' };
+    if (!r.video) return { cls: 'on', head: `Recording ${games.join(' + ')}`, detail: 'Timelines only, no video' };
+    if (eng.engine === 'overwolf') return { cls: 'on', head: `Recording ${games.join(' + ')}`, detail: `${q} · ${r.mode === 'clips' ? 'clips only' : sound}` };
+    if (eng.engine === 'ffmpeg') return { cls: 'warn', head: `Recording ${games.join(' + ')}`, detail: `${q} · ffmpeg, no sound` };
+    return { cls: 'warn', head: 'Timelines only', detail: 'Nothing can record video' };
+  };
   window.studioSummary = async function () {
-    const O = await opts(), i = await getInfo(), r = O.normalize(cfgRaw()), eng = i.engine || {};
-    const engine = eng.engine === 'overwolf' ? `Overwolf · ${encName(r.encoder !== 'auto' ? r.encoder : eng.encoder)}` : eng.engine === 'ffmpeg' ? `ffmpeg · ${encName(eng.encoder)} · no sound` : 'No engine';
-    const q = `${O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom'} · ${r.height}p${r.fps} · ${r.mbps} Mbps`;
-    const sound = ['game', 'mic', 'desktop'].filter(k => r.audio[k].on).map(k => ({ game: 'game', mic: 'mic', desktop: 'desktop' })[k]).join(' + ') || 'no sound';
-    const hk = !r.hotkey.on ? 'off' : i.hotkey === r.hotkey.keys ? r.hotkey.keys : `${r.hotkey.keys} (taken)`;
-    const st = i.storage || { used: 0 };
-    const cell = (k, v, warn) => `<div class="sd-cell${warn ? ' warn' : ''}"><small>${k}</small><b>${E(v)}</b></div>`;
-    return `<div class="sd-strip">${cell('Engine', engine, eng.engine !== 'overwolf')}${cell('Quality', q)}${cell('Sound', sound)}${cell('Save last ' + r.hotkey.seconds + ' s', hk, r.hotkey.on && i.hotkey !== r.hotkey.keys)}${cell('Storage', `${gb(st.used)} of ${r.cap_gb} GB`, st.used > r.cap_gb * 1024 ** 3 * 0.9)}</div>`;
+    const O = await opts(), i = await getInfo(), r = O.normalize(cfgRaw()), s = recState(r, i.engine || {});
+    const st = i.storage || { used: 0 }, pct = Math.min(100, st.used / (r.cap_gb * 1024 ** 3) * 100);
+    return `<a class="sd-status ${s.cls}" href="#/studio/capture" title="Capture settings"><i class="sd-dot" aria-hidden="true"></i><span class="sd-st-t"><b>${E(s.head)}</b><small>${E(s.detail)}</small></span>
+      <span class="sd-st-store"><small>${gb(st.used)} of ${r.cap_gb} GB</small><span class="sd-meter${pct > 90 ? ' full' : ''}"><i style="width:${pct}%"></i></span></span></a>`;
   };
 
   // --- Capture -----------------------------------------------------------------------------------------------------------
@@ -47,7 +54,7 @@
   const card = (id, title, note, body) => `<section class="sd-card" id="sd-${id}"><header><h2>${E(title)}</h2>${note ? `<p>${note}</p>` : ''}</header>${body}</section>`;
 
   async function render(host) {
-    if (!host.querySelector('.sd-page')) host.innerHTML = '<section class="rec-page sd-page"><header class="rec-head"><p class="eyebrow">Studio</p><h1>Capture</h1></header><p class="rec-wait">Loading…</p></section>';
+    if (!host.querySelector('.sd-capture')) host.innerHTML = '<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header><div class="sd-skel" aria-hidden="true"><div class="sd-skel-row">' + '<i></i>'.repeat(3) + '</div></div></section>';
     const O = await opts();
     if (!QP.store.config) { try { await QP.store.load(); } catch {} }
     const i = await getInfo(true);
@@ -55,8 +62,13 @@
     const raw = cfgRaw(), r = O.normalize(raw), dev = i.device || {}, eng = i.engine || {}, ow = eng.engine === 'overwolf';
     const tft = !!(QP.store.config.tft || {}).record;
     const fitsH = h => !dev.monitor || h <= dev.monitor.height;
-    const top = `<div class="sd-sum"><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b><span>${r.height}p · ${r.fps} fps · ${r.mbps} Mbps · ${O.trackCount(O.tracks(r))} audio track${O.trackCount(O.tracks(r)) > 1 ? 's' : ''}</span>
-      <span class="sd-big">${r.mode === 'clips' ? 'clips only' : `about ${O.gbPerHour(r)} GB an hour`}</span><span>about ${O.gamesInCap(r)} games fit in ${r.cap_gb} GB</span></div>`;
+    // The rail: what you're recording at (preset, size per hour, games that fit), the engine, and a jump to each card.
+    const st0 = recState(r, eng);
+    const rail = `<aside class="sd-rail"><div class="sd-preset"><small>Recording at</small><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b>
+        <span>${r.height}p · ${r.fps} fps · ${r.mbps} Mbps</span>
+        <div class="sd-figs"><p><b>${r.mode === 'clips' ? '<1' : O.gbPerHour(r)}</b><small>GB an hour</small></p><p><b>${O.gamesInCap(r)}</b><small>games fit in ${r.cap_gb} GB</small></p></div>
+        <p class="sd-eng ${st0.cls}"><i class="sd-dot" aria-hidden="true"></i><span>${E(ow ? `Overwolf · ${encName(eng.encoder)}` : eng.engine === 'ffmpeg' ? `ffmpeg · ${encName(eng.encoder)} · no sound` : 'No video engine')}</span></p></div>
+      <nav class="sd-jump" aria-label="Capture">${[['record', 'What gets recorded'], ['quality', 'Quality'], ['audio', 'Sound'], ['clips', 'Clips'], ['hotkey', 'Save the last moments'], ['storage', 'Storage'], ['publish', 'Publishing']].map(([k, l]) => `<a href="#/studio/capture" data-sd-jump="sd-${k}">${l}</a>`).join('')}</nav></aside>`;
     const engineNote = ow ? `Recording with Overwolf on ${E(encName(eng.encoder))}.` : eng.engine === 'ffmpeg' ? 'Recording with ffmpeg: the whole screen, no sound, clips cut after the game. Run queuePop on Overwolf for game capture, sound and live clips.' : 'Nothing can record video right now: run queuePop on Overwolf, or install ffmpeg.';
 
     const recording = card('record', 'What gets recorded', engineNote,
@@ -70,7 +82,7 @@
       <div class="sd-row">${slider('mbps', r.mbps, 2, 80, 1, ' Mbps', 'Bitrate')}<small class="sd-hint">8 Mbps is plenty for 1080p60; posting clips at 1440p wants 16 or more.</small></div>`;
     const encs = (dev.encoders || []).filter(e => ENC[e]);
     const encoder = ow && encs.length ? `<div class="sd-row"><span class="sd-lbl">Encoder</span><select class="st-in" data-sd-str="encoder"><option value="auto"${r.encoder === 'auto' ? ' selected' : ''}>Best on this PC (${E(encName(dev.encoder))})</option>${encs.map(e => `<option value="${E(e)}"${r.encoder === e ? ' selected' : ''}>${E(encName(e))}</option>`).join('')}</select><small class="sd-hint">The graphics card keeps your FPS. HEVC files may not play in the player here.</small></div>` : '';
-    const quality = card('quality', 'Quality', `Your screen is ${dev.monitor ? `${dev.monitor.width}×${dev.monitor.height}` : 'unknown'}; recordings keep its shape and are never upscaled.`,
+    const quality = card('quality', 'Quality', dev.monitor ? `Your screen is ${dev.monitor.width}×${dev.monitor.height}; recordings keep its shape and are never upscaled.` : 'Recordings keep your screen’s shape and are never upscaled.',
       `<div class="sd-qs" role="radiogroup">${qCards}</div>${custom}${encoder}`);
 
     const src = (k, label, hint) => `<div class="sd-src${r.audio[k].on ? '' : ' off'}">${toggle(`audio.${k}.on`, r.audio[k].on, label)}${slider(`audio.${k}.volume`, r.audio[k].volume, 0, 200, 5, '%', 'Volume')}<small class="sd-hint">${hint}</small></div>`;
@@ -105,9 +117,22 @@
         : '<input type="password" class="sd-tok" placeholder="The crawler’s ADMIN_TOKEN" autocomplete="off"><button type="button" class="st-btn" data-sd-tok>Save</button>'}</div>
        <p class="sd-usetext">${ps.reachable ? `${ps.total} clip${ps.total === 1 ? '' : 's'} published · ${mb(ps.bytes)} MB on the server` : 'Can’t reach the crawler right now.'}</p>`);
 
-    host.innerHTML = `<section class="rec-page sd-page"><header class="rec-head"><p class="eyebrow">Studio</p><h1>Capture</h1></header>${top}
-      <div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}${publishing}</div></section>`;
+    const y = window.scrollY;
+    host.innerHTML = `<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header>
+      <div class="sd-cap">${rail}<div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}${publishing}</div></div></section>`;
+    window.scrollTo(0, y); // a redraw after a change keeps your place
+    spy(host);
   }
+
+  // The rail's links jump to a card (the hash is the router, so no #anchors) and light up the card you're reading.
+  let spyIO = null;
+  function spy(host) {
+    if (spyIO) spyIO.disconnect();
+    const links = new Map([...host.querySelectorAll('[data-sd-jump]')].map(a => [a.dataset.sdJump, a]));
+    spyIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach((a, id) => a.toggleAttribute('aria-current', id === e.target.id)); }), { rootMargin: '-20% 0px -70% 0px' });
+    host.querySelectorAll('.sd-card').forEach(c => spyIO.observe(c));
+  }
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-sd-jump]'); if (!a) return; e.preventDefault(); document.getElementById(a.dataset.sdJump)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); });
 
   // One control changed: save it, then redraw (a slider only updates its number while it moves).
   const redraw = () => { const h = document.getElementById('main'); if (location.hash.startsWith('#/studio/capture') && h) render(h); };
@@ -166,7 +191,7 @@
     if (main && /^#\/studio\/?(highlights)?$/.test(location.hash) && window.recordingsView) recordingsView.render(main);
     let t = document.getElementById('sd-toast');
     if (!t) { t = Object.assign(document.createElement('div'), { id: 'sd-toast', className: 'sd-toast' }); t.setAttribute('role', 'status'); document.body.append(t); }
-    t.innerHTML = `<span class="sd-toast-dot" aria-hidden="true"></span><b>${E(ev.message)}</b>${id ? `<a class="st-btn st-gold" href="#/studio/game/${encodeURIComponent(id)}">Watch</a>` : ''}<button type="button" aria-label="Close">✕</button>`;
+    t.innerHTML = `<span class="sd-toast-dot" aria-hidden="true"></span><b>${E(ev.message)}</b>${id ? `<a class="sd-btn primary" href="#/studio/game/${encodeURIComponent(id)}">Watch</a>` : ''}<button type="button" aria-label="Close">✕</button>`;
     t.hidden = false;
     t.querySelector('button').onclick = () => { t.hidden = true; };
     t.querySelector('a') && (t.querySelector('a').onclick = () => { t.hidden = true; });
