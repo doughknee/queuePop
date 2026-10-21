@@ -17,7 +17,19 @@ const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 const CONFIG_FILE = path.join(__dirname, "..", "src", "config.json");
 const VERSION = (fs.readFileSync(path.join(__dirname, "..", "src", "_version.py"), "utf8").match(/"(.+)"/) || [])[1];
 
-const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+// The log also goes to <userData>/queuepop.log (1 MB, one .old rotation) so a slow start or a crash leaves a trace
+// on a machine nobody is watching (DONI-619).
+let logFile = null;
+const log = (...a) => {
+  const line = `${new Date().toISOString()} ${a.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")}
+`;
+  console.log(line.slice(11, -1));
+  try {
+    logFile = logFile || path.join(require("electron").app.getPath("userData"), "queuepop.log");
+    if ((fs.statSync(logFile, { throwIfNoEntry: false }) || { size: 0 }).size > 1e6) fs.renameSync(logFile, logFile + ".old");
+    fs.appendFileSync(logFile, line);
+  } catch {}
+};
 
 // Read-only callers get {} when the file can't be read right now; writers use config.get, which throws instead,
 // so nothing writes an empty config over the user's (DONI-529).
@@ -167,6 +179,10 @@ app.whenReady().then(() => {
     if (d.reason !== "clean-exit" && Date.now() - reloadedAt > 10000) { reloadedAt = Date.now(); win.reload(); }
   });
   // pywebview's drag class -> Electron's app-region; everything else in the bar stays clickable.
+  // Every page load (startup and reloads) logs how long it took, so a slow one shows up in queuepop.log.
+  let loadStart = 0;
+  win.webContents.on("did-start-loading", () => { loadStart = Date.now(); });
+  win.webContents.on("did-stop-loading", () => { if (loadStart) { const ms = Date.now() - loadStart; if (ms > 3000) log(`page: slow load, ${ms} ms`); loadStart = 0; } });
   win.webContents.on("did-finish-load", () => {
     win.webContents.insertCSS(".pywebview-drag-region{-webkit-app-region:drag}.appbar>:not(.pywebview-drag-region){-webkit-app-region:no-drag}");
     impl.set_ui_scale(loadConfig().ui_scale) || win.webContents.setZoomFactor(1.25);
