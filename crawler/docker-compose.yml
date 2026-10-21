@@ -7,6 +7,11 @@ services:
     env_file: .env
     ports:
       - "47900:47900"
+    networks: [default, reverse-proxy] # reverse-proxy: SWAG reaches /clips by name (clips.olvyx.com); nothing else is proxied
     volumes:
       - ./data:/data
       - ./backups:/backups # nightly VACUUM INTO, newest 3 (BACKUP_KEEP); host dir owned by uid 1000 like ./data
+      - ./clips:/clips # published clips (CLIPS_DIR=/clips in .env), served at /clips and, through SWAG, clips.olvyx.com; uid 1000 too
+networks:
+  reverse-proxy:
+    external: true

@@ -419,10 +419,12 @@ body.theme-recordings,body.theme-studio{background:var(--bg);color:var(--fg);fon
 .rp-sep{width:12px}.rp-msg{color:var(--muted);font-size:12px}
 .rp-clips{margin-top:22px}.rp-clips h2{font:22px var(--display);text-transform:uppercase;margin:0 0 6px}
 .rp-clips ol{list-style:none;margin:0;padding:0}
-.rp-c{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.rp-c{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:6px 0;border-top:1px solid var(--line)}.rp-c>.rp-cplay{flex:1 1 180px;min-width:0}
+.rec-pub{font:12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);text-decoration:none;padding:6px 8px}.rec-pub:hover{text-decoration:underline}
+.sd-tok{flex:1 1 220px;min-width:0;font:12px var(--mono);background:var(--wash);color:var(--fg);border:1px solid var(--line);padding:6px 8px}
 .rp-cplay{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;padding:2px 0}
 .rp-cplay b{font:16px/1 var(--display);text-transform:uppercase}.rp-cplay small{color:var(--muted);font-size:12px}.rp-cplay:hover b{color:var(--accent)}
-@media(min-width:1500px){.rec-player{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0 24px;align-items:start}.rec-player>.rec-back,.rec-player>.rp-head{grid-column:1/-1}.rec-player .rp-clips{margin-top:0}.rp-c{grid-template-columns:28px auto auto minmax(0,1fr);row-gap:0}.rp-cplay{grid-column:2/-1}.rp-c .rec-del{justify-self:start;padding:2px 12px 2px 0}.rp-c [data-rp-cshow]{grid-column:2}}
+@media(min-width:1500px){.rec-player{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:0 24px;align-items:start}.rec-player>.rec-back,.rec-player>.rp-head{grid-column:1/-1}.rec-player .rp-clips{margin-top:0}.rp-c>.rp-cplay{flex-basis:calc(100% - 40px)}.rp-c .rec-del{padding:2px 12px 2px 0}}
 
 /* The sidebar ad (docs/ads.md, ads.js): 300x250 under the nav, the sidebar fixed at 316 px, no collapse or drag, the nav
    tightened so the games and the current game's pages fit above it at the default window. */

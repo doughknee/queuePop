@@ -233,7 +233,7 @@ async function lgFillChampion(token, id) {
       + cell('Ban', lgMag(s.banRate, lgSpread(banded, r => r.banRate, 0), lgPct(s.banRate)), lgEsc(d.patch))
       + cell('Games', lgN(s.games), s.lowSample ? `under ${lgN(d.minGames)}: low sample` : `${lgN(d.timelineGames || 0)} timed`)
       + (d.depth?.players ? cell('Players', lgN(d.depth.players), `${(d.depth.gamesPerPlayer || 0).toFixed(1)} each`) : '');
-    box().innerHTML = `${lgRecommended(d, lgChampL)}<div id="lg-myclips"></div>
+    box().innerHTML = `${lgRecommended(d, lgChampL)}<div id="lg-myclips"></div><div id="lg-featured"></div>
       <div id="lg-skills">${lgSkillsSection(d)}</div>
       ${lgSection('Runes', `win · pick · games, out of ${lgN(s.games)} ${R} games`, lgRunes(d, lgChampL))}
       ${lgSection('Items', 'purchase order from timeline-sampled games', lgItems(d, lgChampL))}
@@ -243,6 +243,11 @@ async function lgFillChampion(token, id) {
       ${lgSection('Best players', `most wins on ${lgEsc(c.name)} · this patch`, '<div id="lg-best"><p class="lg-wait">Loading…</p></div>')}`;
     // Your clips of this champion from Studio (recordings.js), when you have any; local files, nothing uploaded.
     if (window.recChampionClips) recChampionClips(lgChamp(id).name).then(h => { const el = document.getElementById('lg-myclips'); if (el && h && token === lg.token) { el.innerHTML = h; window.recLazyVideos && recLazyVideos(el); } }).catch(() => {});
+    // Featured clips: ones published from Studio to clips.olvyx.com, shown to everyone. Nothing when there are none.
+    statsApi.clips(id).then(r => { const el = document.getElementById('lg-featured'), cs = (r && r.clips) || []; if (!el || !cs.length || token !== lg.token) return;
+      el.innerHTML = `<section class="lg-myclips lg-featured" aria-label="Featured ${lgEsc(c.name)} clips"><header><h2>Featured clips</h2><small>Plays on ${lgEsc(c.name)}, picked from queuePop Studio.</small></header>
+        <ol class="sd-film">${cs.slice(0, 6).map(x => `<li><video controls preload="none" poster="${lgEsc(x.poster)}" src="${lgEsc(x.url)}"></video><span><b>${lgEsc(x.label)}</b><small>${[x.role, x.patch && 'patch ' + x.patch, Math.round(x.duration || 0) + ' s'].filter(Boolean).map(lgEsc).join(' · ')}</small></span></li>`).join('')}</ol></section>`;
+    }).catch(() => {});
     lgFillPlayers(token, id);
   } catch (e) {
     if (box()) box().innerHTML = lgFail('champion page', e); // a render error must not read as "crawler offline" again

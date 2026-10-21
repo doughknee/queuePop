@@ -106,6 +106,8 @@
     champion: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}`, p),
     players: (id, p) => crawler(`/lol/champion/${encodeURIComponent(id)}/players`, p), // DONI-506: top 50 on a champion
     status: () => crawler('/status'),
+    // Published clips of one champion (docs/clip-publishing.md); not memoised, so a clip you just published shows at once.
+    clips: async champion => json(`${await base()}/lol/clips?champion=${encodeURIComponent(champion)}`),
     // DONI-509: rolled up on first read after each aggregation (~10 s cold on the live box), so these wait longer.
     // DONI-508/512: on-demand player lookups (up to ~23 Riot requests when uncached) and the ranked ladders.
     summoner: (riotId, region) => crawler(`/lol/summoner/${encodeURIComponent(riotId)}`, { region }, 45000),

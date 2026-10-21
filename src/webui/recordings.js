@@ -101,7 +101,7 @@
         <label class="sd-tog"><input type="checkbox" data-hf-star${hf.star ? ' checked' : ''}><span>Starred only</span></label>
         <label class="rp-pick">Order <select data-hf-sel="sort">${[['best', 'Best'], ['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         <span class="sd-hlcount">${shown.length === clips.length ? `${clips.length} clip${clips.length === 1 ? '' : 's'}` : `${shown.length} of ${clips.length} clips`}</span></div>` : '';
-      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${bar}${!clips.length ? '' : !shown.length ? '<div class="rec-empty">No clips match. Clear a filter to see more.</div>' : ''}${shown.length ? `<div class="rec-hls">${shown.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : clips.length ? '' : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
+      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${bar}${!clips.length ? '' : !shown.length ? '<div class="rec-empty">No clips match. Clear a filter to see more.</div>' : ''}${shown.length ? `<div class="rec-hls">${shown.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s${c.published ? ' · Published' : ''}</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : clips.length ? '' : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
       lazyVideos(host);
       return;
     }
@@ -248,7 +248,7 @@
     const ol = document.getElementById('rp-clips'); if (!ol) return;
     const cs = P.rec.clips || [];
     ol.innerHTML = cs.length ? cs.map((c, i) => `<li class="rp-c">${star(c.favorite, `data-rec-cfav="${E(P.rec.matchId)}" data-i="${i}"`, clipName(c))}<button type="button" class="rp-cplay" data-rp-clip="${i}"><b>${E(clipName(c))}</b><small>${mmss(c.start)} – ${mmss(c.end)} · ${Math.round(c.end - c.start)} s</small></button>
-      <button type="button" class="rec-del rec-open" data-rp-cren="${i}">Rename</button><button type="button" class="rec-del rec-open" data-rp-cshow="${i}">Show file</button><button type="button" class="rec-del" data-rp-cdel="${i}">Delete</button></li>`).join('')
+      <button type="button" class="rec-del rec-open" data-rp-cren="${i}">Rename</button><button type="button" class="rec-del rec-open" data-rp-cshow="${i}">Show file</button>${P.rec.game === 'tft' ? '' : c.published ? `<a class="rec-pub" href="#/league/champion/${champId(P.rec.champion) || ''}" title="${E(c.published.url)}">On the champion page</a><button type="button" class="rec-del" data-rp-cunpub="${i}">Unpublish</button>` : `<button type="button" class="rec-del rec-open" data-rp-cpub="${i}">Publish</button>`}<button type="button" class="rec-del" data-rp-cdel="${i}">Delete</button></li>`).join('')
       : `<li class="rec-nostrip">${P.rec.video ? 'No clips yet. Mark a start and an end, then save one.' : 'Clips need video.'}</li>`;
     ol.querySelectorAll('.rp-c').forEach((li, i) => li.classList.toggle('now', P.clipsOnly && P.cur === i));
   }
@@ -259,6 +259,9 @@
     v.currentTime = c.start; P.stopAt = c.end; v.play().catch(() => {});
   }
   const say = t => { const m = document.getElementById('rp-msg'); if (m) m.textContent = t; };
+  // The League champion id for the name the recorder stored (Publish needs it); 0 before the names have loaded.
+  const champId = name => { const n = String(name || '').toLowerCase(); if (typeof lg === 'undefined' || !n) return 0;
+    const k = Object.keys(lg.names || {}).find(k => lg.names[k].name.toLowerCase() === n); return k ? Number(k) : 0; };
   async function rpAction(k) {
     const v = document.getElementById('rp-v'); if (!v) return;
     if (P.clipsOnly && ['a', 'b', 'save'].includes(k)) { say('Clips-only games have no full video to cut from.'); return; }
@@ -292,7 +295,7 @@
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); document.querySelector('.rp-head [data-rec-fav]')?.click(); }
   });
   document.addEventListener('click', async e => {
-    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],.rp-tl [data-t]');
+    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],.rp-tl [data-t]');
     if (!t) return;
     if (t.dataset.recTab) { tab = t.dataset.recTab; render(document.getElementById('main')); return; }
     if (t.dataset.recFav) {
@@ -321,6 +324,22 @@
       inp.addEventListener('blur', () => finish(true));
       inp.addEventListener('click', ev => ev.stopPropagation());
       return;
+    }
+    if (t.dataset.rpCpub != null) { // two clicks: the first says what goes out
+      const i = +t.dataset.rpCpub, c = P.rec.clips[i];
+      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Publish for everyone?'; say('Everyone on this champion’s page will see it, names on screen included. Only the game sound goes up, never your mic.'); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Publish'; } }, 6000); return; }
+      if (typeof lgNames === 'function' && !champId(P.rec.champion)) await lgNames(lg.patch).catch(() => {});
+      t.disabled = true; t.textContent = 'Publishing…'; say('Uploading and making the web copy. A long clip takes a minute.');
+      const r = await api().publish_clip(P.rec.matchId, i, { champion: champId(P.rec.champion), label: clipName(c) }).catch(e => ({ ok: false, error: e && e.message }));
+      if (!r || !r.ok) { say((r && r.error) || 'Couldn’t publish it'); drawClips(); return; }
+      c.published = r.published; drawClips(); say(`Published. It’s on the ${P.rec.champion} page now.`); return;
+    }
+    if (t.dataset.rpCunpub != null) {
+      const i = +t.dataset.rpCunpub;
+      if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Take it down?'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Unpublish'; } }, 4000); return; }
+      t.disabled = true; const r = await api().unpublish_clip(P.rec.matchId, i).catch(e => ({ ok: false, error: e && e.message }));
+      if (!r || !r.ok) { say((r && r.error) || 'Couldn’t take it down'); drawClips(); return; }
+      delete P.rec.clips[i].published; drawClips(); say('Taken down. It’s off the champion page.'); return;
     }
     if (t.dataset.rpCshow != null) { await api().open_recording(P.rec.matchId, true, +t.dataset.rpCshow).catch(() => null); return; }
     if (t.dataset.rpCdel != null) {

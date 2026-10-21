@@ -62,6 +62,7 @@ function open(file) {
   db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables
   require("./agg-window").migrate(db); // D6: matches.duration, stats_*_daily, stats_lol_length, stats_lol_depth
   require("./agg-tft").migrate(db);
+  db.exec(require("./clips").SCHEMA); // published clips (docs/clip-publishing.md)
   db.exec(require("./draft").SCHEMA); // D8: stats_lol_vs // DONI-510/511: tft_participants.board + stats_tft_{unit,unit_item,item,augment,trait}
   // Migration: TFT set number (nullable), for DBs created before it existed.
   if (!db.prepare("PRAGMA table_info(matches)").all().some((c) => c.name === "set")) db.exec('ALTER TABLE matches ADD COLUMN "set" INT');
