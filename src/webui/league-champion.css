@@ -145,3 +145,4 @@
 .lg-sk-seq b{width:12px;text-align:center;color:var(--fg)}
 .lg-sk-seq b[data-gap]{margin-left:5px}
 .lg-sk-seq b.s-R{color:var(--amber)}
+.lg-champ-page .lg-section{scroll-margin-top:calc(var(--marks-h,0px) + 60px)}

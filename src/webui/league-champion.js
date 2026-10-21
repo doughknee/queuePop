@@ -246,9 +246,13 @@ async function lgFillChampion(token, id) {
     if (box()) box().innerHTML = lgFail('champion page', e); // a render error must not read as "crawler offline" again
   }
 }
+// In-page jump ("All 40 matchups"): the address bar is the app's router, so no #anchors. Capture phase, because the
+// world's own click handler takes button clicks first.
 document.addEventListener('click', e => {
-  const j = e.target.closest('[data-lg-jump]'); // in-page jump: the address bar is the app's router, so no #anchors
-  if (j) { document.getElementById(j.dataset.lgJump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const j = e.target.closest('[data-lg-jump]');
+  if (j) { e.stopPropagation(); document.getElementById(j.dataset.lgJump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}, true);
+document.addEventListener('click', e => {
   const b = e.target.closest('[data-lg-slv]');
   if (!b || !lgChampData) return;
   lg.slv = Number(b.dataset.lgSlv);
