@@ -32,16 +32,23 @@ async function lgFillSummoner(token, riot, region) {
     if (box()) box().innerHTML = `<p class="lg-offline">${e?.status === 404 || String(e?.message).startsWith('404') ? `No Riot ID "${lgEsc(riot)}" on ${lgEsc(region.toUpperCase())}. Check the #tag.` : lgLookupError(e, 'player with this Riot ID')}</p>`;
     return;
   }
-  await lgNames().catch(() => null);
+  const [runes, spells] = await Promise.all([statsApi.runes(lg.patch).catch(() => null), statsApi.spells(lg.patch).catch(() => null), lgNames().catch(() => null)]);
   if (!box()) return;
-  document.getElementById('lg-sum-name').textContent = d.riotId.split('#')[0];
+  const L = lgLookups(null, runes?.d, spells?.d);
+  const h1 = document.getElementById('lg-sum-name');
+  h1.textContent = d.riotId.split('#')[0];
+  if (d.iconId != null) h1.insertAdjacentHTML('beforebegin', lgImg(lgDD(`profileicon/${d.iconId}.png`), '', 'lg-sum-icon'));
   document.getElementById('lg-meta').textContent = `#${d.riotId.split('#')[1] || ''} · ${d.region.toUpperCase()} · level ${d.level}`;
   document.getElementById('lg-sum-ranks').innerHTML = (d.ranked || []).map(r => { const g = r.wins + r.losses; return `<span class="lg-you-rank"><small>${LG_QUEUE_NAME[r.queue] || lgEsc(r.queue)}</small> ${lgTierWord(r.tier)}${r.division && !/MASTER|CHALLENGER/.test(r.tier) ? ' ' + r.division : ''} <small>${lgN(r.lp)} LP</small> ${g ? lgHeat(r.wins / g, 0.5, 0.1, g, lgPct(r.wins / g)) : ''} <small>${g} games</small></span>`; }).join('') || '<span class="lg-wait">Unranked this split.</span>';
-  const m = d.matches || [], w = m.filter(x => x.win).length;
-  box().innerHTML = !m.length ? '<p class="lg-wait">No recent matches.</p>' : `<header class="lg-head"><h2>Last ${m.length} matches</h2><span class="lg-sub">${w}W ${m.length - w}L · ${lgPct(w / m.length)} · fetched ${lgAgoMs(d.fetchedAt)}</span></header>
-    <div class="lg-sum-list">${m.map(x => { const c = lgChamp(x.champion), kda = (x.kills + x.assists) / Math.max(1, x.deaths), role = lgRoleOf(x.role); return `<div class="lg-match ${x.win ? 'win' : 'loss'}"><div class="lg-match-row lg-sum-row">
-      <span class="lg-result">${x.win ? 'Victory' : 'Defeat'}</span><a href="#/league/champion/${x.champion}${LG_ROLES.includes(role) ? '/' + role : ''}" title="Open ${lgEsc(c.name)}'s stats">${lgIcon(x.champion)}</a>
-      <span class="lg-match-name"><a href="#/league/champion/${x.champion}">${lgEsc(c.name)}</a><small>${lgEsc(queueMap[x.queueId] || 'Queue ' + x.queueId)}</small></span>
+  // Same rules as your own match history: a game under 5 minutes is a remake, greyed and left out of the record and the pool.
+  const m = d.matches || [], real = m.filter(x => !(x.duration && x.duration < 300)), w = real.filter(x => x.win).length, remakes = m.length - real.length;
+  const pool = lgHistChamps(real.map(x => ({ championId: x.champion, win: x.win, kills: x.kills, deaths: x.deaths, assists: x.assists, position: LG_ROLES.includes(lgRoleOf(x.role)) ? lgRoleOf(x.role) : '' })));
+  const spell = k => lgImg(L.spellBy[k] ? lgDD(`spell/${L.spellBy[k].image.full}`) : `assets/spells/${k}.png`, L.spellBy[k]?.name || '', 'lg-ico');
+  box().innerHTML = !m.length ? '<p class="lg-wait">No recent matches.</p>' : `<header class="lg-head lg-sum-head"><h2>Last ${m.length} matches</h2><span class="lg-sub">${real.length ? `${w}W ${real.length - w}L · ${lgPct(w / real.length)}` : ''}${remakes ? ` · ${remakes} ${remakes === 1 ? 'remake' : 'remakes'} left out` : ''} · fetched ${lgAgoMs(d.fetchedAt)}</span></header>${pool.replace('aria-label="Your champions"', 'aria-label="Their champions"')}
+    <div class="lg-sum-list">${m.map(x => { const c = lgChamp(x.champion), kda = (x.kills + x.assists) / Math.max(1, x.deaths), role = lgRoleOf(x.role), remake = x.duration && x.duration < 300, ks = x.keystone && L.where[x.keystone]; return `<div class="lg-match ${remake ? 'remake' : x.win ? 'win' : 'loss'}"><div class="lg-match-row lg-sum-row">
+      <span class="lg-result">${remake ? 'Remake' : x.win ? 'Victory' : 'Defeat'}</span><a href="#/league/champion/${x.champion}${LG_ROLES.includes(role) ? '/' + role : ''}" title="Open ${lgEsc(c.name)}'s stats">${lgIcon(x.champion)}</a>
+      <span class="lg-sum-load"><span>${(x.spells || []).map(spell).join('')}</span>${ks ? lgImg(`${statsApi.DD}/cdn/img/${ks.r.icon}`, ks.r.name, 'lg-ico lg-sum-ks') : ''}</span>
+      <span class="lg-match-name"><a href="#/league/champion/${x.champion}">${lgEsc(c.name)}</a><small>${lgEsc(queueMap[x.queueId] || 'Other mode')}</small></span>
       <span>${lgRoleIcon(role)}</span><span class="lg-kda">${x.kills} / ${x.deaths} / ${x.assists}<small>${kda.toFixed(2)} KDA · ${x.cs} cs</small></span>
       <span class="lg-sum-items">${(x.items || []).filter(Boolean).map(i => lgImg(lgDD(`item/${i}.png`), '', 'lg-ico')).join('')}</span>
       <span class="lg-ago"><a href="#/league/match/${encodeURIComponent(x.id)}" title="Open the full match">${Math.round(x.duration / 60)} min ↗</a><small>${lgAgoMs(x.startedAt)}</small></span></div></div>`; }).join('')}</div>`;
