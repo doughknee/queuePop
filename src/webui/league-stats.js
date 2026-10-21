@@ -319,14 +319,29 @@ async function lgExpandMatch(btn) {
   if (!open || more.dataset.done || !g) return;
   more.dataset.done = '1';
   const c = lgChamp(g.championId), role = g.position || '', href = `#/league/champion/${g.championId}${role ? '/' + role : ''}`;
-  more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div><dt>Kills + assists</dt><dd>${g.kills + g.assists}</dd></div><div><dt>Deaths</dt><dd>${g.deaths}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>${g.gameId ? ` <a href="#/league/match/${lgMatchId(g.gameId)}">Open the full match ↗</a>` : ''}`;
+  more.innerHTML = `<dl><div><dt>Played</dt><dd>${lgEsc(fmtClock(g.ts))}</dd></div><div id="lg-meta-${btn.dataset.lgMatch}"><dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Loading…</dd></div></dl><a href="${href}">Open ${lgEsc(c.name)}'s stats ↗</a>${g.gameId ? ` <a href="#/league/match/${lgMatchId(g.gameId)}">Open the full match ↗</a><div class="lg-peek" id="lg-peek-${btn.dataset.lgMatch}"><p class="lg-wait">Reading the match…</p></div>` : ''}`;
   const slot = document.getElementById('lg-meta-' + btn.dataset.lgMatch);
+  if (g.gameId) lgPeekMatch(document.getElementById('lg-peek-' + btn.dataset.lgMatch), lgMatchId(g.gameId));
   try {
     // review #122: the game's own queue decides which mode's numbers, not the tier list's toggle (unknown queues read solo)
     const data = await statsApi.tiers(lgParams(LG_ROLES.includes(role) ? role : 'all', LG_MODE_OF[g.queueId] || ''));
     const rows = leagueTierRows(data.champions), r = rows.filter(x => x.champion === Number(g.championId)).sort((a, b) => b.games - a.games)[0];
     slot.innerHTML = `<dt>${lgEsc(c.name)} ${LG_ROLE[role] || ''} · ${lgEsc(data.patch)}${[lg.region !== 'all' ? lg.region.replace(/\d+$/, '').toUpperCase() : '', lg.bracket !== 'all' ? (LG_BRACKETS.find(b => b[0] === lg.bracket) || [])[1] : '', lg.days ? (LG_WINDOWS.find(w => w[0] === lg.days) || [])[1] : ''].filter(Boolean).map(x => ' · ' + lgEsc(x)).join('')}</dt><dd${r?.lowSample ? ' class="low"' : ''}>${r ? `${lgTier(r.tier, r.lowSample)} ${lgPct(r.winRate)} <small>${lgN(r.games)} games</small>` : 'No crawler games yet'}</dd>`;
   } catch { slot.innerHTML = `<dt>${lgEsc(c.name)} this patch</dt><dd class="lg-wait">Stats offline</dd>`; }
+}
+
+// Both teams at a glance inside the expanded row: champion, player, KDA, damage against the match's highest. The full table
+// (gold, vision, builds, objectives) stays on #/league/match.
+async function lgPeekMatch(box, id) {
+  let m;
+  try { m = await statsApi.match(id); } catch { box.innerHTML = '<p class="lg-wait">The teams are not available for this match.</p>'; return; }
+  const s = leagueLive.summoner, me = s ? `${s.name}#${s.tag}`.toLowerCase() : '', ps = m.participants || [], max = Math.max(1, ...ps.map(p => p.damage || 0));
+  const row = p => { const rid = p.riotId || '', k = p.kills ?? '–';
+    return `<li class="${me && rid.toLowerCase() === me ? 'me' : ''}">${lgIcon(p.champion)}<span class="lg-peek-who">${rid ? `<a href="#/league/summoner/${lgRiotSlug(rid)}/${String(m.id).split('_')[0].toLowerCase()}">${lgEsc(rid.split('#')[0])}</a>` : 'Unknown'}<small>${lgEsc(lgChamp(p.champion).name)}</small></span>
+      <span class="lg-peek-kda">${k} / ${p.deaths ?? '–'} / ${p.assists ?? '–'}</span><span class="lg-peek-dmg">${p.damage == null ? '' : `<span class="lg-mt-bar" style="--w:${(p.damage / max * 100).toFixed(0)}%"></span>${lgN(p.damage)}`}</span></li>`; };
+  const team = t => { const T = (m.teams || []).find(x => x.team === t) || {}, rows = ps.filter(p => p.team === t);
+    return rows.length ? `<div class="${T.win ? 'win' : 'loss'}"><h4>${T.win ? 'Victory' : 'Defeat'} · ${t === 100 ? 'Blue' : 'Red'} side</h4><ul>${rows.map(row).join('')}</ul></div>` : ''; };
+  box.innerHTML = team(100) + team(200) || '<p class="lg-wait">The teams are not available for this match.</p>';
 }
 
 // --- Events: one delegated listener each, scoped to the League stats pages ---
