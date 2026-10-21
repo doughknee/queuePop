@@ -250,7 +250,7 @@ async function lgFillChampion(token, id) {
 // world's own click handler takes button clicks first.
 document.addEventListener('click', e => {
   const j = e.target.closest('[data-lg-jump]');
-  if (j) { e.stopPropagation(); document.getElementById(j.dataset.lgJump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  if (j) { e.stopPropagation(); document.getElementById(j.dataset.lgJump)?.scrollIntoView({ block: 'start' }); }
 }, true);
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-lg-slv]');
