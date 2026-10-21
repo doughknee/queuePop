@@ -16,7 +16,7 @@
   const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
   function recFacts(r) {
     const c = r.counts || {}, ord = n => `${n}${['th', 'st', 'nd', 'rd'][n] || 'th'}`; // TFT places are 1-8
-    if (r.game === 'tft') return { title: `TFT${r.placement ? ` · ${ord(r.placement)} place` : ''}`, result: r.result ? (r.result === 'win' ? 'Top 4' : 'Bottom 4') : '', facts: '' };
+    if (r.game === 'tft') return { title: `${r.queueId === 1160 ? 'Double Up' : 'TFT'}${r.placement ? ` · ${ord(r.placement)} place` : ''}`, result: r.result ? (r.result === 'win' ? 'Top 4' : 'Bottom 4') : '', facts: '' };
     const facts = [`${c.kill || 0} / ${c.death || 0} / ${c.assist || 0}`];
     if (c.multikill) facts.push(plural(c.multikill, 'multikill'));
     if (c.objective) facts.push(plural(c.objective, 'objective'));
@@ -44,7 +44,10 @@
     if (!here()) return;
     host.innerHTML = `<section class="rec-page">${head}<ol class="rec-list">${list.slice(0, 30).map((r, i) => {
       const rec = full[i] || r, f = recFacts(r), title = f.title, facts = f.facts;
-      const strip = stripMarkers(rec).length ? window.recStrip(rec) : `<span class="rec-nostrip">${r.game === 'tft' ? 'Placement only for TFT' : 'No moments recorded'}</span>`;
+      // TFT: the final board (from match history), units with their stars, instead of a timeline.
+      const unit = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).replace(/^.*_/, '').slice(0, 3))}</span>`; };
+      const board = r.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unit).join('')}<small>Level ${E(rec.board.level)}</small></span>` : '';
+      const strip = stripMarkers(rec).length ? window.recStrip(rec) : board || `<span class="rec-nostrip">${r.game === 'tft' ? 'Board arrives a minute after the game' : 'No moments recorded'}</span>`;
       return `<li class="rec-row ${r.result || ''}"><div class="rec-meta"><b>${E(title)}</b><small>${E(when(r.startedAt))}${f.result ? ` · ${f.result}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
         ${strip}<span class="rec-act"><button type="button" class="rec-del" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></span></li>`; }).join('')}</ol>
       <p class="rec-legend">${Object.entries(KIND).map(([k, l]) => `<span><i class="rec-m rec-${k}"></i>${l}</span>`).join('')}</p></section>`;

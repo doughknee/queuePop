@@ -39,6 +39,7 @@ assert.deepStrictEqual(F({ game: "league", champion: "Ahri", result: "win", coun
 assert.deepStrictEqual(F({ game: "league", counts: {} }), { title: "League", result: "", facts: "0 / 0 / 0" });
 assert.deepStrictEqual(F({ game: "tft", placement: 3, result: "win" }), { title: "TFT · 3rd place", result: "Top 4", facts: "" });
 assert.deepStrictEqual(F({ game: "tft", placement: 7, result: "loss" }), { title: "TFT · 7th place", result: "Bottom 4", facts: "" });
+assert.strictEqual(F({ game: "tft", queueId: 1160, placement: 1, result: "win" }).title, "Double Up · 1st place");
 
 // A whole game: off by default; on → one file per game with your events and the result, no duplicates across polls.
 (async () => {

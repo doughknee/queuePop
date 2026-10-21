@@ -354,3 +354,9 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 #main{min-height:calc(100vh - var(--marks-h) - 49px - 67px)}
 /* Switching games: the old page list fades out quickly before the new one slides in. */
 .sb-block.sb-out>a,#world-nav.sb-out>a{opacity:0;transform:translateX(4px);transition:opacity .1s ease-in,transform .1s ease-in}
+/* TFT recordings: the final board, units framed by stars (1 grey, 2 blue, 3 amber). */
+.rec-board{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.rec-unit{display:grid;place-items:center;width:30px;height:30px;border:2px solid var(--grey);overflow:hidden;font:700 9px var(--mono);color:var(--muted);background:var(--line)}
+.rec-unit img{width:100%;height:100%;object-fit:cover}
+.rec-unit.s2{border-color:var(--blue)}.rec-unit.s3{border-color:var(--amber)}
+.rec-board small{margin-left:8px;color:var(--muted);font-size:12px}
