@@ -52,7 +52,7 @@ assert.deepStrictEqual(normalizeConfig({ ntfy: { enabled: true, topic: "queuepop
 assert.strictEqual(normalizeConfig({ ntfy: { topic: "bad topic" } }).ntfy.topic, "");
 console.log("test-config ntfy ok");
 // DONI-523: the recorder is off by default and its settings survive normalize.
-assert.deepStrictEqual(normalizeConfig({}).recorder, { enabled: false, video: false, preset: "1080p60", folder: "", cap_gb: 50 });
+assert.deepStrictEqual((({ enabled, video, quality, folder, cap_gb }) => ({ enabled, video, quality, folder, cap_gb }))(normalizeConfig({}).recorder), { enabled: false, video: false, quality: "balanced", folder: "", cap_gb: 50 });
 assert.strictEqual(normalizeConfig({ recorder: { enabled: true, preset: "x", cap_gb: 0 } }).recorder.cap_gb, 1);
 // DONI-594: TFT has its own copy of the queue, alert and record settings; an old config starts it as League's.
 {

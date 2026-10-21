@@ -97,7 +97,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         ${act('Recording', 'Turn it on per game, in that game’s tab.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/recordings">Open Recordings</a>')}
         ${sw('recorder.video', 'Record video', 'Records a recorded game on your graphics card and keeps a clip of each moment. With the QueuePop companion: the game itself, its audio and your mic. Without it: your main screen through ffmpeg, no audio.')}
         <div class="st-row"><span class="st-lbl">Engine<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>
-        <label class="st-row" data-when="recorder.video"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.preset"><option value="720p30">720p, 30 fps</option><option value="1080p30">1080p, 30 fps</option><option value="1080p60">1080p, 60 fps</option></select></label>
+        <label class="st-row" data-when="recorder.video"><span class="st-lbl">Video quality</span><select class="st-in" data-k="recorder.quality"><option value="saver">Saver: 720p, 30 fps, about 2 GB an hour</option><option value="balanced">Balanced: 1080p, 60 fps, about 3.8 GB an hour</option><option value="high">High: 1440p, 60 fps, about 7.4 GB an hour</option><option value="custom">Custom (set in Studio)</option></select></label>
         ${text('recorder.folder', 'Folder', 'Leave empty for queuePop’s own folder.', 'placeholder="queuePop’s recordings folder"')}
         ${num('recorder.cap_gb', 'Size limit (GB)', 'When videos pass this, the oldest are deleted first.', 1, 2000)}
         ${act('Files', '', btn('rec-folder', 'Open folder'))}`) +

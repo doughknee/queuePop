@@ -13,6 +13,7 @@ const { forGame } = require("./champ-config");
 const path = require("path");
 const { execFile, spawn } = require("child_process");
 const http = require("http");
+const recOptions = require("../src/webui/js/recorder-options.js"); // Studio's options: quality, audio, buffer, clip rules
 
 const PRESETS = { "720p30": { h: 720, fps: 30 }, "1080p30": { h: 1080, fps: 30 }, "1080p60": { h: 1080, fps: 60 } };
 const ENCODERS = ["h264_nvenc", "h264_amf", "h264_qsv", "libx264"]; // best first
@@ -26,8 +27,8 @@ function listedEncoders(encodersText) {
 }
 function pickEncoder(encodersText) { return listedEncoders(encodersText)[0]; }
 // ffmpeg arguments for one capture. Pure; app/test-recorder-video.js checks it.
-function captureArgs({ encoder, preset, out }) {
-  const p = PRESETS[preset] || PRESETS["1080p60"];
+function captureArgs({ encoder, preset, height, fps, out }) {
+  const p = height ? { h: height, fps: fps === 30 ? 30 : 60 } : PRESETS[preset] || PRESETS["1080p60"];
   const fmt = encoder === "libx264" ? "yuv420p" : "nv12";
   const enc = {
     h264_nvenc: ["-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr", "-cq", "23"],
@@ -85,13 +86,15 @@ function chooseBackend(health, ff) {
 // live API is polled every 2 s), never more than the 30 s buffer holds or the recording has run. null = no clip (no span,
 // or an event too old for the buffer, like the backlog after a restart mid-game). Pure.
 // clock = {wall, gameTime} from the recorder's first poll; startEpoch = when the recording started.
-const BUFFER_S = 30, LIVE = new Set(["kill", "multikill", "death", "objective"]); // assists stay markers
-function clipRequest(e, clock, now, startEpoch, clip = CLIP) {
-  const span = LIVE.has(e && e.type) && clip[e.type];
+// clip = the clipped moment types with [before, after] (Studio's rules; default: everything but assists), buffer = its length.
+const BUFFER_S = 30, LIVE_CLIP = Object.fromEntries(Object.entries(CLIP).filter(([k]) => k !== "assist"));
+const clipsFrom = (r) => Object.fromEntries(recOptions.KINDS.map((k) => [k, recOptions.span(r, k)]).filter(([, s]) => s));
+function clipRequest(e, clock, now, startEpoch, clip = LIVE_CLIP, buffer = BUFFER_S) {
+  const span = e && clip[e.type];
   if (!span || !Number.isFinite(e.t)) return null;
   const lag = clock ? Math.max(0, (now - (clock.wall + (e.t - clock.gameTime) * 1000)) / 1000) : 0;
-  const past = Math.min(span[0] + lag, BUFFER_S - 1, (now - startEpoch) / 1000);
-  if (lag > BUFFER_S - 2 || past < 1) return null;
+  const past = Math.min(span[0] + lag, buffer - 1, (now - startEpoch) / 1000);
+  if (lag > buffer - 2 || past < 1) return null;
   return { pastSeconds: Math.round(past * 10) / 10, afterSeconds: Math.round(Math.max(0, span[1] - lag) * 10) / 10 };
 }
 // Live clips (epoch-stamped: at = first frame, ms = length) -> start/end in video seconds, once the video's first frame is known. Pure.
@@ -158,13 +161,13 @@ function createVideo(ctx) {
       inProcess: !!(health && health.inProcess), companion: { running: !!health, ready: !!(r && r.ready), error: (r && r.error) || null, recording: (r && r.recording) || null }, ffmpeg: ff };
   }
   async function startOverwolf(rec, cfg) {
-    const p = PRESETS[cfg.preset] || PRESETS["1080p60"];
     const r = await call("/recorder/start", { matchId: rec.matchId.replace(/[^\w-]/g, "_"), processName: PROCESS[rec.game] || PROCESS.league,
-      folder: path.resolve(ctx.dir()), height: p.h, fps: p.fps, display: !!process.env.QP_REC_DISPLAY }, 20000); // dev: QP_REC_DISPLAY=1 records the screen (no game needed)
+      folder: path.resolve(ctx.dir()), height: cfg.height, fps: cfg.fps, mbps: cfg.mbps, encoder: cfg.encoder, audio: cfg.audio,
+      bufferS: cfg.buffer_s, clipsOnly: cfg.mode === "clips", display: !!process.env.QP_REC_DISPLAY }, 20000); // dev: QP_REC_DISPLAY=1 records the screen (no game needed)
     if (!r || !r.ok) { ctx.log("recorder video: Overwolf start failed:", (r && r.error) || "no answer"); return false; }
     pinned = local && ctx.ow.status().ready ? local : remote;
-    ow = { matchId: rec.matchId, encoder: r.encoder, startEpoch: r.startEpoch || Date.now(), pending: new Set() };
-    rec.video = { file: null, engine: "overwolf", encoder: r.encoder, preset: cfg.preset, startedAt: ow.startEpoch };
+    ow = { matchId: rec.matchId, encoder: r.encoder, startEpoch: r.startEpoch || Date.now(), pending: new Set(), clip: clipsFrom(cfg), buffer: cfg.buffer_s };
+    rec.video = { file: null, engine: "overwolf", encoder: r.encoder, quality: cfg.quality, mbps: r.mbps, clipsOnly: !!r.clipsOnly, startedAt: ow.startEpoch };
     rec.clips = [];
     ctx.log(`recorder video: Overwolf ${r.encoder} ${r.width}x${r.height}@${r.fps}`);
     return true;
@@ -174,7 +177,7 @@ function createVideo(ctx) {
     if (!ow || ow.matchId !== rec.matchId) return;
     const s = ow;
     for (const e of fresh) {
-      const req = clipRequest(e, rec.clock, Date.now(), s.startEpoch); if (!req) continue;
+      const req = clipRequest(e, rec.clock, Date.now(), s.startEpoch, s.clip, s.buffer); if (!req) continue;
       const job = call("/recorder/clip", req, (req.afterSeconds + 40) * 1000).then((r) => {
         if (!r || !r.ok) return ctx.log("recorder video: clip failed:", (r && r.error) || "no answer");
         rec.clips = rec.clips || [];
@@ -196,12 +199,13 @@ function createVideo(ctx) {
     const videoEpoch = r.startTimeEpoch || s.startEpoch, len = (r.duration || 0) / 1000;
     const offset = rec.clock ? (rec.clock.wall - videoEpoch) / 1000 - rec.clock.gameTime : 0;
     const clips = placeClips(rec.clips || [], videoEpoch);
-    ctx.recorder.update(rec.matchId, { video: r.file ? { ...rec.video, file: r.file, startedAt: videoEpoch, length: Math.round(len), offset: Math.round(offset * 10) / 10 } : null, clips });
+    // Clips-only games keep no full video; their clips stay placed against the replay buffer's start.
+    ctx.recorder.update(rec.matchId, { video: r.file ? { ...rec.video, file: r.file, startedAt: videoEpoch, length: Math.round(len), offset: Math.round(offset * 10) / 10 } : null, clips, clipsOnly: !!r.clipsOnly });
     cleanup();
     if (clips.length) ctx.push(`Saved ${clips.length} clip${clips.length > 1 ? "s" : ""} from your game`, "success", "recorder");
   }
   async function start(rec) {
-    const full = ctx.getConfig(), cfg = full.recorder || {};
+    const full = ctx.getConfig(), cfg = recOptions.normalize(full.recorder); // old presets and partial configs read the same
     if (proc || ow || starting || !forGame(full, rec.game).record || !cfg.video) return; // DONI-594: that game's recording is on
     starting = true; let p;
     try {
@@ -212,12 +216,27 @@ function createVideo(ctx) {
     if (!p.found) { ctx.log("recorder video: no engine (companion not running, ffmpeg not on PATH)"); return; }
     fs.mkdirSync(ctx.dir(), { recursive: true });
     file = path.join(ctx.dir(), `${rec.matchId.replace(/[^\w-]/g, "_")}.mkv`);
-    proc = spawn(p.path, captureArgs({ encoder: p.encoder, preset: cfg.preset, out: file }), { windowsHide: true, stdio: ["pipe", "ignore", "pipe"] });
+    proc = spawn(p.path, captureArgs({ encoder: p.encoder, height: Math.min(cfg.height, 1440), fps: cfg.fps, out: file }), { windowsHide: true, stdio: ["pipe", "ignore", "pipe"] });
     startedAt = Date.now();
-    rec.video = { file, engine: "ffmpeg", encoder: p.encoder, preset: cfg.preset, startedAt };
+    rec.video = { file, engine: "ffmpeg", encoder: p.encoder, quality: cfg.quality, startedAt, clip: clipsFrom(cfg) };
     proc.stderr.on("data", (d) => ctx.log("ffmpeg:", String(d).trim().slice(0, 300)));
     proc.on("exit", (code) => { if (code) ctx.log("ffmpeg exited", code); });
-    ctx.log(`recorder video: ${p.encoder} ${cfg.preset} → ${file}`);
+    ctx.log(`recorder video: ${p.encoder} ${cfg.height}p${cfg.fps} → ${file}`);
+  }
+  // Studio's hotkey: the last `seconds` of the game you're in, from the replay buffer (Overwolf engine only), as a starred clip.
+  async function manualClip(rec, seconds) {
+    if (!ow || !rec || ow.matchId !== rec.matchId) return { ok: false, error: "Not recording a game with the Overwolf engine" };
+    const s = ow, past = Math.min(Math.max(5, Number(seconds) || 30), s.buffer - 1, (Date.now() - s.startEpoch) / 1000);
+    const job = call("/recorder/clip", { pastSeconds: past, afterSeconds: 0 }, 40000).then((r) => {
+      if (!r || !r.ok) { ctx.log("recorder video: manual clip failed:", (r && r.error) || "no answer"); return { ok: false, error: (r && r.error) || "no answer" }; }
+      rec.clips = rec.clips || [];
+      rec.clips.push({ file: r.file, ...placeClips([{ at: r.startTimeEpoch, ms: r.duration }], s.startEpoch)[0], types: ["manual"], ids: [], mine: true, favorite: true });
+      ctx.recorder.update(rec.matchId, { clips: rec.clips });
+      ctx.push(`Saved the last ${Math.round(past)} s`, "success", "recorder");
+      return { ok: true };
+    }).finally(() => s.pending.delete(job));
+    s.pending.add(job);
+    return job;
   }
   async function stop(rec) {
     if (ow && ow.matchId === rec.matchId) return stopOverwolf(rec);
@@ -227,7 +246,7 @@ function createVideo(ctx) {
     const len = (Date.now() - startedAt) / 1000;
     // Video time at game time 0: the recorder noted a wall clock + game time pair on its first live poll.
     const offset = rec.clock ? (rec.clock.wall - startedAt) / 1000 - rec.clock.gameTime : 0;
-    const wins = clipWindows(rec.events, offset, len), bin = (await probe()).path, clips = [];
+    const wins = clipWindows(rec.events, offset, len, rec.video.clip || CLIP), bin = (await probe()).path, clips = [];
     for (const [i, w] of wins.entries()) {
       const out = file.replace(/\.mkv$/, `-clip${i + 1}.mp4`);
       if (await run(bin, clipArgs(file, w.start, w.end, out)) !== null) clips.push({ file: out, start: w.start, end: w.end, types: w.types, ids: w.ids });
@@ -263,7 +282,7 @@ function createVideo(ctx) {
     ctx.recorder.update(rec.matchId, { clips: [...(rec.clips || []), clip] });
     return { ok: true, clip };
   }
-  return { start, stop, onEvents, engine, probe, makeClip };
+  return { start, stop, onEvents, engine, probe, makeClip, manualClip };
 }
 
 module.exports = { inProcess, chooseBackend, clipRequest, placeClips, ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, probe, PRESETS };

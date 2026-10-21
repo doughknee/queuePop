@@ -7,8 +7,8 @@ const path = require('path');
 const fs = require('fs');
 
 const ENCODERS = ['h264_texture_amf', 'obs_nvenc_h264_tex', 'obs_qsv11_v2', 'obs_x264']; // best first; texture = stays on the GPU
-const BUFFER_S = 30;
-const TRACKS = 1 | 2 | 4; // mix, game, mic
+// Studio's options (src/webui/js/recorder-options.js) arrive with each start: quality, encoder, audio, buffer, clips-only.
+const vol = (v) => Math.max(0, Math.min(2, (Number(v) || 0) / 100)); // Studio's 0-200 % -> Overwolf's 0.0-2.0 (1.0 = 100 %)
 
 // Output size for a preset height on this monitor: same aspect, even width (3440x1440 → 2580x1080), never upscaled. Pure.
 function outputSize(base, height) {
@@ -17,22 +17,32 @@ function outputSize(base, height) {
 }
 
 function createRecorder(log) {
-  let api = null, encoder = null, session = null, error = null; // session: { matchId, folder, startEpoch, activeClip }
+  let api = null, encoder = null, encoders = [], session = null, error = null; // session: { matchId, folder, startEpoch, activeClip, bufferS }
 
   async function attach(rec) {
     api = rec;
     try {
       const info = await rec.queryInformation();
-      const have = new Set(info.video.encoders.map(e => e.type || e.name));
+      encoders = info.video.encoders.map(e => e.type || e.name);
+      const have = new Set(encoders);
       encoder = ENCODERS.find(e => have.has(e)) || info.video.defaultEncoder;
       log('recorder: ready, encoder ' + encoder);
     } catch (e) { error = String(e && e.message || e); log('recorder: queryInformation failed ' + error); }
   }
 
   const status = () => ({ ready: !!(api && encoder), encoder, recording: session ? session.matchId : null, error });
+  // What Studio can offer: the encoders this PC has (best first is the default), the mics and outputs, the monitor size.
+  async function info() {
+    if (!api) return { ready: false };
+    const i = await api.queryInformation();
+    const d = require('electron').screen.getPrimaryDisplay();
+    const dev = (l) => (l || []).map((x) => ({ id: x.id, name: x.name, isDefault: !!x.isDefault }));
+    return { ready: !!encoder, encoder, encoders, inputs: dev(i.audio && i.audio.inputDevices), outputs: dev(i.audio && i.audio.outputDevices),
+      monitor: { width: Math.round(d.size.width * d.scaleFactor), height: Math.round(d.size.height * d.scaleFactor) } };
+  }
 
   // display: true captures the primary monitor instead of the game (a test without a game running).
-  async function start({ matchId, processName, folder, height = 1080, fps = 60, display = false }) {
+  async function start({ matchId, processName, folder, height = 1080, fps = 60, display = false, mbps = 8, encoder: want = 'auto', audio = {}, bufferS = 30, clipsOnly = false }) {
     if (!api || !encoder) throw new Error('recorder not ready');
     if (session) return { ok: true, already: true, encoder, startEpoch: session.startEpoch };
     if (!/^[\w-]{1,64}$/.test(matchId || '') || !/^[\w .()-]{1,64}\.exe$/i.test(processName || '') || !path.isAbsolute(folder || '')) throw new Error('bad start request');
@@ -41,30 +51,47 @@ function createRecorder(log) {
     const base = { width: Math.round(d.size.width * d.scaleFactor), height: Math.round(d.size.height * d.scaleFactor) };
     const out = outputSize(base, Number(height) || 1080);
     fps = Number(fps) === 30 ? 30 : 60;
-    const b = await api.createSettingsBuilder({ videoEncoder: encoder, includeDefaultAudioSources: false });
-    if (display) b.addScreenSource({ monitorId: (await api.queryInformation()).monitors[0].id, captureCursor: true }).addAudioDefaultCapture('output', {}, { tracks: 1 | 2 });
-    else b.addGameSource({ gameProcess: processName, captureCursor: true }).addApplicationAudioCapture({ processName }, { tracks: 1 | 2 });
-    b.addAudioDefaultCapture('input', {}, { tracks: 1 | 4 });
+    bufferS = Math.max(10, Math.min(120, Number(bufferS) || 30));
+    const enc = want !== 'auto' && encoders.includes(want) ? want : encoder;
+    const a = { game: { on: true, volume: 100 }, mic: { on: true, volume: 100, device: 'default' }, desktop: { on: false, volume: 100 }, ...audio };
+    // Tracks: 1 everything mixed, 2 the game, 4 your mic, 8 all desktop sound. The mix always records.
+    const tracks = 1 | (a.game.on ? 2 : 0) | (a.mic.on ? 4 : 0) | (a.desktop.on ? 8 : 0);
+    const b = await api.createSettingsBuilder({ videoEncoder: enc, includeDefaultAudioSources: false });
+    if (display) b.addScreenSource({ monitorId: (await api.queryInformation()).monitors[0].id, captureCursor: true });
+    else b.addGameSource({ gameProcess: processName, captureCursor: true });
+    // The game alone (per-process audio). In the display test there's no game, so the default output stands in for it.
+    if (a.game.on) {
+      if (display) b.addAudioDefaultCapture('output', {}, { tracks: 1 | 2, volume: vol(a.game.volume) });
+      else b.addApplicationAudioCapture({ processName }, { tracks: 1 | 2, volume: vol(a.game.volume) });
+    }
+    if (a.mic.on) {
+      if (a.mic.device && a.mic.device !== 'default') b.addAudioCapture({ type: 'input', id: a.mic.device }, { tracks: 1 | 4, volume: vol(a.mic.volume) });
+      else b.addAudioDefaultCapture('input', {}, { tracks: 1 | 4, volume: vol(a.mic.volume) });
+    }
+    if (a.desktop.on && !display) b.addAudioDefaultCapture('output', {}, { tracks: 1 | 8, volume: vol(a.desktop.volume) });
     // Set explicitly: left alone it records at half the monitor (1720x720 on a 3440x1440 ultrawide).
     Object.assign(b.videoSettings, { fps, baseWidth: base.width, baseHeight: base.height, outputWidth: out.width, outputHeight: out.height });
-    const kbps = Math.round(out.width * out.height * fps * 0.12 / 1000); // ~20 Mbps at 2580x1080 60
-    Object.assign(b.videoEncoderSettings, { bitrate: kbps, max_bitrate: kbps, keyint_sec: 1 });
+    // Studio's bitrate (Saver 4, Balanced 8, High 16 Mbps, or custom). VBR lets quiet scenes use less; the cap is 1.5x.
+    const kbps = Math.round(Math.max(2, Math.min(80, Number(mbps) || 8)) * 1000);
+    Object.assign(b.videoEncoderSettings, { rate_control: 'VBR', bitrate: kbps, max_bitrate: Math.round(kbps * 1.5), keyint_sec: 1 });
     const settings = b.build();
-    session = { matchId, folder, startEpoch: Date.now(), activeClip: null };
+    session = { matchId, folder, startEpoch: Date.now(), activeClip: null, bufferS, clipsOnly: !!clipsOnly };
     try {
-      await api.startReplays({ bufferSecond: BUFFER_S, rootFolder: folder, fileFormat: 'fragmented_mp4', audioTrack: TRACKS }, settings);
-      await api.startRecording({ filePath: path.join(folder, matchId), fileFormat: 'fragmented_mp4', audioTrack: TRACKS }, settings);
+      // Right after a stop the buffer can still be shutting down ("start replays error"): one retry after 2 s.
+      const replays = () => api.startReplays({ bufferSecond: bufferS, rootFolder: folder, fileFormat: 'fragmented_mp4', audioTrack: tracks }, settings);
+      await replays().catch(async () => { await new Promise((r) => setTimeout(r, 2000)); return replays(); });
+      if (!clipsOnly) await api.startRecording({ filePath: path.join(folder, matchId), fileFormat: 'fragmented_mp4', audioTrack: tracks }, settings);
     } catch (e) { session = null; await api.stopReplays().catch(() => {}); throw e; }
-    log(`recorder: recording ${processName} ${out.width}x${out.height}@${fps} ${encoder} → ${folder}`);
-    return { ok: true, encoder, width: out.width, height: out.height, fps, startEpoch: session.startEpoch };
+    log(`recorder: ${clipsOnly ? 'clips only' : 'recording'} ${processName} ${out.width}x${out.height}@${fps} ${Math.round(kbps / 1000)} Mbps ${enc} tracks ${tracks} buffer ${bufferS}s -> ${folder}`);
+    return { ok: true, encoder: enc, width: out.width, height: out.height, fps, mbps: kbps / 1000, tracks, clipsOnly: !!clipsOnly, startEpoch: session.startEpoch };
   }
 
   // The last pastSeconds plus the next afterSeconds. A request while a clip is still running stretches that clip instead,
   // and both requests get the same file back (the host merges them, like overlapping windows cut after a game).
   async function clip({ pastSeconds, afterSeconds }) {
     if (!session) throw new Error('not recording');
-    const past = Math.max(1, Math.min(BUFFER_S - 1, Number(pastSeconds) || 10)), after = Math.max(0, Math.min(60, Number(afterSeconds) || 0));
     const s = session, ac0 = s.activeClip;
+    const past = Math.max(1, Math.min(s.bufferS - 1, Number(pastSeconds) || 10)), after = Math.max(0, Math.min(60, Number(afterSeconds) || 0));
     if (ac0) {
       ac0.until = Math.max(ac0.until, Date.now() + after * 1000);
       if (ac0.handle && ac0.until > Date.now()) ac0.handle.stopAfter(Math.max(0, ac0.until - Date.now()));
@@ -91,6 +118,7 @@ function createRecorder(log) {
     const s = session;
     if (s.activeClip) await Promise.race([s.activeClip.done.catch(() => {}), new Promise(r => setTimeout(r, 70000))]); // let a running clip finish
     session = null;
+    if (s.clipsOnly) { await api.stopReplays().catch((e) => log('recorder: stopReplays ' + e)); log('recorder: stopped (clips only)'); return { ok: true, clipsOnly: true, startTimeEpoch: s.startEpoch }; }
     const result = await new Promise((resolve) => {
       const t = setTimeout(() => resolve({ error: 'stop timed out' }), 15000);
       api.stopRecording((r) => { clearTimeout(t); resolve(r || {}); }).catch((e) => { clearTimeout(t); resolve({ error: String(e && e.message || e) }); });
@@ -100,7 +128,7 @@ function createRecorder(log) {
     return { ok: !result.hasError && !!result.filePath, file: result.filePath, duration: result.duration, startTimeEpoch: result.startTimeEpoch || s.startEpoch, error: result.error || '' };
   }
 
-  return { attach, status, start, clip, stop };
+  return { attach, status, info, start, clip, stop };
 }
 
 module.exports = { createRecorder, outputSize };
