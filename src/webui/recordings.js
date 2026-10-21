@@ -58,34 +58,81 @@
       : ''; // what records it is the summary strip's Engine cell
     const summary = window.studioSummary ? await studioSummary().catch(() => '') : '';
     if (!here()) return;
-    const head = `<header class="rec-head"><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1>
-      <p>${!on ? 'The recorder is off. Turn it on to keep every League and TFT game.' : page === 'highlights' ? 'Every clip from your games, starred first. Point at one to play it.' : 'Every League and TFT game, with your kills, deaths, assists, multikills and objectives on its timeline.'}
-      <a href="#/studio/capture">Capture settings ↗</a></p>${summary}
-      <p class="rec-files"><button type="button" class="st-btn" data-rec-folder>Open the recordings folder</button>${vidLine}</p></header>`;
-    // Off: the fix is one click away, right here (it applies at once, like every Settings control).
-    if (!list.length) { host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
+    const head = `<header class="rec-head sd-lhead"><div><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1></div>
+      <nav class="sd-hacts" aria-label="Studio"><a class="st-btn" href="#/studio/capture">Capture settings</a><button type="button" class="st-btn" data-rec-folder>Open folder</button></nav></header>
+      ${summary}${vidLine || !on ? `<p class="rec-files">${!on ? 'The recorder is off. Turn it on to keep every League and TFT game. <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>' : vidLine}</p>` : ''}`;
+    if (!list.length) { host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
     if (list.some(r => r.game === 'tft') && window.tftStats) await tftStats.loadDragon().catch(() => {}); // unit names and icons for the boards
+    if (window.lgNames) await lgNames().catch(() => {}); // champion names -> splash art for games without video
     if (!here()) return;
     const clips = [];
     full.forEach((rec, gi) => (rec && rec.clips || []).forEach((c, i) => clips.push({ r: list[gi], c, i })));
     clips.sort((a, b) => (b.c.favorite ? 1 : 0) - (a.c.favorite ? 1 : 0) || b.r.startedAt - a.r.startedAt);
-    const favN = list.slice(0, 30).filter(r => r.favorite).length;
-    const tabs = page === 'highlights' ? '' : `<nav class="rec-tabs" aria-label="Show">${[['all', `All games · ${Math.min(30, list.length)}`], ['favorites', `Favourites · ${favN}`]].map(([k, l]) => `<button type="button" data-rec-tab="${k}" aria-pressed="${tab === k}">${l}</button>`).join('')}<a href="#/studio/highlights">Highlights · ${clips.length}</a></nav>`;
     if (page === 'highlights') {
-      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${clips.length ? `<div class="rec-hls">${clips.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="metadata" src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives (saved during the game with the QueuePop companion, cut after it with ffmpeg), and you can cut your own in the player.</div>`}</section>`;
+      host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${clips.length ? `<div class="rec-hls">${clips.map(({ r, c, i }) => `<div class="rec-hl"><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives, and you can cut your own in the player.</div>`}</section>`;
+      lazyVideos(host);
       return;
     }
-    const rows = list.slice(0, 30).map((r, i) => [r, i]).filter(([r]) => tab !== 'favorites' || r.favorite);
-    host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${tabs}${!rows.length ? '<div class="rec-empty">No favourites yet. Star a game to keep it, video and clips, when the folder is over its size cap.</div>' : ''}<ol class="rec-list">${rows.map(([r, i]) => {
-      const rec = full[i] || r, f = recFacts(r), title = f.title, facts = f.facts;
-      // TFT: the final board (from match history), units with their stars, instead of a timeline.
-      const unit = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).slice(0, 3))}</span>`; };
-      const board = r.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unit).join('')}<small>Level ${E(rec.board.level)}</small></span>` : '';
-      const strip = stripMarkers(rec).length ? window.recStrip(rec) : board || `<span class="rec-nostrip">${r.game === 'tft' ? 'Board arrives a minute after the game' : 'No moments recorded'}</span>`;
-      return `<li class="rec-row ${r.result || ''}">${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, title)}<div class="rec-meta"><a class="rec-title" href="${gameHref(r.matchId)}"><b>${E(title)}</b></a><small>${E(when(r.startedAt))}${f.result ? ` · ${f.result}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
-        ${strip}<span class="rec-act">${r.video || r.clips ? `<a class="rec-del rec-open" href="${gameHref(r.matchId)}">Watch</a>${r.video ? `<button type="button" class="rec-del rec-open" data-rec-show="${E(r.matchId)}">Show file</button>` : ''}` : ''}<button type="button" class="rec-del" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></span></li>`; }).join('')}</ol>
-      <p class="rec-legend">${Object.entries(KIND).map(([k, l]) => `<span><i class="rec-m rec-${k}"></i>${l}</span>`).join('')}</p></section>`;
+    // Library (deck-out 2026-10-21): your latest game up top, playing its best clip, with its clips as a filmstrip;
+    // every other game as a card with a video preview (loaded when it scrolls into view, played while you point at it).
+    const games = list.slice(0, 30).map((r, i) => ({ r, rec: full[i] || r })).filter(({ r }) => tab !== 'favorites' || r.favorite);
+    const favN = list.slice(0, 30).filter(r => r.favorite).length;
+    const tabs = `<nav class="rec-tabs" aria-label="Show">${[['all', `All games · ${Math.min(30, list.length)}`], ['favorites', `Favourites · ${favN}`]].map(([k, l]) => `<button type="button" data-rec-tab="${k}" aria-pressed="${tab === k}">${l}</button>`).join('')}<a href="#/studio/highlights">Highlights · ${clips.length}</a></nav>`;
+    const hero = tab === 'all' && games[0] ? heroHtml(games[0].r, games[0].rec) : '';
+    const rest = tab === 'all' ? games.slice(1) : games;
+    host.innerHTML = `<section class="rec-page" data-sd-page="${page}">${head}${hero}${tabs}
+      ${!games.length ? '<div class="rec-empty">No favourites yet. Star a game to keep it, video and clips, when the folder is over its size cap.</div>' : ''}
+      <ol class="sd-games">${rest.map(({ r, rec }) => cardHtml(r, rec)).join('')}</ol></section>`;
+    lazyVideos(host);
+    const hv = host.querySelector('.sd-hero-media video');
+    if (hv) { hv.muted = true; hv.play().catch(() => {}); } // muted autoplay; the property, not just the attribute
+  }
+  // --- Library pieces ---------------------------------------------------------------------------------------------------
+  const len = s => (s ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}` : '');
+  // A champion's splash art (Data Dragon, the same art as its champion page), found by the name the recorder stored.
+  const artFor = name => { const n = String(name || '').toLowerCase(), c = typeof lg !== 'undefined' && Object.values(lg.names || {}).find(x => x.name.toLowerCase() === n);
+    return c && window.statsApi ? `url('${statsApi.DD}/cdn/img/champion/splash/${encodeURIComponent(c.alias)}_0.jpg')` : ''; };
+  // What a game previews: its first starred clip, else its first clip, else a moment of the full video; null without video.
+  function preview(rec) {
+    const cs = rec.clips || [], c = cs.find(x => x.favorite) || cs[0];
+    if (c && c.file) return { src: fileUrl(c.file), at: 0.5, clip: true };
+    if (rec.video && rec.video.file) return { src: fileUrl(rec.video.file), at: Math.min(60, Math.max(5, (rec.video.length || 120) / 3)) };
+    return null;
+  }
+  const unitHtml = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).slice(0, 3))}</span>`; };
+  const boardHtml = rec => rec.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unitHtml).join('')}</span>` : '';
+  function heroHtml(r, rec) {
+    const f = recFacts(r), p = preview(rec), cs = rec.clips || [], art = artFor(r.champion);
+    const media = p ? `<video muted loop autoplay playsinline preload="auto" src="${p.src}#t=${p.at}"></video>` : `<span class="sd-art" style="background-image:${art || 'none'}"></span>${boardHtml(rec)}`;
+    const film = cs.length ? `<ol class="sd-film">${cs.map((c, i) => `<li><a href="${gameHref(r.matchId, i)}" data-rec-hover><video muted preload="none" data-sd-src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${mmss(c.start)} · ${Math.round(c.end - c.start)} s${c.favorite ? ' · ★' : ''}</small></span></a></li>`).join('')}</ol>` : stripMarkers(rec).length ? `<div class="sd-film-strip">${window.recStrip(rec)}</div>` : '';
+    return `<section class="sd-hero ${r.result || ''}" data-sd-hero>
+      <a class="sd-hero-media" href="${gameHref(r.matchId)}" aria-label="Watch ${E(f.title)}">${media}${rec.video ? `<span class="sd-len">${len(rec.video.length)}</span>` : cs.length ? '<span class="sd-len">clips only</span>' : ''}</a>
+      <div class="sd-hero-meta"><p class="eyebrow">Latest game · ${E(when(r.startedAt))}</p><h2>${E(f.title)}</h2>
+        <p>${[f.result, f.facts].filter(Boolean).map(E).join(' · ')}</p>
+        <div class="sd-hero-acts">${p ? `<a class="st-btn st-gold" href="${gameHref(r.matchId)}">Watch</a>` : ''}${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, f.title)}${rec.video ? `<button type="button" class="rec-del rec-open" data-rec-show="${E(r.matchId)}">Show file</button>` : ''}</div>
+        ${cs.length ? `<small class="sd-hero-n">${cs.length} clip${cs.length > 1 ? 's' : ''}</small>` : ''}</div>
+      ${film}</section>`;
+  }
+  // A card's title fits one line: TFT games lead with the placement ("4th place") and put the mode in the details.
+  const ord = n => `${n}${['th', 'st', 'nd', 'rd'][n] || 'th'}`;
+  const cardFacts = r => { const f = recFacts(r); return r.game === 'tft' && r.placement ? { ...f, title: `${ord(r.placement)} place`, facts: r.queueId === 1160 ? 'Double Up' : 'TFT' } : f; };
+  function cardHtml(r, rec) {
+    const f = cardFacts(r), p = preview(rec), cs = rec.clips || [], art = artFor(r.champion), board = boardHtml(rec);
+    return `<li class="sd-g ${r.result || ''}"><a class="sd-thumb" href="${gameHref(r.matchId)}"${p ? ' data-rec-hover' : ''} aria-label="${E(f.title)} from ${E(when(r.startedAt))}">
+        ${p ? `<video muted preload="none" data-sd-src="${p.src}#t=${p.at}"></video>` : board ? `<span class="sd-boardthumb">${board}</span>` : `<span class="sd-art" style="background-image:${art || 'none'}"></span><span class="sd-novid">Timeline only</span>`}
+        ${rec.video ? `<span class="sd-len">${len(rec.video.length)}</span>` : ''}${cs.length ? `<span class="sd-clipn">${cs.length} clip${cs.length > 1 ? 's' : ''}</span>` : ''}</a>
+      <div class="sd-gmeta">${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, f.title)}<a class="rec-title" href="${gameHref(r.matchId)}"><b>${E(f.title)}</b></a>
+        <button type="button" class="rec-del sd-gdel" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(f.title)} recording from ${E(when(r.startedAt))}">Delete</button></div>
+      <small class="sd-gfacts">${[when(r.startedAt), f.result, f.facts].filter(Boolean).map(E).join(' · ')}</small></li>`;
+  }
+  // Previews load when they come into view (a Library of 30 games opens 30 files otherwise).
+  function lazyVideos(root) {
+    const vids = [...root.querySelectorAll('video[data-sd-src]')];
+    const load = v => { v.preload = 'metadata'; v.src = v.dataset.sdSrc; }; // metadata: enough for the #t= frame to show
+    if (!('IntersectionObserver' in window)) { vids.forEach(load); return; }
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { load(e.target); io.unobserve(e.target); } }), { rootMargin: '300px' });
+    vids.forEach(v => io.observe(v));
   }
   // --- Player: #/studio/game/<matchId>[/<clip>] — the game's video, its moments on the timeline (click to jump), clips to
   // play, star or delete, and your own clip cut from a start and an end mark. Keys: J/L ±5 s, I/O marks, C saves, F stars.
@@ -187,8 +234,9 @@
     }
   });
   // Highlights: a card plays its clip while the pointer is on it.
-  document.addEventListener('mouseover', e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'), v = a && a.querySelector('video'); if (v && v.paused) v.play().catch(() => {}); });
-  document.addEventListener('mouseout', e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'); if (a && !a.contains(e.relatedTarget)) { const v = a.querySelector('video'); if (v) { v.pause(); v.currentTime = 0.5; } } });
+  const atOf = v => Number(((v.dataset.sdSrc || v.src || '').match(/#t=([\d.]+)/) || [])[1] || 0.5);
+  document.addEventListener('mouseover', e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'), v = a && a.querySelector('video'); if (v && !v.getAttribute('src') && v.dataset.sdSrc) v.src = v.dataset.sdSrc; if (v && v.paused) v.play().catch(() => {}); });
+  document.addEventListener('mouseout', e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'); if (a && !a.contains(e.relatedTarget)) { const v = a.querySelector('video'); if (v) { v.pause(); v.currentTime = atOf(v); } } });
 
   document.addEventListener('click', async e => {
     const del = e.target.closest && e.target.closest('[data-rec-del]');
