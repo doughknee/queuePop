@@ -167,7 +167,7 @@ function createVideo(ctx) {
     if (!r || !r.ok) { ctx.log("recorder video: Overwolf start failed:", (r && r.error) || "no answer"); return false; }
     pinned = local && ctx.ow.status().ready ? local : remote;
     ow = { matchId: rec.matchId, encoder: r.encoder, startEpoch: r.startEpoch || Date.now(), pending: new Set(), clip: clipsFrom(cfg), buffer: cfg.buffer_s };
-    rec.video = { file: null, engine: "overwolf", encoder: r.encoder, quality: cfg.quality, mbps: r.mbps, clipsOnly: !!r.clipsOnly, startedAt: ow.startEpoch };
+    rec.video = { file: null, engine: "overwolf", encoder: r.encoder, quality: cfg.quality, mbps: r.mbps, fps: r.fps, tracks: r.tracks, clipsOnly: !!r.clipsOnly, startedAt: ow.startEpoch };
     rec.clips = [];
     ctx.log(`recorder video: Overwolf ${r.encoder} ${r.width}x${r.height}@${r.fps}`);
     return true;

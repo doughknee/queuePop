@@ -546,3 +546,16 @@ body.theme-recordings,body.theme-studio{background:var(--bg);color:var(--fg);fon
 .sd-toast b{flex:1;min-width:0;color:var(--fg);font-weight:700}
 .sd-toast button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px}
 .sd-toast-dot{width:8px;height:8px;background:var(--accent);flex:none}
+/* Player tools (deck-out round 2): one row of grouped tools, speed and sound pickers, the key line, clip rename. */
+.rp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.rp-grp{display:inline-flex;border:1px solid var(--line)}
+.rp-ib{height:32px;padding:0 10px;border:0;border-right:1px solid var(--line);background:var(--bg);color:var(--fg);font:12px var(--mono);cursor:pointer;white-space:nowrap}
+.rp-grp .rp-ib:last-child{border-right:0}
+.rp-ib:hover,.rp-ib:focus-visible{background:var(--wash);color:var(--accent)}
+.rp-cut{margin-left:auto;border:0;gap:6px}.rp-cut .rp-ib{border:1px solid var(--line)}
+.rp-pick{display:inline-flex;align-items:center;gap:6px;font:11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rp-pick select{height:32px;padding:0 8px;background:var(--bg);border:1px solid var(--line);color:var(--fg);font:12px var(--mono);text-transform:none}
+.rp-msg{flex-basis:100%;min-height:16px}
+.rp-keys{margin:2px 0 0;font:11px var(--mono);color:var(--muted)}
+.rp-note{margin:0;font:12px var(--mono);color:var(--muted)}
+.rp-cname{width:100%;height:28px;padding:0 8px;background:var(--bg);border:1px solid var(--accent);color:var(--fg);font:16px var(--display);text-transform:uppercase}

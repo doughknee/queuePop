@@ -31,7 +31,7 @@
   const when = ms => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
   // file path -> a URL the page can play (the page itself is file://, so local videos load directly)
   const fileUrl = f => encodeURI('file:///' + String(f).replace(/\\/g, '/')).replace(/#/g, '%23').replace(/\?/g, '%3F');
-  const clipName = c => c.mine ? 'Your clip' : [...new Set((c.types || []).map(t => KIND[t] || t))].join(' + ') || 'Clip';
+  const clipName = c => c.name ? c.name : c.mine ? 'Your clip' : [...new Set((c.types || []).map(t => KIND[t] || t))].join(' + ') || 'Clip';
   const star = (on, attrs, what) => `<button type="button" class="rec-star${on ? ' on' : ''}" ${attrs} aria-pressed="${!!on}" aria-label="${on ? 'Unfavourite' : 'Favourite'} ${E(what)}" title="${on ? 'Favourite: kept when the folder is over its size cap' : 'Favourite: keep it when the folder is over its size cap'}">${on ? '★' : '☆'}</button>`;
   let tab = 'all'; // Library's filter: all | favorites
   // Studio's routes (2026-10-21): #/studio = Library, /highlights, /capture (studio.js), /game/<matchId>[/<clip>] = the player.
@@ -144,25 +144,45 @@
     const counts = (rec.events || []).reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}), f = recFacts({ ...rec, counts });
     // Clips-only games (Studio > Capture > Keep: clips only) have no full video: the player plays one clip file at a time.
     const clipsOnly = !rec.video && (rec.clips || []).length > 0;
-    Object.assign(P, { rec, clipsOnly, len: (rec.video && rec.video.length) || 0, off: (rec.video && rec.video.offset) || 0, a: null, b: null, stopAt: null });
+    Object.assign(P, { rec, clipsOnly, cur: clipIdx || 0, len: (rec.video && rec.video.length) || 0, off: (rec.video && rec.video.offset) || 0, a: null, b: null, stopAt: null });
     host.innerHTML = `<section class="rec-page rec-player"><a class="rec-back" href="#/studio">← Library</a>
       <header class="rp-head">${star(rec.favorite, `data-rec-fav="${E(rec.matchId)}"`, f.title)}<h1>${E(f.title)}</h1><small>${E(when(rec.startedAt))}${f.result ? ` · ${f.result}` : ''}${f.facts ? ` · ${E(f.facts)}` : ''}</small></header>
       ${rec.video ? `<div class="rp-stage"><video id="rp-v" src="${fileUrl(rec.video.file)}" controls preload="metadata"></video>
         <div class="rp-tl" id="rp-tl" title="Click to jump"></div>
-        <div class="rp-bar"><button type="button" class="st-btn" data-rp="back">−5 s <kbd>J</kbd></button><button type="button" class="st-btn" data-rp="fwd">+5 s <kbd>L</kbd></button>
-          <span class="rp-sep"></span><button type="button" class="st-btn" data-rp="a">Start here <kbd>I</kbd></button><button type="button" class="st-btn" data-rp="b">End here <kbd>O</kbd></button>
-          <button type="button" class="st-btn st-gold" data-rp="save">Save clip <kbd>C</kbd></button><span class="rp-msg" id="rp-msg" aria-live="polite"></span></div></div>`
-        : clipsOnly ? `<div class="rp-stage"><video id="rp-v" src="${fileUrl(rec.clips[clipIdx || 0].file)}" controls preload="metadata"></video><p class="rp-msg" id="rp-msg">Clips only: this game kept its clips, not the whole game. Pick a clip to play it.</p></div>`
+        ${tools(true)}</div>`
+        : clipsOnly ? `<div class="rp-stage"><video id="rp-v" src="${fileUrl(rec.clips[clipIdx || 0].file)}" controls preload="metadata"></video>${tools(false)}<p class="rp-note">Clips only: this game kept its clips, not the whole game.</p></div>`
         : `<div class="rec-empty">This game has no video (Record video was off), so here is its timeline.</div>${stripMarkers(rec).length ? window.recStrip(rec) : ''}`}
       <section class="rp-clips"><h2>Clips</h2><ol id="rp-clips"></ol></section></section>`;
     drawClips();
     const v = document.getElementById('rp-v'); if (!v) return;
-    v.addEventListener('loadedmetadata', () => { if (!P.len || Math.abs(P.len - v.duration) > 2) P.len = v.duration; drawTimeline(); if (clipIdx != null && !clipsOnly) playClip(clipIdx); });
+    v.addEventListener('loadedmetadata', () => { if (!P.len || Math.abs(P.len - v.duration) > 2) P.len = v.duration; drawTimeline(); setupSound(v); v.playbackRate = P.rate || 1; if (clipIdx != null && !clipsOnly) playClip(clipIdx); });
+    v.addEventListener('play', () => { const b = document.querySelector('[data-rp="toggle"]'); if (b) b.textContent = 'Pause'; });
+    v.addEventListener('pause', () => { const b = document.querySelector('[data-rp="toggle"]'); if (b) b.textContent = 'Play'; });
     v.addEventListener('timeupdate', () => { if (P.stopAt != null && v.currentTime >= P.stopAt) { v.pause(); P.stopAt = null; } const h = document.getElementById('rp-ph'); if (h && P.len) h.style.left = pct(v.currentTime); });
     v.addEventListener('error', () => say('The video file is missing or can’t be played.'));
     if (clipsOnly) { if (clipIdx != null) v.play().catch(() => {}); return; }
     document.getElementById('rp-tl').addEventListener('click', e => { if (e.target.closest('[data-t]')) return; const r = e.currentTarget.getBoundingClientRect(); seek(((e.clientX - r.left) / r.width) * P.len); });
     drawTimeline();
+  }
+  // The player's tools (deck-out round 2): clips, seek and frame step, speed, which sound you hear, and the cut tools.
+  const tools = full => `<div class="rp-bar">
+      <div class="rp-grp"><button type="button" class="rp-ib" data-rp="prev" title="Previous clip  [">‹ Clip</button><button type="button" class="rp-ib" data-rp="next" title="Next clip  ]">Clip ›</button></div>
+      <div class="rp-grp"><button type="button" class="rp-ib" data-rp="back" title="Back 5 s  J">−5 s</button><button type="button" class="rp-ib" data-rp="toggle" title="Play or pause  K">Play</button><button type="button" class="rp-ib" data-rp="fwd" title="Forward 5 s  L">+5 s</button>
+        <button type="button" class="rp-ib" data-rp="fprev" title="Back one frame  ,">‹ Frame</button><button type="button" class="rp-ib" data-rp="fnext" title="Forward one frame  .">Frame ›</button></div>
+      <label class="rp-pick">Speed <select data-rp-speed>${[0.25, 0.5, 1, 1.5, 2].map(x => `<option value="${x}"${x === 1 ? ' selected' : ''}>${x}×</option>`).join('')}</select></label>
+      <label class="rp-pick" id="rp-sound" hidden>Sound <select data-rp-track></select></label>
+      ${full ? `<div class="rp-grp rp-cut"><button type="button" class="rp-ib" data-rp="a" title="Mark the start  I">Start</button><button type="button" class="rp-ib" data-rp="b" title="Mark the end  O">End</button><button type="button" class="st-btn st-gold" data-rp="save" title="Save the clip  C">Save clip</button></div>` : ''}
+      <span class="rp-msg" id="rp-msg" aria-live="polite"></span></div>
+    <p class="rp-keys">J K L back, play, forward · , . one frame · [ ] previous and next clip${full ? ' · I O C cut a clip' : ''} · F star</p>`;
+  // The recording's sound tracks, in file order: 1 everything, 2 the game, 4 your mic, 8 desktop sound (Studio > Capture > Sound).
+  const TRACKS = [[1, 'Everything'], [2, 'Game only'], [4, 'Mic only'], [8, 'Desktop only']];
+  function setupSound(v) {
+    const at = v.audioTracks, box = document.getElementById('rp-sound'); if (!box || !at || at.length < 2) return;
+    const bits = (P.rec.video && P.rec.video.tracks) || 7, names = TRACKS.filter(([b]) => bits & b).map(([, l]) => l);
+    if (P.track != null && P.track < at.length) for (let i = 0; i < at.length; i++) at[i].enabled = i === P.track; // keep your pick across clips
+    const sel = box.querySelector('select'), cur = [...at].findIndex(t => t.enabled);
+    sel.innerHTML = [...at].map((t, i) => `<option value="${i}"${i === (cur < 0 ? 0 : cur) ? ' selected' : ''}>${E(names[i] || 'Track ' + (i + 1))}</option>`).join('');
+    box.hidden = false;
   }
   const pct = t => `${Math.max(0, Math.min(100, (t / (P.len || 1)) * 100))}%`;
   function drawTimeline() {
@@ -176,7 +196,7 @@
     const ol = document.getElementById('rp-clips'); if (!ol) return;
     const cs = P.rec.clips || [];
     ol.innerHTML = cs.length ? cs.map((c, i) => `<li class="rp-c">${star(c.favorite, `data-rec-cfav="${E(P.rec.matchId)}" data-i="${i}"`, clipName(c))}<button type="button" class="rp-cplay" data-rp-clip="${i}"><b>${E(clipName(c))}</b><small>${mmss(c.start)} – ${mmss(c.end)} · ${Math.round(c.end - c.start)} s</small></button>
-      <button type="button" class="rec-del rec-open" data-rp-cshow="${i}">Show file</button><button type="button" class="rec-del" data-rp-cdel="${i}">Delete</button></li>`).join('')
+      <button type="button" class="rec-del rec-open" data-rp-cren="${i}">Rename</button><button type="button" class="rec-del rec-open" data-rp-cshow="${i}">Show file</button><button type="button" class="rec-del" data-rp-cdel="${i}">Delete</button></li>`).join('')
       : `<li class="rec-nostrip">${P.rec.video ? 'No clips yet. Mark a start and an end, then save one.' : 'Clips need video.'}</li>`;
     ol.querySelectorAll('.rp-c').forEach((li, i) => li.classList.toggle('now', P.clipsOnly && P.cur === i));
   }
@@ -190,6 +210,18 @@
   async function rpAction(k) {
     const v = document.getElementById('rp-v'); if (!v) return;
     if (P.clipsOnly && ['a', 'b', 'save'].includes(k)) { say('Clips-only games have no full video to cut from.'); return; }
+    const cs = P.rec.clips || [];
+    if (k === 'toggle') { v.paused ? v.play().catch(() => {}) : v.pause(); return; }
+    if (k === 'fprev' || k === 'fnext') { v.pause(); const f = 1 / ((P.rec.video && P.rec.video.fps) || 60); P.stopAt = null; v.currentTime = Math.max(0, v.currentTime + (k === 'fnext' ? f : -f)); return; }
+    if (k === 'prev' || k === 'next') {
+      if (!cs.length) { say('This game has no clips.'); return; }
+      let i;
+      if (P.clipsOnly) i = Math.max(0, Math.min(cs.length - 1, (P.cur || 0) + (k === 'next' ? 1 : -1)));
+      else { const t = v.currentTime, order = cs.map((c, j) => [c.start, j]).sort((a, b) => a[0] - b[0]);
+        const hit = k === 'next' ? order.find(([st]) => st > t + 0.5) : [...order].reverse().find(([st]) => st < t - 1.5);
+        if (!hit) { say(k === 'next' ? 'That was the last clip.' : 'That was the first clip.'); return; } i = hit[1]; }
+      playClip(i); say(clipName(cs[i])); return;
+    }
     if (k === 'back') seek(v.currentTime - 5);
     else if (k === 'fwd') seek(v.currentTime + 5);
     else if (k === 'a') { P.a = v.currentTime; if (P.b != null && P.b <= P.a) P.b = null; say(`Start at ${mmss(P.a)}. Now mark the end.`); drawTimeline(); }
@@ -203,12 +235,12 @@
   }
   document.addEventListener('keydown', e => {
     if (!document.getElementById('rp-v') || e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-    const k = { j: 'back', l: 'fwd', i: 'a', o: 'b', c: 'save' }[e.key.toLowerCase()];
+    const k = { j: 'back', l: 'fwd', k: 'toggle', i: 'a', o: 'b', c: 'save', ',': 'fprev', '.': 'fnext', '[': 'prev', ']': 'next' }[e.key.toLowerCase()];
     if (k) { e.preventDefault(); rpAction(k); }
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); document.querySelector('.rp-head [data-rec-fav]')?.click(); }
   });
   document.addEventListener('click', async e => {
-    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],.rp-tl [data-t]');
+    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],.rp-tl [data-t]');
     if (!t) return;
     if (t.dataset.recTab) { tab = t.dataset.recTab; render(document.getElementById('main')); return; }
     if (t.dataset.recFav) {
@@ -227,11 +259,28 @@
     if (t.dataset.rp) { rpAction(t.dataset.rp); return; }
     if (t.dataset.rpClip != null) { playClip(+t.dataset.rpClip); return; }
     if (t.dataset.t != null) { seek(+t.dataset.t - 3); document.getElementById('rp-v')?.play().catch(() => {}); return; }
+    if (t.dataset.rpCren != null) { // the clip's name becomes a text box: Enter or leaving it saves, Esc keeps the old name
+      const i = +t.dataset.rpCren, b = t.closest('.rp-c').querySelector('.rp-cplay b'), c = P.rec.clips[i];
+      const inp = Object.assign(document.createElement('input'), { className: 'rp-cname', value: c.name || '', placeholder: clipName({ ...c, name: '' }), maxLength: 60 });
+      b.replaceWith(inp); inp.focus(); inp.select();
+      let done = false;
+      const finish = async keep => { if (done) return; done = true; if (keep) { const r = await api().rename_clip(P.rec.matchId, i, inp.value).catch(() => null); if (r && r.ok) { if (r.name) c.name = r.name; else delete c.name; } } drawClips(); };
+      inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') finish(true); else if (ev.key === 'Escape') finish(false); });
+      inp.addEventListener('blur', () => finish(true));
+      inp.addEventListener('click', ev => ev.stopPropagation());
+      return;
+    }
     if (t.dataset.rpCshow != null) { await api().open_recording(P.rec.matchId, true, +t.dataset.rpCshow).catch(() => null); return; }
     if (t.dataset.rpCdel != null) {
       if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Delete for good?'; setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = 'Delete'; } }, 4000); return; }
       const i = +t.dataset.rpCdel; await api().delete_clip(P.rec.matchId, i).catch(() => null); P.rec.clips.splice(i, 1); drawTimeline(); drawClips();
     }
+  });
+  // Speed and which sound you hear apply at once and stay while you move between clips.
+  document.addEventListener('change', e => {
+    const v = document.getElementById('rp-v'); if (!v || !e.target.matches) return;
+    if (e.target.matches('[data-rp-speed]')) { P.rate = Number(e.target.value) || 1; v.playbackRate = P.rate; }
+    else if (e.target.matches('[data-rp-track]')) { const at = v.audioTracks, n = Number(e.target.value); P.track = n; if (at) for (let i = 0; i < at.length; i++) at[i].enabled = i === n; }
   });
   // Highlights: a card plays its clip while the pointer is on it.
   const atOf = v => Number(((v.dataset.sdSrc || v.src || '').match(/#t=([\d.]+)/) || [])[1] || 0.5);
@@ -260,3 +309,4 @@
   mark();
   window.recordingsView = { render };
 })();
+

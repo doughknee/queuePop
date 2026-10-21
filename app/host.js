@@ -28,7 +28,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip", "recorder_info", "save_last_seconds", "choose_recordings_folder"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip", "rename_clip", "recorder_info", "save_last_seconds", "choose_recordings_folder"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -213,6 +213,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     },
     // Favourites (a game, or one clip) are kept out of the size cap's clean-up (recorder-video.js cleanup).
     set_recording_favorite: (id, fav) => (recorder.update(String(id), { favorite: !!fav }) ? { ok: true } : { ok: false }),
+    // Studio's player: a clip's own name (blank = back to its moments, "Kill + Multikill"). Up to 60 characters.
+    rename_clip: (id, i, name) => { const r = recorder.get(String(id)), c = r && (r.clips || [])[i]; if (!c) return { ok: false }; const n = String(name || "").replace(/\s+/g, " ").trim().slice(0, 60); if (n) c.name = n; else delete c.name; recorder.update(r.matchId, { clips: r.clips }); return { ok: true, name: n }; },
     set_clip_favorite: (id, i, fav) => { const r = recorder.get(String(id)), c = r && (r.clips || [])[i]; if (!c) return { ok: false }; c.favorite = !!fav; recorder.update(r.matchId, { clips: r.clips }); return { ok: true }; },
     make_clip: (id, start, end) => video.makeClip(String(id), start, end),
     delete_clip: (id, i) => {
