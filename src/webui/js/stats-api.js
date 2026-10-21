@@ -84,6 +84,12 @@
   }
 
   window.leagueTierRows = leagueTierRows;
+  // League match history: your champions over these games, most played first (games, win rate, KDA). test-league.js checks it.
+  window.lgChampSplit = games => {
+    const by = new Map();
+    for (const g of games) { const r = by.get(g.championId) || { championId: g.championId, games: 0, wins: 0, k: 0, d: 0, a: 0, position: g.position }; r.games++; r.wins += g.win ? 1 : 0; r.k += g.kills; r.d += g.deaths; r.a += g.assists; by.set(g.championId, r); }
+    return [...by.values()].sort((a, b) => b.games - a.games || b.wins - a.wins).map(r => ({ ...r, winRate: r.wins / r.games, kda: (r.k + r.a) / Math.max(1, r.d) }));
+  };
   window.leagueSlotAlternatives = leagueSlotAlternatives;
   const api = window.statsApi = { stale: false,
     patches: () => crawler('/patches'),
