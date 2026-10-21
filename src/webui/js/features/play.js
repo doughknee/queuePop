@@ -60,7 +60,9 @@ window.qpPlayTile = () => {
   const st = qpPlayState(playLast, "home"), last = qmLast != null ? qmQueueById(qmLast) : null;
   t.dataset.mode = st.mode; t.dataset.game = st.game; t.disabled = st.disabled;
   t.querySelector("b").textContent = st.text === "PLAY" ? "Play" : st.text;
-  t.querySelector("small").textContent = st.mode === "queue" ? (last ? "Last: " + qmStripPrefix(last.name, "Teamfight Tactics").replace(/^/, last.group === "tft" ? "TFT " : "") : "League and TFT")
+  const lastName = last ? (last.group === "tft" ? "TFT " : "") + qmStripPrefix(last.name, "Teamfight Tactics") : "";
+  t.title = lastName ? `Last played: ${lastName}` : "Choose a queue";
+  t.querySelector("small").textContent = st.mode === "queue" ? (lastName || "League and TFT")
     : st.mode === "launch" ? "Opens the League client" : st.mode === "cancel" ? "Click to leave the queue" : st.game === "tft" ? "TFT" : "League";
 };
 document.addEventListener("click", (e) => {
