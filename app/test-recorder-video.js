@@ -1,7 +1,7 @@
 // node test-recorder-video.js — ffmpeg command builders, clip windows and the size cap (app/recorder-video.js, DONI-523 Q21).
 // Never runs a capture.
 const assert = require("assert");
-const { captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, ownVideos } = require("./recorder-video");
+const { chooseBackend, clipRequest, placeClips, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, ownVideos } = require("./recorder-video");
 
 assert.strictEqual(pickEncoder(" V....D h264_amf  AMD AMF H.264\n V....D h264_nvenc NVIDIA NVENC H.264"), "h264_nvenc");
 assert.strictEqual(pickEncoder(" V....D h264_qsv  H.264 (Intel Quick Sync)"), "h264_qsv");
@@ -38,4 +38,52 @@ assert.deepStrictEqual(chooseDeletions([{ path: "new", size: 3 * GB, mtime: 3 },
 // The size cap only sees the recorder's own videos (the folder may be your Videos folder).
 assert.deepStrictEqual(ownVideos(["NA1_1.json", "NA1_1.mkv", "NA1_1-clip2.mp4", "obs 2024.mkv", "NA1_2.mkv", "x.json", "x.mp4", "555.json", "555.mkv"]),
   ["NA1_1.mkv", "NA1_1-clip2.mp4", "555.mkv"]);
-console.log("test-recorder-video ok");
+// Engine: the companion's Overwolf recorder when it says ready, else ffmpeg, else nothing.
+assert.strictEqual(chooseBackend({ recorder: { ready: true } }, { found: true }), "overwolf");
+assert.strictEqual(chooseBackend({ recorder: { ready: false } }, { found: true }), "ffmpeg");
+assert.strictEqual(chooseBackend({ app: "queuepop-overlay" }, { found: false }), null); // an old companion without a recorder
+assert.strictEqual(chooseBackend(null, { found: true }), "ffmpeg");
+
+// Live clip requests: game time 100 happened at wall 1_000_000 (clock: wall 900_000 = game time 0). The kill reaches us
+// 2 s late, so 12 s of past and 3 s still to come; capped at the 30 s buffer and at how long the recording has run;
+// too old for the buffer (a backlog after a restart) or no span: no clip.
+const clock = { wall: 900000, gameTime: 0 };
+assert.deepStrictEqual(clipRequest({ t: 100, type: "kill" }, clock, 1002000, 0), { pastSeconds: 12, afterSeconds: 3 });
+assert.deepStrictEqual(clipRequest({ t: 100, type: "death" }, clock, 1000000, 0), { pastSeconds: 10, afterSeconds: 3 });
+assert.deepStrictEqual(clipRequest({ t: 100, type: "multikill" }, clock, 1020000, 0), { pastSeconds: 29, afterSeconds: 0 });
+assert.deepStrictEqual(clipRequest({ t: 100, type: "kill" }, clock, 1000000, 996000), { pastSeconds: 4, afterSeconds: 5 }); // recording 4 s old
+assert.strictEqual(clipRequest({ t: 100, type: "kill" }, clock, 1060000, 0), null);
+assert.strictEqual(clipRequest({ t: 100, type: "end" }, clock, 1000000, 0), null);
+assert.strictEqual(clipRequest({ t: 100, type: "assist" }, clock, 1000000, 0), null); // live clips: kills, multikills, deaths, objectives
+assert.deepStrictEqual(clipRequest({ t: 100, type: "kill" }, null, 1000000, 0), { pastSeconds: 10, afterSeconds: 5 }); // no clock yet
+assert.deepStrictEqual(placeClips([{ at: 15000, ms: 15000, file: "c" }], 5000), [{ at: 15000, ms: 15000, file: "c", start: 10, end: 25 }]);
+
+// A whole Overwolf game against a stub companion: start, two kills in one clip, a death, stop. The recording JSON gets
+// the shape Recordings reads: video {file, length, offset}, clips [{file, start, end, types, ids}].
+(async () => {
+  const calls = [], saved = {};
+  let n = 0;
+  const stub = async (p, body) => {
+    calls.push([p, body]);
+    if (p === "/health") return { recorder: { ready: true, encoder: "h264_texture_amf" } };
+    if (p === "/recorder/start") return { ok: true, encoder: "h264_texture_amf", width: 2580, height: 1080, fps: 60, startEpoch: 1000 };
+    if (p === "/recorder/clip") return n++ < 2 ? { ok: true, file: "C:/rec/NA1_9-clip1.mp4", startTimeEpoch: 60000, duration: 20000 } : { ok: true, file: "C:/rec/NA1_9-clip2.mp4", startTimeEpoch: 200000, duration: 13000 };
+    if (p === "/recorder/stop") return { ok: true, file: "C:/rec/NA1_9.mp4", duration: 600000, startTimeEpoch: 4000 };
+  };
+  const v = createVideo({ getConfig: () => ({ recorder: { enabled: true, video: true, preset: "1080p60" } }), dir: () => "C:/rec", log() {}, push() {},
+    recorder: { update: (id, patch) => Object.assign(saved, patch), list: () => [] }, companion: stub, probe: async () => ({ found: false }) });
+  const rec = { matchId: "NA1_9", game: "league", events: [], clock: { wall: Date.now(), gameTime: 0 } };
+  await v.start(rec);
+  assert.strictEqual(calls[1][0], "/recorder/start");
+  assert.strictEqual(calls[1][1].processName, "League of Legends.exe");
+  assert.deepStrictEqual([calls[1][1].height, calls[1][1].fps], [1080, 60]);
+  v.onEvents(rec, [{ id: 1, t: 0, type: "kill" }, { id: 2, t: 0, type: "kill" }, { id: 3, t: 0, type: "end" }]);
+  v.onEvents(rec, [{ id: 4, t: 0, type: "death" }]);
+  await v.stop(rec);
+  assert.strictEqual(calls.filter((c) => c[0] === "/recorder/clip").length, 3); // end has no clip
+  assert.deepStrictEqual({ file: saved.video.file, length: saved.video.length, engine: saved.video.engine }, { file: "C:/rec/NA1_9.mp4", length: 600, engine: "overwolf" });
+  assert.ok(Math.abs(saved.video.offset - (rec.clock.wall - 4000) / 1000) < 0.2); // video time at game time 0, from the first frame
+  assert.deepStrictEqual(saved.clips.map((c) => [c.file, c.start, c.end, c.types.join("+"), c.ids.join("+")]),
+    [["C:/rec/NA1_9-clip1.mp4", 56, 76, "kill+kill", "1+2"], ["C:/rec/NA1_9-clip2.mp4", 196, 209, "death", "4"]]);
+  console.log("test-recorder-video ok");
+})().catch((e) => { console.error(e); process.exit(1); });

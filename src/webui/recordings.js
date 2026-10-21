@@ -43,11 +43,12 @@
     let list = [];
     const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
-    // Video needs ffmpeg on PATH (recorder-video.js probe); without it the switch would do nothing, so say why instead.
-    let ff = null; try { ff = ((await api().recorder_status()) || {}).ffmpeg; } catch {}
-    const noFf = ff && !ff.found, ffHelp = `<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">Get ffmpeg ↗</a>`;
-    const vidLine = !on ? '' : noFf ? `<span>${video ? 'Video is on, but ffmpeg isn’t installed, so games keep their timeline only.' : 'Video needs ffmpeg, which isn’t installed.'} ${ffHelp}, add it to PATH, then restart queuePop.</span>`
-      : !video ? `<span>Video is off, so a game keeps its timeline only. <button type="button" class="st-btn st-gold" data-rec-video>Record video too</button></span>` : '';
+    // Video needs the QueuePop companion (Overwolf) or ffmpeg on PATH (recorder-video.js engine); say which records, or why nothing can.
+    let eng = null; try { eng = ((await api().recorder_status()) || {}).engine; } catch {}
+    const none = eng && !eng.engine, ffHelp = `<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">get ffmpeg ↗</a>`;
+    const vidLine = !on ? '' : none ? `<span>${video ? 'Video is on, but nothing can record it, so games keep their timeline only.' : 'Video needs a recorder.'} Start the QueuePop companion (the Overwolf app), or ${ffHelp} and add it to PATH.</span>`
+      : !video ? `<span>Video is off, so a game keeps its timeline only. <button type="button" class="st-btn st-gold" data-rec-video>Record video too</button></span>`
+      : eng && window.stEngineLine ? `<span>${E(stEngineLine(eng, true))}</span>` : '';
     if (!here()) return;
     const head = `<header class="rec-head"><p class="eyebrow">Recorder (beta)</p><h1>Recordings</h1>
       <p>${on ? 'Every League and TFT game is recorded while queuePop runs: your kills, deaths, assists, multikills, objectives and the result, with their game time.' : 'The recorder is off. Turn it on in Settings to keep a timeline of every game.'}
@@ -64,7 +65,7 @@
     const favN = list.slice(0, 30).filter(r => r.favorite).length;
     const tabs = `<nav class="rec-tabs" aria-label="Show">${[['all', `All games · ${Math.min(30, list.length)}`], ['favorites', `Favourites · ${favN}`], ['highlights', `Highlights · ${clips.length}`]].map(([k, l]) => `<button type="button" data-rec-tab="${k}" aria-pressed="${tab === k}">${l}</button>`).join('')}</nav>`;
     if (tab === 'highlights') {
-      host.innerHTML = `<section class="rec-page">${head}${tabs}${clips.length ? `<div class="rec-hls">${clips.map(({ r, c, i }) => `<div class="rec-hl"><a href="#/recordings/${encodeURIComponent(r.matchId)}/${i}" data-rec-hover><video muted preload="metadata" src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : `<div class="rec-empty">No clips yet. With video on, queuePop cuts your kills, deaths and objectives into clips after each game, and you can cut your own in the player.</div>`}</section>`;
+      host.innerHTML = `<section class="rec-page">${head}${tabs}${clips.length ? `<div class="rec-hls">${clips.map(({ r, c, i }) => `<div class="rec-hl"><a href="#/recordings/${encodeURIComponent(r.matchId)}/${i}" data-rec-hover><video muted preload="metadata" src="${fileUrl(c.file)}#t=0.5"></video><span><b>${E(clipName(c))}</b><small>${E(recFacts(r).title)} · ${E(when(r.startedAt))} · ${Math.round(c.end - c.start)} s</small></span></a>${star(c.favorite, `data-rec-cfav="${E(r.matchId)}" data-i="${i}"`, clipName(c))}</div>`).join('')}</div>` : `<div class="rec-empty">No clips yet. With video on, queuePop keeps a clip of your kills, deaths and objectives (saved during the game with the QueuePop companion, cut after it with ffmpeg), and you can cut your own in the player.</div>`}</section>`;
       return;
     }
     const rows = list.slice(0, 30).map((r, i) => [r, i]).filter(([r]) => tab !== 'favorites' || r.favorite);
