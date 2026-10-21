@@ -55,10 +55,11 @@ function clipWindows(events, offset, videoLen, clip = CLIP) {
 // ffmpeg arguments for one clip, stream copy. Pure.
 const clipArgs = (input, start, end, out) => ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(start), "-i", input, "-t", String(Math.round((end - start) * 10) / 10), "-c", "copy", "-avoid_negative_ts", "make_zero", out];
 // Files [{path, size, mtime}] → the paths to delete, oldest first, until the rest fit under capBytes. Pure.
-function chooseDeletions(files, capBytes) {
+// Paths in keep (your favourites) are never chosen, even over the cap.
+function chooseDeletions(files, capBytes, keep = new Set()) {
   let total = files.reduce((s, f) => s + f.size, 0);
   const out = [];
-  for (const f of [...files].sort((a, b) => a.mtime - b.mtime)) { if (total <= capBytes) break; out.push(f.path); total -= f.size; }
+  for (const f of [...files].sort((a, b) => a.mtime - b.mtime)) { if (total <= capBytes) break; if (keep.has(f.path)) continue; out.push(f.path); total -= f.size; }
   return out;
 }
 
@@ -129,9 +130,30 @@ function createVideo(ctx) {
     const capBytes = ((ctx.getConfig().recorder || {}).cap_gb || 50) * 1024 ** 3;
     let files = [];
     try { files = ownVideos(fs.readdirSync(ctx.dir())).map((f) => { const p = path.join(ctx.dir(), f), s = fs.statSync(p); return { path: p, size: s.size, mtime: s.mtimeMs }; }); } catch { return; }
-    for (const p of chooseDeletions(files, capBytes)) { try { fs.unlinkSync(p); ctx.log("recorder: removed", p, "(size cap)"); } catch {} }
+    // A favourite game keeps its video and every clip; a favourite clip keeps itself.
+    const keep = new Set();
+    for (const s of ctx.recorder.list ? ctx.recorder.list() : []) {
+      const r = ctx.recorder.get(s.matchId); if (!r) continue;
+      if (r.favorite && r.video && r.video.file) keep.add(path.resolve(r.video.file));
+      for (const c of r.clips || []) if (r.favorite || c.favorite) keep.add(path.resolve(c.file));
+    }
+    files = files.map((f) => ({ ...f, path: path.resolve(f.path) }));
+    for (const p of chooseDeletions(files, capBytes, keep)) { try { fs.unlinkSync(p); ctx.log("recorder: removed", p, "(size cap)"); } catch {} }
   }
-  return { start, stop, probe };
+  // Your own clip from a game's video, stream copy (no re-encode, about a second). Video seconds in, the clip back.
+  async function makeClip(id, start, end) {
+    const rec = ctx.recorder.get(id), src = rec && rec.video && rec.video.file;
+    if (!src || !fs.existsSync(src)) return { ok: false, error: "This game has no video file" };
+    start = Math.max(0, Number(start) || 0); end = Math.min(Number(end) || 0, (rec.video.length || Infinity));
+    if (!(end - start >= 1)) return { ok: false, error: "A clip needs at least a second" };
+    const p = await probe(); if (!p.found) return { ok: false, error: "ffmpeg isn’t installed" };
+    const out = src.replace(/\.(mkv|mp4)$/i, "") + `-clip${Date.now()}.mp4`;
+    if (await run(p.path, clipArgs(src, start, end, out)) === null) return { ok: false, error: "ffmpeg couldn’t cut that clip" };
+    const clip = { file: out, start: Math.round(start * 10) / 10, end: Math.round(end * 10) / 10, types: ["mine"], ids: [], mine: true, favorite: true };
+    ctx.recorder.update(rec.matchId, { clips: [...(rec.clips || []), clip] });
+    return { ok: true, clip };
+  }
+  return { start, stop, probe, makeClip };
 }
 
 module.exports = { ownVideos, createVideo, captureArgs, clipWindows, clipArgs, chooseDeletions, pickEncoder, listedEncoders, probe, PRESETS };

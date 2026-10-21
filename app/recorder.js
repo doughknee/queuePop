@@ -162,7 +162,7 @@ function attachRecorder(ctx) {
     try { names = fs.readdirSync(ctx.dir).filter((f) => f.endsWith(".json")); } catch { return []; }
     return names.map((f) => read(f.slice(0, -5))).filter((r) => r && Array.isArray(r.events) && r.matchId).sort((a, b) => b.startedAt - a.startedAt).map((r) => ({
       matchId: r.matchId, game: r.game, queueId: r.queueId, champion: r.champion, result: r.result, placement: r.placement || null,
-      startedAt: r.startedAt, endedAt: r.endedAt, video: !!r.video, clips: (r.clips || []).length,
+      startedAt: r.startedAt, endedAt: r.endedAt, video: !!r.video, clips: (r.clips || []).length, favorite: !!r.favorite,
       counts: r.events.reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}) }));
   }
   return {
