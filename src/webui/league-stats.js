@@ -137,7 +137,7 @@ function lgFilters(withRole = true, lead = '', nums = withRole) {
   const num = (key, label, unit, step, max, title) => `<label class="lg-num" title="${title}"><span>${label}</span><input type="number" inputmode="decimal" min="0" max="${max}" step="${step}" value="${lgt[key]}" data-lg-num="${key}">${unit}</label>`;
   return `<div class="lg-filters"><span id="lg-queues">${lgQueueTabs()}</span>${withRole ? `<div class="lg-roles lg-lanes" role="group" aria-label="Lane">${['all', ...LG_ROLES].map(r => `<button data-lg-role="${r}" aria-pressed="${lg.role === r}" title="${LG_ROLE[r] || 'All lanes'}">${r === 'all' ? 'All' : lgRoleIcon(r)}</button>`).join('')}</div>` : lead}
     ${sel('patch', [[lg.patch, lg.patch ? 'Patch ' + lg.patch : 'Newest patch']])}${sel('region', lgRegionOpts())}${sel('bracket', LG_BRACKETS)}${sel('days', LG_WINDOWS)}
-    ${nums ? `${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}` : ''}${lgLegend()}</div>`;
+    ${nums ? `<details class="lg-thresh"><summary title="Lane ${lgt.minLane}% · pick ${lgt.minPick}% · ${lgN(lgt.minGames)} games">Thresholds</summary><div class="lg-thresh-panel">${num('minLane', 'Lane', '%', 1, 100, 'Hide champions under this share of their games in the lane')}${num('minPick', 'Pick', '%', 0.1, 100, 'Hide champions under this pick rate')}${num('minGames', 'Games', '', 50, 100000, 'Rows under this many games stay listed, greyed and without a tier')}</div></details>` : ''}${lgLegend()}</div>`;
 }
 async function lgFillPatches(token) {
   try {
