@@ -287,6 +287,9 @@ body.theme-recordings{background:var(--bg);color:var(--fg);font-family:var(--mon
 .sb-rec{position:relative}.sb-rec.on::after{content:'';position:absolute;top:5px;right:5px;width:6px;height:6px;background:var(--accent)}
 .rec-del{border:0;background:none;color:var(--muted);font:12px var(--mono);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:6px 8px}
 .rec-del:hover,.rec-del:focus-visible{color:var(--neg)}.rec-del[data-sure]{color:var(--neg)}
+.rec-open:hover,.rec-open:focus-visible{color:var(--accent)}
+.rec-files{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.rec-files span{display:flex;align-items:center;gap:10px}
 .rec-nostrip{color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding-bottom:4px}
 .rec-empty .st-btn{margin-left:12px}
 /* DONI-595: a game's pages slide in when you switch games (sidebar block and the page row), staggered; Settings sits apart
