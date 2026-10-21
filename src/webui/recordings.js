@@ -32,13 +32,15 @@
   async function render(host) {
     if (!QP.store.config) { try { await QP.store.load(); } catch {} } // opened straight onto Recordings: settings first, or "off" is a lie
     const on = !!(QP.store.config && ((QP.store.config.recorder || {}).enabled || (QP.store.config.tft || {}).record));
+    const video = !!(QP.store.config && (QP.store.config.recorder || {}).video);
     let list = [];
     const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
     try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
     if (!here()) return;
     const head = `<header class="rec-head"><p class="eyebrow">Recorder (beta)</p><h1>Recordings</h1>
       <p>${on ? 'Every League and TFT game is recorded while queuePop runs: your kills, deaths, assists, multikills, objectives and the result, with their game time.' : 'The recorder is off. Turn it on in Settings to keep a timeline of every game.'}
-      <a href="#/settings#recorder" data-rec-settings>Recorder settings ↗</a></p></header>`;
+      <a href="#/settings#recorder" data-rec-settings>Recorder settings ↗</a></p>
+      <p class="rec-files"><button type="button" class="st-btn" data-rec-folder>Open the recordings folder</button>${on && !video ? `<span>Video is off, so a game keeps its timeline only. <button type="button" class="st-btn st-gold" data-rec-video>Record video too</button></span>` : ''}</p></header>`;
     // Off: the fix is one click away, right here (it applies at once, like every Settings control).
     if (!list.length) { host.innerHTML = `<section class="rec-page">${head}<div class="rec-empty">${on ? 'No recordings yet. Play a League or TFT game and it shows up here.' : 'Nothing recorded yet.'}${on ? '' : ' <button type="button" class="st-btn st-gold" data-rec-on>Turn the recorder on</button>'}</div></section>`; return; }
     const full = await Promise.all(list.slice(0, 30).map(r => api().get_recording(r.matchId).catch(() => null)));
@@ -51,7 +53,7 @@
       const board = r.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unit).join('')}<small>Level ${E(rec.board.level)}</small></span>` : '';
       const strip = stripMarkers(rec).length ? window.recStrip(rec) : board || `<span class="rec-nostrip">${r.game === 'tft' ? 'Board arrives a minute after the game' : 'No moments recorded'}</span>`;
       return `<li class="rec-row ${r.result || ''}"><div class="rec-meta"><b>${E(title)}</b><small>${E(when(r.startedAt))}${f.result ? ` · ${f.result}` : ''}${facts ? ` · ${E(facts)}` : ''}${r.video ? ` · video${r.clips ? `, ${r.clips} clips` : ''}` : ''}</small></div>
-        ${strip}<span class="rec-act"><button type="button" class="rec-del" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></span></li>`; }).join('')}</ol>
+        ${strip}<span class="rec-act">${r.video ? `<button type="button" class="rec-del rec-open" data-rec-play="${E(r.matchId)}">Watch</button><button type="button" class="rec-del rec-open" data-rec-show="${E(r.matchId)}">Show file</button>` : ''}<button type="button" class="rec-del" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></span></li>`; }).join('')}</ol>
       <p class="rec-legend">${Object.entries(KIND).map(([k, l]) => `<span><i class="rec-m rec-${k}"></i>${l}</span>`).join('')}</p></section>`;
   }
   document.addEventListener('click', async e => {
@@ -59,6 +61,12 @@
     // Deleting is for good, so the first click asks (inline, no dialog) and the second deletes.
     if (del && !del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Delete for good?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Delete'; } }, 4000); return; }
     if (del) { del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main')); }
+    const folder = e.target.closest && e.target.closest('[data-rec-folder]');
+    if (folder) { const r = await api().open_recordings_folder().catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) folder.textContent = r.error || 'Couldn’t open it'; return; }
+    const vid = e.target.closest && e.target.closest('[data-rec-play],[data-rec-show]');
+    if (vid) { const r = await api().open_recording(vid.dataset.recPlay || vid.dataset.recShow, !!vid.dataset.recShow).catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) vid.textContent = r.error || 'Couldn’t open it'; return; }
+    const rv = e.target.closest && e.target.closest('[data-rec-video]');
+    if (rv) { QP.store.set('recorder.video', true); render(document.getElementById('main')); return; }
     const on = e.target.closest && e.target.closest('[data-rec-on]');
     if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); render(document.getElementById('main')); }
     const s = e.target.closest && e.target.closest('[data-rec-settings]');
