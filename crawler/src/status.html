@@ -12,6 +12,7 @@ input,button{width:100%;box-sizing:border-box;margin:4px 0;padding:10px;font:inh
 input:focus{outline:2px solid var(--accent);outline-offset:-1px}button{background:var(--accent);color:var(--bg);border:0;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
 table{width:100%;border-collapse:collapse;font-size:14px}td{padding:3px 6px 3px 0;border-bottom:1px solid var(--line)}td:last-child{text-align:right;white-space:nowrap;color:var(--muted)}
 .spark{display:flex;align-items:center;gap:8px;margin:2px 0}.spark span{width:48px;color:var(--muted)}.spark small{margin-left:auto}
+#tk{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0;padding:8px 10px;border:1px solid var(--line);color:var(--muted);font-size:13px}#tk[hidden]{display:none}#tf{width:auto;margin:0;padding:4px 12px;background:none;border:1px solid var(--line);color:var(--fg)}
 .ok,#msg.ok{color:var(--green)}#msg.err{color:var(--neg)}.bad{background:var(--neg);color:var(--bg);font-weight:700;padding:10px;margin:8px 0}
 </style>
 <h1>QUEUE<b>POP</b> crawler</h1>
@@ -20,7 +21,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:3px 6px 3px 
 <p>Get a new one at <a href="https://developer.riotgames.com/" target="_blank" rel="noopener">developer.riotgames.com</a> (log in, Regenerate API Key). A personal key is registered per product: give League's and TFT's each to their game.</p>
 <form id="f"><select id="g" aria-label="Which game uses this key"><option value="">Both games</option><option value="lol">League only</option><option value="tft">TFT only</option></select>
 <input id="k" type="password" placeholder="RGAPI-…" autocomplete="off" required>
-<input id="t" type="password" placeholder="admin token" autocomplete="off" required><button>Save key</button></form>
+<input id="t" type="password" placeholder="admin token" autocomplete="off" required><span id="tk" hidden>Admin token remembered on this browser <button type="button" id="tf">Forget</button></span><button>Save key</button></form>
 <div id="msg"></div>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -54,19 +55,28 @@ ${s.health ? `<small>data health as of ${ago(s.health.at)}</small>` : ""}
 <h2>Rate limits</h2>${bars.join("") || "no calls yet"}`;
   } catch (e) { $("s").textContent = "status failed: " + e.message; }
 }
+// The admin token, remembered in this browser after a key saves with it (so it's asked for once); Forget, or a token the
+// crawler turns down, clears it. It stays in this browser only (localStorage), never in the page or the crawler's logs.
+const TK = "qp-crawler-admin";
+const saved = () => { try { return localStorage.getItem(TK) || ""; } catch { return ""; } };
+const remember = (v) => { try { v ? localStorage.setItem(TK, v) : localStorage.removeItem(TK); } catch {} showToken(); };
+function showToken() { const has = !!saved(); $("t").hidden = has; $("t").required = !has; $("tk").hidden = !has; }
+$("tf").onclick = () => { remember(""); $("t").value = ""; $("t").focus(); };
+showToken();
 $("f").onsubmit = async (e) => {
   e.preventDefault();
-  const m = $("msg");
+  const m = $("msg"), token = saved() || $("t").value;
   // 503 = the hourly aggregation holds the database (a few minutes): retry every 10 s for up to 15 min, saying so (DONI-568)
-  const body = JSON.stringify({ key: $("k").value.trim(), ...($("g").value && { game: $("g").value }) }), headers = { authorization: "Bearer " + $("t").value, "content-type": "application/json" };
+  const body = JSON.stringify({ key: $("k").value.trim(), ...($("g").value && { game: $("g").value }) }), headers = { authorization: "Bearer " + token, "content-type": "application/json" };
   for (let i = 0; i < 90; i++) {
     try {
       const r = await fetch("/admin/key", { method: "POST", headers, body });
       const j = await r.json().catch(() => ({}));
       if (r.status === 503) { m.className = ""; m.textContent = `Crawler busy (aggregating). Retrying in 10 s… (${i + 1})`; await new Promise((ok) => setTimeout(ok, 10000)); continue; }
       m.className = r.ok ? "ok" : "err";
-      m.textContent = r.ok ? "Key saved. Crawler uses it from the next request." : j.error || r.statusText;
-      if (r.ok) { $("k").value = ""; load(); }
+      m.textContent = r.ok ? "Key saved. Crawler uses it from the next request." : r.status === 401 ? "That admin token didn't work. Enter it again." : j.error || r.statusText;
+      if (r.ok) { $("k").value = ""; $("t").value = ""; remember(token); load(); }
+      if (r.status === 401) remember("");
       return;
     } catch (x) { m.className = ""; m.textContent = `Crawler not answering (${x.message}). Retrying in 10 s…`; await new Promise((ok) => setTimeout(ok, 10000)); }
   }
