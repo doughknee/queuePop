@@ -61,6 +61,27 @@ function attachRecorder(ctx) {
   const file = (id) => path.join(ctx.dir, `${String(id).replace(/[^\w-]/g, "_")}.json`);
   const save = () => { if (!rec) return; try { fs.mkdirSync(ctx.dir, { recursive: true }); fs.writeFileSync(file(rec.matchId), JSON.stringify(rec)); } catch (e) { ctx.log("recorder: save", e.message); } };
 
+  // TFT: placement (top 4 is a win; in Double Up it's still your 1-8 standing) and, from match history, the final board.
+  function setPlacement(r, place) {
+    r.placement = place; r.result = place <= 4 ? "win" : "loss";
+    if (!r.events.some((e) => e.type === "end")) r.events.push({ id: "end", t: null, type: "end", label: `${place}${["th", "st", "nd", "rd"][place] || "th"} place` });
+  }
+  // Recordings whose game ended without a placement or board get them from the client's TFT match history, matched by
+  // game id. Runs after each TFT game and once whenever the client connects (games recorded while the app restarted).
+  async function fillFromHistory(ids) {
+    if (!ctx.tftHistory) return;
+    const want = (ids || list().filter((r) => r.game === "tft" && r.endedAt && !r.placement).map((r) => r.matchId)).map(read).filter((r) => r && (!r.placement || !r.board));
+    if (!want.length) return;
+    let games = []; try { games = (await ctx.tftHistory(20)) || []; } catch { return; }
+    for (const r of want) {
+      const g = games.find((x) => String(x.id) === String(r.gameId) || String(x.id).endsWith(`_${r.gameId}`)); if (!g) continue;
+      if (!r.placement && g.placement) setPlacement(r, g.placement);
+      r.board = { level: g.level, units: g.units, traits: g.traits, augments: g.augments, length: g.length };
+      try { fs.writeFileSync(file(r.matchId), JSON.stringify(r)); } catch (e) { ctx.log("recorder: board", e.message); }
+    }
+  }
+  ctx.lcu.on("connect", () => setTimeout(() => fillFromHistory(), 20000).unref?.());
+
   async function start() {
     if (rec || !enabled()) return;
     const s = await ctx.lcu.request("get", "/lol-gameflow/v1/session").catch(() => null);
@@ -103,13 +124,18 @@ function attachRecorder(ctx) {
     clearInterval(timer); timer = null;
     if (rec.game === "league") await poll(); // the GameEnd event often arrives on the last poll
     if (rec.game === "tft") {
-      const eog = await ctx.lcu.request("get", "/lol-end-of-game/v1/tft-eog-stats").catch(() => null);
-      const same = !(eog && eog.data && eog.data.gameId) || String(eog.data.gameId) === String(rec.gameId); // not last game's screen
-      const lp = same && eog && eog.data && eog.data.localPlayer;
-      if (lp && lp.ffaStanding) { rec.placement = lp.ffaStanding; rec.result = lp.ffaStanding <= 4 ? "win" : "loss"; rec.events.push({ id: "end", t: null, type: "end", label: `${lp.ffaStanding}${["th", "st", "nd", "rd"][lp.ffaStanding] || "th"} place` }); }
+      // The end-of-game screen's stats can land after the phase change, so read it a few times.
+      for (let i = 0; i < 3 && !rec.placement; i++) {
+        if (i) await new Promise((r) => setTimeout(r, 2000));
+        const eog = await ctx.lcu.request("get", "/lol-end-of-game/v1/tft-eog-stats").catch(() => null);
+        const same = !(eog && eog.data && eog.data.gameId) || String(eog.data.gameId) === String(rec.gameId); // not last game's screen
+        const lp = same && eog && eog.data && eog.data.localPlayer;
+        if (lp && lp.ffaStanding) setPlacement(rec, lp.ffaStanding);
+      }
     }
     rec.endedAt = Date.now();
     save();
+    if (rec.game === "tft") { const done = rec; for (const wait of [45000, 180000]) setTimeout(() => fillFromHistory([done.matchId]), wait).unref?.(); } // the board, and the placement if the screen had none
     ctx.onGame && ctx.onGame(rec, "end");
     ctx.push(`Recorded ${rec.game === "tft" ? "TFT" : rec.champion || "League"}: ${rec.events.filter((e) => e.type !== "end").length} moments`, "info", "recorder");
     rec = null;
@@ -140,7 +166,7 @@ function attachRecorder(ctx) {
       counts: r.events.reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}) }));
   }
   return {
-    list, get: read, live: () => rec,
+    list, get: read, live: () => rec, fill: fillFromHistory,
     remove(id) {
       const r = read(id); try { fs.unlinkSync(file(r ? r.matchId : id)); } catch { return { ok: false }; }
       // Its video and clips too, but only files inside the recordings folder (a moved or hand-edited file is left alone).

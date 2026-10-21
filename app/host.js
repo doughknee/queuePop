@@ -54,7 +54,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   // DONI-523: the recorder writes one file per game under the recordings folder (Settings > Recorder (beta)).
   const recDir = () => (loadConfig().recorder || {}).folder || path.join(app.getPath("userData"), "recordings");
   let video = null;
-  const recorder = attachRecorder({ lcu, getConfig: loadConfig, get dir() { return recDir(); }, push, log,
+  const recorder = attachRecorder({ lcu, getConfig: loadConfig, get dir() { return recDir(); }, push, log, tftHistory: (n) => account.getTftMatchHistory(n),
     live: process.env.QP_FAKE_CS ? require("./fake-lcu").live : undefined, // dev: the fake client's in-game feed
     platform: async () => ((await account.getSummoner().catch(() => null)) || {}).platform || "",
     onGame: (rec, phase) => { (phase === "start" ? video.start(rec) : video.stop(rec)).catch((e) => log("recorder video:", e.message)); } });
