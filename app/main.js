@@ -204,6 +204,10 @@ app.whenReady().then(() => {
     win.webContents.executeJavaScript(`window.QP && QP.store.config && (QP.store.config.deadlock_account_id = ${v}, QP.bus.emit("config:changed", { path: "deadlock_account_id" }))`).catch(() => {});
     return r;
   };
+  // Settings' "Use my Steam account", and once at startup while it's empty: the account signed in to Steam on this PC.
+  const { detectDeadlockAccount } = require("./steam-account");
+  impl.detect_deadlock_account = () => { const id = detectDeadlockAccount(); if (id) impl.set_deadlock_account(id); return { ok: !!id, id }; };
+  if (!loadConfig().deadlock_account_id) { const id = detectDeadlockAccount(); if (id) { setDl(id); log("deadlock: account filled in from Steam"); } }
   win.loadFile(WEBUI);
   host.init({ win, lcu, state, events, impl, loadConfig, configFile: CONFIG_FILE, push, log, version: VERSION });
   assets.check(); // never awaited: icons fill in as they land
