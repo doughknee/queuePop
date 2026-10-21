@@ -72,14 +72,19 @@ or pin both.
 
 ## Release gate: before any public build
 
-Nothing on ow-electron ships publicly until all of these are done:
+Nothing on ow-electron ships publicly until all of these are done. docs/ads.md has the full ads list.
 
 1. **Overwolf app registration.** Submit the app proposal, get it approved, and swap the personal dev key for
-   production credentials. A packaged build without them doesn't load the packages.
-2. **The promised desktop ad slot.** A 300x250 slot sits at the bottom of the sidebar. When the sidebar is collapsed,
-   it falls back to a 400x300 slot on Home. It isn't built yet and stays off until release.
+   production credentials. A packaged build without them doesn't load the packages. Overwolf also has to enable the
+   app uid for ads (test it with `--test-ad` first).
+2. **The promised desktop ad slot.** One 300x250 `<owadview>` at the bottom of the sidebar, built in #226. On
+   ow-electron it switches on by itself (`get_status().overwolf`) unless `config.ads.premium` is set. That means this
+   personal build already shows the box, with its placeholder, and the sidebar is fixed at 316 px. Before release:
+   - a consent screen for the EU and other strict regions
+   - `config.ads.premium` replaced by Overwolf's subscription check
 3. **Open questions for Overwolf DevRel:**
    - Are ads mandatory for an app that uses the recorder and/or GEP packages?
-   - Is a 300x250 unit supported in a desktop (non-overlay) window, or only their standard sizes (400x300 and so on)?
+   - Is 300x250 supported in a desktop window? docs/ads.md reads Overwolf's docs as yes, banner-only. Confirm it
+     counts as meeting any ad requirement that comes with the recorder or GEP.
    - Exclusivity: can queuePop also offer its own ad-free subscription, or must ad removal go through Overwolf's
      subscription system?

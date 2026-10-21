@@ -167,6 +167,12 @@
   utilities overridden at its end). Dropped: the armory, chronicle and battle-report interiors (unreachable), league-armory.css,
   league-interiors.css, league-home.css. Do not bring back gold, arches, torn-paper clip-paths or italics in League.
 
+## Ads (2026-10-21; decided, don't move the slot)
+- One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at
+  316 px with no collapse or drag. Supporters (`config.ads.premium`, standing in for Overwolf's subscription check) get no ad and
+  keep collapse: collapsing is the paid perk. Serves only on ow-electron; `localStorage['queuepop-ads-preview']='1'` previews
+  the box in plain Electron. Never in-game, never over content, never more than one. The release gate is in docs/ads.md.
+
 ## Shell QoL (overnight track Q, 2026-10-20)
 - Global search (DONI-537): `src/webui/palette.js` (loaded by `shell.js`, styles at the end of `shell.css`) opens one sheet under the
   page row on Ctrl+K, `/`, or the sidebar's Search entry. Sources: sidebar pages, `settingsView.sections` + `settingsView.index()`
