@@ -30,6 +30,7 @@
   const api = () => window.pywebview && window.pywebview.api;
   const when = ms => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
   async function render(host) {
+    if (!QP.store.config) { try { await QP.store.load(); } catch {} } // opened straight onto Recordings: settings first, or "off" is a lie
     const on = !!(QP.store.config && ((QP.store.config.recorder || {}).enabled || (QP.store.config.tft || {}).record));
     let list = [];
     const here = () => location.hash.startsWith('#/recordings'); // you may have moved on while these load (review)
