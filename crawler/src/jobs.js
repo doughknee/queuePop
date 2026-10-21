@@ -473,6 +473,7 @@ function aggregate(db, now = Date.now, force = false, locked = (fn) => fn()) {
     tx(db, () => { // one read snapshot of main per patch; writes go to temp only
       for (const t of tables) db.exec(`DELETE FROM temp.${t}`);
       db.exec("DELETE FROM temp.pm");
+      require("./lol-items").loadCompleted(db, basePatch(patch)); // the patch's own item list
       db.prepare("INSERT INTO temp.pm SELECT id, patch, region, bracket, duration, started_at FROM matches WHERE patch = ?").run(patch);
       require("./tft-comps").labelPatch(db, patch);
       for (const q of prepared) q.run(patch);

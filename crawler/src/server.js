@@ -22,7 +22,9 @@ const dec = (s) => { try { return decodeURIComponent(s); } catch { throw bad("ma
 // Patch rollover (D11): a request without ?patch gets the newest patch with at least MIN_MATCHES matches (League ~2 h of crawl
 // at ~1,000 matches/h; TFT matches = boards / 8), else the patch with the most matches, so a new patch doesn't take over the app
 // with a handful of games. /patches lists every patch newest first plus counts, minMatches and that default.
-const MIN_MATCHES = { lol: 2000, tft: 1000 };
+// Each League mode rolls over on its own (DONI-596 follow-up): when solo reaches 2,000 on a new patch, ARAM there may have 30
+// games, so a mode keeps its old patch until the new one has 1,000 (the app's "thin sample" line) or more games than the old.
+const MIN_MATCHES = { lol: 2000, tft: 1000, flex: 1000, aram: 1000, normal: 1000, swift: 1000 };
 const MODE_NAMES = ["flex", "aram", "normal", "swift"];
 // ?queue= on League stats: queue id or name -> patch suffix; solo/duo (420, "ranked") is the plain patch
 const QUEUE_SFX = { ...MODES, ranked: "", solo: "", ...Object.fromEntries(MODE_NAMES.map((m) => [m, "-" + m])) };
@@ -47,7 +49,7 @@ function patchesUncached(db) {
   const c = { lol: {}, tft: counts("stats_tft_boards", "boards", 8), ...Object.fromEntries(MODE_NAMES.map((m) => [m, {}])) };
   for (const [p, n] of Object.entries(counts("stats_lol_matches", "matches", 1))) (c[MODE_RE.exec(p)?.[1] || "lol"][basePatch(p)] = n);
   const lists = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Object.keys(v).sort(byVersion)]));
-  return { ...lists, counts: c, minMatches: MIN_MATCHES, default: { lol: pickPatch("lol", lists.lol, c.lol), tft: pickPatch("tft", lists.tft, c.tft) } };
+  return { ...lists, counts: c, minMatches: MIN_MATCHES, default: Object.fromEntries(Object.keys(c).map((k) => [k, pickPatch(k, lists[k], c[k])])) };
 }
 
 // WHERE clause for ?patch&region&bracket. bracket = minimum tier ("emerald" = Emerald and above).
@@ -78,7 +80,8 @@ function head(db, q, game, windowed = false) {
     if (k && !Object.hasOwn(QUEUE_SFX, k)) throw bad("queue must be 420 (solo), 440 (flex), 450 (aram), 400 (normal) or 480/490 (swift)");
     sfx = k ? QUEUE_SFX[k] : (MODE_RE.exec(q.patch || "") || [""])[0];
   }
-  const base = basePatch(q.patch) || pickPatch(game, ps[game].filter((p) => !bySet || bySet.has(p)), ps.counts[game]);
+  const mode = game === "lol" && sfx ? sfx.slice(1) : game; // a mode's own default patch (never one it has no games on)
+  const base = basePatch(q.patch) || pickPatch(mode, ps[mode].filter((p) => !bySet || bySet.has(p)), ps.counts[mode]);
   const patch = sfx && base ? base + sfx : base;
   const minGames = q.min_games === undefined ? 200 : Number(q.min_games);
   if (!(minGames >= 0)) throw bad("min_games must be a number >= 0");
