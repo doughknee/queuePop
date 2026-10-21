@@ -44,3 +44,16 @@ test("timeline: a completed item that later auto-upgraded (tier-2 boots) stays i
   assert.deepStrictEqual(parseTimeline(tl, fin).a.build.map((x) => x[0]), [3190], "without the completed list: boots lost");
   assert.deepStrictEqual(parseTimeline(tl, fin, new Set(completedIds(DD))).a.build.map((x) => x[0]), [3009, 3190], "with it: Swiftness kept, Kindlegem (sold component) still out");
 });
+
+test("item lists per patch: refreshItems keeps the two newest patches, aggregation uses each patch's own", async () => {
+  const { refreshItems, loadCompleted } = require("../src/lol-items");
+  const db = open(":memory:");
+  const old = JSON.parse(JSON.stringify(DD)); delete old.data["6697"]; // 16.20 has no Hubris yet
+  const fetchJson = async (u) => u.endsWith("versions.json") ? ["16.21.1", "16.20.1", "16.20.0", "16.19.1"] : u.includes("/16.21.1/") ? DD : old;
+  const m = await refreshItems(db, { fetchJson });
+  assert.strictEqual(m.version, "16.21.1");
+  const ids = () => db.prepare("SELECT id FROM temp.lol_completed ORDER BY id").all().map((r) => r.id);
+  loadCompleted(db, "16.20"); assert.ok(!ids().includes(6697), "16.20's list");
+  loadCompleted(db, "16.21"); assert.ok(ids().includes(6697), "16.21's list");
+  loadCompleted(db, "16.19"); assert.ok(ids().includes(6697), "unknown patch: the newest");
+});
