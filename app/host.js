@@ -2,7 +2,7 @@
 // alerts (Discord + toast), phone companion, updater, queue launcher + account methods. Called once from main.js.
 const fs = require("fs");
 const path = require("path");
-const { app, Notification, dialog, shell } = require("electron");
+const { app, Notification, dialog, shell, globalShortcut } = require("electron");
 const { createNotifier } = require("./notifications");
 const { createCompanion, lanIp, DEFAULT_PORT } = require("./companion");
 const { createUpdater } = require("./updater");
@@ -28,7 +28,7 @@ const START = Date.now();
 const NAMES = ["get_status", "get_stats", "test_desktop", "test_discord", "test_companion", "get_companion_info", "get_update_status",
   "check_for_update", "get_release_notes", "apply_update", "get_summoner", "get_queue_map", "get_quick_queues", "start_queue", "cancel_queue",
   "launch_league", "get_champion_mastery", "get_match_history", "get_tft_match_history", "open_external", "open_config_folder", "pick_sound_file", "hide_window",
-  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip"];
+  "minimize_window", "resize_window", "test_alert", "new_companion_link", "set_stepping_away", "get_game_plan", "get_draft_recaps", "test_ntfy", "list_recordings", "get_recording", "delete_recording", "open_recordings_folder", "recorder_status", "open_recording", "set_recording_favorite", "set_clip_favorite", "make_clip", "delete_clip", "recorder_info", "save_last_seconds"];
 
 function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log, version }) {
   let quitting = false;
@@ -64,6 +64,20 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const ow = createRecorder(log);
   if (app.overwolf && app.overwolf.packages) app.overwolf.packages.on("ready", (_e, name) => { if (name === "recorder") ow.attach(app.overwolf.packages.recorder); });
   video = createVideo({ getConfig: loadConfig, dir: recDir, log, push, recorder, ow }); // Q21: when Record video is on; in-process Overwolf, else the companion, else ffmpeg
+  // Studio's "save the last N seconds" hotkey (config.recorder.hotkey): global, so it works while the game has focus.
+  // Re-registered whenever settings are saved; a key another app already owns is logged and left alone.
+  const recOptions = require("../src/webui/js/recorder-options.js");
+  let hotkey = null;
+  const saveLast = () => { const r = recOptions.normalize(loadConfig().recorder); return video.manualClip(recorder.live(), r.hotkey.seconds); };
+  function bindHotkey() {
+    const r = recOptions.normalize(loadConfig().recorder), want = r.enabled && r.video && r.hotkey.on ? r.hotkey.keys : null;
+    if (want === hotkey) return;
+    if (hotkey) globalShortcut.unregister(hotkey);
+    hotkey = null;
+    if (want) { try { if (globalShortcut.register(want, () => { saveLast().catch((e) => log("recorder hotkey:", e.message)); })) hotkey = want; else log("recorder hotkey: " + want + " is taken by another app"); } catch (e) { log("recorder hotkey:", e.message); } }
+  }
+  app.whenReady().then(bindHotkey);
+  app.on("will-quit", () => globalShortcut.unregisterAll());
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
@@ -176,6 +190,9 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     list_recordings: () => recorder.list(),
     get_recording: (id) => recorder.get(String(id)),
     delete_recording: (id) => recorder.remove(String(id)),
+    // Studio: what this PC can record with (encoders, mics, outputs, monitor) and the engine in use.
+    recorder_info: async () => ({ engine: await video.engine(), device: ow.status().ready ? await ow.info().catch((e) => ({ error: e.message })) : null, hotkey }),
+    save_last_seconds: () => saveLast(),
     recorder_status: async () => { const e = await video.engine(); return { ffmpeg: e.ffmpeg, engine: e, folder: recDir(), recording: recorder.live() ? recorder.live().matchId : null }; },
     // A game's video: play it (reveal false) or select it in Explorer, where its clips sit beside it (reveal true).
     open_recording: async (id, reveal, clip) => {
@@ -246,6 +263,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
     const before = cfgComp(), r = await saveConfig(c), after = cfgComp();
     const cfg = loadConfig();
     if (app.getLoginItemSettings().openAtLogin !== !!cfg.launch_at_login) loginItem(cfg.launch_at_login);
+    bindHotkey(); // Studio's hotkey follows its setting
     if (!!before.enabled !== !!after.enabled || Number(before.port) !== Number(after.port)) {
       companion.stop();
       if (after.enabled) await companion.start();

@@ -154,13 +154,9 @@ function normalizeAram(aram, aramRoleMode) {
 }
 
 // Recorder (beta): events on/off, video on/off, quality preset, folder (empty = userData/recordings), size cap in GB.
-const REC_PRESETS = ["720p30", "1080p30", "1080p60"];
-function normalizeRecorder(r) {
-  r = or(r, {});
-  const cap = Number(getd(r, "cap_gb", 50));
-  return { enabled: T(getd(r, "enabled", false)), video: T(getd(r, "video", false)), preset: REC_PRESETS.includes(r.preset) ? r.preset : "1080p60",
-    folder: String(r.folder || "").trim(), cap_gb: Number.isFinite(cap) ? Math.min(2000, Math.max(1, Math.round(cap))) : 50 };
-}
+// Studio (2026-10-21): every recorder option lives in one shared file with its defaults, limits and old-preset migration.
+const recOptions = require("../src/webui/js/recorder-options.js");
+function normalizeRecorder(r) { return recOptions.normalize(r); }
 
 // ntfy push: on/off, server (default ntfy.sh), topic (letters, digits, - and _), optional access token.
 function normalizeNtfy(n) {
