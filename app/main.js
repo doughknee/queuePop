@@ -2,6 +2,8 @@
 const fs = require("fs");
 const path = require("path");
 const { app, BrowserWindow, ipcMain, shell, screen, powerMonitor } = require("electron");
+// Studio's player picks which recorded sound track you hear (everything, game, mic): Chromium keeps video.audioTracks behind this.
+app.commandLine.appendSwitch("enable-blink-features", "AudioVideoTracks");
 const { windowState } = require("./window-state"); // DONI-539
 const { QUEUE_ID_MAP } = require("./account");
 const qname = (id) => QUEUE_ID_MAP[id] || (id ? `queue ${id}` : "this queue");

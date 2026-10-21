@@ -278,9 +278,21 @@ async function lgFillHistory(token) {
     + (rec && (rec.followed.games || rec.ignored.games) ? ` · following queuePop's pick ${rs(rec.followed) || '0 games'}, ignoring it ${rs(rec.ignored) || '0 games'}` : '');
   box().innerHTML = lgHistChamps(games) + games.map((g, i) => {
     const c = lgChamp(g.championId), kda = (g.kills + g.assists) / Math.max(1, g.deaths), ago = fmtAgoShort(g.ts), go = `data-lg-goto="#/league/champion/${g.championId}${g.position ? '/' + g.position : ''}" title="Open ${lgEsc(c.name)}'s stats"`;
-    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || 'Other mode')}${(r => r && r.suggested ? ` · ${r.followed ? 'took the suggestion' : 'suggested ' + lgEsc(r.suggested)}` : '')(recapBy.get(Number(g.gameId)))}</small></span><span class="lg-hist-build" data-hist="${g.gameId}"></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
+    return `<div class="lg-match ${g.win ? 'win' : 'loss'}"><button class="lg-match-row" data-lg-match="${i}" aria-expanded="false" aria-controls="lg-more-${i}"><span class="lg-result">${g.win ? 'Victory' : 'Defeat'}</span>${lgIcon(g.championId).replace('<img', `<img ${go}`)}<span class="lg-match-name" ${go}>${lgEsc(c.name)}<small>${lgEsc(queueMap[g.queueId] || (g.queueId === 0 || g.queueId === 3100 ? 'Custom' : 'Other mode'))}${(r => r && r.suggested ? ` · ${r.followed ? 'took the suggestion' : 'suggested ' + lgEsc(r.suggested)}` : '')(recapBy.get(Number(g.gameId)))}</small></span><span class="lg-hist-build" data-hist="${g.gameId}"></span><span>${lgRoleIcon(g.position)}</span><span class="lg-kda">${g.kills} / ${g.deaths} / ${g.assists}<small>${kda.toFixed(2)} KDA</small></span><span class="lg-ago">${ago === 'now' ? 'just now' : ago + ' ago'}</span><i aria-hidden="true">▾</i></button><div class="lg-match-more" id="lg-more-${i}" hidden></div></div>`;
   }).join('');
   lgFillHistoryBuilds(token);
+  lgMarkRecorded(token);
+}
+// Games Studio recorded get a ▶ that opens them there (recordings are keyed NA1_<gameId>, or the bare id).
+async function lgMarkRecorded(token) {
+  let list = []; try { list = (await window.pywebview?.api?.list_recordings?.()) || []; } catch {}
+  if (token !== lg.token) return;
+  const by = new Map(list.filter(r => r.video || r.clips).map(r => [String(r.matchId).replace(/^[A-Za-z]+\d*_/, ''), r]));
+  document.querySelectorAll('#lg-history [data-lg-match]').forEach(b => {
+    const g = lgGames[+b.dataset.lgMatch], r = g && by.get(String(g.gameId));
+    if (!r || b.querySelector('.lg-hist-rec')) return;
+    b.querySelector('.lg-match-name small').insertAdjacentHTML('beforeend', ` · <span class="lg-hist-rec" data-lg-goto="#/studio/game/${encodeURIComponent(r.matchId)}" title="Watch in Studio">▶ Watch${r.clips ? ` · ${r.clips} clip${r.clips > 1 ? 's' : ''}` : ''}</span>`);
+  });
 }
 // Your champions over these games (window.lgChampSplit, js/stats-api.js), most played first; each opens its page.
 function lgHistChamps(games) {

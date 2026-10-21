@@ -117,3 +117,23 @@ assert.strictEqual(F({ game: "tft", queueId: 1160, placement: 1, result: "win" }
   for (const d of [dir, dir2, dir3, dir4]) fs.rmSync(d, { recursive: true });
   console.log("test-recorder ok");
 })().catch((e) => { console.error(e); process.exit(1); });
+
+// Highlights' filter and order (recFilterClips, deck-out round 3)
+{
+  const R = (champion, startedAt) => ({ champion, startedAt });
+  const items = [
+    { r: R("Ezreal", 100), c: { types: ["kill"], start: 10, end: 25, favorite: false }, i: 0 },
+    { r: R("Ezreal", 100), c: { types: ["death"], start: 40, end: 50, favorite: true }, i: 1 },
+    { r: R("Ahri", 200), c: { types: ["kill", "multikill"], start: 5, end: 30, favorite: false }, i: 0 },
+    { r: R("Ahri", 200), c: { types: ["manual"], mine: true, start: 60, end: 90, favorite: true }, i: 1 },
+  ];
+  const ids = (f) => JSON.parse(JSON.stringify(ctx.window.recFilterClips(items, f))).map((x) => x.r.champion[0] + x.c.start);
+  assert.deepStrictEqual(ids({}), ["A60", "E40", "A5", "E10"]); // starred first, then newest game, then earlier in the game
+  assert.deepStrictEqual(ids({ type: "kill" }), ["A5", "E10"]); // a multikill clip that also holds a kill counts as a kill
+  assert.deepStrictEqual(ids({ type: "mine" }), ["A60"]);
+  assert.deepStrictEqual(ids({ champ: "Ezreal" }), ["E40", "E10"]);
+  assert.deepStrictEqual(ids({ star: true, sort: "new" }), ["A60", "E40"]);
+  assert.deepStrictEqual(ids({ sort: "long" }), ["A60", "A5", "E10", "E40"]);
+  assert.deepStrictEqual(ids({ type: "assist" }), []);
+}
+console.log("test-recorder highlights ok");

@@ -134,4 +134,22 @@
     } else if (b.hasAttribute('data-sd-folder-reset')) { set('folder', ''); setTimeout(() => getInfo(true).then(redraw), 700); }
   });
   window.studioCapture = { render };
+
+  // A game just saved clips (the recorder's "Saved N clips" / "Saved the last N s" / "Recorded …" lines): a card that opens
+  // it in Studio, and the Library refreshes if it's open. Only for events after launch, not the activity backfill.
+  const since = Date.now() / 1000;
+  let toastTimer = null;
+  if (window.QP && QP.bus) QP.bus.on('activity:event', async ev => {
+    if (!ev || ev.kind !== 'recorder' || ev.ts < since) return;
+    let id = null; try { id = (((await api().list_recordings()) || [])[0] || {}).matchId; } catch {}
+    const main = document.getElementById('main');
+    if (main && /^#\/studio\/?(highlights)?$/.test(location.hash) && window.recordingsView) recordingsView.render(main);
+    let t = document.getElementById('sd-toast');
+    if (!t) { t = Object.assign(document.createElement('div'), { id: 'sd-toast', className: 'sd-toast' }); t.setAttribute('role', 'status'); document.body.append(t); }
+    t.innerHTML = `<span class="sd-toast-dot" aria-hidden="true"></span><b>${E(ev.message)}</b>${id ? `<a class="st-btn st-gold" href="#/studio/game/${encodeURIComponent(id)}">Watch</a>` : ''}<button type="button" aria-label="Close">✕</button>`;
+    t.hidden = false;
+    t.querySelector('button').onclick = () => { t.hidden = true; };
+    t.querySelector('a') && (t.querySelector('a').onclick = () => { t.hidden = true; });
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 15000);
+  });
 })();

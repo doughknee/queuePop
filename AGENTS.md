@@ -173,6 +173,12 @@
   redirect (worlds.js). Every recorder option is `src/webui/js/recorder-options.js` (shared by host and pages, test-studio.js);
   Settings keeps one Recording card that links into Studio. Which games record stays `recorder.enabled` (League) / `tft.record`.
 
+- Studio deck-out (2026-10-21): the Library leads with your latest game playing its best clip plus a clip filmstrip, then
+  video cards (previews load on scroll, play on hover). A game's recording is reached from League match history ("▶ Watch"),
+  the League/TFT match page's "Your moments" ("Watch in Studio") and the "Saved N clips" card. The player has clip, seek,
+  frame, speed and sound-track tools (main.js turns on Chromium's AudioVideoTracks); clips can be renamed (clip.name).
+  Highlights filters with window.recFilterClips (test-recorder.js).
+
 ## Ads (2026-10-21; decided, don't move the slot)
 - One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at
   316 px with no collapse or drag. Supporters (`config.ads.premium`, standing in for Overwolf's subscription check) get no ad and
