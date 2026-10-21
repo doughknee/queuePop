@@ -299,8 +299,10 @@
   rows, times a sample weight (20 games 0.15, 2,000 full), linear. DONI-519: inside `.lg-table` the tint is the cell background (the
   tier list reads as a heat map), elsewhere the text; `lgMag` tints pick/ban purple by size; build picks are colored against the
   champion's own win rate (`lg.cwr`). One `.lg-legend` per page, at the end of the filter strip. One density (22 px rows; the
-  compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky at `top:48px` (the page row's height). Styles: all in
+  compact/comfortable toggle is gone, Text size is the readability knob). Table `thead`s are sticky just under the bookmarks bar and page row (`calc(var(--marks-h) + 49px)`). Styles: all in
   `league-stats.css` + `league-champion.css` (nothing League-stats in `league-world.css`).
+
+- **Champion page (2026-10-20, deck-out):** the page opens with one **Recommended build** card (runes, spells, skills, items: the most-played pick at each step, each with its own win rate and games) plus best/worst lane opponents. The detailed blocks below stay as the "why". The Champions (lore) page left the nav and the champion page no longer links to it; don't bring the link back. In-page jumps use `data-lg-jump` (capture-phase click, instant scroll), never `#anchors`: the hash is the router.
 
 ## Text size
 - Settings > Display (DONI-516): config `ui_scale` (0.9/1/1.1/1.25/1.5, default 1.1, kept by `normalizeConfig`). `app/main.js`
