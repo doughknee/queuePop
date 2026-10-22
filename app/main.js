@@ -16,7 +16,7 @@ const { UI_SCALES, gameOfQueue, forGame } = require("./champ-config");
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
-const CONFIG_FILE = path.join(__dirname, "..", "src", "config.json");
+const { CONFIG_FILE } = require("./config"); // userData when installed (config.js)
 const VERSION = (fs.readFileSync(path.join(__dirname, "..", "src", "_version.py"), "utf8").match(/"(.+)"/) || [])[1];
 
 // The log also goes to <userData>/queuepop.log (1 MB, one .old rotation) so a slow start or a crash leaves a trace

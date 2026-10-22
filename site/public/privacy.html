@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy · queuePop</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root { --bg:#0A0A0A; --fg:#F2F2F2; --muted:#8A8A8A; --line:#2A2A2A; --accent:#C6FF3D; }
+  html { background: var(--bg); }
+  body { margin: 0; color: var(--fg); font: 16px/1.65 ui-sans-serif, system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1 { font-size: 36px; line-height: 1.1; margin: 0 0 6px; }
+  h2 { font-size: 20px; margin: 36px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+  p.meta { color: var(--muted); margin: 0 0 28px; }
+  a { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy Policy</h1>
+<p class="meta">queuePop for Windows · Effective [DATE] · <a href="/terms.html">Terms of Use</a></p>
+
+<p>queuePop is a desktop app for League of Legends, Teamfight Tactics and Deadlock players, made by Brandon Harris. This page says
+what queuePop reads, what it keeps, what leaves your PC, and why. It covers the queuePop app and the stats service it talks to.</p>
+
+<h2>The short version</h2>
+<ul>
+  <li>There is no queuePop account and no sign-up.</li>
+  <li>Your settings, recordings and clips stay on your PC unless you choose to publish a clip.</li>
+  <li>To show stats, queuePop asks our stats service and a few public game-data services for them. Those requests come from
+    your IP address, like any web request.</li>
+  <li>The free version shows one ad, served by Overwolf, which collects data under its own policy. You are asked for consent
+    first where the law requires it.</li>
+</ul>
+
+<h2>What queuePop reads on your PC</h2>
+<ul>
+  <li><b>The League client</b>, through Riot's local client API: your Riot ID, rank, match history, queue and champ select
+    state, so it can accept queues, help in champ select and show your games. This stays on your PC.</li>
+  <li><b>League's live game data</b>, Riot's read-only in-game API, while you play: kills, deaths, objectives and the result,
+    for the recorder's timeline. queuePop never reads game memory and never injects anything into a game.</li>
+  <li><b>Your Steam account id</b>, from your local Steam install, to fill in your Deadlock profile. You can change or clear it
+    in Settings.</li>
+</ul>
+
+<h2>What queuePop keeps on your PC</h2>
+<ul>
+  <li>Your settings (<code>config.json</code>), window position, draft recaps and a small log file, in queuePop's folder under
+    <code>%APPDATA%</code>.</li>
+  <li>Recordings, if you turn the recorder on: game timelines, and with video on, videos and clips in the folder you pick.
+    Video can include your microphone and other sounds on your PC if you turn those sources on. You can delete any of it in
+    Studio, and the size cap deletes the oldest videos automatically.</li>
+</ul>
+<p>Uninstalling queuePop removes the app. Your recordings folder is yours and is left in place.</p>
+
+<h2>What leaves your PC, and to whom</h2>
+<table>
+  <tr><th>Service</th><th>What is sent</th><th>When</th></tr>
+  <tr><td>queuePop stats service (run by us)</td><td>Requests for champion, comp, tier and leaderboard stats; any Riot ID you search
+    for; your IP address</td><td>When you open stats pages</td></tr>
+  <tr><td>Riot Data Dragon, Community Dragon</td><td>Requests for champion, item and unit images and names; your IP address</td><td>When
+    the app starts and when pages need art</td></tr>
+  <tr><td>deadlock-api.com</td><td>Your Deadlock account id and requests for Deadlock stats</td><td>When you open the Deadlock pages</td></tr>
+  <tr><td>GitHub</td><td>A check for a newer version of queuePop</td><td>When the app starts</td></tr>
+  <tr><td>Overwolf</td><td>Whatever Overwolf's runtime and ad services collect, under
+    <a href="https://www.overwolf.com/legal/privacy">Overwolf's privacy policy</a></td><td>While queuePop runs, and when the ad shows</td></tr>
+  <tr><td>Discord</td><td>A message to the webhook you set up</td><td>Only if you turn on Discord alerts</td></tr>
+  <tr><td>ntfy</td><td>A push to the server and topic you set up</td><td>Only if you turn on ntfy pushes</td></tr>
+  <tr><td>queuePop clips (clips.olvyx.com)</td><td>A 720p copy of the clip with game sound only, never your microphone; the champion
+    and a label</td><td>Only when you press Publish on a clip</td></tr>
+</table>
+<p>The phone companion runs on your own network: your phone talks to your PC directly, with a private link only you have.</p>
+
+<h2>Ads</h2>
+<p>The free version shows one ad in the sidebar, served by Overwolf and its ad partners. They may use cookies and identifiers to show
+and measure ads, as described in <a href="https://www.overwolf.com/legal/privacy">Overwolf's privacy policy</a>. Where the law requires
+your consent (for example in the EU and UK), queuePop asks before any ad loads, and you can change your choice later in Settings.
+Supporters see no ads.</p>
+
+<h2>What we keep on our side</h2>
+<ul>
+  <li>The stats service keeps aggregated match data from Riot's public API to compute stats. Like most web servers it may log
+    requests, including IP addresses, for up to [N] days to keep the service running and to stop abuse.</li>
+  <li>Published clips stay public until you unpublish them in Studio, which deletes our copy.</li>
+  <li>We do not sell your data, and we don't run our own analytics or tracking in the app.</li>
+</ul>
+
+<h2>Children</h2>
+<p>queuePop is not meant for children under 13, or under the age of digital consent where you live.</p>
+
+<h2>Your choices and rights</h2>
+<p>You can turn off the recorder, alerts, the phone companion and publishing at any time, and delete anything queuePop stored on
+your PC. To ask about, get a copy of, or delete anything we hold about you (such as a published clip or server logs), email
+<a href="mailto:[CONTACT EMAIL]">[CONTACT EMAIL]</a>.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the new version is posted here with a new effective date.</p>
+
+<p class="meta">queuePop isn't endorsed by Riot Games or Valve and doesn't reflect the views or opinions of Riot Games, Valve, or anyone
+officially involved in producing or managing their games.</p>
+</main>
+</body>
+</html>
