@@ -38,7 +38,10 @@
   static docs (Riot renames routes between patches).
 - `docs/` — `screenshots/` (README-only images; the rest live in `site/public/shots/`).
 - `installer/queuePop.iss` — Inno Setup script for the installed build.
-- `site/` — marketing site (Vite + React, prerendered to static HTML); self-contained.
+- `site/` — the public site (Vite + React, prerendered to static HTML); self-contained. Rebuilt 2026-10-22 for the store edition:
+  the app's tokens (black, lime, Anton + Space Mono), real store-build screenshots shot on fake data, `terms.html` / `privacy.html`.
+  Every claim must be true of `app/edition.js` (it calls you back and highlights, never accepts or locks in); no download link until
+  the Overwolf listing exists (GitHub's latest release is still the Python build). site/README.md says how to retake the shots.
 - Build artifacts (`build/`, `dist/`, `releases/`) are generated and gitignored.
 
 ## Build, Test, and Development Commands
