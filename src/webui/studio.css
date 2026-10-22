@@ -369,3 +369,9 @@ kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--edg
 .sd-more{display:flex;justify-content:center;margin-top:34px}.sd-more small{font-weight:400;color:var(--muted)}
 .sd-linkbtn{padding:0;border:0;background:none;color:var(--accent);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.sd-linkbtn:hover{color:var(--fg)}
 .sd-preset>.sd-btn{align-self:flex-start;margin:10px 0 4px}
+/* A match page's "Your moments" (League and TFT): the strip, this game's best clips, Watch in Studio. */
+.sd-mm{margin:0 0 18px;padding:14px 16px 18px;border:1px solid var(--line);background:linear-gradient(180deg,var(--wash),transparent 70%)}
+.sd-mm>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.sd-mm>.rec-strip{margin-bottom:14px}
+.sd-mm .sd-tiles{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.sd-mm .sd-tcap b{font-size:17px}

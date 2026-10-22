@@ -194,7 +194,6 @@ body.theme-tft{height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 .ts-more b{font:400 24px/1 var(--display);text-transform:uppercase}
 .ts-more span{grid-column:1;color:var(--muted);font-size:12px;line-height:1.5}
 .ts-more i{grid-row:1;grid-column:2;font-style:normal;color:var(--accent)}
-.ts-mt-rec{margin:0 0 12px}
 /* 1024 px (Brandon's window at 125 %): narrower number columns leave the last column room for two breakpoint chips a line */
 @media (max-width:1150px) and (min-width:901px){.ts-head.ts-head-list,.ts-row-list{grid-template-columns:minmax(170px,1.2fr) repeat(5,minmax(52px,60px)) minmax(0,1.6fr)}}
 /* Short windows (Brandon's 1024 x 576): title, last 10 and rank on one line so the comps start in view */

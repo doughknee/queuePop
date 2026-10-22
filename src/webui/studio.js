@@ -127,7 +127,7 @@
     const publishing = pubCard(pub);
     if (!location.hash.startsWith('#/studio/capture')) return; // the crawler can answer late; never paint over the next page
     const y = window.scrollY;
-    host.innerHTML =`<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header>
+    host.innerHTML = `<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header>
       <div class="sd-cap">${rail}<div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}${publishing}</div></div></section>`;
     window.scrollTo(0, y); // a redraw after a change keeps your place
     spy(host);
@@ -135,11 +135,15 @@
   }
 
   // The rail's links jump to a card (the hash is the router, so no #anchors) and light up the card you're reading.
-  let spyIO = null;
+  let spyIO = null, spyLinks = null;
+  // At the bottom the last cards never reach the line, so the last one lights.
+  const atBottom = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+  const light = id => spyLinks && spyLinks.forEach((a, k) => a.toggleAttribute('aria-current', k === (atBottom() ? [...spyLinks.keys()].pop() : id)));
+  addEventListener('scroll', () => { if (spyLinks && atBottom() && location.hash.startsWith('#/studio/capture')) light(); }, { passive: true });
   function spy(host) {
     if (spyIO) spyIO.disconnect();
-    const links = new Map([...host.querySelectorAll('[data-sd-jump]')].map(a => [a.dataset.sdJump, a]));
-    spyIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach((a, id) => a.toggleAttribute('aria-current', id === e.target.id)); }), { rootMargin: '-20% 0px -70% 0px' });
+    spyLinks = new Map([...host.querySelectorAll('[data-sd-jump]')].map(a => [a.dataset.sdJump, a]));
+    spyIO = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) light(e.target.id); }), { rootMargin: '-20% 0px -70% 0px' });
     host.querySelectorAll('.sd-card').forEach(c => spyIO.observe(c));
   }
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-sd-jump]'); if (!a) return; e.preventDefault(); document.getElementById(a.dataset.sdJump)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); });

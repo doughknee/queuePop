@@ -291,7 +291,7 @@ async function lgMarkRecorded(token) {
   document.querySelectorAll('#lg-history [data-lg-match]').forEach(b => {
     const g = lgGames[+b.dataset.lgMatch], r = g && by.get(String(g.gameId));
     if (!r || b.querySelector('.lg-hist-rec')) return;
-    b.querySelector('.lg-match-name small').insertAdjacentHTML('beforeend', ` · <span class="lg-hist-rec" data-lg-goto="#/studio/game/${encodeURIComponent(r.matchId)}" title="Watch in Studio">▶ Watch${r.clips ? ` · ${r.clips} clip${r.clips > 1 ? 's' : ''}` : ''}</span>`);
+    b.querySelector('.lg-match-name small').insertAdjacentHTML('beforeend', ` · <span class="lg-hist-rec" data-lg-goto="#/studio/game/${encodeURIComponent(r.matchId)}" title="Watch in Studio">▶ ${r.clips ? `${r.clips} clip${r.clips > 1 ? 's' : ''}` : 'Watch'}</span>`);
   });
 }
 // Your champions over these games (window.lgChampSplit, js/stats-api.js), most played first; each opens its page.

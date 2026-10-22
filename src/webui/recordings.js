@@ -283,7 +283,7 @@
 
   // --- Highlights ----------------------------------------------------------------------------------------------------------
   function highlightsHtml(clips) {
-    if (!clips.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('star')}</span><h2>No clips yet</h2><p>With video on, queuePop keeps a clip of every kill, multikill and objective while you play. You can also cut your own in the player, or save the last moments with the shortcut.</p><a class="sd-btn" href="#/studio/capture">Capture settings</a></div>`;
+    if (!clips.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('star')}</span><h2>No clips yet</h2><p>With video on, queuePop keeps a clip of every kill, multikill and objective while you play. You can also cut your own in the player, or save the last moments with the shortcut.</p>${QP.store.config && (QP.store.config.recorder || {}).video ? '<a class="sd-btn" href="#/studio/capture">Capture settings</a>' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}</div>`;
     const shown = window.recFilterClips(clips, hf), count = t => clips.filter(({ c }) => t === 'mine' ? window.recClipKind(c) === 'mine' : (c.types || []).includes(t)).length;
     const types = [['all', 'All', clips.length], ['kill', 'Kills'], ['multikill', 'Multikills'], ['objective', 'Objectives'], ['assist', 'Assists'], ['death', 'Deaths'], ['mine', 'Yours']].map(([k, l, n]) => [k, l, n ?? count(k)]).filter(([k, , n]) => k === 'all' || n);
     const champs = [...new Set(clips.map(({ r }) => r.champion).filter(Boolean))].sort();
@@ -298,6 +298,16 @@
     return `${bar}<p class="sd-count">${shown.length === clips.length ? plural(clips.length, 'clip') : `${shown.length} of ${plural(clips.length, 'clip')}`}${podium ? ', best first' : ''}</p>${grid}${moreBtn}`;
   }
 
+  // A match page's "Your moments" (league-match.js, tft-view.js): its moments as a strip, its best four clips (in game order) as the tiles
+  // as Studio, and Watch in Studio; '' when the recorder kept nothing worth showing (a TFT game without video is one mark).
+  window.recMatchMoments = rec => {
+    if (!rec) return '';
+    const top = ranked(rec.clips).slice(0, 4).sort((a, b) => a.c.start - b.c.start), seen = (rec.events || []).some(e => e.type !== 'end');
+    if (!seen && !rec.video && !top.length) return '';
+    return `<section class="sd-mm" aria-label="Your moments"><header><span class="sd-shelf-kick">${ico('play')} Your moments</span>${rec.video || top.length ? `<a class="sd-btn" href="${gameHref(rec.matchId)}">Watch in Studio →</a>` : ''}</header>
+      ${seen ? window.recStrip(rec) : ''}${top.length ? `<ol class="sd-tiles">${top.map(({ c, i }) => clipTile(rec, c, i, { meta: `${mmss(c.start)} in` })).join('')}</ol>` : ''}</section>`;
+  };
+
   // Champion pages (league-champion.js) ask for your clips of that champion: the same tiles as Studio, each opening the player,
   // or '' when you have none (the page then shows nothing). Local files only; nothing is uploaded.
   window.recChampionClips = async function (name) {
@@ -310,7 +320,7 @@
     const top = window.recPickChampionClips(items, name, 4);
     if (!top.length) return '';
     return `<section class="sd-shelf" aria-label="Your top ${E(name)} clips"><header><div><p class="sd-shelf-kick">${ico('play')} From your Studio</p><h2>Your top ${E(name)} clips</h2></div><small>Your starred and saved clips first, then your best plays.</small><a class="sd-btn" href="#/studio/highlights" data-myclips-champ="${E(name)}">${items.length > top.length ? `All ${items.length} in Studio` : 'Open Studio'} →</a></header>
-      <ol class="sd-tiles">${top.map(({ r, c, i }) => clipTile(r, c, i, { meta: `${E(when(r.startedAt))}` })).join('')}</ol></section>`;
+      <ol class="sd-tiles">${top.map(({ r, c, i }) => clipTile(r, c, i, { meta: E([recFacts(r).result, when(r.startedAt)].filter(Boolean).join(' · ')) })).join('')}</ol></section>`;
   };
   // "All N in Studio" opens Highlights filtered to that champion.
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-myclips-champ]'); if (a) { hf.champ = a.dataset.myclipsChamp; hmore = 60; hf.type = 'all'; hf.star = false; } });
@@ -556,7 +566,8 @@
   });
   // A tile plays its clip while the pointer is on it, with a thin progress line; the poster comes back when you leave.
   const atOf = v => Number(((v.dataset.sdSrc || v.src || '').match(/#t=([\d.]+)/) || [])[1] || 0.5);
-  document.addEventListener('mouseover', e => {
+  // Keyboard focus previews the same way.
+  const hoverOn = e => {
     const a = e.target.closest && e.target.closest('[data-rec-hover]'), v = a && a.querySelector('video'); if (!v) return;
     if (!v.getAttribute('src') && v.dataset.sdSrc) {
       v.src = v.dataset.sdSrc;
@@ -564,11 +575,13 @@
       v.addEventListener('timeupdate', () => { const p = a.querySelector('.sd-prog'); if (p && v.duration) p.style.width = `${(v.currentTime / v.duration) * 100}%`; });
     }
     if (v.paused) v.play().catch(() => {});
-  });
+  };
+  document.addEventListener('mouseover', hoverOn); document.addEventListener('focusin', hoverOn);
   // A featured clip (champion pages) plays in its tile, with sound and the video's own controls, until you click it again.
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-feat]'), v = a && a.querySelector('video'); if (!v || e.target === v) return;
     const on = a.classList.toggle('playing'); v.controls = on; v.muted = !on; if (on) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); });
-  document.addEventListener('mouseout', e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'); if (a && !a.classList.contains('playing') && !a.contains(e.relatedTarget)) { const v = a.querySelector('video'); a.classList.remove('live'); if (v) { v.pause(); v.currentTime = atOf(v); } } });
+  const hoverOff = e => { const a = e.target.closest && e.target.closest('[data-rec-hover]'); if (a && !a.classList.contains('playing') && !a.contains(e.relatedTarget)) { const v = a.querySelector('video'); a.classList.remove('live'); if (v) { v.pause(); v.currentTime = atOf(v); } } };
+  document.addEventListener('mouseout', hoverOff); document.addEventListener('focusout', hoverOff);
 
   document.addEventListener('click', async e => {
     const del = e.target.closest && e.target.closest('[data-rec-del]');
