@@ -383,3 +383,5 @@ kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--edg
 .sd-empty-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 .sd-stage-media video{transition-duration:.3s}
 .sd-screen.dead .rp-bar,.sd-screen.dead .rp-cut{opacity:.35;pointer-events:none}
+/* Highlights: kinds, then the count with the pickers on one row. */
+.sd-hlsub{margin:12px 0 18px}.sd-hlsub .sd-count{margin:0}

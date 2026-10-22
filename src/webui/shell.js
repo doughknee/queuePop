@@ -64,7 +64,7 @@
   window.syncSidebar = function () {
     synced = location.hash;
     // Studio's player is part of the Library, so Library stays lit (and in the narrow page row) while you watch a game.
-    const hash = norm(location.hash).replace(/^#\/studio\/game\/.*/, '#/studio'), game = hash.replace(/^#\/?/, '').split(/[\/#]/)[0] || 'home';
+    const hash = norm(location.hash).replace(/^#\/studio\/(game|champ)\/.*/, '#/studio'), game = hash.replace(/^#\/?/, '').split(/[\/#]/)[0] || 'home';
     let best = null;
     for (const a of bar.querySelectorAll('.sb-pages a')) {
       const href = norm(a.getAttribute('href'));

@@ -34,4 +34,9 @@ assert.deepStrictEqual(J2(ctx.window.qpUnitItems(null)), []);
 const recs = J2(ctx.window.qpRecordingItems([{ startedAt: 1, matchId: "NA1_5" }], () => ({ title: "Ahri", result: "Win", facts: "3 / 1 / 7" }), () => "Mon 9:00"));
 assert.deepStrictEqual(recs, [{ kind: "recording", label: "Ahri", sub: "Mon 9:00 · Win · 3 / 1 / 7", href: "#/studio/game/NA1_5" }]);
 assert.deepStrictEqual(qpRank(recs, "ahri").length, 1);
+// A big library: 3 newest per champion, then one row for the rest (opens the Library filtered), TFT keyed as TFT.
+const many = [1, 2, 3, 4, 5].map((n) => ({ startedAt: n, matchId: "NA1_" + n, champion: "Ahri" })).concat([{ startedAt: 9, matchId: "NA1_9", game: "tft" }]);
+const grouped = J2(ctx.window.qpRecordingItems(many, (r) => ({ title: r.champion || "TFT · 1st place" }), () => ""));
+assert.deepStrictEqual(grouped.map((x) => x.href), ["#/studio/game/NA1_1", "#/studio/game/NA1_2", "#/studio/game/NA1_3", "#/studio/champ/Ahri", "#/studio/game/NA1_9"]);
+assert.strictEqual(grouped[3].sub, "All 5 in the Library");
 console.log("test-palette sources ok");

@@ -171,7 +171,9 @@
   // o.status: read the recorder's status again (after turning it or video on). A redraw (a filter, a star, Show older) only
   // swaps the body, so the header and status stay put and tiles don't replay their entrance.
   async function render(host, o = {}) {
-    const rt = route();
+    let rt = route();
+    // #/studio/champ/Ezreal (the search sheet's "Ezreal games" row) opens the Library filtered to that champion.
+    if (rt.page === 'champ' && rt.id) { lchamp = decodeURIComponent(rt.id); tab = 'all'; more = 30; history.replaceState(null, '', '#/studio'); rt = route(); }
     if (rt.page === 'game' && rt.id) return renderPlayer(host, decodeURIComponent(rt.id), rt.clip == null ? null : +rt.clip);
     if (rt.page === 'capture') { titled('Capture'); return window.studioCapture ? studioCapture.render(host) : (host.innerHTML = '<p class="rec-empty">Loading Capture…</p>'); }
     const page = rt.page === 'highlights' ? 'highlights' : 'library', sel = `[data-sd-page="${page}"]`;
@@ -202,6 +204,9 @@
     lazyVideos(box);
     startStage(box);
     refocus(box, o.focus);
+    // Scrolling near Show older (or Show more clips) loads the next lot by itself; the button stays for the keyboard.
+    const mb = box.querySelector('[data-rec-more],[data-hf-more]');
+    if (mb && 'IntersectionObserver' in window) { const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); if (mb.isConnected && !mb.disabled && here()) mb.click(); } }, { rootMargin: '600px' }); io.observe(mb); }
     // What a filter left, said once to a screen reader (the count on screen is redrawn, so it can't be the live region).
     const live = sec.querySelector('#sd-live');
     if (live && !first && !failed) live.textContent = page === 'highlights' ? (box.querySelector('.sd-count') || {}).textContent || '' : plural(pool.length, 'game');
@@ -216,7 +221,8 @@
     const slot = host.querySelector('#sd-status'), note = host.querySelector('#sd-note'); if (!slot || !note) return;
     // The fix sits beside the status: turn the recorder on, or video on (Library only). A missing engine needs a sentence.
     const none = eng && !eng.engine, offered = !!host.querySelector('.sd-empty [data-rec-on],.sd-empty [data-rec-video]');
-    slot.innerHTML = chip + (offered ? '' : !on ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>'
+    // Highlights shows the recorder's state only when something needs fixing; the Library always does.
+    slot.innerHTML = (page === 'highlights' && on && video && !none ? '' : chip) + (offered ? '' : !on ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>'
       : !video && !none && page === 'library' ? '<button type="button" class="sd-btn primary" data-rec-video title="Games keep their timeline only while video is off">Record video too</button>' : '');
     const ff = '<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">get ffmpeg ↗</a>';
     note.innerHTML = on && none ? `<p class="sd-note warn"><span>${video ? 'Video is on, but nothing can record it, so games keep their timeline only.' : 'Video needs a recorder.'} Start the QueuePop companion (the Overwolf app), or ${ff} and add it to PATH.</span></p>` : '';
@@ -287,6 +293,8 @@
   // The stage plays its queue: the next clip when one ends, the reel tile lit for what's playing.
   function startStage(host) {
     const st = host.querySelector('[data-sd-stage]'), v = st && st.querySelector('.sd-stage-media video'); if (!v) return;
+    // Reduced motion: the art and the reel, no footage until you press Watch.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { v.remove(); st.querySelector('.sd-now')?.remove(); return; }
     let q = []; try { q = JSON.parse(st.dataset.sdStage); } catch {}
     let n = 0;
     const light = () => { st.querySelectorAll('[data-reel]').forEach(li => li.classList.toggle('now', q[n] && +li.dataset.reel === q[n].i)); const b = st.querySelector('[data-sd-now]'); if (b && q[n]) b.textContent = q[n].name; const w = st.querySelector('[data-sd-watch]'); if (w && q[n]) w.href = gameHref(st.querySelector('[data-rec-fav]').dataset.recFav, q[n].i); };
@@ -304,10 +312,10 @@
     rec = rec || r;
     const f = recFacts(r), p = preview(rec), cs = (rec.clips || []).filter(c => c.file), board = boardHtml(rec), title = cardTitle(r);
     const thumb = p ? media(p.src, p.at) : board ? `<span class="sd-boardthumb">${board}</span>` : `<span class="sd-art" style="background-image:${artFor(r.champion)}"></span><span class="sd-ministrip">${window.recStrip(rec)}</span>`;
-    return `<li class="sd-g ${r.result || ''}"><a class="sd-media${p ? '' : ' still'}" href="${gameHref(r.matchId)}"${p ? ` data-rec-hover data-poster="${p.src}" data-at="${p.at}"` : ''} aria-label="${E(title)}, ${E(when(r.startedAt))}">
+    return `<li class="sd-g ${r.result || ''}"><a class="sd-media${p ? '' : ' still'}" href="${gameHref(r.matchId)}"${p ? ` data-rec-hover data-poster="${p.src}" data-at="${p.at}"` : ''} aria-label="${E([title, r.game === 'tft' ? f.title.split(' · ')[1] || f.result : f.result, cs.length ? plural(cs.length, 'clip') : rec.video ? 'full video' : 'timeline only', when(r.startedAt)].filter(Boolean).join(', '))}">
         ${thumb}${cs.length ? `<span class="sd-kind k-clip">${plural(cs.length, 'clip')}</span>` : p || board ? '' : '<span class="sd-kind k-none">Timeline only</span>'}${rec.video ? `<span class="sd-dur">${len(rec.video.length)}</span>` : ''}</a>
       ${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, title)}
-      <div class="sd-gbody"><a class="sd-ttl" href="${gameHref(r.matchId)}">${resTag(r)}<b>${E(title)}</b></a>
+      <div class="sd-gbody"><a class="sd-ttl" href="${gameHref(r.matchId)}" tabindex="-1">${resTag(r)}<b>${E(title)}</b></a>
         <small title="${E([clock(r.startedAt), r.game === 'tft' ? '' : f.facts].filter(Boolean).join(' · '))}">${[clock(r.startedAt), r.game === 'tft' ? '' : f.facts].filter(Boolean).map(E).join(' · ')}</small>
         <button type="button" class="sd-gdel" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></div></li>`;
   }
@@ -318,15 +326,17 @@
     const shown = window.recFilterClips(clips, hf), count = t => clips.filter(({ c }) => t === 'mine' ? window.recClipKind(c) === 'mine' : (c.types || []).includes(t)).length;
     const types = [['all', 'All', clips.length], ['kill', 'Kills'], ['multikill', 'Multikills'], ['objective', 'Objectives'], ['assist', 'Assists'], ['death', 'Deaths'], ['mine', 'Yours']].map(([k, l, n]) => [k, l, n ?? count(k)]).filter(([k, , n]) => k === 'all' || n);
     const champs = [...new Set(clips.map(({ r }) => r.champion).filter(Boolean))].sort();
-    const bar = `<div class="sd-tools sd-hlbar"><div class="sd-chips" role="group" aria-label="Moments">${types.map(([k, l, n]) => `<button type="button" class="sd-chipf" aria-pressed="${hf.type === k}" data-hf="type" data-v="${k}">${k === 'all' ? '' : `<i class="sd-kdot k-${k}"></i>`}${l}<small>${n}</small></button>`).join('')}</div>
-      <div class="sd-bar-r">${champs.length > 1 ? `<label class="sd-pick"><span>Champion</span><select data-hf-sel="champ"><option value="">All</option>${champs.map(n => `<option${hf.champ === n ? ' selected' : ''}>${E(n)}</option>`).join('')}</select></label>` : ''}
+    // Kinds on one row, then the count with the pickers beside it (deck-out 3: four rows of tools filled a 1024 window).
+    const podium = hf.sort === 'best' && hf.type === 'all' && !hf.champ && !hf.star && shown.length >= 5;
+    const countLine = `<p class="sd-count">${shown.length === clips.length ? plural(clips.length, 'clip') : `${shown.length} of ${plural(clips.length, 'clip')}`}${podium ? ', best first' : ''}</p>`;
+    const bar = `<div class="sd-tools sd-hlbar"><div class="sd-chips" role="group" aria-label="Moments">${types.map(([k, l, n]) => `<button type="button" class="sd-chipf" aria-pressed="${hf.type === k}" data-hf="type" data-v="${k}">${k === 'all' ? '' : `<i class="sd-kdot k-${k}"></i>`}${l}<small>${n}</small></button>`).join('')}</div></div>
+      <div class="sd-tools sd-hlsub">${countLine}<div class="sd-bar-r">${champs.length > 1 ? `<label class="sd-pick"><span>Champion</span><select data-hf-sel="champ"><option value="">All</option>${champs.map(n => `<option${hf.champ === n ? ' selected' : ''}>${E(n)}</option>`).join('')}</select></label>` : ''}
         <label class="sd-pick"><span>Order</span><select data-hf-sel="sort">${[['best', 'Best'], ['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="sd-tog"><input type="checkbox" data-hf-star${hf.star ? ' checked' : ''}><span>Starred</span></label></div></div>`;
-    const podium = hf.sort === 'best' && hf.type === 'all' && !hf.champ && !hf.star && shown.length >= 5;
     const grid = shown.length ? `<ol class="sd-tiles${podium ? ' podium' : ''}">${shown.slice(0, hmore).map(({ r, c, i }, n) => clipTile(r, c, i, podium && n === 0 ? { cls: 'big', ribbon: 'Your best play' } : {})).join('')}</ol>`
       : `<div class="sd-empty small"><h2>No clips match</h2><p>Clear a filter to see more.</p><button type="button" class="sd-btn" data-hf-clear>Clear filters</button></div>`;
     const moreBtn = shown.length > hmore ? `<div class="sd-more"><button type="button" class="sd-btn" data-hf-more>Show more clips <small>${shown.length - hmore} more</small></button></div>` : '';
-    return `${bar}<p class="sd-count">${shown.length === clips.length ? plural(clips.length, 'clip') : `${shown.length} of ${plural(clips.length, 'clip')}`}${podium ? ', best first' : ''}</p>${grid}${moreBtn}`;
+    return `${bar}${grid}${moreBtn}`;
   }
 
   // A match page's "Your moments" (league-match.js, tft-view.js): its moments as a strip, its best four clips (in game order) as the tiles
@@ -531,9 +541,9 @@
     if (t.hasAttribute('data-rec-retry')) { t.disabled = true; render(document.getElementById('main')); return; }
     if (t.hasAttribute('data-rec-more') || t.hasAttribute('data-hf-more')) {
       // Focus lands on the first game (or clip) that came in, so Tab carries on from there.
-      const lib = t.hasAttribute('data-rec-more'), n = document.querySelectorAll(lib ? '.sd-games .sd-ttl' : '.sd-tiles .sd-media').length;
+      const lib = t.hasAttribute('data-rec-more'), sel = lib ? '.sd-games .sd-media' : '.sd-tiles .sd-media', n = document.querySelectorAll(sel).length, kb = document.activeElement === t;
       if (lib) more += 30; else hmore += 60;
-      t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main'), { focus: [lib ? '.sd-games .sd-ttl' : '.sd-tiles .sd-media', n] }); window.scrollTo(0, y); return;
+      t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main'), { focus: kb && [sel, n] }); window.scrollTo(0, y); return;
     }
     if (t.hasAttribute('data-hf-clear')) { Object.assign(hf, { type: 'all', champ: '', star: false }); reHL('[data-hf="type"][data-v="all"]'); return; }
     if (t.dataset.recFav) {
@@ -629,7 +639,7 @@
     const del = e.target.closest && e.target.closest('[data-rec-del]');
     // Deleting is for good, so the first click asks (inline, no dialog) and the second deletes.
     if (del && !del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Delete for good?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Delete'; } }, 4000); return; }
-    if (del) { const n = [...document.querySelectorAll('.sd-games .sd-gdel')].indexOf(del); del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main'), { focus: ['.sd-games .sd-ttl', Math.max(0, n)] }); }
+    if (del) { const n = [...document.querySelectorAll('.sd-games .sd-gdel')].indexOf(del); del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main'), { focus: ['.sd-games .sd-media', Math.max(0, n)] }); }
     const folder = e.target.closest && e.target.closest('[data-rec-folder]');
     if (folder) { const r = await api().open_recordings_folder().catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) folder.textContent = r.error || 'Couldn’t open it'; return; }
     const vid = e.target.closest && e.target.closest('[data-rec-play],[data-rec-show]');
