@@ -3,7 +3,10 @@
 const fs = require("fs");
 const path = require("path");
 
-const CONFIG_FILE = path.join(__dirname, "..", "src", "config.json");
+// An installed build keeps it in userData: the installer replaces the install folder on every update (DONI-695). From
+// source (and in tests, where require("electron") is just a path) it stays beside the Python app's, as before.
+const electronApp = (() => { try { return require("electron").app; } catch { return null; } })();
+const CONFIG_FILE = electronApp && electronApp.isPackaged ? path.join(electronApp.getPath("userData"), "config.json") : path.join(__dirname, "..", "src", "config.json");
 
 function defaultConfig() {
   const role = (mode = "off") => ({ bans: [], picks: [], loadouts: {}, mode, default_spells: [] });

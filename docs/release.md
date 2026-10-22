@@ -14,6 +14,16 @@ docs/ow-electron-host.md (host and recorder) and docs/ads.md (ads and the suppor
 - [ ] Production credentials in the packaged build. Never ship the personal dev key (`app/.env`).
 - [ ] Overwolf enables the app uid for ads. Check the sidebar box with `--test-ad`.
 - [ ] `npm run dist:ow` (ow-electron-builder) produces an installer that loads the packages on a clean PC.
+  - 2026-10-21 (DONI-695): the build itself works. ow-electron-builder Overwolf-signs `package.json` and the asar through
+    `console-be.overwolf.com` and refuses to build without `OW_CLI_EMAIL`, `OW_CLI_API_KEY` and `OW_BUILD_KEY`
+    (Developer Console). `dist:ow` reads them from `app/.env` (gitignored, never bundled). A trial build without them:
+    `npx ow-electron-builder --win nsis zip --publish=never -c.overwolf.requireSigning=false`; it installs and runs on
+    ow-electron with the ad placeholder, but the recorder and GEP don't load, so recording falls back to ffmpeg.
+  - Checked in the trial build: no `.env`, `config.json` or dev key inside; an installed build keeps `config.json` in its
+    userData (`app/config.js`), since the installer replaces the install folder on every update.
+  - Decide before the first QA submission, because Overwolf wants the name and author unchanged in every version:
+    `build.productName` is still "queuePop (Electron)", and the app reports `src/_version.py` (1.4.7), not package.json
+    (2.0.0-alpha.1). Both go with DONI-445 (Electron becomes queuePop 2.0.0).
 
 ## Ads and money
 
@@ -28,6 +38,16 @@ docs/ow-electron-host.md (host and recorder) and docs/ads.md (ads and the suppor
   that line up with the kills on the player's timeline.
 - [ ] The in-game FPS cost measured (League Practice Tool + PresentMon: no recorder, ffmpeg, Overwolf) and within budget.
 - [ ] The ffmpeg fallback still records when the packages don't load.
+
+## League compliance (Overwolf's League page, checked 2026-10-21, DONI-697)
+
+- [x] Ranked champ select anonymity ("Ally #"): no surface shows another player's name in champ select (live view,
+  suggestions float, phone companion, alerts read your own cell only), so there is nothing to anonymise.
+- [x] No Brawl or League Classic data: the crawler collects 420, 440, 450, 400 and 480/490 only (`crawler/src/jobs.js` MODES).
+- [x] No power-spike notices, no "do X now" calls from in-game state, no ultimate / summoner-spell / ability timers. The game
+  plan (`app/game-plan.js`) is pre-game build, skills, matchup and objective stats, sent during champ select.
+- [ ] Riot's own approval (DONI-693) covers what Overwolf's page doesn't: auto-accept, auto pick/ban, lock-in while stepping
+  away, draft suggestions and recording. Keep any new champ select or in-game feature inside the rules above.
 
 ## Ship
 
