@@ -277,7 +277,7 @@
         ${thumb}${cs.length ? `<span class="sd-kind k-clip">${plural(cs.length, 'clip')}</span>` : p || board ? '' : '<span class="sd-kind k-none">Timeline only</span>'}${rec.video ? `<span class="sd-dur">${len(rec.video.length)}</span>` : ''}</a>
       ${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, title)}
       <div class="sd-gbody"><a class="sd-ttl" href="${gameHref(r.matchId)}">${resTag(r)}<b>${E(title)}</b></a>
-        <small>${[clock(r.startedAt), r.game === 'tft' ? '' : f.facts].filter(Boolean).map(E).join(' · ')}</small>
+        <small title="${E([clock(r.startedAt), r.game === 'tft' ? '' : f.facts].filter(Boolean).join(' · '))}">${[clock(r.startedAt), r.game === 'tft' ? '' : f.facts].filter(Boolean).map(E).join(' · ')}</small>
         <button type="button" class="sd-gdel" data-rec-del="${E(r.matchId)}" aria-label="Delete the ${E(title)} recording from ${E(when(r.startedAt))}">Delete</button></div></li>`;
   }
 

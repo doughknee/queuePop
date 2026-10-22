@@ -160,8 +160,8 @@ kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--edg
 .sd-ttl{display:flex;align-items:center;gap:9px;min-width:0;color:var(--fg);text-decoration:none}
 .sd-ttl b{overflow:hidden;font:400 22px/1 var(--display);text-transform:uppercase;white-space:nowrap;text-overflow:ellipsis;transition:color .15s}
 .sd-g:hover .sd-ttl b{color:var(--accent)}
-.sd-gbody small{grid-column:1;color:var(--muted);font-size:12px}
-.sd-gdel{grid-column:2;grid-row:1/span 2;border:0;background:none;color:var(--muted);font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:6px 4px;opacity:0;transition:opacity .15s,color .15s}
+.sd-gbody small{grid-column:1/-1;overflow:hidden;color:var(--muted);font-size:12px;white-space:nowrap;text-overflow:ellipsis}
+.sd-gdel{grid-column:2;grid-row:1;border:0;background:none;color:var(--muted);font:700 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:6px 4px;opacity:0;transition:opacity .15s,color .15s}
 .sd-g:hover .sd-gdel,.sd-gdel:focus-visible,.sd-gdel[data-sure]{opacity:1}.sd-gdel:hover,.sd-gdel[data-sure]{color:var(--neg)}
 
 /* Champion pages: your clips and the featured ones, the same tiles on a shelf. */
