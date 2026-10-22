@@ -385,3 +385,6 @@ kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--edg
 .sd-screen.dead .rp-bar,.sd-screen.dead .rp-cut{opacity:.35;pointer-events:none}
 /* Highlights: kinds, then the count with the pickers on one row. */
 .sd-hlsub{margin:12px 0 18px}.sd-hlsub .sd-count{margin:0}
+/* Clips-only: the bar names the clip playing. TFT without video: the final board on one row. */
+.rp-cur{position:absolute;left:12px;top:50%;z-index:1;max-width:calc(100% - 24px);overflow:hidden;color:var(--muted);font:700 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;text-overflow:ellipsis;transform:translateY(-50%);pointer-events:none}
+.sd-vid.novid p{max-width:560px}.sd-vid.novid .rec-board{max-width:min(100%,680px)}.sd-vid.novid .rec-unit{width:60px;height:60px}

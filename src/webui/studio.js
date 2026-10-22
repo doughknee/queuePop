@@ -211,6 +211,9 @@
     t.hidden = false;
     t.querySelector('button').onclick = () => { t.hidden = true; };
     t.querySelector('a') && (t.querySelector('a').onclick = () => { t.hidden = true; });
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 15000);
+    // It waits while the pointer or focus is on it (you may be reaching for Watch), then goes 6 s after you leave.
+    const hide = ms => { clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, ms); };
+    t.onmouseenter = t.onfocusin = () => clearTimeout(toastTimer); t.onmouseleave = t.onfocusout = () => hide(6000);
+    hide(15000);
   });
 })();

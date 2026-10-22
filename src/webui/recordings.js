@@ -395,7 +395,7 @@
     const screen = rec.video || clipsOnly ? `<div class="sd-vid paused"><video id="rp-v" src="${fileUrl(rec.video ? rec.video.file : rec.clips[clipIdx || 0].file)}" preload="metadata" playsinline></video>
           <button type="button" class="sd-bigplay" data-rp="toggle" aria-label="Play">${ico('play')}</button></div>
         <div class="rp-tl" id="rp-tl" role="slider" tabindex="0" aria-label="Position" aria-valuemin="0" aria-valuenow="0"><span class="rp-tip" id="rp-tip" hidden></span></div>${tools(!clipsOnly)}`
-      : `<div class="sd-vid novid" style="--art:${artFor(rec.champion)}"><p><b>No video for this game</b><span>Record video was off, so here is ${rec.game === 'tft' ? 'your final board' : 'its timeline'}. Turn video on in Capture to film the next one.</span><a class="sd-btn" href="#/studio/capture">Capture settings</a></p>${boardHtml(rec)}</div>
+      : `<div class="sd-vid novid" style="--art:${artFor(rec.champion)}"><p><b>No video for this game</b><span>Nothing filmed this one, so here is ${rec.game === 'tft' ? 'your final board' : 'its timeline'}. ${recOn().video ? 'Video is on now, so your next games will have it.' : 'Turn video on and your next games will have it.'}</span>${recOn().video ? '' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}</p>${boardHtml(rec)}</div>
         ${moments.some(e => e.type !== 'end') ? '<div class="rp-tl static" id="rp-tl"></div>' : ''}`;
     // Clips and moments only when there are some: a TFT game without video is its board and nothing else.
     const side = [rec.video || clipsOnly ? `<section class="sd-panel"><header><h2>Clips</h2><small id="rp-ccount">${(rec.clips || []).length}</small>${clipsOnly ? '<small class="sd-ponly">Clips only, no full game</small>' : ''}</header><ol id="rp-clips" class="sd-clist"></ol></section>` : '',
@@ -468,7 +468,9 @@
     const tip = document.getElementById('rp-tip');
     const sel = P.a != null ? `<i class="rp-range" style="left:${pct(P.a)};width:${pct((P.b ?? P.a) - P.a)}"></i>` : '';
     const ticks = Array.from({ length: Math.floor((P.len - 1) / 60) }, (_, m) => P.len > 600 && (m + 1) % 5 ? '' : `<i class="rp-tick" style="left:${pct((m + 1) * 60)}">${(m + 1) * 60 / P.len < 0.95 ? `<span>${m + 1}:00</span>` : ''}</i>`).join('');
-    tl.innerHTML = (P.clipsOnly ? '' : ticks + (P.rec.clips || []).map(c => `<i class="rp-clip" style="left:${pct(c.start)};width:${pct(c.end - c.start)}"></i>`).join('')) + sel
+    // A clips-only game's bar is the clip that's playing: it says which (deck-out 3: it was an empty bar).
+    const cur = P.clipsOnly && (P.rec.clips || [])[P.cur];
+    tl.innerHTML = (cur ? `<span class="rp-cur">${P.cur + 1} of ${P.rec.clips.length} · ${E(clipName(cur))}</span>` : '') + (P.clipsOnly ? '' : ticks + (P.rec.clips || []).map(c => `<i class="rp-clip" style="left:${pct(c.start)};width:${pct(c.end - c.start)}"></i>`).join('')) + sel
       + (P.clipsOnly ? '' : (P.rec.events || []).filter(e => Number.isFinite(e.t) && KIND[e.type]).map(e => `<button type="button" class="rec-m rec-${e.type}" style="left:${pct(e.t + P.off)}" data-t="${e.t + P.off}" aria-label="${E(mmss(e.t))} ${E(e.label)}" tabindex="-1"></button>`).join(''))
       + (P.rec.video || P.clipsOnly ? '<i class="rp-ph" id="rp-ph"></i>' : '');
     if (tip) tl.append(tip);

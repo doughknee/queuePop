@@ -203,6 +203,21 @@
   crawler (Publishing fills in) and with video off its rail says Timelines with Record video too. League and TFT match
   pages share `window.recMatchMoments` (strip, the game's best four clips as tiles in game order, Watch in Studio);
   match history's badge is "▶ N clips" / "▶ Watch".
+- Studio deck-out 3 (2026-10-21; decided, keep): keyboard, first run, big libraries, lost files. A redraw puts focus back on
+  the control you used (`render(host, { focus })`, or the first game/clip Show older added) and `#sd-live` reads the new
+  count; each Studio page sets its own window title. The player's timeline marks are pointer-only (tabindex -1; the Moments
+  list is the keyboard way), the slider has a max, a spoken time and Home/End/PageUp/PageDown. Empty Library/Highlights copy
+  and button come from `window.recEmptyState` (test-recorder.js), so they never offer a switch that can't help; the header
+  fix button hides when the empty box already offers it; Capture's rail says Off with Record my games while nothing records.
+  Show older / Show more load by themselves when scrolled near (the buttons stay for the keyboard). Game cards are one Tab
+  stop (the title link is tabindex -1). The search sheet lists the 3 newest Studio games per champion (or TFT) and an "All N
+  in the Library" row (`qpRecordingItems`, test-palette.js) that opens `#/studio/champ/<key>`: the Library filtered, then
+  the hash becomes `#/studio`. Highlights: kinds on one row, the count beside the pickers; its recorder chip shows only
+  when something needs fixing (the Library always shows it). The champion shelf reads every game on that champion. A gone
+  video file says so on the screen (`.sd-gone`, controls dimmed); the stage keeps the art and drops "Now playing"; between
+  clips the stage fades through the art; reduced motion: no stage autoplay. Clips-only games name the playing clip in the
+  bar. A no-video game says "Nothing filmed this one" (not "video was off", which may be false). The post-game toast waits
+  while hovered or focused.
 
 ## Ads (2026-10-21; decided, don't move the slot)
 - One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at
