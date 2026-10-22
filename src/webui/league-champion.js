@@ -245,8 +245,10 @@ async function lgFillChampion(token, id) {
     if (window.recChampionClips) recChampionClips(lgChamp(id).name).then(h => { const el = document.getElementById('lg-myclips'); if (el && h && token === lg.token) { el.innerHTML = h; window.recLazyVideos && recLazyVideos(el); } }).catch(() => {});
     // Featured clips: ones published from Studio to clips.olvyx.com, shown to everyone. Nothing when there are none.
     statsApi.clips(id).then(r => { const el = document.getElementById('lg-featured'), cs = (r && r.clips) || []; if (!el || !cs.length || token !== lg.token) return;
-      el.innerHTML = `<section class="lg-myclips lg-featured" aria-label="Featured ${lgEsc(c.name)} clips"><header><h2>Featured clips</h2><small>Plays on ${lgEsc(c.name)}, picked from queuePop Studio.</small></header>
-        <ol class="sd-film">${cs.slice(0, 6).map(x => `<li><video controls preload="none" poster="${lgEsc(x.poster)}" src="${lgEsc(x.url)}"></video><span><b>${lgEsc(x.label)}</b><small>${[x.role, x.patch && 'patch ' + x.patch, Math.round(x.duration || 0) + ' s'].filter(Boolean).map(lgEsc).join(' · ')}</small></span></li>`).join('')}</ol></section>`;
+      const dur = x => { const t = Math.round(x.duration || 0); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+      el.innerHTML = `<section class="sd-shelf" aria-label="Featured ${lgEsc(c.name)} clips"><header><div><p class="sd-shelf-kick">Picked by queuePop</p><h2>Featured clips</h2></div><small>Plays on ${lgEsc(c.name)} from queuePop Studio. Click one to watch it with sound.</small></header>
+        <ol class="sd-tiles">${cs.slice(0, 4).map(x => `<li class="sd-tile"><button type="button" class="sd-media has-poster" data-feat data-rec-hover aria-label="Play ${lgEsc(x.label)}"><img class="sd-poster" src="${lgEsc(x.poster)}" alt=""><video playsinline muted preload="none" data-sd-src="${lgEsc(x.url)}"></video><i class="sd-prog" aria-hidden="true"></i><span class="sd-dur">${dur(x)}</span></button>
+          <div class="sd-tcap"><b>${lgEsc(x.label)}</b><small>${[x.role, x.patch && 'patch ' + x.patch].filter(Boolean).map(lgEsc).join(' · ')}</small></div></li>`).join('')}</ol></section>`;
     }).catch(() => {});
     lgFillPlayers(token, id);
   } catch (e) {

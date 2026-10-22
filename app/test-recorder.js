@@ -212,3 +212,48 @@ console.log("test-recorder smart clips ok");
   assert.deepStrictEqual(ctx.window.recPickChampionClips(items, "").length, 0);
 }
 console.log("test-recorder champion clips ok");
+
+// Library days (cinema deck-out): Today / Yesterday / weekday / date, consecutive games grouped, the day's W-L; clip badges.
+{
+  const now = new Date(2026, 9, 21, 15, 0).getTime(), at = (d, h) => new Date(2026, 9, d, h).getTime();
+  const W = ctx.window;
+  assert.strictEqual(W.recDayLabel(at(21, 1), now), "Today");
+  assert.strictEqual(W.recDayLabel(at(20, 23), now), "Yesterday");
+  assert.strictEqual(W.recDayLabel(at(18, 12), now), "Sunday");
+  assert.strictEqual(W.recDayLabel(at(10, 12), now), "Sat, Oct 10");
+  const days = JSON.parse(JSON.stringify(W.recGroupDays([
+    { startedAt: at(21, 9), result: "win" }, { startedAt: at(21, 8), result: "loss" }, { startedAt: at(21, 7), result: null },
+    { startedAt: at(20, 9), result: "win" }], now)));
+  assert.deepStrictEqual(days.map((d) => [d.label, d.games.length, d.wins, d.losses]), [["Today", 3, 1, 1], ["Yesterday", 1, 1, 0]]);
+  assert.strictEqual(W.recClipKind({ types: ["kill", "multikill"] }), "multikill");
+  assert.strictEqual(W.recClipKind({ types: ["kill"], mine: true }), "mine");
+  assert.strictEqual(W.recClipKind({ types: ["manual"] }), "mine");
+  assert.strictEqual(W.recClipKind({ types: ["death", "assist"] }), "assist");
+  assert.strictEqual(W.recClipKind({}), "clip");
+}
+console.log("test-recorder library days ok");
+{ // Library filter (deck-out 2): Starred and one champion (or TFT) narrow the whole list, not just the games on screen.
+  const W = ctx.window;
+  const list = [{ matchId: "1", champion: "Ezreal", favorite: true }, { matchId: "2", champion: "Jinx" }, { matchId: "3", game: "tft", favorite: true }, { matchId: "4", champion: "Ezreal" }];
+  const ids = (f) => W.recLibraryPool(list, f).map((r) => r.matchId).join();
+  assert.strictEqual(ids({}), "1,2,3,4");
+  assert.strictEqual(ids({ champ: "Ezreal" }), "1,4");
+  assert.strictEqual(ids({ champ: "TFT" }), "3");
+  assert.strictEqual(ids({ star: true }), "1,3");
+  assert.strictEqual(ids({ star: true, champ: "Jinx" }), "");
+  assert.strictEqual(W.recGameKey({ game: "league" }), "League");
+}
+console.log("test-recorder library filter ok");
+
+// Studio deck-out 3: an empty Library or Highlights offers the one switch that fixes it, never one that can't help.
+{
+  const b = (page, s) => ctx.window.recEmptyState(page, s).btn;
+  assert.strictEqual(b("library", {}), "on");
+  assert.strictEqual(b("library", { on: true }), "video");
+  assert.strictEqual(b("library", { on: true, video: true }), "capture");
+  assert.strictEqual(b("highlights", { video: true }), "on-video"); // video alone records nothing
+  assert.strictEqual(b("highlights", { on: true }), "video");
+  assert.strictEqual(b("highlights", { on: true, video: true }), "capture");
+  assert.ok(!/—/.test(JSON.stringify([{}, { on: true }, { on: true, video: true }].map((s) => [ctx.window.recEmptyState("library", s), ctx.window.recEmptyState("highlights", s)]))));
+}
+console.log("test-recorder empty states ok");

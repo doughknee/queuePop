@@ -178,6 +178,46 @@
   the League/TFT match page's "Your moments" ("Watch in Studio") and the "Saved N clips" card. The player has clip, seek,
   frame, speed and sound-track tools (main.js turns on Chromium's AudioVideoTracks); clips can be renamed (clip.name).
   Highlights filters with window.recFilterClips (test-recorder.js).
+- Studio cinema deck-out (2026-10-21; decided, don't bring back the spec strip, native video controls or black tiles):
+  styles live in `src/webui/studio.css` (loaded after shell.css), not shell.css. Every clip is one tile (`clipTile` in
+  recordings.js: poster, kind badge coloured by `window.recClipKind`, length, star) in the Library reel, Highlights, the player's
+  clip list and both champion-page shelves (`.sd-shelf`: "Your top <champion> clips" and Featured, max 4 each). Posters are one
+  frame per file grabbed by a hidden <video> and kept in IndexedDB `qp-posters` (~15 KB each, pruned once a session of files
+  no recording points at); the video loads only on hover. Library = status line (REC dot, quality, storage; opens Capture; the fix button beside it) → stage (latest
+  game's best clips back to back over its splash art, clips as a reel) → games by day (`recGroupDays`, Today/Yesterday/weekday,
+  the day's W-L) → Show older games (30 at a time). The list never waits for the engine check or the 24 MB TFT data. Player:
+  one control row (no native controls), the timeline is the drag scrubber, clips + moments beside the video when the page is
+  wider than 1120 px (container query), under it otherwise; `#/studio/game/...` keeps Library lit in the sidebar (shell.js).
+  Capture: sticky rail (preset, GB an hour, games that fit, engine) with jump links that follow the scroll. Home has a Studio
+  quick link.
+- Studio deck-out 2 (2026-10-21; decided, keep): built for 100+ games. Highlights reads every game that has clips (not the
+  Library's 30) and shows 60 tiles at a time; the Library filters the whole list by Starred and by champion (`TFT` for TFT
+  games; `window.recLibraryPool`, test-recorder.js) and its Highlights link carries the champion. A redraw (filter, star, Show
+  older) swaps only `.sd-body` (status chip stays, `.calm` stops replayed entrances); posters already grabbed this session
+  paint with the tile. Player: compact header (back button, title, facts and date on one line), video sized so the timeline
+  and the control row fit 1024x688 at 125 %; under 820 px the 5 s and frame buttons hide (keys J/L, arrows, `,` `.` stay,
+  listed in the panel's key legend). A game opens on a skeleton at once and never waits for the TFT data. Clips-only games
+  play their clips in a row; their moments open the clip they're in. No-video games show no empty Clips panel.
+  Integration: the engine sentence (`stEngineLine`) and Check again live in Capture's "What gets recorded"; Settings >
+  Recording is one row linking to Studio (don't bring the engine row back). Capture paints without waiting for the
+  crawler (Publishing fills in) and with video off its rail says Timelines with Record video too. League and TFT match
+  pages share `window.recMatchMoments` (strip, the game's best four clips as tiles in game order, Watch in Studio);
+  match history's badge is "▶ N clips" / "▶ Watch".
+- Studio deck-out 3 (2026-10-21; decided, keep): keyboard, first run, big libraries, lost files. A redraw puts focus back on
+  the control you used (`render(host, { focus })`, or the first game/clip Show older added) and `#sd-live` reads the new
+  count; each Studio page sets its own window title. The player's timeline marks are pointer-only (tabindex -1; the Moments
+  list is the keyboard way), the slider has a max, a spoken time and Home/End/PageUp/PageDown. Empty Library/Highlights copy
+  and button come from `window.recEmptyState` (test-recorder.js), so they never offer a switch that can't help; the header
+  fix button hides when the empty box already offers it; Capture's rail says Off with Record my games while nothing records.
+  Show older / Show more load by themselves when scrolled near (the buttons stay for the keyboard). Game cards are one Tab
+  stop (the title link is tabindex -1). The search sheet lists the 3 newest Studio games per champion (or TFT) and an "All N
+  in the Library" row (`qpRecordingItems`, test-palette.js) that opens `#/studio/champ/<key>`: the Library filtered, then
+  the hash becomes `#/studio`. Highlights: kinds on one row, the count beside the pickers; its recorder chip shows only
+  when something needs fixing (the Library always shows it). The champion shelf reads every game on that champion. A gone
+  video file says so on the screen (`.sd-gone`, controls dimmed); the stage keeps the art and drops "Now playing"; between
+  clips the stage fades through the art; reduced motion: no stage autoplay. Clips-only games name the playing clip in the
+  bar. A no-video game says "Nothing filmed this one" (not "video was off", which may be false). The post-game toast waits
+  while hovered or focused.
 
 ## Ads (2026-10-21; decided, don't move the slot)
 - One Overwolf ad, 300×250, at the bottom of the sidebar (src/webui/ads.js, docs/ads.md). While it shows, the sidebar is fixed at

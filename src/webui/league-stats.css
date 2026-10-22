@@ -264,8 +264,6 @@
 .lg-hist-items .lg-ico{width:22px;height:22px}
 .lg-hist-build small{color:var(--muted);font-size:11px}
 @media(max-width:1000px){.lg-hist-build{display:none}.lg-match-row{grid-template-columns:64px auto minmax(0,1fr) 0 26px 110px 80px 18px}}
-.lg-mt-rec{margin:0 0 12px}
-.lg-mt-rec .lg-kicker{margin-bottom:4px}
 /* Narrow windows (Brandon's 1292 x 726 at 125 % is 1024 px): with the sidebar open it already lists every page, so the
    page row keeps Play and the current page; collapse the sidebar and the full row comes back. */
 @media (max-width:1150px){:root:not(.sb-collapsed) body:not(.theme-settings) #world-nav#world-nav > a:not([aria-current]){display:none}} /* Settings has no sidebar list, so its row stays (DONI-590) */
@@ -302,6 +300,5 @@
 .lg-match.remake{opacity:.55}.lg-match.remake .lg-result{color:var(--muted)}
 /* Studio links (deck-out 2026-10-21): a recorded game's ▶ in match history, and the match page's "Watch in Studio". */
 .lg-hist-rec{color:var(--accent);font-weight:700;cursor:pointer;white-space:nowrap}
+.lg-match-name small:has(.lg-hist-rec){white-space:normal} /* the Watch badge wraps rather than being cut */
 .lg-hist-rec:hover{text-decoration:underline}
-.lg-mt-watch{display:inline-block;margin-top:6px;color:var(--accent);font:700 12px var(--mono);text-decoration:none;white-space:nowrap}
-.lg-mt-watch:hover{text-decoration:underline}

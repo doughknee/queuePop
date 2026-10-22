@@ -48,5 +48,6 @@ async function lgFillMatch(token, id) {
   const getRec = id => Promise.resolve(window.pywebview?.api?.get_recording?.(id)).catch(() => null); // the recorder keys by the bare game id
   const rec = (await getRec(m.id)) || (await getRec(String(m.id).split('_').pop()));
   if (!box()) return;
-  box().innerHTML = (rec && window.recStrip ? `<section class="lg-mt-rec"><span class="lg-kicker">Your moments</span>${recStrip(rec)}${rec.video || (rec.clips || []).length ? `<a class="lg-mt-watch" href="#/studio/game/${encodeURIComponent(rec.matchId)}">Watch in Studio ↗</a>` : ''}</section>` : '') + (slim ? '<p class="lg-wait">The full details of this match are past the crawler\'s 7-day window; only the outline is left.</p>' : '') + team(100) + team(200);
+  box().innerHTML = (window.recMatchMoments ? recMatchMoments(rec) : '') + (slim ? '<p class="lg-wait">The full details of this match are past the crawler\'s 7-day window; only the outline is left.</p>' : '') + team(100) + team(200);
+  window.recLazyVideos && recLazyVideos(box());
 }

@@ -8,11 +8,8 @@ window.stBusyBuckets = rl => {
   const busy = all.filter(b => b.used > 0).sort((a, b) => b.pct - a.pct || b.used - a.used);
   return { busy, idle: all.length - busy.length };
 };
-// Settings > Recorder (beta) > ffmpeg: what was found, and why Record video is greyed out (said in the line, not only a hover title).
 const ST_FF_ENC = { h264_nvenc: 'your NVIDIA card', h264_amf: 'your AMD card', h264_qsv: 'Intel Quick Sync', libx264: 'the CPU (slower)' };
-window.stFfmpegLine = (f, events) => !f ? 'Couldn’t check.' : !f.found ? 'ffmpeg not found: install it from ffmpeg.org (and add it to PATH) to enable video.'
-  : `Found ${f.version ? 'ffmpeg ' + f.version : 'ffmpeg'}, encoding with ${ST_FF_ENC[f.encoder] || f.encoder}.${events ? '' : ' Turn on recording in a game’s tab to record video.'}`;
-// Settings > Recording > Engine: what records the next game (recorder_status().engine). The QueuePop companion's Overwolf
+// Studio > Capture > What gets recorded: what records the next game (recorder_status().engine). The QueuePop companion's Overwolf
 // recorder first (game audio + mic, live clips), else ffmpeg (main screen, no audio), and what to do when neither is there.
 const ST_OW_ENC = { h264_texture_amf: 'AMD AMF', obs_nvenc_h264_tex: 'NVIDIA NVENC', obs_qsv11_v2: 'Intel Quick Sync', obs_x264: 'the CPU' };
 window.stEngineLine = (e, events) => {
@@ -94,8 +91,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
           <span class="st-act"><button class="st-btn" data-do="copy-link">Copy link</button><button class="st-btn" data-do="test-companion">Test phone alert</button><button class="st-btn" data-do="new-link" title="Phones already set up stop getting alerts until they scan the new code">New link</button><span class="st-msg" data-msg="test-companion"></span></span></div></div>`,
         'Your phone rings for League and TFT queue pops.') +
       card('recorder', 'Recording', `
-        ${act('Studio', 'Quality, sound, clips, the save-last-moments shortcut and storage all live in Studio now.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/studio">Open Studio</a><a class="st-btn" href="#/studio/capture">Capture settings</a>')}
-        <div class="st-row"><span class="st-lbl">Engine<small id="st-rec-ff">Checking…</small></span><span class="st-act"><button class="st-btn" data-do="rec-recheck">Check again</button></span></div>`) +
+        ${act('Studio', 'Quality, sound, clips, the save-last-moments shortcut, storage and what records video all live in Studio > Capture.', '<span class="st-val" id="st-rec-who"></span><a class="st-btn" href="#/studio">Open Studio</a><a class="st-btn" href="#/studio/capture">Capture settings</a>')}`) +
       card('crawler', 'Stats crawler', `
         ${text('crawler_url', 'Address', 'Where League and TFT stats come from. Leave empty for the default.', `data-url placeholder="${DEFAULT_CRAWLER}"`)}
         <div class="st-row"><span class="st-lbl">Status<small id="st-cr-url"></small></span><span class="st-act"><span id="st-cr-state" class="st-val"></span><button class="st-btn" data-do="crawler-refresh">Refresh</button><button class="st-btn" data-do="crawler-open">Open status page</button><span class="st-msg" data-msg="crawler-refresh" data-msg-alias="crawler-open"></span></span></div>
@@ -135,14 +131,14 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         ${sw('champ_select.aram.enabled', 'ARAM bench', 'Takes upgrades from the ARAM bench.')}
         ${num('champ_select.aram.bench_delay', 'Bench grab delay (s)', 'Seconds an upgrade sits on the bench before it is taken (0 to 3).', 0, 3, 'champ_select.aram.enabled')}
         ${sw('float_window', 'Float suggestions over League', 'A small window on top of the League client during champ select with the best picks and the timer.')}`) +
-      card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them under Recordings. Video and storage are in App › Recording.')) +
+      card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them in Studio. Video, sound and storage are in Studio > Capture.')) +
       // ---- TFT ----
       card('tft-queue', 'Queue', `
         ${sw('tft.auto_accept', 'Auto-accept queue pops', 'Accepts TFT matches for you, separately from League.')}
         ${num('tft.accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'tft.auto_accept')}
         ${queues}`) +
       card('tft-alerts', 'Alerts', chips(TFT_EVENTS, 'tft.alert_events.'), 'Tell me when… <a href="#/settings#notify">Where alerts go</a>') +
-      card('tft-record', 'Recording', sw('tft.record', 'Record TFT games', 'Keeps a timeline of each game and your placement. See them under Recordings. Video and storage are in App › Recording.')) +
+      card('tft-record', 'Recording', sw('tft.record', 'Record TFT games', 'Keeps a timeline of each game and your placement. See them in Studio. Video, sound and storage are in Studio > Capture.')) +
       // ---- Deadlock ----
       card('deadlock-account', 'Account and overlay', `
         <label class="st-row"><span class="st-lbl">Deadlock account ID${tip('Your Steam friend code (numbers only). Shows your own matches in Deadlock and on home.')}</span><input class="st-in" data-k="deadlock_account_id" data-digits inputmode="numeric" placeholder="123456789"></label>
@@ -260,7 +256,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
     if (e.type === 'input' && el.tagName === 'INPUT' && el.type !== 'checkbox') return;
     QP.store.set(k, typeof v === 'string' && !el.dataset.url && el.tagName === 'INPUT' ? v.trim() : v);
     if (k === 'crawler_url') loadCrawler();
-    if (k === 'recorder.enabled' || k === 'tft.record') { if (!QP.store.get('recorder.enabled') && !QP.store.get('tft.record')) QP.store.set('recorder.video', false); loadRecorder(); } // video rides on a recorded game
+    if (k === 'recorder.enabled' || k === 'tft.record') { if (!QP.store.get('recorder.enabled') && !QP.store.get('tft.record')) QP.store.set('recorder.video', false); } // video rides on a recorded game
     if (k === 'ntfy.enabled' && v && !QP.store.get('ntfy.topic')) root.querySelector('[data-do="ntfy-new"]').click(); // DONI-425
     if (k === 'webhook_url') say('test-discord', v && !/^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+\/?$/.test(String(v).trim()) ? 'That isn’t a Discord webhook address' : '', false);
     if (k === 'companion.enabled' || k === 'companion.port') setTimeout(loadCompanion, 900); // the host restarts it on save
@@ -305,7 +301,6 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       else if (d === 'test-alert') { const r = await a.test_alert(); const c = (r && r.channels) || []; say(d, c.length ? 'Sent to ' + (c.length > 1 ? c.slice(0, -1).join(', ') + ' and ' + c[c.length - 1] : c[0]) : 'Nothing is on yet: turn on Windows notifications, Discord or the phone companion', c.length > 0); }
       else if (d === 'ntfy-new') { const t = 'queuepop-' + [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join(''); QP.store.set('ntfy.topic', t); hydrate(); say('test-ntfy', 'New topic made. Subscribe to it in the ntfy app', true); }
       else if (d === 'test-ntfy') { say(d, 'Sending…', true); const r = await a.test_ntfy(); say(d, r && r.ok ? 'Sent, check your phone' : (r && r.error) || 'Failed', r && r.ok); }
-      else if (d === 'rec-recheck') { loadRecorder(true); }
       else if (d === 'rec-folder') { const r = await a.open_recordings_folder(); if (r && r.ok === false) say(d, r.error || 'Couldn’t open it', false); }
       else if (d === 'dl-steam') { const r = await a.detect_deadlock_account(); say(d, r && r.ok ? 'Filled in from Steam' : 'No Steam account found on this PC', !!(r && r.ok)); setTimeout(hydrate, 200); }
       else if (d === 'show-keys') { document.dispatchEvent(new KeyboardEvent('keydown', { key: '?', shiftKey: true, bubbles: true })); }
@@ -398,15 +393,6 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       if (s.busy && !root.hidden) assetsTimer = setTimeout(loadAssets, 1500); // one poll chain, and only while Settings shows
     } catch (err) { el.textContent = 'Could not read the icon packs: ' + (err.message || err); }
   }
-  // Q21: video needs the companion or ffmpeg; say which records, and keep the switch off when neither is there.
-  async function loadRecorder() {
-    const el = root.querySelector('#st-rec-ff'), sw = root.querySelector('[data-k="recorder.video"]'); if (!el) return;
-    let s = null; try { s = await bridge().recorder_status(); } catch {}
-    const e = s && s.engine, any = !!(e && e.engine);
-    const events = !!(QP.store.get('recorder.enabled') || QP.store.get('tft.record'));
-    el.textContent = stEngineLine(e, events);
-    if (sw) { sw.disabled = !any || !events; sw.closest('.st-row').title = !any ? 'Start the QueuePop companion or install ffmpeg first' : !events ? 'Turn on recording in a game’s tab first' : ''; } // the switch moved to Studio
-  }
   async function loadAbout() {
     loadAssets();
     try { renderUpdate(await bridge().get_update_status()); } catch (err) { renderUpdate({ error: String(err.message || err) }); }
@@ -429,7 +415,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
     root.querySelectorAll('input, select').forEach(el => { el.disabled = !QP.store.config; });
     hydrate();
     if (!section || ST_TABS.includes(section)) setTab(tab); // the address and the page row name the tab
-    if (bridge()) { loadAccount(); loadOverlay(); loadCompanion(); loadCrawler(); loadAbout(); loadRecorder(); }
+    if (bridge()) { loadAccount(); loadOverlay(); loadCompanion(); loadCrawler(); loadAbout(); }
     clearInterval(timer); timer = setInterval(() => { if (root.hidden) clearInterval(timer); else loadCrawler(); }, 60000); // /status is the crawler's slow admin view: once a minute while Settings shows // stops once you leave Settings
     if (section && !ST_TABS.includes(section)) requestAnimationFrame(() => document.getElementById('st-' + stCard(section))?.scrollIntoView({ block: 'start' }));
     else window.scrollTo(0, 0);

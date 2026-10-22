@@ -26,17 +26,23 @@
   }
   window.qpFuzzy = qpFuzzy; window.qpRank = qpRank;
   // Q queue 5: TFT units from the crawler's /tft/meta (any set's key: TFT16_…, DA_18_…), each opening its unit page; the
-  // board-only ones (no traits: golems, dummies, minions) are left out. Recordings: one row each, by recFacts' title.
+  // board-only ones (no traits: golems, dummies, minions) are left out. Studio games (deck-out 3): the 3 newest per champion
+  // (or TFT), by recFacts' title, then one "All N" row that opens the Library filtered to it; 300 games no longer bury a search.
   window.qpUnitItems = m => { const seen = new Set(), out = [];
     for (const [key, u] of Object.entries((m && m.units) || {})) if (u.cost >= 1 && u.cost <= 5 && (u.traits || []).length && !seen.has(u.name)) { seen.add(u.name); out.push({ kind: 'unit', label: u.name, sub: `${u.cost} cost · ${u.traits.map(t => (m.traits && m.traits[t] && m.traits[t].name) || t).join(', ')}`, href: '#/tft/unit/' + encodeURIComponent(key), icon: u.icon }); }
     return out.sort((a, b) => a.label.localeCompare(b.label)); };
-  window.qpRecordingItems = (list, facts, when) => (list || []).map(r => { const f = facts(r);
-    return { kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: `#/studio/game/${encodeURIComponent(r.matchId)}` }; });
+  window.qpRecordingItems = (list, facts, when, per = 3) => { const by = new Map(), out = [];
+    for (const r of list || []) { const k = r.game === 'tft' ? 'TFT' : r.champion || facts(r).title; by.set(k, [...(by.get(k) || []), r]); }
+    for (const [k, rs] of by) {
+      rs.slice(0, per).forEach(r => { const f = facts(r); out.push({ kind: 'recording', label: f.title, sub: [when(r.startedAt), f.result, f.facts].filter(Boolean).join(' · '), href: `#/studio/game/${encodeURIComponent(r.matchId)}` }); });
+      if (rs.length > per) out.push({ kind: 'recording', label: `${k} games`, sub: `All ${rs.length} in the Library`, href: `#/studio/champ/${encodeURIComponent(k)}` });
+    }
+    return out; };
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return; // app/test-palette.js
 
   const KEY = 'queuepop-palette-recent-v1';
   const E = s => String(s ?? '').replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
-  const KIND = { page: 'Page', setting: 'Setting', action: 'Command', champion: 'League champion', comp: 'TFT comp', trait: 'TFT trait', unit: 'TFT unit', hero: 'Deadlock hero', recording: 'Recording' };
+  const KIND = { page: 'Page', setting: 'Setting', action: 'Command', champion: 'League champion', comp: 'TFT comp', trait: 'TFT trait', unit: 'TFT unit', hero: 'Deadlock hero', recording: 'Studio game' };
   let recent = []; try { recent = JSON.parse(localStorage.getItem(KEY) || '[]').filter(r => r && r.label && (r.href || r.act)); } catch {}
   const live = { champion: [], comp: [], trait: [], carry: [], unit: [], hero: [], recording: [] }, loading = new Set();
 
@@ -58,7 +64,7 @@
     }
     for (const [id, l] of (window.settingsView?.sections || [])) out.push({ kind: 'page', label: l, sub: 'Settings', href: '#/settings#' + id });
     for (const s of (window.settingsView?.index?.() || [])) out.push({ kind: 'setting', label: s.label, sub: s.section + (s.hint ? ' · ' + s.hint : ''), href: '#/settings#' + s.id, focus: s.key });
-    out.push({ kind: 'page', label: 'Studio', sub: 'Your recorded games', href: '#/studio' }, { kind: 'page', label: 'Highlights', sub: 'Studio', href: '#/studio/highlights' },
+    out.push({ kind: 'page', label: 'Studio', sub: 'Your recorded games', href: '#/studio' }, { kind: 'page', label: 'Highlights', sub: 'Studio: your clips, best first', href: '#/studio/highlights' },
       { kind: 'page', label: 'Capture settings', sub: 'Studio: quality, sound, clips, hotkey, storage', href: '#/studio/capture' });
     out.push({ kind: 'action', label: 'Collapse or expand the sidebar', sub: 'Ctrl+B', act: 'sidebar' },
       { kind: 'action', label: 'Bigger text', sub: 'Ctrl +', act: 'bigger' }, { kind: 'action', label: 'Smaller text', sub: 'Ctrl −', act: 'smaller' },
