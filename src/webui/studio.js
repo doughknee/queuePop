@@ -53,6 +53,16 @@
   const slider = (path, v, min, max, step, unit, label) => `<label class="sd-slide"><span>${E(label)}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-sd-num="${path}" data-unit="${unit}"><output>${v}${unit}</output></label>`;
   const card = (id, title, note, body) => `<section class="sd-card" id="sd-${id}"><header><h2>${E(title)}</h2>${note ? `<p>${note}</p>` : ''}</header>${body}</section>`;
 
+  // Publishing asks the crawler, which can be slow: the page paints without it and this card fills in when it answers.
+  const mb = b => Math.round((b || 0) / 1024 ** 2);
+  function pubCard(ps) {
+    if (!ps) return card('publish', 'Publishing', 'Checking the crawler…', '');
+    return card('publish', 'Publishing', 'Clips you publish show on that champion’s page for everyone, as a small 720p copy with the game sound only (never your mic). Publish from a clip in the player.',
+        `<div class="sd-row"><span class="sd-lbl">Admin token</span>${ps.hasToken ? '<small class="sd-hint ok">Saved, encrypted on this PC.</small><button type="button" class="st-btn" data-sd-tok-clear>Forget it</button>'
+          : '<input type="password" class="sd-tok" placeholder="The crawler’s ADMIN_TOKEN" autocomplete="off"><button type="button" class="st-btn" data-sd-tok>Save</button>'}</div>
+         <p class="sd-usetext">${ps.reachable ? `${ps.total} clip${ps.total === 1 ? '' : 's'} published · ${mb(ps.bytes)} MB on the server` : 'Can’t reach the crawler right now.'}</p>`);
+  }
+
   async function render(host) {
     if (!host.querySelector('.sd-capture')) host.innerHTML = '<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header><div class="sd-skel" aria-hidden="true"><div class="sd-skel-row">' + '<i></i>'.repeat(3) + '</div></div></section>';
     const O = await opts();
@@ -64,15 +74,18 @@
     const fitsH = h => !dev.monitor || h <= dev.monitor.height;
     // The rail: what you're recording at (preset, size per hour, games that fit), the engine, and a jump to each card.
     const st0 = recState(r, eng);
-    const rail = `<aside class="sd-rail"><div class="sd-preset"><small>Recording at</small><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b>
+    // With video off, the sizes are moot: the rail says so and offers the switch.
+    const rail = `<aside class="sd-rail"><div class="sd-preset">${r.video ? `<small>Recording at</small><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b>
         <span>${r.height}p · ${r.fps} fps · ${r.mbps} Mbps</span>
-        <div class="sd-figs"><p><b>${r.mode === 'clips' ? '<1' : O.gbPerHour(r)}</b><small>GB an hour</small></p><p><b>${O.gamesInCap(r)}</b><small>games fit in ${r.cap_gb} GB</small></p></div>
-        <p class="sd-eng ${st0.cls}"><i class="sd-dot" aria-hidden="true"></i><span>${E(ow ? `Overwolf · ${encName(eng.encoder)}` : eng.engine === 'ffmpeg' ? `ffmpeg · ${encName(eng.encoder)} · no sound` : 'No video engine')}</span></p></div>
+        <div class="sd-figs"><p><b>${r.mode === 'clips' ? '<1' : O.gbPerHour(r)}</b><small>GB an hour</small></p><p><b>${O.gamesInCap(r)}</b><small>games fit in ${r.cap_gb} GB</small></p></div>`
+        : `<small>Recording</small><b>${st0.cls === 'off' ? 'Off' : 'Timelines'}</b><span>${st0.cls === 'off' ? 'New games aren’t kept.' : 'Video is off, so each game keeps its moments and result, a few KB.'}</span>${st0.cls === 'off' ? '' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}`}
+        <p class="sd-eng ${ow ? 'on' : eng.engine ? 'warn' : 'off'}"><i class="sd-dot" aria-hidden="true"></i><span>${E(ow ? `Overwolf · ${encName(eng.encoder)}` : eng.engine === 'ffmpeg' ? `ffmpeg · ${encName(eng.encoder)} · no sound` : 'No video engine')}</span></p></div>
       <nav class="sd-jump" aria-label="Capture">${[['record', 'What gets recorded'], ['quality', 'Quality'], ['audio', 'Sound'], ['clips', 'Clips'], ['hotkey', 'Save the last moments'], ['storage', 'Storage'], ['publish', 'Publishing']].map(([k, l]) => `<a href="#/studio/capture" data-sd-jump="sd-${k}">${l}</a>`).join('')}</nav></aside>`;
-    const engineNote = ow ? `Recording with Overwolf on ${E(encName(eng.encoder))}.` : eng.engine === 'ffmpeg' ? 'Recording with ffmpeg: the whole screen, no sound, clips cut after the game. Run queuePop on Overwolf for game capture, sound and live clips.' : 'Nothing can record video right now: run queuePop on Overwolf, or install ffmpeg.';
+    // What records video, and what to do when it can't (settings.js stEngineLine, which Settings used to show); checked again here.
+    const engineNote = `${E(window.stEngineLine ? stEngineLine(eng, true) : '')} <button type="button" class="sd-linkbtn" data-sd-recheck>Check again</button>`;
 
     const recording = card('record', 'What gets recorded', engineNote,
-      `<div class="sd-row">${toggle('enabled', r.enabled, 'League games')}${`<label class="sd-tog"><input type="checkbox" data-sd-tft${tft ? ' checked' : ''}><span>TFT games</span></label>`}${toggle('video', r.video, 'Video (off: timelines only)')}</div>
+      `<div class="sd-row">${toggle('enabled', r.enabled, 'League games')}${`<label class="sd-tog"><input type="checkbox" data-sd-tft${tft ? ' checked' : ''}><span>TFT games</span></label>`}${toggle('video', r.video, 'Record video')}</div>
        <div class="sd-row"><span class="sd-lbl">Keep</span>${seg('mode', r.mode, [['full', 'The whole game + clips'], ['clips', 'Clips only']])}<small class="sd-hint">${r.mode === 'clips' ? 'No full video, so a game takes megabytes instead of gigabytes. You can only watch the clips.' : 'The full game to scrub through, plus a clip of each moment.'}</small></div>`);
 
     const qCards = Object.entries(O.QUALITY).map(([k, q]) => `<button type="button" class="sd-q" role="radio" aria-checked="${r.quality === k}" data-sd-set="quality" data-v="${k}"><b>${q.label}</b><span>${q.height}p · ${q.fps} fps · ${q.mbps} Mbps</span><small>${q.note}</small><em>${O.gbPerHour(O.normalize({ ...raw, quality: k }))} GB / hour</em></button>`).join('')
@@ -111,17 +124,14 @@
        <div class="sd-row"><span class="sd-lbl">Folder</span><code class="sd-path">${E(i.folder || '')}</code><button type="button" class="st-btn" data-sd-folder>Change</button>${r.folder ? '<button type="button" class="st-btn" data-sd-folder-reset>Use queuePop’s folder</button>' : ''}<button type="button" class="st-btn" data-rec-folder>Open</button></div>
        <div class="sd-row">${slider('cap_gb', r.cap_gb, 5, 500, 5, ' GB', 'Size cap')}</div>`);
 
-    const ps = await getPub(), mb = b => Math.round((b || 0) / 1024 ** 2);
-    const publishing = card('publish', 'Publishing', 'Clips you publish show on that champion’s page for everyone, as a small 720p copy with the game sound only (never your mic). Publish from a clip in the player.',
-      `<div class="sd-row"><span class="sd-lbl">Admin token</span>${ps.hasToken ? '<small class="sd-hint ok">Saved, encrypted on this PC.</small><button type="button" class="st-btn" data-sd-tok-clear>Forget it</button>'
-        : '<input type="password" class="sd-tok" placeholder="The crawler’s ADMIN_TOKEN" autocomplete="off"><button type="button" class="st-btn" data-sd-tok>Save</button>'}</div>
-       <p class="sd-usetext">${ps.reachable ? `${ps.total} clip${ps.total === 1 ? '' : 's'} published · ${mb(ps.bytes)} MB on the server` : 'Can’t reach the crawler right now.'}</p>`);
-
+    const publishing = pubCard(pub);
+    if (!location.hash.startsWith('#/studio/capture')) return; // the crawler can answer late; never paint over the next page
     const y = window.scrollY;
-    host.innerHTML = `<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header>
+    host.innerHTML =`<section class="rec-page sd-page sd-capture"><header class="sd-top"><div><p class="eyebrow">Studio</p><h1>Capture</h1></div></header>
       <div class="sd-cap">${rail}<div class="sd-grid">${recording}${quality}${audio}${clips}${hotkey}${storage}${publishing}</div></div></section>`;
     window.scrollTo(0, y); // a redraw after a change keeps your place
     spy(host);
+    if (!pub || Date.now() - pubAt > 30000) getPub().then(ps => { const c = location.hash.startsWith('#/studio/capture') && host.querySelector('#sd-publish'); if (c) { c.outerHTML = pubCard(ps); spy(host); } });
   }
 
   // The rail's links jump to a card (the hash is the router, so no #anchors) and light up the card you're reading.
@@ -148,8 +158,9 @@
     else if (t.hasAttribute && t.hasAttribute('data-sd-tft')) { QP.store.set('tft.record', t.checked); redraw(); }
   });
   document.addEventListener('click', async e => {
-    const b = e.target.closest && e.target.closest('[data-sd-set],[data-sd-key],[data-sd-folder],[data-sd-folder-reset],[data-sd-tok],[data-sd-tok-clear]');
+    const b = e.target.closest && e.target.closest('[data-sd-set],[data-sd-key],[data-sd-folder],[data-sd-folder-reset],[data-sd-tok],[data-sd-tok-clear],[data-sd-recheck]');
     if (!b) return;
+    if (b.hasAttribute('data-sd-recheck')) { b.disabled = true; b.textContent = 'Checking…'; redraw(); return; }
     if (b.hasAttribute('data-sd-tok') || b.hasAttribute('data-sd-tok-clear')) {
       const inp = document.querySelector('.sd-tok'), t = b.hasAttribute('data-sd-tok') ? (inp && inp.value.trim()) : '';
       if (b.hasAttribute('data-sd-tok') && !t) return;

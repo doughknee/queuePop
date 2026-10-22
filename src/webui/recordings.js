@@ -59,6 +59,10 @@
     for (const r of list) { const label = window.recDayLabel(r.startedAt, now), last = out[out.length - 1]; if (last && last.label === label) last.games.push(r); else out.push({ label, games: [r] }); }
     return out.map(d => ({ ...d, wins: d.games.filter(r => r.result === 'win').length, losses: d.games.filter(r => r.result === 'loss').length }));
   };
+  // The Library's games for its filter (deck-out 2): All or Starred (f.star), one champion or 'TFT' (f.champ), newest first as
+  // listed. The key is what the champion picker lists. Pure; app/test-recorder.js checks it.
+  window.recGameKey = r => r.game === 'tft' ? 'TFT' : r.champion || 'League';
+  window.recLibraryPool = (list, f = {}) => (list || []).filter(r => (!f.star || r.favorite) && (!f.champ || window.recGameKey(r) === f.champ));
   // What kind a clip is, for its badge: your own first, then the biggest moment in it.
   window.recClipKind = c => (c.mine || (c.types || []).some(t => t === 'manual' || t === 'mine')) ? 'mine' : ['multikill', 'objective', 'kill', 'assist', 'death'].find(k => (c.types || []).includes(k)) || 'clip';
   window.recStrip = rec => `<div class="rec-strip" role="img" aria-label="${E(stripMarkers(rec).length)} moments">${stripMarkers(rec).map(m =>
@@ -84,16 +88,19 @@
   const resTag = r => r.game === 'tft' ? (r.placement ? `<span class="sd-res ${r.placement <= 4 ? 'win' : 'loss'}">${r.placement}${['th', 'st', 'nd', 'rd'][r.placement] || 'th'}</span>` : '')
     : r.result ? `<span class="sd-res ${r.result}">${r.result === 'win' ? 'Win' : 'Loss'}</span>` : '';
   let tab = 'all'; // Library's filter: all | favorites
-  let more = 30; // games read in full (Library and Highlights); Show older games adds 30
+  let lchamp = ''; // Library's champion filter ('TFT' for TFT games)
+  let more = 30; // Library games shown; Show older games adds 30
+  let hmore = 60; // Highlights tiles shown; Show more clips adds 60
   const hf = { type: 'all', champ: '', star: false, sort: 'best' }; // Highlights' filter (window.recFilterClips)
+  const gameKey = window.recGameKey;
   // Studio's routes (2026-10-21): #/studio = Library, /highlights, /capture (studio.js), /game/<matchId>[/<clip>] = the player.
   const route = () => { const m = /^#\/studio(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/(\d+))?/.exec(location.hash) || []; return { page: m[1] || '', id: m[2], clip: m[3] }; };
   const gameHref = (id, clip) => `#/studio/game/${encodeURIComponent(id)}${clip != null ? '/' + clip : ''}`;
 
   // --- Posters: one frame per video, grabbed once by a single hidden <video> and kept in IndexedDB --------------------------
-  // ponytail: never pruned (about 15 KB a poster, 1,000 clips is 15 MB); prune by the recordings list if that ever matters.
+  // A poster already grabbed this session paints with the tile (no shimmer, no fade); prune() drops the ones whose file is gone.
   const posters = (() => {
-    const mem = new Map(); let db = null, chain = Promise.resolve();
+    const mem = new Map(), done = new Map(); let db = null, chain = Promise.resolve();
     const open = () => db || (db = new Promise(res => { try { const q = indexedDB.open('qp-posters', 1); q.onupgradeneeded = () => q.result.createObjectStore('p'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); } catch { res(null); } }));
     const read = async k => { const d = await open(); if (!d) return null; return new Promise(res => { try { const q = d.transaction('p').objectStore('p').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch { res(null); } }); };
     const write = async (k, v) => { const d = await open(); try { d && d.transaction('p', 'readwrite').objectStore('p').put(v, k); } catch {} };
@@ -107,11 +114,23 @@
       v.onerror = () => fin(null);
       v.src = src;
     })));
-    return { get(src, at) { const k = `${src}@${at}`; if (!mem.has(k)) mem.set(k, read(k).then(u => u || grab(src, at).then(g => (g && write(k, g), g)))); return mem.get(k); } };
+    return {
+      get(src, at) { const k = `${src}@${at}`; if (!mem.has(k)) mem.set(k, read(k).then(u => u || grab(src, at).then(g => (g && write(k, g), g))).then(u => (u && done.set(k, u), u))); return mem.get(k); },
+      now: (src, at) => done.get(`${src}@${at}`),
+      // Once a session: every poster of a local file that no recording points at any more (deleted games and clips).
+      async prune(keep) { const d = await open(); if (!d) return; try { const q = d.transaction('p', 'readwrite').objectStore('p').openCursor();
+        q.onsuccess = () => { const c = q.result; if (!c) return; const src = String(c.key).replace(/@[\d.]+$/, ''); if (src.startsWith('file:') && !keep.has(src)) c.delete(); c.continue(); }; } catch {} },
+    };
   })();
-  // Tiles fill their poster when they come into view; the video itself loads only when you point at it.
+  let pruned = false;
+  const prunePosters = async () => { if (pruned) return; pruned = true;
+    try { const list = (await api().list_recordings()) || [], keep = new Set();
+      (await Promise.all(list.map(r => api().get_recording(r.matchId).catch(() => null)))).forEach(rec => rec && [rec.video && rec.video.file, ...(rec.clips || []).map(c => c.file)].forEach(f => f && keep.add(fileUrl(f))));
+      if (list.length) posters.prune(keep); } catch {} };
+  // Tiles fill their poster when they come into view (at once if this session already has it); the video loads on hover.
   function lazyVideos(root) {
-    const items = [...root.querySelectorAll('[data-poster]')];
+    const items = [...root.querySelectorAll('[data-poster]')].filter(m => { const u = posters.now(m.dataset.poster, +m.dataset.at || 0.5), img = m.querySelector('.sd-poster');
+      if (!u || !img) return true; img.src = u; img.hidden = false; img.classList.add('seen'); m.classList.add('has-poster'); return false; });
     const load = m => { const img = m.querySelector('.sd-poster'); posters.get(m.dataset.poster, +m.dataset.at || 0.5).then(u => { if (u && img) { img.src = u; img.hidden = false; m.classList.add('has-poster'); } else m.classList.add('no-poster'); }); };
     if (!('IntersectionObserver' in window)) { items.forEach(load); return; }
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { load(e.target); io.unobserve(e.target); } }), { rootMargin: '400px' });
@@ -129,34 +148,44 @@
       <div class="sd-tcap"><b>${E(clipName(c))}</b><small>${o.meta != null ? o.meta : `${E(recFacts(r).title)} · ${E(when(r.startedAt))}`}</small></div></li>`;
   }
   const skeleton = page => `<div class="sd-skel" aria-hidden="true">${page === 'library' ? '<i class="sd-skel-stage"></i>' : ''}<div class="sd-skel-row">${'<i></i>'.repeat(page === 'library' ? 3 : 8)}</div></div>`;
-  const pageHead = (page, extra = '') => `<header class="sd-top"><div><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1></div>${extra}<div class="sd-status-slot" id="sd-status"></div></header><div id="sd-note"></div>`;
+  const pageHead = page => `<header class="sd-top"><div><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1></div><div class="sd-status-slot" id="sd-status"></div></header><div id="sd-note"></div>`;
+  // The Library's games: All or Starred, one champion (or TFT) or every one; the stage and the counts read the whole list.
+  const libPool = list => window.recLibraryPool(list, { star: tab === 'favorites', champ: lchamp });
 
-  async function render(host) {
+  // o.status: read the recorder's status again (after turning it or video on). A redraw (a filter, a star, Show older) only
+  // swaps the body, so the header and status stay put and tiles don't replay their entrance.
+  async function render(host, o = {}) {
     const rt = route();
     if (rt.page === 'game' && rt.id) return renderPlayer(host, decodeURIComponent(rt.id), rt.clip == null ? null : +rt.clip);
     if (rt.page === 'capture') return window.studioCapture ? studioCapture.render(host) : (host.innerHTML = '<p class="rec-empty">Loading Capture…</p>');
-    const page = rt.page === 'highlights' ? 'highlights' : 'library';
+    const page = rt.page === 'highlights' ? 'highlights' : 'library', sel = `[data-sd-page="${page}"]`;
     // Its title and a skeleton at once; the list fills in when it answers, the recorder's status after that (the first engine
     // check can take seconds, so the list never waits for it).
-    if (!host.querySelector(`[data-sd-page="${page}"]`)) host.innerHTML = `<section class="rec-page sd-page" data-sd-page="${page}">${pageHead(page)}${skeleton(page)}</section>`;
+    if (!host.querySelector(sel)) host.innerHTML = `<section class="rec-page sd-page" data-sd-page="${page}">${pageHead(page)}<div class="sd-body">${skeleton(page)}</div></section>`;
     if (!QP.store.config) { try { await QP.store.load(); } catch {} } // opened straight onto Studio: settings first, or "off" is a lie
-    let list = [];
+    let list = [], failed = null;
     const here = () => location.hash.startsWith('#/studio') && route().page === rt.page; // you may have moved on while these load (review)
-    try { list = (await api().list_recordings()) || []; } catch (err) { console.warn('recordings:', err && err.message || err); }
-    const full = await Promise.all(list.slice(0, more).map(r => api().get_recording(r.matchId).catch(() => null)));
+    try { list = (await api().list_recordings()) || []; } catch (err) { failed = String(err && err.message || err); console.warn('recordings:', failed); }
+    // Highlights reads every game that has clips (130 games read in about 25 ms); the Library the games it shows.
+    const pool = page === 'highlights' ? list.filter(r => r.clips) : libPool(list), want = page === 'highlights' ? pool : pool.slice(0, more);
+    const full = await Promise.all(want.map(r => api().get_recording(r.matchId).catch(() => null)));
     // Champion names (splash art) and TFT unit icons (boards). The TFT data is 24 MB the first time, so the page waits at most
     // 0.6 s for them and draws again once they're in.
     const extras = Promise.all([list.some(r => r.game === 'tft') && window.tftStats ? tftStats.loadDragon().catch(() => {}) : 0, window.lgNames ? lgNames().catch(() => {}) : 0]);
     const late = await Promise.race([extras.then(() => false), new Promise(r => setTimeout(() => r(true), 600))]);
-    if (!here()) return;
+    const sec = host.querySelector(sel), box = sec && sec.querySelector('.sd-body');
+    if (!here() || !box) return;
     if (late) extras.then(() => { if (here()) render(host); });
     const clips = [];
-    full.forEach((rec, gi) => (rec && rec.clips || []).forEach((c, i) => c.file && clips.push({ r: list[gi], c, i })));
-    const body = page === 'highlights' ? highlightsHtml(clips) : libraryHtml(list, full, clips);
-    host.innerHTML = `<section class="rec-page sd-page" data-sd-page="${page}">${pageHead(page)}${body}</section>`;
-    lazyVideos(host);
-    startStage(host);
-    fillStatus(host, page);
+    full.forEach((rec, gi) => (rec && rec.clips || []).forEach((c, i) => c.file && clips.push({ r: want[gi], c, i })));
+    const first = !sec.dataset.filled;
+    box.classList.toggle('calm', !first); sec.dataset.filled = '1';
+    box.innerHTML = failed ? `<div class="sd-empty"><h2>Couldn’t read your recordings</h2><p>${E(failed)}</p><button type="button" class="sd-btn" data-rec-retry>Try again</button></div>`
+      : page === 'highlights' ? highlightsHtml(clips) : libraryHtml(list, pool, full);
+    lazyVideos(box);
+    startStage(box);
+    if (first || o.status) fillStatus(sec, page);
+    if (!failed) setTimeout(prunePosters, 3000);
   }
   // The recorder's state, top right: one line that opens Capture; plus one note when something stops video from recording.
   async function fillStatus(host, page) {
@@ -188,19 +217,23 @@
   const unitHtml = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).slice(0, 3))}</span>`; };
   const boardHtml = rec => rec.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unitHtml).join('')}</span>` : '';
 
-  function libraryHtml(list, full, clips) {
+  function libraryHtml(list, pool, full) {
     if (!list.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('play')}</span><h2>Your games will show up here</h2><p>Play a League or TFT game with the recorder on. Every game keeps its timeline; with video on, your kills, multikills and objectives are cut into clips as you play.</p><a class="sd-btn" href="#/studio/capture">Capture settings</a></div>`;
-    const games = list.slice(0, more).map((r, i) => ({ r, rec: full[i] || r }));
-    const shown = games.filter(({ r }) => tab !== 'favorites' || r.favorite), favN = games.filter(({ r }) => r.favorite).length;
-    const stage = tab === 'all' && games[0] ? stageHtml(games[0].r, games[0].rec) : '';
-    const rest = tab === 'all' ? shown.slice(1) : shown;
+    const games = pool.slice(0, more).map((r, i) => ({ r, rec: full[i] || r })), favN = list.filter(r => r.favorite).length;
+    const stage = tab === 'all' && !lchamp && games[0] ? stageHtml(games[0].r, games[0].rec) : '';
+    const rest = stage ? games.slice(1) : games;
     const recs = new Map(rest.map(x => [x.r.matchId, x.rec]));
-    const bar = `<div class="sd-tools"><div class="sd-seg" role="group" aria-label="Show">${[['all', 'All games', games.length], ['favorites', 'Starred', favN]].map(([k, l, n]) => `<button type="button" data-rec-tab="${k}" aria-pressed="${tab === k}">${l}<small>${n}</small></button>`).join('')}</div>
-      ${clips.length ? `<a class="sd-barlink" href="#/studio/highlights">${clips.length} clip${clips.length === 1 ? '' : 's'} in Highlights →</a>` : ''}</div>`;
+    // The Highlights link follows the champion filter (Highlights opens filtered to them).
+    const hlChamp = lchamp && lchamp !== 'TFT' ? lchamp : '', clipN = list.reduce((n, r) => n + (!hlChamp || gameKey(r) === hlChamp ? r.clips || 0 : 0), 0), byName = list.reduce((m, r) => m.set(gameKey(r), (m.get(gameKey(r)) || 0) + 1), new Map());
+    const names = [...byName.keys()].sort((a, b) => (a === 'TFT') - (b === 'TFT') || a.localeCompare(b));
+    const bar = `<div class="sd-tools"><div class="sd-bar-r"><div class="sd-seg" role="group" aria-label="Show">${[['all', 'All games', list.length], ['favorites', 'Starred', favN]].map(([k, l, n]) => `<button type="button" data-rec-tab="${k}" aria-pressed="${tab === k}">${l}<small>${n}</small></button>`).join('')}</div>
+      ${names.length > 1 ? `<label class="sd-pick"><span>Champion</span><select data-lib-champ><option value="">Every game</option>${names.map(n => `<option value="${E(n)}"${lchamp === n ? ' selected' : ''}>${E(n === 'TFT' ? 'TFT games' : n)} (${byName.get(n)})</option>`).join('')}</select></label>` : ''}</div>
+      ${clipN ? `<a class="sd-barlink" href="#/studio/highlights" data-myclips-champ="${E(hlChamp)}">${clipN} ${E(hlChamp)}${hlChamp ? ' ' : ''}clip${clipN === 1 ? '' : 's'} in Highlights →</a>` : ''}</div>`;
     const days = window.recGroupDays(rest.map(x => x.r)).map(d => `<section class="sd-day"><header><h3>${E(d.label)}</h3><small>${plural(d.games.length, 'game')}${d.wins + d.losses ? ` · <b class="w">${d.wins} W</b> <b class="l">${d.losses} L</b>` : ''}</small></header>
       <ol class="sd-games">${d.games.map(r => cardHtml(r, recs.get(r.matchId))).join('')}</ol></section>`).join('');
-    const none = !rest.length && tab === 'favorites' ? '<div class="sd-empty small"><h2>Nothing starred yet</h2><p>Star a game and it stays, video and clips, when the folder goes over its size cap.</p></div>' : '';
-    const older = list.length > more ? `<div class="sd-more"><button type="button" class="sd-btn" data-rec-more>Show older games <small>${list.length - more} more</small></button></div>` : '';
+    const none = rest.length ? '' : tab === 'favorites' && !lchamp ? '<div class="sd-empty small"><h2>Nothing starred yet</h2><p>Star a game and it stays, video and clips, when the folder goes over its size cap.</p></div>'
+      : !stage ? `<div class="sd-empty small"><h2>No games match</h2><p>Nothing starred on ${E(lchamp === 'TFT' ? 'TFT' : lchamp)} yet.</p><button type="button" class="sd-btn" data-rec-tab="all">All ${E(lchamp === 'TFT' ? 'TFT' : lchamp)} games</button></div>` : '';
+    const older = pool.length > more ? `<div class="sd-more"><button type="button" class="sd-btn" data-rec-more>Show older games <small>${pool.length - more} more</small></button></div>` : '';
     return `${stage}${bar}${none}${days}${older}`;
   }
   // The latest game on the big screen: its best clips play back to back, its clips as a reel underneath.
@@ -215,7 +248,7 @@
         <p class="sd-stage-eyebrow">${resTag(r)}<span>Latest game · ${E(when(r.startedAt))}</span></p>
         <h2>${E(f.title)}</h2>
         ${f.facts ? `<p class="sd-stage-facts">${E(f.facts)}</p>` : ''}
-        ${queue.length ? `<p class="sd-now" aria-live="polite"><i class="sd-live" aria-hidden="true"></i><span>Now playing</span><b data-sd-now>${E(queue[0].name)}</b></p>` : ''}
+        ${queue.length ? `<p class="sd-now"><i class="sd-live" aria-hidden="true"></i><span>Now playing</span><b data-sd-now>${E(queue[0].name)}</b></p>` : ''}
         <div class="sd-stage-acts"><a class="sd-btn primary big" href="${gameHref(r.matchId, queue.length ? queue[0].i : null)}" data-sd-watch>${ico('play')}<span>${queue.length ? 'Watch' : rec.video ? 'Watch the game' : 'Open timeline'}</span></a>
           ${star(r.favorite, `data-rec-fav="${E(r.matchId)}"`, f.title, true)}${rec.video ? `<button type="button" class="sd-btn ghost" data-rec-show="${E(r.matchId)}">${ico('folder')}<span>Show file</span></button>` : ''}</div>
       </div>
@@ -259,9 +292,10 @@
         <label class="sd-pick"><span>Order</span><select data-hf-sel="sort">${[['best', 'Best'], ['star', 'Starred first'], ['new', 'Newest'], ['long', 'Longest']].map(([k, l]) => `<option value="${k}"${hf.sort === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         <label class="sd-tog"><input type="checkbox" data-hf-star${hf.star ? ' checked' : ''}><span>Starred</span></label></div></div>`;
     const podium = hf.sort === 'best' && hf.type === 'all' && !hf.champ && !hf.star && shown.length >= 5;
-    const grid = shown.length ? `<ol class="sd-tiles${podium ? ' podium' : ''}">${shown.map(({ r, c, i }, n) => clipTile(r, c, i, podium && n === 0 ? { cls: 'big', ribbon: 'Your best play' } : {})).join('')}</ol>`
+    const grid = shown.length ? `<ol class="sd-tiles${podium ? ' podium' : ''}">${shown.slice(0, hmore).map(({ r, c, i }, n) => clipTile(r, c, i, podium && n === 0 ? { cls: 'big', ribbon: 'Your best play' } : {})).join('')}</ol>`
       : `<div class="sd-empty small"><h2>No clips match</h2><p>Clear a filter to see more.</p><button type="button" class="sd-btn" data-hf-clear>Clear filters</button></div>`;
-    return `${bar}<p class="sd-count">${shown.length === clips.length ? plural(clips.length, 'clip') : `${shown.length} of ${plural(clips.length, 'clip')}`}${podium ? ', best first' : ''}</p>${grid}`;
+    const moreBtn = shown.length > hmore ? `<div class="sd-more"><button type="button" class="sd-btn" data-hf-more>Show more clips <small>${shown.length - hmore} more</small></button></div>` : '';
+    return `${bar}<p class="sd-count">${shown.length === clips.length ? plural(clips.length, 'clip') : `${shown.length} of ${plural(clips.length, 'clip')}`}${podium ? ', best first' : ''}</p>${grid}${moreBtn}`;
   }
 
   // Champion pages (league-champion.js) ask for your clips of that champion: the same tiles as Studio, each opening the player,
@@ -279,38 +313,45 @@
       <ol class="sd-tiles">${top.map(({ r, c, i }) => clipTile(r, c, i, { meta: `${E(when(r.startedAt))}` })).join('')}</ol></section>`;
   };
   // "All N in Studio" opens Highlights filtered to that champion.
-  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-myclips-champ]'); if (a) { hf.champ = a.dataset.myclipsChamp; hf.type = 'all'; hf.star = false; } });
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('[data-myclips-champ]'); if (a) { hf.champ = a.dataset.myclipsChamp; hmore = 60; hf.type = 'all'; hf.star = false; } });
 
   // --- Player: #/studio/game/<matchId>[/<clip>] — the game's video on a theater stage, its moments on a timeline you can drag,
   // its clips and moments beside it, and your own clip cut from a start and an end mark. Keys in the side panel.
   const P = { rec: null, len: 0, off: 0, a: null, b: null, stopAt: null };
+  const onGame = id => location.hash.startsWith(`#/studio/game/${encodeURIComponent(id)}`);
   async function renderPlayer(host, id, clipIdx) {
+    // The frame at once (back link and a dark stage) so a click never leaves the last page up while the game loads.
+    if (!host.querySelector(`.sd-player[data-id="${CSS.escape(id)}"]`)) host.innerHTML = `<section class="rec-page sd-page sd-player" data-id="${E(id)}"><nav class="sd-crumb"><a href="#/studio">${ico('back')}Library</a></nav><div class="sd-skel" aria-hidden="true"><i class="sd-skel-stage"></i></div></section>`;
     let rec = null; try { rec = await api().get_recording(id); } catch {}
-    if (!location.hash.startsWith('#/studio/game/')) return;
+    if (!onGame(id)) return;
     if (!rec) { host.innerHTML = `<section class="rec-page sd-page"><nav class="sd-crumb"><a href="#/studio">${ico('back')}Library</a></nav><div class="sd-empty"><h2>This recording is gone</h2><p>It was deleted, or its file moved out of the recordings folder.</p><a class="sd-btn" href="#/studio">Back to the Library</a></div></section>`; return; }
     if (window.lgNames) await lgNames().catch(() => {});
-    if (rec.game === 'tft' && window.tftStats) await tftStats.loadDragon().catch(() => {});
-    if (!location.hash.startsWith('#/studio/game/')) return;
+    // TFT unit icons come with 24 MB of data the first time: draw now with names, the board again when they're in.
+    if (rec.game === 'tft' && window.tftStats) tftStats.loadDragon().then(() => { const b = onGame(id) && document.querySelector('.sd-vid.novid .rec-board'); if (b) b.outerHTML = boardHtml(rec); }).catch(() => {});
+    if (!onGame(id)) return;
     const counts = (rec.events || []).reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}), f = recFacts({ ...rec, counts });
-    // Clips-only games (Studio > Capture > Keep: clips only) have no full video: the player plays one clip file at a time.
+    // Clips-only games (Studio > Capture > Keep: clips only) have no full video: the player plays its clips one after another.
     const clipsOnly = !rec.video && (rec.clips || []).length > 0;
     const evLen = Math.max(60, rec.length || 0, ...(rec.events || []).filter(e => Number.isFinite(e.t)).map(e => e.t));
     const moments = (rec.events || []).filter(e => Number.isFinite(e.t) && KIND[e.type]);
+    // In a clips-only game a moment plays the clip it's in.
+    const clipOf = e => (rec.clips || []).findIndex(c => (c.ids || []).includes(e.id));
+    const moAttr = e => rec.video ? ` data-t="${e.t + ((rec.video && rec.video.offset) || 0)}"` : clipsOnly && clipOf(e) >= 0 ? ` data-rp-clip="${clipOf(e)}"` : ' disabled';
     Object.assign(P, { rec, clipsOnly, cur: clipIdx || 0, len: (rec.video && rec.video.length) || (rec.video || clipsOnly ? 0 : evLen), off: (rec.video && rec.video.offset) || 0, a: null, b: null, stopAt: null });
     const screen = rec.video || clipsOnly ? `<div class="sd-vid paused"><video id="rp-v" src="${fileUrl(rec.video ? rec.video.file : rec.clips[clipIdx || 0].file)}" preload="metadata" playsinline></video>
-          <button type="button" class="sd-bigplay" data-rp="toggle" aria-label="Play">${ico('play')}</button>${clipsOnly ? '<span class="sd-vidtag">Clips only: this game kept its clips, not the whole game</span>' : ''}</div>
+          <button type="button" class="sd-bigplay" data-rp="toggle" aria-label="Play">${ico('play')}</button></div>
         <div class="rp-tl" id="rp-tl" role="slider" tabindex="0" aria-label="Position" aria-valuemin="0" aria-valuenow="0"><span class="rp-tip" id="rp-tip" hidden></span></div>${tools(!clipsOnly)}`
-      : `<div class="sd-vid novid" style="--art:${artFor(rec.champion)}">${boardHtml(rec)}<p><b>No video for this game</b><span>Record video was off, so here is ${rec.game === 'tft' ? 'your final board' : 'its timeline'}. Turn video on in Capture to film the next one.</span><a class="sd-btn" href="#/studio/capture">Capture settings</a></p></div>
-        ${moments.length ? '<div class="rp-tl static" id="rp-tl"></div>' : ''}`;
-    host.innerHTML = `<section class="rec-page sd-page sd-player"><nav class="sd-crumb"><a href="#/studio">${ico('back')}Library</a><span>${E(when(rec.startedAt))}</span></nav>
-      <header class="sd-phead"><div><h1>${E(cardTitle(rec))}</h1><p>${resTag({ ...rec })}<span>${[f.result && rec.game === 'tft' ? f.result : '', f.facts].filter(Boolean).map(E).join(' · ')}</span></p></div>
+      : `<div class="sd-vid novid" style="--art:${artFor(rec.champion)}"><p><b>No video for this game</b><span>Record video was off, so here is ${rec.game === 'tft' ? 'your final board' : 'its timeline'}. Turn video on in Capture to film the next one.</span><a class="sd-btn" href="#/studio/capture">Capture settings</a></p>${boardHtml(rec)}</div>
+        ${moments.some(e => e.type !== 'end') ? '<div class="rp-tl static" id="rp-tl"></div>' : ''}`;
+    // Clips and moments only when there are some: a TFT game without video is its board and nothing else.
+    const side = [rec.video || clipsOnly ? `<section class="sd-panel"><header><h2>Clips</h2><small id="rp-ccount">${(rec.clips || []).length}</small>${clipsOnly ? '<small class="sd-ponly">Clips only, no full game</small>' : ''}</header><ol id="rp-clips" class="sd-clist"></ol></section>` : '',
+      moments.some(e => e.type !== 'end') ? `<section class="sd-panel"><header><h2>Moments</h2><small>${moments.length}</small></header><ol class="sd-moments">${moments.map(e => `<li><button type="button"${moAttr(e)} class="sd-mo"><i class="sd-kdot k-${e.type}"></i><span>${mmss(e.t)}</span><b>${E(e.label)}</b></button></li>`).join('')}</ol></section>` : '',
+      rec.video || clipsOnly ? `<dl class="rp-keys"><div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div><div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>5 s back, forward</dd></div><div><dt><kbd>,</kbd><kbd>.</kbd></dt><dd>One frame</dd></div><div><dt><kbd>[</kbd><kbd>]</kbd></dt><dd>Previous, next clip</dd></div>${clipsOnly ? '' : '<div><dt><kbd>I</kbd><kbd>O</kbd><kbd>C</kbd></dt><dd>Start, end, save a clip</dd></div>'}<div><dt><kbd>M</kbd><kbd>F</kbd></dt><dd>Mute, star the game</dd></div></dl>` : ''].join('');
+    host.innerHTML = `<section class="rec-page sd-page sd-player" data-id="${E(id)}">
+      <header class="sd-phead"><div class="sd-ptitle"><a class="sd-pback" href="#/studio" title="Back to the Library" aria-label="Back to the Library">${ico('back')}</a><h1>${E(cardTitle(rec))}</h1>
+          <p>${resTag({ ...rec })}<span>${[f.result && rec.game === 'tft' ? f.result : '', f.facts, when(rec.startedAt)].filter(Boolean).map(E).join(' · ')}</span></p></div>
         <div class="sd-pacts">${star(rec.favorite, `data-rec-fav="${E(rec.matchId)}"`, f.title, true)}${rec.video ? `<button type="button" class="sd-btn ghost" data-rec-show="${E(rec.matchId)}">${ico('folder')}<span>Show file</span></button>` : ''}</div></header>
-      <div class="sd-theater"><div class="sd-screen" id="rp-screen">${screen}</div>
-        <aside class="sd-side">
-          <section class="sd-panel"><header><h2>Clips</h2><small id="rp-ccount">${(rec.clips || []).length}</small></header><ol id="rp-clips" class="sd-clist"></ol></section>
-          ${moments.length ? `<section class="sd-panel"><header><h2>Moments</h2><small>${moments.length}</small></header><ol class="sd-moments">${moments.map(e => `<li><button type="button"${rec.video ? ` data-t="${e.t + P.off}"` : ' disabled'} class="sd-mo"><i class="sd-kdot k-${e.type}"></i><span>${mmss(e.t)}</span><b>${E(e.label)}</b></button></li>`).join('')}</ol></section>` : ''}
-          ${rec.video || clipsOnly ? `<p class="rp-keys"><kbd>Space</kbd> play <kbd>J</kbd><kbd>L</kbd> 5 s <kbd>,</kbd><kbd>.</kbd> frame <kbd>[</kbd><kbd>]</kbd> clips${clipsOnly ? '' : ' <kbd>I</kbd><kbd>O</kbd><kbd>C</kbd> cut'} <kbd>M</kbd> mute <kbd>F</kbd> star</p>` : ''}
-        </aside></div></section>`;
+      <div class="sd-theater${side ? '' : ' solo'}"><div class="sd-screen" id="rp-screen">${screen}</div>${side ? `<aside class="sd-side">${side}</aside>` : ''}</div></section>`;
     drawClips(); drawTimeline();
     const v = document.getElementById('rp-v'); if (!v) return;
     const box = v.parentElement;
@@ -318,6 +359,7 @@
     v.addEventListener('play', () => { box.classList.remove('paused'); setPlayIcon(false); });
     v.addEventListener('pause', () => { box.classList.add('paused'); setPlayIcon(true); });
     v.addEventListener('timeupdate', () => { if (P.stopAt != null && v.currentTime >= P.stopAt) { v.pause(); P.stopAt = null; } tick(v); });
+    v.addEventListener('ended', () => { if (P.clipsOnly && P.cur < P.rec.clips.length - 1) playClip(P.cur + 1); });
     v.addEventListener('click', () => rpAction('toggle'));
     v.addEventListener('dblclick', () => rpAction('full'));
     v.addEventListener('error', () => say('The video file is missing or can’t be played.'));
@@ -336,9 +378,9 @@
   const btn = (k, label, title, cls = '') => `<button type="button" class="rp-ib ${cls}" data-rp="${k}" title="${title}">${label}</button>`;
   const tools = full => `<div class="rp-bar">
       ${btn('toggle', ico('play'), 'Play or pause  Space', 'rp-play')}<span class="rp-time" id="rp-time">0:00 <small>/ 0:00</small></span>
-      <div class="rp-grp">${btn('prev', '‹ Clip', 'Previous clip  [')}${btn('next', 'Clip ›', 'Next clip  ]')}</div>
-      <div class="rp-grp">${btn('back', '−5 s', 'Back 5 s  J')}${btn('fwd', '+5 s', 'Forward 5 s  L')}</div>
-      <div class="rp-grp">${btn('fprev', '‹ 1f', 'Back one frame  ,')}${btn('fnext', '1f ›', 'Forward one frame  .')}</div>
+      <div class="rp-grp">${btn('prev', '‹<span class="rp-wd"> Clip</span>', 'Previous clip  [')}${btn('next', '<span class="rp-wd">Clip </span>›', 'Next clip  ]')}</div>
+      <div class="rp-grp rp-seek">${btn('back', '−5 s', 'Back 5 s  J')}${btn('fwd', '+5 s', 'Forward 5 s  L')}</div>
+      <div class="rp-grp rp-frame">${btn('fprev', '‹ 1f', 'Back one frame  ,')}${btn('fnext', '1f ›', 'Forward one frame  .')}</div>
       <span class="rp-spacer"></span>
       <label class="sd-pick" title="Speed"><select data-rp-speed aria-label="Speed">${[0.25, 0.5, 1, 1.5, 2].map(x => `<option value="${x}"${x === (P.rate || 1) ? ' selected' : ''}>${x}×</option>`).join('')}</select></label>
       <label class="sd-pick" id="rp-sound" title="Which sound you hear" hidden><select data-rp-track aria-label="Sound"></select></label>
@@ -369,7 +411,7 @@
     const tl = document.getElementById('rp-tl'); if (!tl || !P.len) return;
     const tip = document.getElementById('rp-tip');
     const sel = P.a != null ? `<i class="rp-range" style="left:${pct(P.a)};width:${pct((P.b ?? P.a) - P.a)}"></i>` : '';
-    const ticks = Array.from({ length: Math.floor((P.len - 1) / 60) }, (_, m) => P.len > 600 && (m + 1) % 5 ? '' : `<i class="rp-tick" style="left:${pct((m + 1) * 60)}"><span>${m + 1}:00</span></i>`).join('');
+    const ticks = Array.from({ length: Math.floor((P.len - 1) / 60) }, (_, m) => P.len > 600 && (m + 1) % 5 ? '' : `<i class="rp-tick" style="left:${pct((m + 1) * 60)}">${(m + 1) * 60 / P.len < 0.95 ? `<span>${m + 1}:00</span>` : ''}</i>`).join('');
     tl.innerHTML = (P.clipsOnly ? '' : ticks + (P.rec.clips || []).map(c => `<i class="rp-clip" style="left:${pct(c.start)};width:${pct(c.end - c.start)}"></i>`).join('')) + sel
       + (P.clipsOnly ? '' : (P.rec.events || []).filter(e => Number.isFinite(e.t) && KIND[e.type]).map(e => `<button type="button" class="rec-m rec-${e.type}" style="left:${pct(e.t + P.off)}" data-t="${e.t + P.off}" aria-label="${E(mmss(e.t))} ${E(e.label)}"${P.rec.video ? '' : ' tabindex="-1"'}></button>`).join(''))
       + (P.rec.video || P.clipsOnly ? '<i class="rp-ph" id="rp-ph"></i>' : '');
@@ -427,16 +469,20 @@
   }
   document.addEventListener('keydown', e => {
     if (!document.getElementById('rp-v') || e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-    const k = { j: 'back', l: 'fwd', k: 'toggle', ' ': 'toggle', m: 'mute', i: 'a', o: 'b', c: 'save', ',': 'fprev', '.': 'fnext', '[': 'prev', ']': 'next' }[e.key.toLowerCase()];
+    const k = { j: 'back', l: 'fwd', arrowleft: 'back', arrowright: 'fwd', k: 'toggle', ' ': 'toggle', m: 'mute', i: 'a', o: 'b', c: 'save', ',': 'fprev', '.': 'fnext', '[': 'prev', ']': 'next' }[e.key.toLowerCase()];
     if (k && !(k === 'toggle' && e.key === ' ' && e.target.closest('button'))) { e.preventDefault(); rpAction(k); }
     else if (e.key.toLowerCase() === 'f') { e.preventDefault(); document.querySelector('.sd-pacts [data-rec-fav]')?.click(); }
   });
   const what = b => (b.getAttribute('aria-label') || '').replace(/^(Un)?star /i, ''); // a star's name, kept when it redraws
   document.addEventListener('click', async e => {
-    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-more],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],[data-hf-clear],.rp-tl [data-t],.sd-moments [data-t]');
+    const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-more],[data-rec-retry],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],[data-hf-clear],[data-hf-more],.rp-tl [data-t],.sd-moments [data-t]');
     if (!t) return;
-    if (t.dataset.recTab) { tab = t.dataset.recTab; render(document.getElementById('main')); return; }
-    if (t.hasAttribute('data-rec-more')) { more += 30; t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main')); window.scrollTo(0, y); return; }
+    if (t.dataset.recTab) { tab = t.dataset.recTab; more = 30; render(document.getElementById('main')); return; }
+    if (t.hasAttribute('data-rec-retry')) { t.disabled = true; render(document.getElementById('main')); return; }
+    if (t.hasAttribute('data-rec-more') || t.hasAttribute('data-hf-more')) {
+      if (t.hasAttribute('data-rec-more')) more += 30; else hmore += 60;
+      t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main')); window.scrollTo(0, y); return;
+    }
     if (t.hasAttribute('data-hf-clear')) { Object.assign(hf, { type: 'all', champ: '', star: false }); reHL(); return; }
     if (t.dataset.recFav) {
       e.preventDefault();
@@ -490,12 +536,13 @@
     }
   });
   // Highlights' filters apply at once.
-  const reHL = () => { const m = document.getElementById('main'); if (m && location.hash.startsWith('#/studio/highlights')) render(m); };
+  const reHL = () => { hmore = 60; const m = document.getElementById('main'); if (m && location.hash.startsWith('#/studio/highlights')) render(m); };
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-hf]'); if (b) { hf[b.dataset.hf] = b.dataset.v; reHL(); } });
   document.addEventListener('change', e => {
     if (!e.target.matches) return;
     if (e.target.matches('[data-hf-sel]')) { hf[e.target.dataset.hfSel] = e.target.value; reHL(); }
     else if (e.target.matches('[data-hf-star]')) { hf.star = e.target.checked; reHL(); }
+    else if (e.target.matches('[data-lib-champ]')) { lchamp = e.target.value; more = 30; render(document.getElementById('main')); }
   });
   // Speed, volume and which sound you hear apply at once and stay while you move between clips.
   document.addEventListener('change', e => {
@@ -533,9 +580,9 @@
     const vid = e.target.closest && e.target.closest('[data-rec-play],[data-rec-show]');
     if (vid) { const r = await api().open_recording(vid.dataset.recPlay || vid.dataset.recShow, !!vid.dataset.recShow).catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) vid.textContent = r.error || 'Couldn’t open it'; return; }
     const rv = e.target.closest && e.target.closest('[data-rec-video]');
-    if (rv) { QP.store.set('recorder.video', true); render(document.getElementById('main')); return; }
+    if (rv) { QP.store.set('recorder.video', true); render(document.getElementById('main'), { status: true }); return; }
     const on = e.target.closest && e.target.closest('[data-rec-on]');
-    if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); render(document.getElementById('main')); }
+    if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); render(document.getElementById('main'), { status: true }); }
   });
 
   // Studio in the sidebar (index.html) wears a small lime dot while the recorder is on.
