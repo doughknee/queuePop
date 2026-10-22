@@ -105,3 +105,9 @@ a.st-btn{display:inline-flex;align-items:center;text-decoration:none}
 #settings-view.st-searching .st-comp[data-when][hidden]:not(.st-off){display:flex!important}
 .st-comp[hidden]{display:none}
 .st-chip span{font-size:13px}
+/* Store edition (DONI-704): the reviewed build never accepts a queue, locks in, grabs from the ARAM bench or sends trades for you,
+   so those rows are hidden and a line says what happens instead. <html data-edition> comes from get_status (shell.js). */
+.st-store{display:none;margin:0;padding:10px 0;color:var(--muted);font-size:13px;line-height:1.55}
+:root[data-edition=store] .st-store{display:block}
+:root[data-edition=store] .st-row:has([data-queues],[data-k="auto_accept"],[data-k="accept_delay_seconds"],[data-k="tft.auto_accept"],[data-k="tft.accept_delay_seconds"],[data-k="champ_select.instant_lock"],[data-k="champ_select.lock_in_at_seconds"],[data-k="champ_select.trades.enabled"],[data-k="champ_select.aram.enabled"],[data-k="champ_select.aram.bench_delay"]){display:none}
+:root[data-edition=store] #queues-card,:root[data-edition=store] .setup-sec:has(#setup-queues),:root[data-edition=store] .set-row:has(#setup_accept){display:none}

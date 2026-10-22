@@ -8,11 +8,11 @@ function applyAway(cs) {
   return { ...(cs || {}), enabled: true, instant_lock: false, lock_in_at_seconds: SAFE_LOCK_S };
 }
 
-// state: the host's shared state ({paused, away}); push: activity feed.
-function createAway(state, push) {
+// state: the host's shared state ({paused, away}); push: activity feed; allowed: false in the store edition (DONI-704).
+function createAway(state, push, allowed = true) {
   let wasPaused = false, since = 0;
   function set(on) {
-    on = !!on;
+    on = !!on && allowed;
     if (on === !!state.away) return status();
     state.away = on;
     if (on) { wasPaused = !!state.paused; state.paused = false; since = Date.now(); }

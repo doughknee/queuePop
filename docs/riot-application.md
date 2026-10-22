@@ -2,7 +2,8 @@
 
 For developer.riotgames.com > Register Product. Overwolf requires Riot's approval for any League app, and the stats crawler
 needs a production key, since a personal key may not power stats other people see. Fill in the bracketed parts and edit freely.
-Be plain about automation: it's the part Riot is most likely to ask about, and it's better they hear it from us.
+The product described here is the store edition (DONI-704): it highlights decisions and never makes them. Auto-accept is asked about
+separately at the end, so approval of the product doesn't hinge on it.
 
 ## Product name
 queuePop
@@ -18,11 +19,12 @@ reads game memory and never injects into the game.
 
 What it does:
 
-- **Queue alerts and auto-accept.** It accepts the ready check for you (with an optional delay) and can alert you on Windows,
-  Discord, ntfy or a phone companion page on your own network, so you can step away while queuing. You can decline from your phone.
-- **Champ select help.** Optional, off by default, and set up by the player in advance: preferred picks and bans per role, which it
-  hovers and locks at a time the player chooses; runes and summoner spells from the player's saved loadouts; ARAM bench swaps
-  from the player's own priority list. A "stepping away" switch turns these on until the player comes back.
+- **Queue alerts.** When the queue pops it alerts you on Windows, Discord, ntfy or a phone companion page on your own network, so you
+  can step away while queuing and get called back. You accept in the League client on your PC, so you are there for
+  champ select. Your phone can decline the match (which only removes you from the queue) but cannot accept it.
+- **Champ select help.** Optional, off by default, and set up by the player in advance: when it's your turn it hovers your planned ban
+  and pick; you lock in. Runes and summoner spells come from the player's saved loadouts once they lock in. For ARAM it shows which bench
+  champion fits your team best; you take it.
 - **Draft suggestions.** During champ select it shows the top picks for your role against the champions already visible, with win
   rates from aggregated ranked matches, plus a short pre-game plan (common build, skill order, hardest matchups).
 - **Stats pages.** Tier lists, champion pages (builds, runes, matchups), leaderboards and player lookups, computed from public
@@ -30,9 +32,9 @@ What it does:
 - **Recorder.** Optionally records the player's own games (video through Overwolf's recorder) and marks kills, deaths and
   objectives on a timeline from the Live Client Data API, after the fact, for review. Nothing is shown in game.
 
-What it does not do: no in-game overlay during play, no timers of any kind (ability, summoner spell, ultimate, objective), no
-power-spike or "do X now" notifications from game state, no names of other players in ranked champ select, no Brawl or League
-Classic data.
+What it does not do: it never accepts a queue, locks in a champion, takes from the ARAM bench or sends trade requests for you; no
+in-game overlay during play; no timers of any kind (ability, summoner spell, ultimate, objective); no power-spike or "do X now"
+notifications from game state; no names of other players in ranked champ select; no Brawl or League Classic data.
 
 ## How we use the Riot API
 
@@ -45,6 +47,14 @@ the app never calls the Riot API itself.
 - Results are cached and served to the app as aggregates (win, pick and ban rates, builds, matchups). Player lookups show
   public match history for a Riot ID the user searches for.
 - Expected load: [N] app users at launch. Requests to Riot depend on the crawl rate, not on app users.
+
+## A question, separate from this application
+
+Long queues are the most common reason players ask us for auto-accept: an opt-in setting that accepts the ready check for them,
+optionally after a short delay. We have left it out of queuePop because we read your policies as asking products not to remove game
+decisions, and because an accepted match needs the player at their PC for champ select. Would you allow an opt-in auto-accept under
+any conditions (for example, only while queuePop can see the player is active at the PC, or with a delay)? If not, we'll keep it out.
+Either way, this application is for queuePop as described above.
 
 ## Monetization
 Free. One Overwolf ad in the app's sidebar (never in game). An optional paid supporter tier removes it.

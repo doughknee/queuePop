@@ -225,6 +225,17 @@
   keep collapse: collapsing is the paid perk. Serves only on ow-electron; `localStorage['queuepop-ads-preview']='1'` previews
   the box in plain Electron. Never in-game, never over content, never more than one. The release gate is in docs/ads.md.
 
+## Store edition (DONI-704, 2026-10-21; decided, don't put automation back in the store build)
+- `app/edition.js`: the Overwolf build Riot and Overwolf review (`dist:ow` stamps package.json `edition: "store"`; `QP_EDITION=store`
+  tries it from source) highlights decisions and never makes them. Riot's General Policies: products "should not remove game decisions,
+  but may highlight decisions that are important"; an accepted queue needs the player at the PC for champ select. So no auto-accept
+  (main.js), no lock-in (champ-select.js `commit` / `readyToLock`; picks and bans are hovered), no ARAM bench grabs or trade requests
+  (`storeChampSelect`), no stepping away (stepping-away.js), no lock from the phone (`phone_pick`). Alerts everywhere and decline from the
+  phone stay. `get_status().edition` / companion status `edition` drive the UI: `<html data-edition="store">` (shell.js) hides those rows
+  in settings.css and shows `.st-store` lines saying you accept in the League client and lock in yourself. `app/test-edition.js`.
+- The personal build (from source, `npm run dist`) keeps everything. The Riot application (docs/riot-application.md) describes the store
+  edition and asks separately whether an opt-in auto-accept would ever be allowed; only a written yes from Riot changes these rules.
+
 ## Shell QoL (overnight track Q, 2026-10-20)
 - Global search (DONI-537): `src/webui/palette.js` (loaded by `shell.js`, styles at the end of `shell.css`) opens one sheet under the
   page row on Ctrl+K, `/`, or the sidebar's Search entry. Sources: sidebar pages, `settingsView.sections` + `settingsView.index()`
