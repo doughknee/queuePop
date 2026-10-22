@@ -36,7 +36,7 @@
   (launch/kill the app), and `fetch_assets.py` (download champion/role icons).
   For LCU endpoint reference, query the live client's `/help` — don't trust
   static docs (Riot renames routes between patches).
-- `docs/` — `screenshots/` (README-only images; the rest live in `site/public/shots/`).
+- `docs/` — `screenshots/` (the README's images; the site's own are `site/public/img/`).
 - `installer/queuePop.iss` — Inno Setup script for the installed build.
 - `site/` — the public site (Vite + React, prerendered to static HTML); self-contained. Rebuilt 2026-10-22 for the store edition:
   the app's tokens (black, lime, Anton + Space Mono), real store-build screenshots shot on fake data, `terms.html` / `privacy.html`.
