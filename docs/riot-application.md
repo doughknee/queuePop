@@ -9,7 +9,7 @@ separately at the end, so approval of the product doesn't hinge on it.
 queuePop
 
 ## Product URL
-[site URL] (Terms: [site]/terms.html, Privacy: [site]/privacy.html)
+https://queuepop.app (Terms: https://queuepop.app/terms.html, Privacy: https://queuepop.app/privacy.html)
 
 ## Product description
 
@@ -60,4 +60,4 @@ Either way, this application is for queuePop as described above.
 Free. One Overwolf ad in the app's sidebar (never in game). An optional paid supporter tier removes it.
 
 ## Contact
-Brandon Harris, [contact email]
+Brandon Harris, support@queuepop.app

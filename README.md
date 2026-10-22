@@ -4,6 +4,8 @@
 ![Python](https://img.shields.io/badge/python-3.14-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 
+**Website: [queuepop.app](https://queuepop.app)**
+
 A lightweight, automated tool for **League of Legends** and **Teamfight Tactics** that instantly accepts queue ready checks. It runs silently in the system tray and integrates with Discord for remote notifications.
 
 ## 📸 Screenshots

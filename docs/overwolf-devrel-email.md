@@ -19,7 +19,7 @@ it to QA I have a few questions:
    these before I have Developer Console access, or should the first QA build go in unsigned?
 
 What queuePop is: a desktop companion for League of Legends, TFT and Deadlock: queue alerts and auto-accept, champ select help, stats
-pages and a game recorder with clips. Terms: [site]/terms.html, Privacy: [site]/privacy.html. I've applied for Riot's third-party
+pages and a game recorder with clips. Site: https://queuepop.app (Terms: https://queuepop.app/terms.html, Privacy: https://queuepop.app/privacy.html). I've applied for Riot's third-party
 approval for the League side.
 
 Thanks,

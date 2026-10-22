@@ -1,5 +1,7 @@
 # queuePop, public site
 
+Live at **https://queuepop.app**, redeployed from `main` on every merge.
+
 One page for the queuePop Overwolf build (the store edition, `app/edition.js`): what it does, that it plays fair, where to
 get it, plus `terms.html` and `privacy.html`. Vite + React, prerendered to static HTML at build time, so it needs no
 JavaScript to read and no server beyond static files.
@@ -32,7 +34,7 @@ npm run build      # dist/: index.html prerendered, terms.html, privacy.html, as
 `Dockerfile` builds the site and serves `dist/` with nginx on port 3000 (Coolify: build pack Dockerfile, base directory
 `/site`). Any static host works: upload `dist/`.
 
-Before it goes public: fill the brackets in `public/terms.html` and `public/privacy.html` (effective date, contact email,
-log retention, governing law), and point the Overwolf listing and the Riot application at the live URL.
+The legal pages say: effective October 22, 2026; contact support@queuepop.app; server logs kept up to 14 days; no governing-law
+clause. Changing what the app collects means updating `public/privacy.html` (and its effective date) in the same change.
 
 > queuePop isn't endorsed by Riot Games or Valve.
