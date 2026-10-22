@@ -6,6 +6,7 @@ const config = require("./config");
 const C = require("./champ-config");
 const suggest = require("./champ-suggest");
 const { METHODS } = require("./methods");
+const edition = require("./edition"); // DONI-704: the store build hovers, never locks
 
 const { ROLES, ARAM_ROLE, ROLE_LABELS, ARAM_MODES, ROLE_MODES, RUNE_PAGE_NAME, T, or, getd, pyInt, pyFloat } = C;
 const DEFAULT_PICK_WINDOW = 30.0;
@@ -94,7 +95,7 @@ class ChampSelect {
   }
 
   // While "stepping away" is on (DONI-424) the automation sees the away overlay; config.json itself never changes.
-  settings() { const s = or(config.get().champ_select, {}); return this.overlay ? this.overlay(s) : s; }
+  settings() { let s = or(config.get().champ_select, {}); if (edition.STORE) s = edition.storeChampSelect(s); return this.overlay ? this.overlay(s) : s; }
   name(cid) { return this.idToName.has(cid) ? this.idToName.get(cid) : cid; }
 
   // GET that resolves to parsed JSON on 200, else null (never throws).
@@ -238,7 +239,7 @@ class ChampSelect {
         const chosen = await this.pickCandidate(pri, unavailable);
         if (chosen) {
           if (myPick.isInProgress) {
-            if (this.pickOpen === null) { this.pickOpen = now(); log("pick turn detected; lock countdown started"); }
+            if (this.pickOpen === null) { this.pickOpen = now(); log(edition.RULES.lockIn ? "pick turn detected; lock countdown started" : "pick turn detected; you lock in"); }
             const lock = this.readyToLock(cs);
             if (lock) log(`locking pick ${chosen} (+${(now() - this.pickOpen).toFixed(2)}s)`);
             await this.commit(myPick, chosen, "pick", actionState, lock);
@@ -313,6 +314,7 @@ class ChampSelect {
   // Instant by default; otherwise lock once `lock_in_at_seconds` would remain of an assumed ~30s
   // window measured from when our turn was detected (the client's phase timer runs ahead).
   readyToLock(cs) {
+    if (!edition.RULES.lockIn) return false; // the store edition never locks in (DONI-704)
     if (T(getd(cs, "instant_lock", true))) return true;
     let lockAt = pyFloat(getd(cs, "lock_in_at_seconds", C.DEFAULT_LOCK_SECONDS));
     if (lockAt === null) lockAt = C.DEFAULT_LOCK_SECONDS;
@@ -346,7 +348,7 @@ class ChampSelect {
       log(`${label} ${kind}: ${display} (action ${actionId}) -> ok=${ok}`);
       return;
     }
-    if (lock) {
+    if (lock && edition.RULES.lockIn) { // the store edition leaves the lock-in to you (DONI-704)
       const ok = await this.patch(actionId, championId, true);
       log(`LOCK ${kind}: ${display} (action ${actionId}) -> ok=${ok}`);
       if (ok) {
@@ -929,6 +931,7 @@ function attach(lcu, impl, push, state) {
       if (!s || !Number.isInteger(cid) || cid <= 0) return { ok: false, error: "No champion select right now" };
       const mine = arr(s.actions).flat().find((a) => a.actorCellId === s.localPlayerCellId && a.type === "pick" && !a.completed);
       if (!mine) return { ok: false, error: "You've already locked in" };
+      if (lock && !edition.RULES.lockIn) return { ok: false, error: "Lock in on your PC" }; // DONI-704
       if (lock && !mine.isInProgress) return { ok: false, error: "It isn't your turn to pick yet" };
       const ok = await cs.patch(mine.id, cid, !!lock);
       push(ok ? `${lock ? "Locked" : "Hovering"} ${cs.name(cid)} from your phone` : `Phone ${lock ? "lock" : "hover"} failed`, ok ? (lock ? "success" : "info") : "warning", "champ");

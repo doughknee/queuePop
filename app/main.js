@@ -16,7 +16,8 @@ const { UI_SCALES, gameOfQueue, forGame } = require("./champ-config");
 
 const WEBUI = path.join(__dirname, "..", "src", "webui", "index.html");
 // ponytail: read-only view of the Python app's config; save_config stays stubbed until config is ported.
-const { CONFIG_FILE } = require("./config"); // userData when installed (config.js)
+const { CONFIG_FILE } = require("./config");
+const { RULES } = require("./edition"); // userData when installed (config.js)
 const VERSION = (fs.readFileSync(path.join(__dirname, "..", "src", "_version.py"), "utf8").match(/"(.+)"/) || [])[1];
 
 // The log also goes to <userData>/queuepop.log (1 MB, one .old rotation) so a slow start or a crash leaves a trace
@@ -91,7 +92,7 @@ async function readyCheck(data) {
   }
   // DONI-351: the lasting on/off (Settings > League); Pause stays the for-now switch. Stepping away always accepts.
   // Off still pushes the pop (the phone alarms on it), it just doesn't accept.
-  const autoAccept = state.away || mine.auto_accept;
+  const autoAccept = RULES.autoAccept && (state.away || mine.auto_accept); // DONI-704: never in the store edition
   if (!state.popPushed) push(`Queue popped: ${qname(queueId)}. ${autoAccept ? "Accepting…" : "Accept it in the client."}`, "danger", "queue_pop"); // once per pop, not per retry
   state.popPushed = true;
   if (!autoAccept) { log(`Ready check popped queue=${queueId}; auto-accept is off`); return; } // the latch stays until the check ends

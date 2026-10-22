@@ -113,6 +113,8 @@
   addEventListener('popstate', window.syncSidebar);
   // Clicks only matter when they moved the address (Deadlock/TFT pushState); everything else would redo the same work (DONI-535).
   addEventListener('click', () => setTimeout(() => { if (location.hash !== synced) window.syncSidebar(); }));
+  // DONI-704: the store edition (the build Riot and Overwolf review) hides what it never does; the rules are in settings.css.
+  if (window.QP && QP.bus) QP.bus.on('status', s => { if (s && s.edition) document.documentElement.dataset.edition = s.edition; });
   // Shell add-ons that index.html doesn't list (DONI-537): the global search sheet.
   for (const src of ['palette.js', 'keys.js', 'statusline.js', 'draft-advice.js', 'recordings.js', 'studio.js', 'ads.js']) document.body.append(Object.assign(document.createElement('script'), { src })); // DONI-538: keys.js
   // The skip link is the first Tab stop (it sat after the window buttons), and it lands on Settings too (worlds.js focuses it).

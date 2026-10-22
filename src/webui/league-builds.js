@@ -79,7 +79,7 @@ document.addEventListener('click', e => {
 // inline list (no popup). The sidebar keeps every page (index.html: .lg-row-hide hides them in the row only).
 function leagueMorePage() {
   const P = [['#/league/leaderboard', 'Leaderboard', 'The ranked ladder per region; open anyone for their ranks and last 20 matches.'], ['#/league/champ', 'Champ select', 'Auto pick and ban, runes and loadouts for every role, set up before the timer starts.'],
-    ['#/league/dashboard', 'Dashboard', 'Auto-accept, alerts and what happened in your last queues.'],
+    ['#/league/dashboard', 'Dashboard', 'Your queues, alerts and what happened in your last games.'],
     ['#/league/play', 'Queue', 'Start any queue from here, with your favourites first.'],
     ['#/league/account', 'Account', 'Your ranks, mastery and challenges from the League client.']];
   const top = Object.keys(champions)[0], art = leagueLive.real ? champArt(top) : `url('assets/ahri.webp')`;

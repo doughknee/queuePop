@@ -117,11 +117,13 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
         <div class="st-sub">Release notes</div><div id="st-notes" class="st-notes">Loading…</div>`) +
       // ---- League ----
       card('league-queue', 'Queue', `
+        <p class="st-store">queuePop alarms you everywhere you set up when the queue pops. Accept it in the League client on your PC, so you're there for champ select.</p>
         ${sw('auto_accept', 'Auto-accept queue pops', 'Accepts League matches for you. Stays as you set it after a restart; the tray’s Pause is for right now only.')}
         ${num('accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'auto_accept')}
         ${queues}`) +
       card('league-alerts', 'Alerts', chips(LEAGUE_EVENTS, 'alert_events.'), 'Tell me when… <a href="#/settings#notify">Where alerts go</a>') +
       card('champselect', 'Champ select', `
+        <p class="st-store">When it's your turn, queuePop hovers your ban and your pick from your plan. You lock in.</p>
         ${sw('champ_select.enabled', 'Auto pick and ban', 'Hovers, bans, picks and locks in from your champ select plan.')}
         ${sw('champ_select.instant_lock', 'Lock in at once', 'When off, it locks in near the end of the timer instead.', 'champ_select.enabled')}
         ${num('champ_select.lock_in_at_seconds', 'Lock in with (s left)', 'Seconds left on the timer when it locks in.', 0, 30)}
@@ -134,6 +136,7 @@ window.stTabOf = section => { const c = window.stCard(section); return window.ST
       card('league-record', 'Recording', sw('recorder.enabled', 'Record League games', 'Keeps a timeline of your kills, deaths, objectives and the result. See them in Studio. Video, sound and storage are in Studio > Capture.')) +
       // ---- TFT ----
       card('tft-queue', 'Queue', `
+        <p class="st-store">queuePop alarms you everywhere you set up when the queue pops. Accept it in the League client on your PC, so you're there for champ select.</p>
         ${sw('tft.auto_accept', 'Auto-accept queue pops', 'Accepts TFT matches for you, separately from League.')}
         ${num('tft.accept_delay_seconds', 'Accept delay (s)', 'Seconds to wait before accepting. 0 accepts at once.', 0, 10, 'tft.auto_accept')}
         ${queues}`) +

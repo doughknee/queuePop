@@ -10,6 +10,7 @@ const { createAccount, QUEUE_ID_MAP } = require("./account");
 const { createTray } = require("./tray");
 const { attachTimeline } = require("./timeline");
 const { createAway } = require("./stepping-away");
+const edition = require("./edition"); // DONI-704
 const { attachGamePlan } = require("./game-plan");
 const { attachRecap } = require("./recap");
 const { attachRecorder } = require("./recorder");
@@ -49,7 +50,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const notifier = createNotifier({ getConfig: loadConfig, push, log, icon: ICON, Notification,
     onClick: () => { if (win.isMinimized()) win.restore(); win.show(); win.focus(); } });
   const timeline = attachTimeline({ lcu, push, notifier, getConfig: loadConfig }); // DONI-423
-  const away = createAway(state, push); // DONI-424
+  const away = createAway(state, push, edition.RULES.steppingAway); // DONI-424; off in the store edition
   const plan = attachGamePlan({ lcu, push, notifier, getConfig: loadConfig, log, isPaused: () => state.paused }); // DONI-347
   const champName = (id) => ((impl.get_champion_catalog && impl.get_champion_catalog()) || []).find((c) => Number(c.id) === Number(id))?.name || `champion ${id}`;
   // DONI-523: the recorder writes one file per game under the recordings folder (Settings > Recorder (beta)).
@@ -83,7 +84,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
   const recap = attachRecap({ lcu, push, getConfig: loadConfig, file: path.join(app.getPath("userData"), "draft-recaps.json"), names: champName, log }); // DONI-349
   const companion = createCompanion({
     webRoot: path.join(__dirname, "..", "src", "webui"), events, getConfig: loadConfig, push,
-    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, plan: plan.get(), record: recap.list().record, timeline: timeline.status(), away: away.status().on,
+    status: () => ({ connected: lcu.connected, paused: state.paused, phase: state.phase, plan: plan.get(), record: recap.list().record, timeline: timeline.status(), away: away.status().on, edition: edition.edition,
       ready: state.ready && state.ready.state === "InProgress" ? { response: state.ready.playerResponse, timer: state.ready.timer } : null }),
     setAway: (on) => away.set(on),
     // DONI-337: champ select on the phone: who you are, the timer, trades waiting for your answer.
@@ -137,8 +138,8 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
       if (allowed.length && !allowed.includes(qid)) return; // main.js already logged the skip
       queueName = QUEUE_ID_MAP[qid] || (qid ? `Queue ${qid}` : "Unknown");
       notifier.game = gameOfQueue(qid, gc && gc.gameMode); // DONI-594: later alerts for this match use this game's settings
-      const auto = state.away || forGame(loadConfig(), notifier.game).auto_accept; // DONI-351: say what will actually happen
-      notifier.alert("queue_pop", "Queue Popped!", auto ? "Accepting your match automatically, get back to your PC!" : "Accept it in the client, auto-accept is off!", "Queue pop", { queue: queueName });
+      const auto = edition.RULES.autoAccept && (state.away || forGame(loadConfig(), notifier.game).auto_accept); // DONI-351: say what will actually happen
+      notifier.alert("queue_pop", "Queue Popped!", auto ? "Accepting your match automatically, get back to your PC!" : edition.STORE ? "Get back to your PC and accept it!" : "Accept it in the client, auto-accept is off!", "Queue pop", { queue: queueName });
     } else if (e.uri === "/lol-gameflow/v1/gameflow-phase" && e.eventType !== "Delete") {
       if (e.data === "ChampSelect") notifier.alert("champ_select", "⚔️ Champ select started", "Champ select has started.", "Champ select", { queue: queueName });
       else if (e.data === "InProgress") notifier.alert("game_start", "🎮 Game starting", "Your game is starting.", "Game start", { queue: queueName });
@@ -161,7 +162,7 @@ function init({ win, lcu, state, events, impl, loadConfig, configFile, push, log
         webhook_configured: !!cfg.webhook_url, user_id: cfg.user_id || "", desktop_notifications: !!cfg.desktop_notifications,
         champ_select_enabled: !!(cfg.champ_select || {}).enabled, allowed_queue_count: (cfg.allowed_queue_ids || []).length,
         champions_loaded: 0, companion_enabled: !!cfgComp().enabled, companion_running: companion.isRunning(),
-        companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version, stepping_away: away.status(),
+        companion_clients: companion.clientCount(), alert_last: { ...notifier.lastSent }, version, stepping_away: away.status(), edition: edition.edition,
         overwolf: !!app.overwolf, // running on ow-electron: the sidebar ad can serve (docs/ads.md)
         // Real ads only when asked for: --test-ad, or config ads.live once the release gate is cleared (docs/ads.md).
         ads_live: process.argv.includes("--test-ad") || !!(cfg.ads || {}).live,

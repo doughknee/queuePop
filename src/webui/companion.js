@@ -213,8 +213,9 @@ async function pollChamp() {
       <div class="row"><button class="btn" data-a="accept">Accept</button><button class="btn no" data-a="decline">Decline</button></div><p class="muted" role="status"></p></div>`).join("");
   } catch (_) { /* the status poll reports a lost connection */ }
 }
-// DONI-549: your list for the role as tiles; a tap hovers, "Lock in" locks it on your turn.
-let pickSig = "";
+// DONI-549: your list for the role as tiles; a tap hovers, "Lock in" locks it on your turn. The store edition (DONI-704) only
+// hovers from the phone: you lock in at your PC.
+let pickSig = "", store = false;
 async function pollPicks() {
   let r; try { r = await (await fetch(withToken("/api/picks"), { cache: "no-store" })).json(); } catch (_) { return; }
   const box = $("cs-picks");
@@ -222,9 +223,9 @@ async function pollPicks() {
   const sig = JSON.stringify([r.picks.map((p) => p.id), r.hovered, r.myTurn, r.auto]);
   if (sig === pickSig) return; // don't redraw under a finger
   pickSig = sig;
-  box.innerHTML = `<p class="k" style="margin:14px 0 0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em">Your ${escapeHtml(r.role || "")} picks${r.auto ? " · auto pick is on" : ""}</p>` +
+  box.innerHTML = `<p class="k" style="margin:14px 0 0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em">Your ${escapeHtml(r.role || "")} picks${store ? " · lock in on your PC" : r.auto ? " · auto pick is on" : ""}</p>` +
     `<div class="picks">${r.picks.map((p) => `<button type="button" data-id="${p.id}" aria-pressed="${p.id === r.hovered}"><img src="assets/champions/${p.id}.png" alt="" onerror="this.style.visibility='hidden'"><span>${escapeHtml(p.name)}</span></button>`).join("")}</div>` +
-    (r.myTurn && r.hovered ? `<button class="btn" id="pick-lock" type="button" data-id="${r.hovered}">Lock in</button>` : "") + `<p class="muted" id="pick-msg" role="status"></p>`;
+    (r.myTurn && r.hovered && !store ? `<button class="btn" id="pick-lock" type="button" data-id="${r.hovered}">Lock in</button>` : "") + `<p class="muted" id="pick-msg" role="status"></p>`;
 }
 $("cs-picks").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b) return;
@@ -254,7 +255,7 @@ $("cs-trades").addEventListener("click", async (e) => {
 
 // DONI-424: "I'm stepping away" arms the PC for an away player; "I'm back" restores your own settings.
 function drawAway(on) {
-  const b = $("away"); b.hidden = false; b.classList.toggle("on", on);
+  const b = $("away"); b.hidden = store; b.classList.toggle("on", on);
   b.textContent = on ? "I'm back" : "I'm stepping away"; $("away-note").hidden = !on; b.dataset.on = on ? "1" : "";
 }
 $("away").addEventListener("click", async () => {
@@ -290,6 +291,8 @@ async function pollStatus() {
     }
     ensureCustomSound();
     timeline = s.timeline || null; drawTimeline();
+    if (store !== (s.edition === "store")) { store = s.edition === "store"; pickSig = ""; // DONI-704: the store build never accepts for you
+      $("pc-note").textContent = store ? "Your phone alarms when your League queue pops. Come back and accept it on your PC." : "Your phone alarms when your League queue pops. queuePop accepts the match on your PC; this is your nudge to come back."; }
     drawAway(!!s.away);
     const rec = s.record, f = rec && rec.followed, ig = rec && rec.ignored; // DONI-349
     $("rec").hidden = !(f && (f.games || ig.games));

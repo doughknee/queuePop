@@ -46,8 +46,12 @@ docs/ow-electron-host.md (host and recorder) and docs/ads.md (ads and the suppor
 - [x] No Brawl or League Classic data: the crawler collects 420, 440, 450, 400 and 480/490 only (`crawler/src/jobs.js` MODES).
 - [x] No power-spike notices, no "do X now" calls from in-game state, no ultimate / summoner-spell / ability timers. The game
   plan (`app/game-plan.js`) is pre-game build, skills, matchup and objective stats, sent during champ select.
-- [ ] Riot's own approval (DONI-693) covers what Overwolf's page doesn't: auto-accept, auto pick/ban, lock-in while stepping
-  away, draft suggestions and recording. Keep any new champ select or in-game feature inside the rules above.
+- [x] Store edition (DONI-704, `app/edition.js`): the Overwolf build (`dist:ow` stamps `edition: "store"`) never auto-accepts,
+  never locks in (picks and bans are hovered), takes nothing from the ARAM bench, sends no trades, has no stepping away and no lock from
+  the phone. Riot: products "should not remove game decisions, but may highlight decisions that are important"; an approved Overwolf
+  League app (Team Advisor) lost auto-accept. The personal build keeps everything.
+- [ ] Riot's own approval (DONI-693). The application asks separately whether an opt-in auto-accept would ever be allowed. Keep any new
+  champ select or in-game feature inside the rules above, and in the store edition's highlight-don't-decide line.
 
 ## Ship
 

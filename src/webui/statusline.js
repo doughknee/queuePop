@@ -12,7 +12,7 @@
     // Down after a page had loaded: it keeps its numbers (stats-api serves the last good copy), so say so quietly.
     if (stats && f.stale && f.crawler !== 'ok') out.push({ id: 'crawler', level: 'warn', text: 'The stats crawler stopped answering. Showing what was already loaded; retrying.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
     else if (stats && f.crawler === 'down') out.push({ id: 'crawler', level: 'bad', text: 'The stats crawler isn’t answering, so League and TFT stats can’t load.', fix: 'Check its address', href: '#/settings#crawler', focus: 'crawler_url', retry: true });
-    if (play && f.client === false) out.push({ id: 'client', level: 'warn', text: 'The League client isn’t running: no auto-accept, no live data.', fix: 'Open League', act: 'launch', retry: true });
+    if (play && f.client === false) out.push({ id: 'client', level: 'warn', text: 'The League client isn’t running: no queue alerts, no live data.', fix: 'Open League', act: 'launch', retry: true });
     if ((f.game === 'home' || f.game === 'settings') && f.update && f.update.available && f.update.latest) out.push({ id: 'update:' + f.update.latest, level: 'info', text: `queuePop v${f.update.latest} is out.`, fix: 'Get it', act: 'update' });
     return out;
   }
