@@ -375,3 +375,11 @@ kbd{display:inline-block;min-width:20px;padding:0 5px;border:1px solid var(--edg
 .sd-mm>.rec-strip{margin-bottom:14px}
 .sd-mm .sd-tiles{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
 .sd-mm .sd-tcap b{font-size:17px}
+/* Deck-out 3: read to screen readers only; a game or clip whose file is gone says so on the screen; the empty box's two buttons. */
+.sd-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sd-vid.broken{min-height:clamp(260px,40vh,460px)}.sd-vid.broken video,.sd-vid.broken .sd-bigplay{display:none}
+.sd-gone{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;margin:0;padding:30px;line-height:1.6;animation:sdIn .3s both}
+.sd-gone b{font:400 36px/.95 var(--display);text-transform:uppercase}.sd-gone span{max-width:520px;color:var(--muted)}
+.sd-empty-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.sd-stage-media video{transition-duration:.3s}
+.sd-screen.dead .rp-bar,.sd-screen.dead .rp-cut{opacity:.35;pointer-events:none}

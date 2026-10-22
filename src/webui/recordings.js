@@ -67,6 +67,17 @@
   window.recClipKind = c => (c.mine || (c.types || []).some(t => t === 'manual' || t === 'mine')) ? 'mine' : ['multikill', 'objective', 'kill', 'assist', 'death'].find(k => (c.types || []).includes(k)) || 'clip';
   window.recStrip = rec => `<div class="rec-strip" role="img" aria-label="${E(stripMarkers(rec).length)} moments">${stripMarkers(rec).map(m =>
     `<i class="rec-m rec-${m.type}" style="left:${m.left}%" title="${E(m.label)}"></i>`).join('')}</div>`;
+  // An empty Library or Highlights (deck-out 3) says one true thing for the recorder's state and offers the one switch that
+  // fixes it: s = { on: League or TFT records, video }. btn: 'on' (Record my games; 'on-video' also turns video on), 'video'
+  // (Record video too) or 'capture' (just the settings link). Pure; app/test-recorder.js checks it.
+  window.recEmptyState = (page, s = {}) => {
+    const clips = 'a clip of every kill, multikill and objective';
+    if (page === 'highlights') return !s.on ? { h: 'No clips yet', p: `Turn the recorder on with video and queuePop keeps ${clips} while you play.`, btn: 'on-video' }
+      : !s.video ? { h: 'No clips yet', p: `Video is off, so games keep their timeline only. Turn it on and queuePop keeps ${clips} while you play.`, btn: 'video' }
+      : { h: 'No clips yet', p: `queuePop keeps ${clips} while you play. You can also cut your own in the player, or save the last moments with the shortcut.`, btn: 'capture' };
+    return !s.on ? { h: 'Your games will show up here', p: `Turn the recorder on and every League and TFT game you play lands here with its timeline. With video on, you also get ${clips}.`, btn: 'on' }
+      : { h: 'Your next game shows up here', p: `The recorder is on. Play a League or TFT game and it lands here when the game ends, ${s.video ? `with ${clips}` : 'with its timeline (video is off)'}.`, btn: s.video ? 'capture' : 'video' };
+  };
   if (typeof document === 'undefined' || !document.getElementById('qp-sidebar')) return;
 
   const api = () => window.pywebview && window.pywebview.api;
@@ -148,7 +159,12 @@
       <div class="sd-tcap"><b>${E(clipName(c))}</b><small>${o.meta != null ? o.meta : `${E(recFacts(r).title)} · ${E(when(r.startedAt))}`}</small></div></li>`;
   }
   const skeleton = page => `<div class="sd-skel" aria-hidden="true">${page === 'library' ? '<i class="sd-skel-stage"></i>' : ''}<div class="sd-skel-row">${'<i></i>'.repeat(page === 'library' ? 3 : 8)}</div></div>`;
-  const pageHead = page => `<header class="sd-top"><div><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1></div><div class="sd-status-slot" id="sd-status"></div></header><div id="sd-note"></div>`;
+  const pageHead = page => `<header class="sd-top"><div><p class="eyebrow">Studio</p><h1>${page === 'highlights' ? 'Highlights' : 'Library'}</h1></div><div class="sd-status-slot" id="sd-status"></div></header><div id="sd-note"></div><p class="sd-sr" id="sd-live" aria-live="polite"></p>`;
+  // Deck-out 3: the window title names the page (worlds.js sets "Studio · QueuePop" for all of them).
+  const titled = name => { document.title = `${name} · Studio · QueuePop`; };
+  // A redraw swaps .sd-body, so keyboard focus would fall to <body>: it goes back to the control you used (a selector), or to
+  // the nth match of one (the first game Show older added, the card that took a deleted one's place).
+  const refocus = (box, f) => { if (!f) return; const [sel, n] = Array.isArray(f) ? f : [f, 0], all = box.querySelectorAll(sel), el = all[Math.min(n, all.length - 1)]; if (el) el.focus({ preventScroll: true }); };
   // The Library's games: All or Starred, one champion (or TFT) or every one; the stage and the counts read the whole list.
   const libPool = list => window.recLibraryPool(list, { star: tab === 'favorites', champ: lchamp });
 
@@ -157,8 +173,9 @@
   async function render(host, o = {}) {
     const rt = route();
     if (rt.page === 'game' && rt.id) return renderPlayer(host, decodeURIComponent(rt.id), rt.clip == null ? null : +rt.clip);
-    if (rt.page === 'capture') return window.studioCapture ? studioCapture.render(host) : (host.innerHTML = '<p class="rec-empty">Loading Capture…</p>');
+    if (rt.page === 'capture') { titled('Capture'); return window.studioCapture ? studioCapture.render(host) : (host.innerHTML = '<p class="rec-empty">Loading Capture…</p>'); }
     const page = rt.page === 'highlights' ? 'highlights' : 'library', sel = `[data-sd-page="${page}"]`;
+    titled(page === 'highlights' ? 'Highlights' : 'Library');
     // Its title and a skeleton at once; the list fills in when it answers, the recorder's status after that (the first engine
     // check can take seconds, so the list never waits for it).
     if (!host.querySelector(sel)) host.innerHTML = `<section class="rec-page sd-page" data-sd-page="${page}">${pageHead(page)}<div class="sd-body">${skeleton(page)}</div></section>`;
@@ -184,6 +201,10 @@
       : page === 'highlights' ? highlightsHtml(clips) : libraryHtml(list, pool, full);
     lazyVideos(box);
     startStage(box);
+    refocus(box, o.focus);
+    // What a filter left, said once to a screen reader (the count on screen is redrawn, so it can't be the live region).
+    const live = sec.querySelector('#sd-live');
+    if (live && !first && !failed) live.textContent = page === 'highlights' ? (box.querySelector('.sd-count') || {}).textContent || '' : plural(pool.length, 'game');
     if (first || o.status) fillStatus(sec, page);
     if (!failed) setTimeout(prunePosters, 3000);
   }
@@ -194,8 +215,8 @@
     const [chip, eng] = await Promise.all([window.studioSummary ? studioSummary().catch(() => '') : '', api().recorder_status().then(s => (s || {}).engine).catch(() => null)]);
     const slot = host.querySelector('#sd-status'), note = host.querySelector('#sd-note'); if (!slot || !note) return;
     // The fix sits beside the status: turn the recorder on, or video on (Library only). A missing engine needs a sentence.
-    const none = eng && !eng.engine;
-    slot.innerHTML = chip + (!on ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>'
+    const none = eng && !eng.engine, offered = !!host.querySelector('.sd-empty [data-rec-on],.sd-empty [data-rec-video]');
+    slot.innerHTML = chip + (offered ? '' : !on ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>'
       : !video && !none && page === 'library' ? '<button type="button" class="sd-btn primary" data-rec-video title="Games keep their timeline only while video is off">Record video too</button>' : '');
     const ff = '<a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener noreferrer">get ffmpeg ↗</a>';
     note.innerHTML = on && none ? `<p class="sd-note warn"><span>${video ? 'Video is on, but nothing can record it, so games keep their timeline only.' : 'Video needs a recorder.'} Start the QueuePop companion (the Overwolf app), or ${ff} and add it to PATH.</span></p>` : '';
@@ -217,8 +238,15 @@
   const unitHtml = u => { const i = (window.tftStats && tftStats.info(u.key)) || {}; return `<span class="rec-unit s${u.stars}" title="${E(i.name || u.key)} ${'★'.repeat(u.stars || 1)}">${i.icon ? `<img src="${E(i.icon)}" alt="">` : E(String(i.name || u.key).slice(0, 3))}</span>`; };
   const boardHtml = rec => rec.game === 'tft' && rec.board && (rec.board.units || []).length ? `<span class="rec-board">${rec.board.units.map(unitHtml).join('')}</span>` : '';
 
+  const recOn = () => { const c = QP.store.config || {}; return { on: !!((c.recorder || {}).enabled || (c.tft || {}).record), video: !!(c.recorder || {}).video }; };
+  function emptyHtml(page, icon) {
+    const x = window.recEmptyState(page, recOn()), cap = '<a class="sd-btn ghost" href="#/studio/capture">Capture settings</a>';
+    const btn = x.btn === 'capture' ? '<a class="sd-btn" href="#/studio/capture">Capture settings</a>' : x.btn === 'video' ? `<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>${cap}`
+      : `<button type="button" class="sd-btn primary" data-rec-on${x.btn === 'on-video' ? '="video"' : ''}>Record my games</button>${cap}`;
+    return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico(icon)}</span><h2>${E(x.h)}</h2><p>${E(x.p)}</p><div class="sd-empty-acts">${btn}</div></div>`;
+  }
   function libraryHtml(list, pool, full) {
-    if (!list.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('play')}</span><h2>Your games will show up here</h2><p>Play a League or TFT game with the recorder on. Every game keeps its timeline; with video on, your kills, multikills and objectives are cut into clips as you play.</p><a class="sd-btn" href="#/studio/capture">Capture settings</a></div>`;
+    if (!list.length) return emptyHtml('library', 'play');
     const games = pool.slice(0, more).map((r, i) => ({ r, rec: full[i] || r })), favN = list.filter(r => r.favorite).length;
     const stage = tab === 'all' && !lchamp && games[0] ? stageHtml(games[0].r, games[0].rec) : '';
     const rest = stage ? games.slice(1) : games;
@@ -264,8 +292,11 @@
     const light = () => { st.querySelectorAll('[data-reel]').forEach(li => li.classList.toggle('now', q[n] && +li.dataset.reel === q[n].i)); const b = st.querySelector('[data-sd-now]'); if (b && q[n]) b.textContent = q[n].name; const w = st.querySelector('[data-sd-watch]'); if (w && q[n]) w.href = gameHref(st.querySelector('[data-rec-fav]').dataset.recFav, q[n].i); };
     v.muted = true; v.play().catch(() => {}); light();
     v.addEventListener('playing', () => st.classList.add('live'));
-    if (q.length > 1) v.addEventListener('ended', () => { n = (n + 1) % q.length; v.src = q[n].src; v.play().catch(() => {}); light(); });
+    // Between clips the video fades to the splash art and back (no black frame while the next file opens).
+    if (q.length > 1) v.addEventListener('ended', () => { st.classList.remove('live'); setTimeout(() => { if (!v.isConnected) return; n = (n + 1) % q.length; v.src = q[n].src; v.play().catch(() => {}); light(); }, 320); });
     else v.loop = true;
+    // A file that's gone leaves the art up and stops claiming something is playing.
+    v.addEventListener('error', () => { st.classList.remove('live'); st.querySelector('.sd-now')?.remove(); });
   }
   // A card's title fits one line: TFT games show the mode, the placement is the result tag.
   const cardTitle = r => r.game === 'tft' ? (r.queueId === 1160 ? 'Double Up' : 'TFT') : recFacts(r).title;
@@ -283,7 +314,7 @@
 
   // --- Highlights ----------------------------------------------------------------------------------------------------------
   function highlightsHtml(clips) {
-    if (!clips.length) return `<div class="sd-empty"><span class="sd-empty-art" aria-hidden="true">${ico('star')}</span><h2>No clips yet</h2><p>With video on, queuePop keeps a clip of every kill, multikill and objective while you play. You can also cut your own in the player, or save the last moments with the shortcut.</p>${QP.store.config && (QP.store.config.recorder || {}).video ? '<a class="sd-btn" href="#/studio/capture">Capture settings</a>' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}</div>`;
+    if (!clips.length) return emptyHtml('highlights', 'star');
     const shown = window.recFilterClips(clips, hf), count = t => clips.filter(({ c }) => t === 'mine' ? window.recClipKind(c) === 'mine' : (c.types || []).includes(t)).length;
     const types = [['all', 'All', clips.length], ['kill', 'Kills'], ['multikill', 'Multikills'], ['objective', 'Objectives'], ['assist', 'Assists'], ['death', 'Deaths'], ['mine', 'Yours']].map(([k, l, n]) => [k, l, n ?? count(k)]).filter(([k, , n]) => k === 'all' || n);
     const champs = [...new Set(clips.map(({ r }) => r.champion).filter(Boolean))].sort();
@@ -315,8 +346,10 @@
     let list = []; try { list = (await a.list_recordings()) || []; } catch { return ''; }
     const mine = list.filter(r => r.clips && String(r.champion || '').toLowerCase() === String(name).toLowerCase());
     if (!mine.length) return '';
-    const full = await Promise.all(mine.slice(0, 40).map(r => a.get_recording(r.matchId).catch(() => null)));
-    const items = []; full.forEach((rec, k) => (rec && rec.clips || []).forEach((c, i) => items.push({ r: mine[k], c, i })));
+    // Every game on that champion (deck-out 3: it read the newest 40, so the count was short and older best plays never showed;
+    // 300 games read in well under 100 ms).
+    const full = await Promise.all(mine.map(r => a.get_recording(r.matchId).catch(() => null)));
+    const items = []; full.forEach((rec, k) => (rec && rec.clips || []).forEach((c, i) => c.file && items.push({ r: mine[k], c, i })));
     const top = window.recPickChampionClips(items, name, 4);
     if (!top.length) return '';
     return `<section class="sd-shelf" aria-label="Your top ${E(name)} clips"><header><div><p class="sd-shelf-kick">${ico('play')} From your Studio</p><h2>Your top ${E(name)} clips</h2></div><small>Your starred and saved clips first, then your best plays.</small><a class="sd-btn" href="#/studio/highlights" data-myclips-champ="${E(name)}">${items.length > top.length ? `All ${items.length} in Studio` : 'Open Studio'} →</a></header>
@@ -340,6 +373,7 @@
     if (rec.game === 'tft' && window.tftStats) tftStats.loadDragon().then(() => { const b = onGame(id) && document.querySelector('.sd-vid.novid .rec-board'); if (b) b.outerHTML = boardHtml(rec); }).catch(() => {});
     if (!onGame(id)) return;
     const counts = (rec.events || []).reduce((m, e) => ((m[e.type] = (m[e.type] || 0) + 1), m), {}), f = recFacts({ ...rec, counts });
+    titled(cardTitle(rec));
     // Clips-only games (Studio > Capture > Keep: clips only) have no full video: the player plays its clips one after another.
     const clipsOnly = !rec.video && (rec.clips || []).length > 0;
     const evLen = Math.max(60, rec.length || 0, ...(rec.events || []).filter(e => Number.isFinite(e.t)).map(e => e.t));
@@ -359,7 +393,7 @@
       rec.video || clipsOnly ? `<dl class="rp-keys"><div><dt><kbd>Space</kbd></dt><dd>Play or pause</dd></div><div><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>5 s back, forward</dd></div><div><dt><kbd>,</kbd><kbd>.</kbd></dt><dd>One frame</dd></div><div><dt><kbd>[</kbd><kbd>]</kbd></dt><dd>Previous, next clip</dd></div>${clipsOnly ? '' : '<div><dt><kbd>I</kbd><kbd>O</kbd><kbd>C</kbd></dt><dd>Start, end, save a clip</dd></div>'}<div><dt><kbd>M</kbd><kbd>F</kbd></dt><dd>Mute, star the game</dd></div></dl>` : ''].join('');
     host.innerHTML = `<section class="rec-page sd-page sd-player" data-id="${E(id)}">
       <header class="sd-phead"><div class="sd-ptitle"><a class="sd-pback" href="#/studio" title="Back to the Library" aria-label="Back to the Library">${ico('back')}</a><h1>${E(cardTitle(rec))}</h1>
-          <p>${resTag({ ...rec })}<span>${[f.result && rec.game === 'tft' ? f.result : '', f.facts, when(rec.startedAt)].filter(Boolean).map(E).join(' · ')}</span></p></div>
+          <p>${resTag({ ...rec })}<span>${[f.result && rec.game === 'tft' ? f.result : '', ...f.facts.split(' · '), when(rec.startedAt)].filter(Boolean).map(x => E(x).replace(/ /g, '&nbsp;')).join(' · ')}</span></p></div>
         <div class="sd-pacts">${star(rec.favorite, `data-rec-fav="${E(rec.matchId)}"`, f.title, true)}${rec.video ? `<button type="button" class="sd-btn ghost" data-rec-show="${E(rec.matchId)}">${ico('folder')}<span>Show file</span></button>` : ''}</div></header>
       <div class="sd-theater${side ? '' : ' solo'}"><div class="sd-screen" id="rp-screen">${screen}</div>${side ? `<aside class="sd-side">${side}</aside>` : ''}</div></section>`;
     drawClips(); drawTimeline();
@@ -372,7 +406,7 @@
     v.addEventListener('ended', () => { if (P.clipsOnly && P.cur < P.rec.clips.length - 1) playClip(P.cur + 1); });
     v.addEventListener('click', () => rpAction('toggle'));
     v.addEventListener('dblclick', () => rpAction('full'));
-    v.addEventListener('error', () => say('The video file is missing or can’t be played.'));
+    v.addEventListener('error', () => gone(box));
     // The timeline is the scrubber: press and drag to seek, hover to see the time and the moment under the pointer.
     const tl = document.getElementById('rp-tl'), tip = document.getElementById('rp-tip'); let drag = false;
     const at = e => { const r = tl.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * (P.len || 0); };
@@ -380,7 +414,8 @@
     tl.addEventListener('pointermove', e => { const t = at(e); if (drag) seek(t); const m = e.target.closest('[data-t]'); tip.hidden = false; tip.style.left = pct(t); tip.textContent = m ? m.getAttribute('aria-label') : mmss(t); });
     tl.addEventListener('pointerup', () => { drag = false; });
     tl.addEventListener('pointerleave', () => { tip.hidden = true; });
-    tl.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); seek(v.currentTime + (e.key === 'ArrowRight' ? 5 : -5)); } });
+    tl.addEventListener('keydown', e => { const to = { ArrowLeft: v.currentTime - 5, ArrowRight: v.currentTime + 5, PageDown: v.currentTime - 30, PageUp: v.currentTime + 30, Home: 0, End: P.len }[e.key];
+      if (to != null) { e.preventDefault(); e.stopPropagation(); seek(to); } });
     if (clipsOnly && clipIdx != null) v.play().catch(() => {});
   }
   // The player's tools: play and time, clips, seek and frame step, speed, which sound you hear, volume, full screen; the cut
@@ -402,7 +437,8 @@
   function tick(v) {
     const t = document.getElementById('rp-time'); if (t) t.innerHTML = `${len(v.currentTime)} <small>/ ${len(P.len || v.duration)}</small>`;
     const h = document.getElementById('rp-ph'); if (h && P.len) h.style.left = pct(v.currentTime);
-    const tl = document.getElementById('rp-tl'); if (tl) tl.setAttribute('aria-valuenow', Math.round(v.currentTime));
+    // The slider says where you are in words; its marks are pointer-only (the Moments list is the keyboard way to them).
+    const tl = document.getElementById('rp-tl'); if (tl) { tl.setAttribute('aria-valuenow', Math.round(v.currentTime)); tl.setAttribute('aria-valuemax', Math.round(P.len || v.duration || 0)); tl.setAttribute('aria-valuetext', `${len(v.currentTime)} of ${len(P.len || v.duration)}`); }
     const cs = P.rec.clips || [], cur = P.clipsOnly ? P.cur : cs.findIndex(c => v.currentTime >= c.start && v.currentTime <= c.end);
     document.querySelectorAll('#rp-clips .rp-c').forEach((li, i) => li.classList.toggle('now', i === cur));
   }
@@ -423,7 +459,7 @@
     const sel = P.a != null ? `<i class="rp-range" style="left:${pct(P.a)};width:${pct((P.b ?? P.a) - P.a)}"></i>` : '';
     const ticks = Array.from({ length: Math.floor((P.len - 1) / 60) }, (_, m) => P.len > 600 && (m + 1) % 5 ? '' : `<i class="rp-tick" style="left:${pct((m + 1) * 60)}">${(m + 1) * 60 / P.len < 0.95 ? `<span>${m + 1}:00</span>` : ''}</i>`).join('');
     tl.innerHTML = (P.clipsOnly ? '' : ticks + (P.rec.clips || []).map(c => `<i class="rp-clip" style="left:${pct(c.start)};width:${pct(c.end - c.start)}"></i>`).join('')) + sel
-      + (P.clipsOnly ? '' : (P.rec.events || []).filter(e => Number.isFinite(e.t) && KIND[e.type]).map(e => `<button type="button" class="rec-m rec-${e.type}" style="left:${pct(e.t + P.off)}" data-t="${e.t + P.off}" aria-label="${E(mmss(e.t))} ${E(e.label)}"${P.rec.video ? '' : ' tabindex="-1"'}></button>`).join(''))
+      + (P.clipsOnly ? '' : (P.rec.events || []).filter(e => Number.isFinite(e.t) && KIND[e.type]).map(e => `<button type="button" class="rec-m rec-${e.type}" style="left:${pct(e.t + P.off)}" data-t="${e.t + P.off}" aria-label="${E(mmss(e.t))} ${E(e.label)}" tabindex="-1"></button>`).join(''))
       + (P.rec.video || P.clipsOnly ? '<i class="rp-ph" id="rp-ph"></i>' : '');
     if (tip) tl.append(tip);
   }
@@ -441,10 +477,14 @@
   const seek = t => { const v = document.getElementById('rp-v'); if (v && Number.isFinite(t)) { P.stopAt = null; v.currentTime = Math.max(0, Math.min(P.len || t, t)); tick(v); } };
   function playClip(i) {
     const c = (P.rec.clips || [])[i], v = document.getElementById('rp-v'); if (!c || !v) return;
-    if (P.clipsOnly) { P.cur = i; v.src = fileUrl(c.file); v.play().catch(() => {}); drawClips(); return; } // its own file
+    if (P.clipsOnly) { P.cur = i; v.parentElement.classList.remove('broken'); v.parentElement.querySelector('.sd-gone')?.remove(); v.src = fileUrl(c.file); v.play().catch(() => {}); drawClips(); return; } // its own file
     v.currentTime = c.start; P.stopAt = c.end; v.play().catch(() => {});
   }
   const say = t => { const m = document.getElementById('rp-msg'); if (m) m.textContent = t; };
+  // The file is gone (moved or deleted outside queuePop) or won't decode: the screen says so where you're looking, and the
+  // timeline and moments stay.
+  const gone = box => { if (box.querySelector('.sd-gone')) return; box.classList.add('broken'); if (!P.clipsOnly) box.parentElement.classList.add('dead');
+    box.insertAdjacentHTML('beforeend', `<p class="sd-gone" role="alert"><b>${P.clipsOnly ? 'This clip’s file is gone' : 'This game’s video is gone'}</b><span>It was moved or deleted outside queuePop, or it can’t be played here. The timeline and moments are still here.</span><button type="button" class="sd-btn" data-rec-folder>Open the recordings folder</button></p>`); };
   const selInfo = () => { const s = document.getElementById('rp-selinfo'); if (s) s.innerHTML = P.a == null ? 'Mark a start and an end while it plays.' : P.b == null ? `From <b>${mmss(P.a)}</b>, now mark the end` : `<b>${mmss(P.a)} → ${mmss(P.b)}</b> · ${Math.round(P.b - P.a)} s`; document.querySelector('.rp-cut')?.classList.toggle('ready', P.a != null && P.b != null); };
   // The League champion id for the name the recorder stored (Publish needs it); 0 before the names have loaded.
   const champId = name => { const n = String(name || '').toLowerCase(); if (typeof lg === 'undefined' || !n) return 0;
@@ -487,19 +527,21 @@
   document.addEventListener('click', async e => {
     const t = e.target.closest && e.target.closest('[data-rec-tab],[data-rec-more],[data-rec-retry],[data-rec-fav],[data-rec-cfav],[data-rp],[data-rp-clip],[data-rp-cdel],[data-rp-cshow],[data-rp-cren],[data-rp-cpub],[data-rp-cunpub],[data-hf-clear],[data-hf-more],.rp-tl [data-t],.sd-moments [data-t]');
     if (!t) return;
-    if (t.dataset.recTab) { tab = t.dataset.recTab; more = 30; render(document.getElementById('main')); return; }
+    if (t.dataset.recTab) { tab = t.dataset.recTab; more = 30; render(document.getElementById('main'), { focus: `.sd-seg [data-rec-tab="${tab}"]` }); return; }
     if (t.hasAttribute('data-rec-retry')) { t.disabled = true; render(document.getElementById('main')); return; }
     if (t.hasAttribute('data-rec-more') || t.hasAttribute('data-hf-more')) {
-      if (t.hasAttribute('data-rec-more')) more += 30; else hmore += 60;
-      t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main')); window.scrollTo(0, y); return;
+      // Focus lands on the first game (or clip) that came in, so Tab carries on from there.
+      const lib = t.hasAttribute('data-rec-more'), n = document.querySelectorAll(lib ? '.sd-games .sd-ttl' : '.sd-tiles .sd-media').length;
+      if (lib) more += 30; else hmore += 60;
+      t.disabled = true; t.textContent = 'Loading…'; const y = window.scrollY; await render(document.getElementById('main'), { focus: [lib ? '.sd-games .sd-ttl' : '.sd-tiles .sd-media', n] }); window.scrollTo(0, y); return;
     }
-    if (t.hasAttribute('data-hf-clear')) { Object.assign(hf, { type: 'all', champ: '', star: false }); reHL(); return; }
+    if (t.hasAttribute('data-hf-clear')) { Object.assign(hf, { type: 'all', champ: '', star: false }); reHL('[data-hf="type"][data-v="all"]'); return; }
     if (t.dataset.recFav) {
       e.preventDefault();
       const id = t.dataset.recFav, on = t.getAttribute('aria-pressed') !== 'true', label = t.classList.contains('sd-btn');
       await api().set_recording_favorite(id, on).catch(() => null);
       if (P.rec && P.rec.matchId === id) P.rec.favorite = on;
-      if (tab === 'favorites' && !location.hash.startsWith('#/studio/game/')) { render(document.getElementById('main')); return; }
+      if (tab === 'favorites' && !location.hash.startsWith('#/studio/game/')) { render(document.getElementById('main'), { focus: '.sd-seg [data-rec-tab="favorites"]' }); return; }
       t.outerHTML = star(on, `data-rec-fav="${E(id)}"`, what(t), label); return;
     }
     if (t.dataset.recCfav) {
@@ -546,13 +588,13 @@
     }
   });
   // Highlights' filters apply at once.
-  const reHL = () => { hmore = 60; const m = document.getElementById('main'); if (m && location.hash.startsWith('#/studio/highlights')) render(m); };
-  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-hf]'); if (b) { hf[b.dataset.hf] = b.dataset.v; reHL(); } });
+  const reHL = focus => { hmore = 60; const m = document.getElementById('main'); if (m && location.hash.startsWith('#/studio/highlights')) render(m, { focus }); };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-hf]'); if (b) { hf[b.dataset.hf] = b.dataset.v; reHL(`[data-hf="${b.dataset.hf}"][data-v="${b.dataset.v}"]`); } });
   document.addEventListener('change', e => {
     if (!e.target.matches) return;
-    if (e.target.matches('[data-hf-sel]')) { hf[e.target.dataset.hfSel] = e.target.value; reHL(); }
-    else if (e.target.matches('[data-hf-star]')) { hf.star = e.target.checked; reHL(); }
-    else if (e.target.matches('[data-lib-champ]')) { lchamp = e.target.value; more = 30; render(document.getElementById('main')); }
+    if (e.target.matches('[data-hf-sel]')) { hf[e.target.dataset.hfSel] = e.target.value; reHL(`[data-hf-sel="${e.target.dataset.hfSel}"]`); }
+    else if (e.target.matches('[data-hf-star]')) { hf.star = e.target.checked; reHL('[data-hf-star]'); }
+    else if (e.target.matches('[data-lib-champ]')) { lchamp = e.target.value; more = 30; render(document.getElementById('main'), { focus: '[data-lib-champ]' }); }
   });
   // Speed, volume and which sound you hear apply at once and stay while you move between clips.
   document.addEventListener('change', e => {
@@ -587,15 +629,15 @@
     const del = e.target.closest && e.target.closest('[data-rec-del]');
     // Deleting is for good, so the first click asks (inline, no dialog) and the second deletes.
     if (del && !del.dataset.sure) { del.dataset.sure = '1'; del.textContent = 'Delete for good?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.sure; del.textContent = 'Delete'; } }, 4000); return; }
-    if (del) { del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main')); }
+    if (del) { const n = [...document.querySelectorAll('.sd-games .sd-gdel')].indexOf(del); del.disabled = true; await api().delete_recording(del.dataset.recDel).catch(() => null); render(document.getElementById('main'), { focus: ['.sd-games .sd-ttl', Math.max(0, n)] }); }
     const folder = e.target.closest && e.target.closest('[data-rec-folder]');
     if (folder) { const r = await api().open_recordings_folder().catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) folder.textContent = r.error || 'Couldn’t open it'; return; }
     const vid = e.target.closest && e.target.closest('[data-rec-play],[data-rec-show]');
     if (vid) { const r = await api().open_recording(vid.dataset.recPlay || vid.dataset.recShow, !!vid.dataset.recShow).catch(err => ({ ok: false, error: err && err.message })); if (r && r.ok === false) vid.textContent = r.error || 'Couldn’t open it'; return; }
     const rv = e.target.closest && e.target.closest('[data-rec-video]');
-    if (rv) { QP.store.set('recorder.video', true); render(document.getElementById('main'), { status: true }); return; }
+    if (rv) { QP.store.set('recorder.video', true); render(document.getElementById('main'), { status: true, focus: '.sd-empty .sd-btn' }); return; }
     const on = e.target.closest && e.target.closest('[data-rec-on]');
-    if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); render(document.getElementById('main'), { status: true }); }
+    if (on) { QP.store.set('recorder.enabled', true); QP.store.set('tft.record', true); if (on.dataset.recOn === 'video') QP.store.set('recorder.video', true); render(document.getElementById('main'), { status: true, focus: '.sd-empty .sd-btn' }); }
   });
 
   // Studio in the sidebar (index.html) wears a small lime dot while the recorder is on.

@@ -74,11 +74,12 @@
     const fitsH = h => !dev.monitor || h <= dev.monitor.height;
     // The rail: what you're recording at (preset, size per hour, games that fit), the engine, and a jump to each card.
     const st0 = recState(r, eng);
-    // With video off, the sizes are moot: the rail says so and offers the switch.
-    const rail = `<aside class="sd-rail"><div class="sd-preset">${r.video ? `<small>Recording at</small><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b>
+    // With the recorder or video off, the sizes are moot: the rail says so and offers the switch (deck-out 3: it used to say
+    // "Recording at Balanced" with nothing recording).
+    const rail = `<aside class="sd-rail"><div class="sd-preset">${r.video && st0.cls !== 'off' ? `<small>Recording at</small><b>${E(O.QUALITY[r.quality] ? O.QUALITY[r.quality].label : 'Custom')}</b>
         <span>${r.height}p · ${r.fps} fps · ${r.mbps} Mbps</span>
         <div class="sd-figs"><p><b>${r.mode === 'clips' ? '<1' : O.gbPerHour(r)}</b><small>GB an hour</small></p><p><b>${O.gamesInCap(r)}</b><small>games fit in ${r.cap_gb} GB</small></p></div>`
-        : `<small>Recording</small><b>${st0.cls === 'off' ? 'Off' : 'Timelines'}</b><span>${st0.cls === 'off' ? 'New games aren’t kept.' : 'Video is off, so each game keeps its moments and result, a few KB.'}</span>${st0.cls === 'off' ? '' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}`}
+        : `<small>Recording</small><b>${st0.cls === 'off' ? 'Off' : 'Timelines'}</b><span>${st0.cls === 'off' ? 'New games aren’t kept.' : 'Video is off, so each game keeps its moments and result, a few KB.'}</span>${st0.cls === 'off' ? '<button type="button" class="sd-btn primary" data-rec-on>Record my games</button>' : '<button type="button" class="sd-btn primary" data-rec-video>Record video too</button>'}`}
         <p class="sd-eng ${ow ? 'on' : eng.engine ? 'warn' : 'off'}"><i class="sd-dot" aria-hidden="true"></i><span>${E(ow ? `Overwolf · ${encName(eng.encoder)}` : eng.engine === 'ffmpeg' ? `ffmpeg · ${encName(eng.encoder)} · no sound` : 'No video engine')}</span></p></div>
       <nav class="sd-jump" aria-label="Capture">${[['record', 'What gets recorded'], ['quality', 'Quality'], ['audio', 'Sound'], ['clips', 'Clips'], ['hotkey', 'Save the last moments'], ['storage', 'Storage'], ['publish', 'Publishing']].map(([k, l]) => `<a href="#/studio/capture" data-sd-jump="sd-${k}">${l}</a>`).join('')}</nav></aside>`;
     // What records video, and what to do when it can't (settings.js stEngineLine, which Settings used to show); checked again here.

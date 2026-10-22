@@ -244,3 +244,16 @@ console.log("test-recorder library days ok");
   assert.strictEqual(W.recGameKey({ game: "league" }), "League");
 }
 console.log("test-recorder library filter ok");
+
+// Studio deck-out 3: an empty Library or Highlights offers the one switch that fixes it, never one that can't help.
+{
+  const b = (page, s) => ctx.window.recEmptyState(page, s).btn;
+  assert.strictEqual(b("library", {}), "on");
+  assert.strictEqual(b("library", { on: true }), "video");
+  assert.strictEqual(b("library", { on: true, video: true }), "capture");
+  assert.strictEqual(b("highlights", { video: true }), "on-video"); // video alone records nothing
+  assert.strictEqual(b("highlights", { on: true }), "video");
+  assert.strictEqual(b("highlights", { on: true, video: true }), "capture");
+  assert.ok(!/—/.test(JSON.stringify([{}, { on: true }, { on: true, video: true }].map((s) => [ctx.window.recEmptyState("library", s), ctx.window.recEmptyState("highlights", s)]))));
+}
+console.log("test-recorder empty states ok");
