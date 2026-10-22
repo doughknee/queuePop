@@ -1,63 +1,38 @@
-# queuePop, marketing site
+# queuePop, public site
 
-Single-page marketing site for queuePop, built with **Vite + React**
-(TypeScript) and **Tailwind CSS v4**. It mirrors the app's Hextech visual
-identity (gold/teal palette, Cinzel/Marcellus type) using only license-clean
-assets, **no Riot Games artwork or trademarks** appear on the site.
+One page for the queuePop Overwolf build (the store edition, `app/edition.js`): what it does, that it plays fair, where to
+get it, plus `terms.html` and `privacy.html`. Vite + React, prerendered to static HTML at build time, so it needs no
+JavaScript to read and no server beyond static files.
 
-## Develop
+Every claim on the page has to be true of the store edition: it calls you back and highlights decisions, it never accepts a
+queue or locks in for you. Check `src/App.tsx` against `app/edition.js` before adding a feature line.
+
+## Look
+
+The app's tokens, verbatim (`src/webui/theme.css`): black `#0A0A0A`, one lime `#C6FF3D`, Anton for headlines, Space Mono
+for everything else (self-hosted in `public/fonts/`). No other colours or faces.
+
+## Screenshots
+
+`public/img/*.webp` are real screens from the packaged store build, shot with fake data: a scratch profile, the fake League
+client (`QP_FAKE_CS=draft`) and fixture recordings, with the recorder off so nothing captures the screen. The account in
+them is the fake client's "Fake #TEST". Retake them the same way when the app's look changes.
+
+## Develop and build
 
 ```bash
 cd site
 npm install
 npm run dev        # http://localhost:3000
+npm run build      # dist/: index.html prerendered, terms.html, privacy.html, assets
 ```
 
-## Build
+## Deploy
 
-```bash
-npm run build      # prerenders the page to static files in dist/
-npm run preview    # preview the production build locally
-```
+`Dockerfile` builds the site and serves `dist/` with nginx on port 3000 (Coolify: build pack Dockerfile, base directory
+`/site`). Any static host works: upload `dist/`.
 
-The page is prerendered to plain HTML + assets in `dist/` (an SSR pass bakes
-the rendered markup into `index.html`, see `prerender.mjs`), so this is a
-fully static site, no Node server at runtime.
+Before it goes public: fill the brackets in `public/terms.html` and `public/privacy.html` (effective date, contact email,
+log retention, governing law), and point the Overwolf listing and the Riot application at the live URL.
 
-## Deploy (Docker / Coolify)
-
-A `Dockerfile` builds the site and serves `dist/` with nginx. In Coolify:
-
-- Build Pack: **Dockerfile**
-- Base Directory: **/site**
-- Dockerfile: **./Dockerfile**
-- Port (Ports Exposes): **3000** — must match the container's listen port (nginx
-  listens on 3000, which is Coolify's default). A mismatch shows as "Bad Gateway".
-
-Or build it anywhere:
-
-```bash
-docker build -t queuepop-site ./site
-docker run -p 8080:3000 queuepop-site   # http://localhost:8080
-```
-
-Any static host also works, just upload `dist/`.
-
-## Things to wire up before launch
-
-- **Donate URL**, `src/data/content.ts` → `LINKS.donate` (Ko-fi / GitHub Sponsors).
-- Confirm the **download/GitHub** links in `src/data/content.ts` (point at the
-  `queuePop` repo, which must exist + have a release for the download to resolve).
-
-## Structure
-
-- `index.html` (document shell + head), `src/App.tsx` (the page),
-  `src/main.tsx` (client entry) and `src/prerender.tsx` (build-time SSR entry).
-- `src/components/`, section components + `PlayEmblem` (recreated from
-  `../../brand/play-button.svg`) and the `icons.tsx` original icon set.
-- `src/styles/globals.css`, Tailwind v4 `@theme` tokens + ported `.hextech` /
-  `.framed` / keyframe utilities. Fonts in `public/fonts/`.
-
-> queuePop is an unofficial, fan-made tool. Not endorsed by, affiliated with, or
-> sponsored by Riot Games. League of Legends and Riot Games are trademarks of
-> Riot Games, Inc.
+> queuePop isn't endorsed by Riot Games or Valve.
