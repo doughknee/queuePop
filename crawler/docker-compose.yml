@@ -3,7 +3,9 @@ services:
     build: .
     image: queuepop-crawler
     container_name: queuepop-crawler
-    restart: unless-stopped
+    restart: always # not unless-stopped: Unraid's shutdown is a `docker stop`, after which unless-stopped stays down at boot (HomeLab DONI-709)
+    init: true # reaps the health check's children; without it 1,000+ zombies piled up while the host thrashed (DONI-711)
+    mem_limit: 2g # a fuse, not a fix (DONI-711): a leak restarts the crawler instead of starving the host; steady state is ~400 MB
     env_file: .env
     ports:
       - "47900:47900"
