@@ -195,8 +195,9 @@ if (!cfg.key) log("RIOT_API_KEY not set: serving the existing DB until a key is 
 
 // Raw JSON retention: a minute after start (so a pass has happened), then daily.
 // In the worker too: the UPDATE + incremental vacuum held the API thread ~12 s (seen 2026-10-20 08:02Z).
+// During a pass it retries in 10 min (DONI-711): it used to skip to the next day, so passes on every boot meant it never ran.
 function retain() {
-  if (passing) return log("retention: skipped, aggregation running");
+  if (passing) { log("retention: aggregation running, retrying in 10 min"); return setTimeout(retain, 600000).unref(); }
   new (require("worker_threads").Worker)(require("path").join(__dirname, "agg-worker.js"), { workerData: { dbPath: cfg.dbPath, task: "retain", days: cfg.retentionDays } })
     .once("message", (n) => log(`retention: nulled raw on ${n} matches`))
     .once("error", (e) => log(`retention: ${e.message}`));
