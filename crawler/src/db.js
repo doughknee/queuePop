@@ -57,6 +57,7 @@ function open(file) {
   // synchronous NORMAL (WAL's usual setting): no fsync per commit, still never corrupt; a power cut can drop the last commits.
   // FULL fsynced every commit, and on Unraid's FUSE share that was 78% of the API thread (live profile 2026-10-20 22:12Z).
   db.exec("PRAGMA busy_timeout = 5000; PRAGMA auto_vacuum = INCREMENTAL; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
+  memoPrepare(db);
   db.exec(SCHEMA);
   require("./agg-players").migrate(db); // DONI-506: lol_names + stats_lol_player_champ
   db.exec(require("./agg-champion").SCHEMA); // DONI-507 champion depth tables
@@ -70,6 +71,26 @@ function open(file) {
   // runs while the crawl waits, DONI-596).
   for (const { name } of db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'stats_*'").all()) db.exec(`CREATE INDEX IF NOT EXISTS ${name}_patch ON ${name} (patch)`);
   return db;
+}
+
+// One compiled statement per SQL string per connection (DONI-711). The crawl prepared the same ~60 statements thousands of times
+// a minute and left finalizing them to GC, which barely runs on a 13 MB heap: native statement memory piled up between
+// collections. Every call site keeps `db.prepare(sql)`; this makes it a lookup. Statements against a dropped temp table (the
+// aggregation pass) re-prepare themselves on the next run, as SQLite does for any schema change. Bounded for dynamic SQL
+// (per-table names, IN lists): past STMT_CACHE entries the oldest goes. The one `.iterate()` (tft-comps.labelPatch) runs to
+// completion before the same statement is used again, so sharing is safe.
+const STMT_CACHE = 2000;
+function memoPrepare(db) {
+  const prepare = db.prepare.bind(db), cache = new Map();
+  db.prepare = (sql) => {
+    let st = cache.get(sql);
+    if (!st) {
+      st = prepare(sql);
+      cache.set(sql, st);
+      if (cache.size > STMT_CACHE) cache.delete(cache.keys().next().value);
+    }
+    return st;
+  };
 }
 
 function tx(db, fn) {

@@ -62,18 +62,31 @@ function objectiveRows(info) {
 const shardsOf = (p) => { const s = p.perks?.statPerks; return s ? [s.offense, s.flex, s.defense].join(",") : null; };
 
 // Reads and parses outside locked(fn) (the aggregation worker's crawl pause), writes inside it.
-function ingestRaw(db, locked = (fn) => fn()) {
-  const todo = db.prepare(`SELECT id, raw FROM matches m WHERE game = 'lol' AND status = 'done' AND raw IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM lol_objectives o WHERE o.match_id = m.id)`).all();
-  const rows = todo.map((r) => { const info = JSON.parse(zlib.gunzipSync(r.raw)).info; return [r.id, objectiveRows(info), info.participants || []]; });
+// In batches of INGEST_BATCH by match id (DONI-711): one .all() of the whole backlog held every raw blob and every parsed match
+// at once. After one OOM-killed pass nothing was written, so each later pass had more to load and died sooner; no pass finished
+// from 2026-10-24 to 11-04 while the 2 GB fuse restarted the crawler every ~10 min. A batch keeps only the rows it writes, and a
+// killed pass keeps the batches it committed. The id cursor also steps past matches that yield no objective rows.
+const INGEST_BATCH = 1000;
+function ingestRaw(db, locked = (fn) => fn(), batch = INGEST_BATCH) {
+  const page = db.prepare(`SELECT id, raw FROM matches m WHERE game = 'lol' AND status = 'done' AND raw IS NOT NULL AND id > ?
+    AND NOT EXISTS (SELECT 1 FROM lol_objectives o WHERE o.match_id = m.id) ORDER BY id LIMIT ?`);
   const ins = db.prepare("INSERT INTO lol_objectives VALUES (?, ?, ?, ?)"), sh = db.prepare("INSERT INTO lol_shards VALUES (?, ?, ?)");
-  locked(() => tx(db, () => {
-    for (const [id, objs, parts] of rows) {
-      for (const x of objs) ins.run(id, ...x);
-      for (const p of parts) if (shardsOf(p)) sh.run(id, p.puuid, shardsOf(p));
-    }
-  }));
-  return todo.length;
+  let after = "", n = 0;
+  for (;;) {
+    const todo = page.all(after, batch);
+    if (!todo.length) return n;
+    const rows = todo.map((r) => {
+      const info = JSON.parse(zlib.gunzipSync(r.raw)).info;
+      return [r.id, objectiveRows(info), (info.participants || []).map((p) => [p.puuid, shardsOf(p)]).filter((x) => x[1])];
+    });
+    locked(() => tx(db, () => {
+      for (const [id, objs, shards] of rows) {
+        for (const x of objs) ins.run(id, ...x);
+        for (const x of shards) sh.run(id, ...x);
+      }
+    }));
+    n += todo.length; after = todo[todo.length - 1].id;
+  }
 }
 
 // INSERT ... SELECT per patch; M joins matches on the patch placeholder, K is "m.patch, m.region, m.bracket" (jobs.aggregate).

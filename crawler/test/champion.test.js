@@ -6,7 +6,7 @@ const { open } = require("../src/db");
 const { aggregate } = require("../src/jobs");
 const { lolChampion } = require("../src/server");
 const { parseTimeline } = require("../src/timeline");
-const { storeTimeline, objectiveRows } = require("../src/agg-champion");
+const { storeTimeline, objectiveRows, ingestRaw } = require("../src/agg-champion");
 
 test("timeline parse: starting items, early items, build order, full skill order", () => {
   const m = require("../fixtures/lol-match-1.json"), tl = require("../fixtures/lol-timeline-1.json");
@@ -85,4 +85,25 @@ test("champion depth: objectives, sides, synergies, stat mods, starting, build o
   assert.strictEqual(c.skills[15][0].key, "QEWQQRQQEEREEWW");
   assert.deepStrictEqual(c.shards.map((x) => [x.key, x.games, x.winRate, x.pickRate]).sort(), [["5008,5008,5001", 1, 0, 0.5], ["5008,5008,5011", 1, 1, 0.5]]);
   assert.deepStrictEqual(c.matchups.map((m) => [m.opponent, m.delta1]), [[1, 0]]);
+});
+
+// DONI-711: the backlog is ingested in batches; each batch commits on its own, and a match with no objective rows (no teams in its
+// raw) doesn't stall the id cursor. One .all() of the whole backlog OOM-killed every pass for 11 days.
+test("ingestRaw: batches by id, commits each batch, steps past matches with nothing to ingest", () => {
+  const db = open(":memory:");
+  const match = db.prepare("INSERT INTO matches (id, game, region, bracket, status, patch, raw) VALUES (?, 'lol', 'na1', 'DIAMOND', 'done', '16.20', ?)");
+  const team = (t) => ({ teamId: t, objectives: { champion: { first: t === 100 }, dragon: { first: false, kills: 0 } } });
+  for (const id of ["M1", "M2", "M3", "M4", "M5"]) {
+    const info = id === "M2" ? { participants: [] } // no teams: no objective rows, so the old NOT EXISTS query found it every time
+      : { participants: [{ puuid: id + "p", perks: { statPerks: { offense: 5008, flex: 5008, defense: 5011 } } }], teams: [team(100), team(200)] };
+    match.run(id, zlib.gzipSync(JSON.stringify({ info })));
+  }
+  let locks = 0;
+  assert.strictEqual(ingestRaw(db, (fn) => { locks++; return fn(); }, 2), 5);
+  assert.strictEqual(locks, 3, "5 matches in batches of 2 = 3 locked commits");
+  const has = db.prepare("SELECT DISTINCT match_id FROM lol_objectives ORDER BY 1").all().map((r) => r.match_id);
+  assert.deepStrictEqual(has, ["M1", "M3", "M4", "M5"]);
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_shards").get().n, 4);
+  assert.strictEqual(ingestRaw(db, undefined, 2), 1, "a second pass only re-reads the match with nothing to ingest");
+  assert.strictEqual(db.prepare("SELECT count(*) n FROM lol_objectives").get().n, 4 * 2 * 3, "nothing written twice (2 teams x first_blood, first_dragon, soul)");
 });
